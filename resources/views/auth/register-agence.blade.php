@@ -10,14 +10,38 @@
             <div class="brand-mark">D</div>
             <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--gold)">Immo</span></div>
         </div>
-        <div>
-            <p class="quote">« On touche des clients qu'on n'aurait jamais eus par le bouche-à-oreille. »</p>
-            <p class="quote-by">— Agence partenaire, Almadies</p>
+        
+        <!-- Statistiques -->
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:24px;">
+            <!-- Citation -->
+            <div>
+                <p class="quote" style="font-size:20px;margin:0;">
+                    « On touche des clients qu'on n'aurait jamais eus par le bouche-à-oreille. »
+                </p>
+                <p class="quote-by" style="margin-top:8px;">— Agence partenaire, Almadies</p>
+            </div>
+
+            <!-- Statistiques dynamiques -->
+            <div class="auth-stats" style="margin-top:0;">
+                <div>
+                    <b style="font-size:28px;">{{ $stats['offres_gratuites'] ?? 5 }}</b>
+                    <span style="font-size:13px;color:#9AA1AB;">Offres gratuites / mois</span>
+                </div>
+                <div>
+                    <b style="font-size:28px;">{{ $stats['frais_inscription'] ?? '0 F' }}</b>
+                    <span style="font-size:13px;color:#9AA1AB;">Frais d'inscription</span>
+                </div>
+                <div>
+                    <b style="font-size:28px;">{{ $stats['delai_validation'] ?? '48h' }}</b>
+                    <span style="font-size:13px;color:#9AA1AB;">Validation moyenne</span>
+                </div>
+            </div>
         </div>
-        <div class="auth-stats">
-            <div><b>5</b><span>Offres gratuites / mois</span></div>
-            <div><b>0 F</b><span>Frais d'inscription</span></div>
-            <div><b>48h</b><span>Validation moyenne du compte</span></div>
+
+        <!-- Footer visuel -->
+        <div style="font-size:12px;color:#6A7280;margin-top:20px;">
+            <i class="fa-regular fa-circle-check" style="color:var(--gold);"></i>
+            {{ $stats['agences'] ?? 0 }} agences déjà inscrites sur DoyaImmo
         </div>
     </div>
 
@@ -149,6 +173,14 @@
                     <div class="field">
                         <label for="mot_de_passe_confirmation">Confirmation <span class="required">*</span></label>
                         <input type="password" id="mot_de_passe_confirmation" name="mot_de_passe_confirmation" placeholder="Confirmer le mot de passe" required>
+                    </div>
+
+                    <!-- Indicateur de force du mot de passe -->
+                    <div class="password-strength" style="display:none;margin-top:8px;">
+                        <div style="height:4px;border-radius:2px;background:var(--border);overflow:hidden;">
+                            <div id="strengthBar" style="height:100%;width:0%;transition:width 0.3s;border-radius:2px;"></div>
+                        </div>
+                        <span id="strengthText" style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">Force : Faible</span>
                     </div>
                 </div>
 
@@ -398,6 +430,16 @@
         color: var(--text);
     }
 
+    /* Password strength */
+    .password-strength {
+        animation: strengthPulse 0.3s ease;
+    }
+
+    @keyframes strengthPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
     /* ===================== DOCUMENTS ===================== */
     .documents-group {
         background: #FAFBFC;
@@ -626,6 +668,55 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Password strength meter
+    const passwordInput = document.getElementById('mot_de_passe');
+    const strengthBar = document.getElementById('strengthBar');
+    const strengthText = document.getElementById('strengthText');
+    const strengthContainer = document.querySelector('.password-strength');
+
+    passwordInput.addEventListener('input', function() {
+        const password = this.value;
+        
+        if (password.length === 0) {
+            strengthContainer.style.display = 'none';
+            return;
+        }
+
+        strengthContainer.style.display = 'block';
+        
+        let strength = 0;
+        let label = 'Faible';
+        let color = '#C62828';
+
+        if (password.length >= 8) strength += 1;
+        if (password.length >= 12) strength += 1;
+        if (/[A-Z]/.test(password)) strength += 1;
+        if (/[a-z]/.test(password)) strength += 1;
+        if (/[0-9]/.test(password)) strength += 1;
+        if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+
+        let percentage = Math.min((strength / 6) * 100, 100);
+
+        if (strength <= 2) {
+            label = 'Faible';
+            color = '#C62828';
+        } else if (strength <= 4) {
+            label = 'Moyen';
+            color = '#F5A623';
+        } else if (strength <= 5) {
+            label = 'Fort';
+            color = '#4A90D9';
+        } else {
+            label = 'Très fort';
+            color = '#1E7A47';
+        }
+
+        strengthBar.style.width = percentage + '%';
+        strengthBar.style.background = color;
+        strengthText.textContent = 'Force : ' + label;
+        strengthText.style.color = color;
+    });
+
     // File upload indicator
     document.querySelectorAll('.document-item input[type="file"]').forEach(input => {
         input.addEventListener('change', function() {
@@ -634,7 +725,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (this.files.length > 0) {
                 item.classList.add('has-file');
-                // Optionnel : afficher le nom du fichier
                 const fileName = this.files[0].name;
                 const text = label.textContent;
                 label.textContent = text.length > 15 ? text.substring(0, 12) + '…' : text;
@@ -651,6 +741,51 @@ document.addEventListener('DOMContentLoaded', function() {
             input.addEventListener('blur', function() {
                 this.value = this.value.charAt(0).toUpperCase() + this.value.slice(1).toLowerCase();
             });
+        }
+    });
+
+    // Form validation
+    const form = document.getElementById('registerForm');
+    form.addEventListener('submit', function(e) {
+        const password = document.getElementById('mot_de_passe').value;
+        const confirm = document.getElementById('mot_de_passe_confirmation').value;
+        const conditions = document.querySelector('input[name="conditions"]');
+
+        if (password !== confirm) {
+            e.preventDefault();
+            alert('Les mots de passe ne correspondent pas.');
+            return;
+        }
+
+        if (password.length < 8) {
+            e.preventDefault();
+            alert('Le mot de passe doit contenir au moins 8 caractères.');
+            return;
+        }
+
+        if (!conditions.checked) {
+            e.preventDefault();
+            alert('Vous devez accepter les conditions d\'utilisation.');
+            return;
+        }
+
+        // Vérifier les fichiers obligatoires
+        const requiredDocs = ['document_rccm', 'document_ninea', 'document_piece_identite'];
+        let missingDocs = false;
+        requiredDocs.forEach(id => {
+            const input = document.getElementById(id);
+            if (!input.files || !input.files[0]) {
+                missingDocs = true;
+                input.classList.add('is-invalid');
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        });
+
+        if (missingDocs) {
+            e.preventDefault();
+            alert('Veuillez télécharger tous les documents obligatoires.');
+            return;
         }
     });
 });

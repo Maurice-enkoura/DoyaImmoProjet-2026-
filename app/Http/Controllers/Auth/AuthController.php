@@ -14,7 +14,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
 use App\Enums\RoleEnum;
-
+use App\Enums\StatutDemandeEnum;
+use App\Models\DemandeImmobiliere;
+use App\Models\Evaluation;
 class AuthController extends Controller
 {
     public function __construct(private DocumentService $documentService) {}
@@ -22,40 +24,88 @@ class AuthController extends Controller
     /**
      * Affiche la page de choix du type de compte
      */
-    public function showRegister()
-    {
-        return view('auth.register');
-    }
+   public function showRegister()
+{
+    $stats = [
+        'besoins' => DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count(),
+        'agences' => Agence::where('statut_validation', true)->count(),
+        'delai_moyen' => '48h',
+        'clients' => User::where('role', 'particulier')->count(),
+    ];
+    
+    return view('auth.register', compact('stats'));
+}
 
     /**
      * Affiche la page d'inscription particulier
      */
-    public function showRegisterParticulier()
-    {
-        return view('auth.register-particulier');
-    }
+   public function showRegisterParticulier()
+{
+    $stats = [
+        'besoins' => DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count(),
+        'agences' => Agence::where('statut_validation', true)->count(),
+        'delai_moyen' => '48h', // Valeur fixe
+        'clients' => User::where('role', 'particulier')->count(),
+    ];
+    
+    return view('auth.register-particulier', compact('stats'));
+}
 
     /**
      * Affiche la page d'inscription agence
      */
-    public function showRegisterAgence()
-    {
-        return view('auth.register-agence');
-    }
+   public function showRegisterAgence()
+{
+    $stats = [
+        'agences' => Agence::where('statut_validation', true)->count(),
+        'offres_gratuites' => 5, // 
+        'frais_inscription' => '0 F', 
+        'delai_validation' => '48h', 
+    ];
+    
+    return view('auth.register-agence', compact('stats'));
+}
 
     /**
      * Affiche la page de connexion
      */
-    public function showLogin(Request $request)
-    {
-        $type = $request->get('type', 'particulier');
-        
-        if ($type === 'agence') {
-            return view('auth.login-agence');
-        }
-        
-        return view('auth.login');
+    /**
+ * Affiche la page de connexion
+ */
+public function showLogin(Request $request)
+{
+    $type = $request->get('type', 'particulier');
+    
+    // Récupérer les statistiques dynamiques
+    $stats = [
+        'besoins' => DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count(),
+        'agences' => Agence::where('statut_validation', true)->count(),
+        'note_moyenne' => Evaluation::avg('note') ?? 0,
+        'clients' => User::where('role', 'particulier')->count(),
+        'offres_moyenne' => $this->calculerOffresMoyenne(), // Nouvelle statistique
+    ];
+    
+    if ($type === 'agence') {
+        return view('auth.login-agence', compact('stats'));
     }
+    
+    return view('auth.login', compact('stats'));
+}
+
+/**
+ * Calcule la moyenne d'offres envoyées par mois
+ */
+private function calculerOffresMoyenne(): int
+{
+    $totalOffres = \App\Models\Proposition::count();
+    $moisActifs = \App\Models\Proposition::selectRaw('COUNT(DISTINCT DATE_FORMAT(created_at, "%Y-%m")) as count')->first();
+    
+    if ($moisActifs && $moisActifs->count > 0) {
+        return round($totalOffres / $moisActifs->count);
+    }
+    
+    return 42; // Valeur par défaut
+}
 
     /**
      * Traite la connexion

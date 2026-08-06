@@ -9,14 +9,38 @@
             <div class="brand-mark">D</div>
             <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--gold)">Immo</span></div>
         </div>
-        <div>
-            <p class="quote">« Depuis qu'on est sur DoyaImmo, on reçoit des demandes qualifiées chaque semaine, sans démarchage. »</p>
-            <p class="quote-by">— Teranga Immobilier, agence partenaire</p>
+        
+        <!-- Statistiques -->
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:24px;">
+            <!-- Citation -->
+            <div>
+                <p class="quote" style="font-size:20px;margin:0;">
+                    « Depuis qu'on est sur DoyaImmo, on reçoit des demandes qualifiées chaque semaine, sans démarchage. »
+                </p>
+                <p class="quote-by" style="margin-top:8px;">— Teranga Immobilier, agence partenaire</p>
+            </div>
+
+            <!-- Statistiques dynamiques -->
+            <div class="auth-stats" style="margin-top:0;">
+                <div>
+                    <b style="font-size:28px;">{{ $stats['agences'] ?? 0 }}+</b>
+                    <span style="font-size:13px;color:#9AA1AB;">Agences actives</span>
+                </div>
+                <div>
+                    <b style="font-size:28px;">{{ $stats['offres_moyenne'] ?? 42 }}</b>
+                    <span style="font-size:13px;color:#9AA1AB;">Offres/mois en moyenne</span>
+                </div>
+                <div>
+                    <b style="font-size:28px;">{{ number_format($stats['note_moyenne'] ?? 0, 1) }}★</b>
+                    <span style="font-size:13px;color:#9AA1AB;">Note moyenne agences</span>
+                </div>
+            </div>
         </div>
-        <div class="auth-stats">
-            <div><b>180+</b><span>Agences actives</span></div>
-            <div><b>42</b><span>Offres envoyées / mois en moyenne</span></div>
-            <div><b>4.6★</b><span>Note moyenne agences</span></div>
+
+        <!-- Footer visuel -->
+        <div style="font-size:12px;color:#6A7280;margin-top:20px;">
+            <i class="fa-regular fa-circle-check" style="color:var(--gold);"></i>
+            {{ $stats['besoins'] ?? 0 }} besoins actifs en attente de réponse
         </div>
     </div>
 
@@ -28,8 +52,12 @@
             </div>
 
             <div class="role-toggle">
-                <a href="{{ route('login') }}">Espace client</a>
-                <a href="{{ route('login.agence') }}" class="active">Espace agence</a>
+                <a href="{{ route('login') }}" class="{{ request('type') != 'agence' ? 'active' : '' }}">
+                    <i class="fa-solid fa-user"></i> Espace client
+                </a>
+                <a href="{{ route('login.agence') }}" class="{{ request('type') == 'agence' ? 'active' : '' }}">
+                    <i class="fa-solid fa-building"></i> Espace agence
+                </a>
             </div>
 
             <h1>Espace agence</h1>
@@ -80,11 +108,16 @@
                         Mot de passe 
                         <a href="#" style="color:var(--rust); font-weight:600;font-size:12px;">Oublié ?</a>
                     </label>
-                    <input type="password" 
-                           id="password" 
-                           name="mot_de_passe" 
-                           placeholder="••••••••" 
-                           required>
+                    <div class="password-wrapper">
+                        <input type="password" 
+                               id="password" 
+                               name="mot_de_passe" 
+                               placeholder="••••••••" 
+                               required>
+                        <button type="button" class="toggle-password" aria-label="Afficher le mot de passe" onclick="togglePassword()">
+                            <i class="fas fa-eye" id="passwordIcon"></i>
+                        </button>
+                    </div>
                     @error('mot_de_passe')
                         <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                     @enderror
@@ -114,7 +147,25 @@
         </div>
     </div>
 </div>
-@endsection
+
+@push('scripts')
+<script>
+    function togglePassword() {
+        const passwordInput = document.getElementById('password');
+        const icon = document.getElementById('passwordIcon');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+</script>
+@endpush
 
 @push('styles')
 <style>
@@ -163,6 +214,7 @@
     .field input:focus {
         outline: none;
         border-color: var(--rust);
+        box-shadow: 0 0 0 3px rgba(181, 80, 42, 0.08);
     }
     .field input.is-invalid {
         border-color: #C62828;
@@ -179,6 +231,31 @@
         width: 16px;
         height: 16px;
         cursor: pointer;
+        accent-color: var(--rust);
+    }
+
+    /* Password toggle */
+    .password-wrapper {
+        position: relative;
+    }
+    .password-wrapper input {
+        padding-right: 44px;
+    }
+    .toggle-password {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 4px;
+        font-size: 16px;
+        transition: color 0.2s;
+    }
+    .toggle-password:hover {
+        color: var(--text);
     }
 </style>
 @endpush

@@ -4,18 +4,17 @@ namespace App\Notifications;
 
 use App\Models\Agence;
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 
 class AgenceRefuseeNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(
-        protected Agence $agence,
-        protected ?string $motif = null
-    ) {}
+    public function __construct(protected Agence $agence, protected string $motif)
+    {
+    }
 
     public function via($notifiable): array
     {
@@ -24,28 +23,36 @@ class AgenceRefuseeNotification extends Notification implements ShouldQueue
 
     public function toMail($notifiable): MailMessage
     {
-        $mail = (new MailMessage)
-            ->subject('Agence non validée')
-            ->greeting('Bonjour ' . $notifiable->nom)
-            ->line('Nous regrettons de vous informer que votre agence "' . $this->agence->nom_agence . '" n\'a pas été validée.');
+        return (new MailMessage)
+            ->subject('❌ Demande de validation agence - DoyaImmo')
+            ->greeting('Bonjour ' . $notifiable->prenom . ' ' . $notifiable->nom . ' !')
+            ->line('Nous avons examiné votre demande de validation pour l\'agence **' . $this->agence->nom_agence . '**.')
+            ->line('')
+            ->line('**Motif du refus :**')
+            ->line($this->motif)
+            ->line('')
+            ->line('Veuillez corriger les points mentionnés et soumettre à nouveau votre demande.')
+            ->action('Soumettre à nouveau', url('/agence/profil'))
+            ->line('')
+            ->line('Si vous avez des questions, n\'hésitez pas à nous contacter.')
+            ->salutation('L\'équipe DoyaImmo');
+    }
 
-        if ($this->motif) {
-            $mail->line('Motif: ' . $this->motif);
-        }
-
-        $mail->line('Veuillez contacter l\'administrateur pour plus d\'informations.')
-            ->line('Merci d\'utiliser DoyaImmo !');
-
-        return $mail;
+    public function toDatabase($notifiable): array
+    {
+        return [
+            'title' => 'Agence refusée',
+            'message' => 'Votre agence a été refusée. Motif : ' . $this->motif,
+            'type' => 'error',
+            'icon' => 'fa-times-circle',
+            'link' => route('agence.profil'),
+            'agence_id' => $this->agence->id,
+            'motif' => $this->motif,
+        ];
     }
 
     public function toArray($notifiable): array
     {
-        return [
-            'agence_id' => $this->agence->id,
-            'nom_agence' => $this->agence->nom_agence,
-            'motif' => $this->motif,
-            'message' => 'Votre agence a été refusée',
-        ];
+        return $this->toDatabase($notifiable);
     }
 }

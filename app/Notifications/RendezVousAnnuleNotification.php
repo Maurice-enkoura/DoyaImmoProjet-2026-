@@ -4,18 +4,17 @@ namespace App\Notifications;
 
 use App\Models\RendezVous;
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 
 class RendezVousAnnuleNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(
-        protected RendezVous $rendezVous,
-        protected ?string $motif = null
-    ) {}
+    public function __construct(protected RendezVous $rendezVous)
+    {
+    }
 
     public function via($notifiable): array
     {
@@ -24,28 +23,47 @@ class RendezVousAnnuleNotification extends Notification implements ShouldQueue
 
     public function toMail($notifiable): MailMessage
     {
-        $mail = (new MailMessage)
-            ->subject('Rendez-vous annulé')
-            ->greeting('Bonjour ' . $notifiable->nom)
-            ->line('Un rendez-vous a été annulé par l\'agence.')
-            ->line('Date: ' . $this->rendezVous->date_visite->format('d/m/Y'))
-            ->line('Heure: ' . $this->rendezVous->heure_visite->format('H:i'));
+        $agence = $this->rendezVous->agence;
+        $dateVisite = $this->rendezVous->date_visite ? $this->rendezVous->date_visite->format('d/m/Y') : 'N/A';
+        $heureVisite = $this->rendezVous->heure_visite ?? $this->rendezVous->creneau->heure_debut ?? 'N/A';
 
-        if ($this->motif) {
-            $mail->line('Motif: ' . $this->motif);
+        $message = (new MailMessage)
+            ->subject('❌ Rendez-vous annulé - DoyaImmo')
+            ->greeting('Bonjour ' . $notifiable->prenom . ' !')
+            ->line('Votre rendez-vous a été annulé :')
+            ->line('')
+            ->line('**Date :** ' . $dateVisite)
+            ->line('**Heure :** ' . $heureVisite);
+
+        if ($agence) {
+            $message->line('**Agence :** ' . $agence->nom_agence);
         }
 
-        return $mail->line('Merci d\'utiliser DoyaImmo !');
+        $message->line('')
+                ->line('Vous pouvez planifier un nouveau rendez-vous à tout moment.')
+                ->action('Planifier un rendez-vous', url('/particulier/rendezvous/create'))
+                ->line('')
+                ->line('Nous sommes désolés pour ce contretemps.')
+                ->salutation('L\'équipe DoyaImmo');
+
+        return $message;
+    }
+
+    public function toDatabase($notifiable): array
+    {
+        return [
+            'title' => 'Rendez-vous annulé',
+            'message' => 'Votre rendez-vous du ' . ($this->rendezVous->date_visite ? $this->rendezVous->date_visite->format('d/m/Y') : 'N/A') . ' a été annulé.',
+            'type' => 'error',
+            'icon' => 'fa-calendar-xmark',
+            'link' => route('particulier.rendezvous.create'),
+            'rendezvous_id' => $this->rendezVous->id,
+            'agence_nom' => $this->rendezVous->agence->nom_agence ?? 'N/A',
+        ];
     }
 
     public function toArray($notifiable): array
     {
-        return [
-            'rendezvous_id' => $this->rendezVous->id,
-            'date_visite' => $this->rendezVous->date_visite->format('d/m/Y'),
-            'heure_visite' => $this->rendezVous->heure_visite->format('H:i'),
-            'motif' => $this->motif,
-            'message' => 'Rendez-vous annulé',
-        ];
+        return $this->toDatabase($notifiable);
     }
 }

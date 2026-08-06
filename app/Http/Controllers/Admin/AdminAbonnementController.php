@@ -10,6 +10,9 @@ use Illuminate\Http\Request;
 
 class AdminAbonnementController extends Controller
 {
+    /**
+     * Liste des abonnements
+     */
     public function index()
     {
         $abonnements = Abonnement::with('agence.user')
@@ -28,79 +31,57 @@ class AdminAbonnementController extends Controller
         return view('admin.abonnements.index', compact('abonnements', 'stats'));
     }
 
+    /**
+     * Détail d'un abonnement
+     */
     public function show(Abonnement $abonnement)
     {
         $abonnement->load('agence.user');
         return view('admin.abonnements.show', compact('abonnement'));
     }
 
-    public function create()
+    /**
+     * SUPPRIMÉ : create() - Les agences souscrivent elles-mêmes
+     * SUPPRIMÉ : store() - Les agences souscrivent elles-mêmes
+     * SUPPRIMÉ : edit() - L'admin ne modifie pas les caractéristiques
+     * SUPPRIMÉ : update() - L'admin ne modifie pas les caractéristiques
+     */
+
+    /**
+     * Activer un abonnement (réactiver après suspension)
+     */
+    public function activer(Abonnement $abonnement)
     {
-        $agences = Agence::with('user')->get();
-        $formules = FormuleAbonnementEnum::cases();
-        return view('admin.abonnements.create', compact('agences', 'formules'));
-    }
-
-    public function store(Request $request)
-    {
-        $request->validate([
-            'agence_id' => 'required|exists:agences,id',
-            'formule' => 'required|in:' . implode(',', array_column(FormuleAbonnementEnum::cases(), 'value')),
-            'date_debut' => 'required|date',
-            'date_fin' => 'required|date|after:date_debut',
-            'statut' => 'boolean',
-        ]);
-
-        $formule = FormuleAbonnementEnum::from($request->formule);
-
-        // Désactiver les anciens abonnements
-        Abonnement::where('agence_id', $request->agence_id)
+        $abonnement->update(['statut' => true]);
+        
+        // Désactiver les autres abonnements de l'agence
+        Abonnement::where('agence_id', $abonnement->agence_id)
+            ->where('id', '!=', $abonnement->id)
             ->where('statut', true)
             ->update(['statut' => false]);
 
-        Abonnement::create([
-            'agence_id' => $request->agence_id,
-            'formule' => $request->formule,
-            'montant' => $formule->prix(),
-            'date_debut' => $request->date_debut,
-            'date_fin' => $request->date_fin,
-            'statut' => $request->boolean('statut'),
-        ]);
-
-        return redirect()->route('admin.abonnements')->with('success', 'Abonnement créé avec succès.');
+        return redirect()->route('admin.abonnements.index')
+            ->with('success', 'Abonnement réactivé avec succès.');
     }
 
-    public function edit(Abonnement $abonnement)
+    /**
+     * Désactiver un abonnement (suspendre)
+     */
+    public function desactiver(Abonnement $abonnement)
     {
-        $formules = FormuleAbonnementEnum::cases();
-        return view('admin.abonnements.edit', compact('abonnement', 'formules'));
+        $abonnement->update(['statut' => false]);
+
+        return redirect()->route('admin.abonnements.index')
+            ->with('success', 'Abonnement suspendu avec succès.');
     }
 
-    public function update(Request $request, Abonnement $abonnement)
-    {
-        $request->validate([
-            'formule' => 'required|in:' . implode(',', array_column(FormuleAbonnementEnum::cases(), 'value')),
-            'date_debut' => 'required|date',
-            'date_fin' => 'required|date|after:date_debut',
-            'statut' => 'boolean',
-        ]);
-
-        $formule = FormuleAbonnementEnum::from($request->formule);
-
-        $abonnement->update([
-            'formule' => $request->formule,
-            'montant' => $formule->prix(),
-            'date_debut' => $request->date_debut,
-            'date_fin' => $request->date_fin,
-            'statut' => $request->boolean('statut'),
-        ]);
-
-        return redirect()->route('admin.abonnements')->with('success', 'Abonnement mis à jour.');
-    }
-
+    /**
+     * Supprimer un abonnement
+     */
     public function destroy(Abonnement $abonnement)
     {
         $abonnement->delete();
-        return redirect()->route('admin.abonnements')->with('success', 'Abonnement supprimé.');
+        return redirect()->route('admin.abonnements.index')
+            ->with('success', 'Abonnement supprimé avec succès.');
     }
 }

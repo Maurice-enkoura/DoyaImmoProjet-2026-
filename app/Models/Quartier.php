@@ -71,4 +71,6 @@ class Quartier extends Model
 {
     return $this->demandes()->where('statut', 'en_attente')->count();
 }
+
+
 }

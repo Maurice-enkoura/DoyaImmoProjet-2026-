@@ -20,9 +20,27 @@ enum FormuleAbonnementEnum: string
     public function prix(): float
     {
         return match($this) {
-            self::BASIC => 0,
-            self::PREMIUM => 49.99,
-            self::PRO => 99.99,
+            self::BASIC => 0,      // Gratuit
+            self::PREMIUM => 200,  // 200 FCFA / mois
+            self::PRO => 500,      // 500 FCFA / mois
+        };
+    }
+
+    public function prixMensuel(): string
+    {
+        return match($this) {
+            self::BASIC => 'Gratuit',
+            self::PREMIUM => '200 FCFA',
+            self::PRO => '500 FCFA',
+        };
+    }
+
+    public function prixAnnuel(): string
+    {
+        return match($this) {
+            self::BASIC => 'Gratuit',
+            self::PREMIUM => '2 400 FCFA',
+            self::PRO => '6 000 FCFA',
         };
     }
 
@@ -32,6 +50,15 @@ enum FormuleAbonnementEnum: string
             self::BASIC => 5,
             self::PREMIUM => 20,
             self::PRO => PHP_INT_MAX,
+        };
+    }
+
+    public function getDuree(): string
+    {
+        return match($this) {
+            self::BASIC => '1 mois',
+            self::PREMIUM => '1 mois',
+            self::PRO => '1 mois',
         };
     }
 

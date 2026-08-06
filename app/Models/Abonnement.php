@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Enums\FormuleAbonnementEnum;
+use App\Services\PayDunyaService;
 
 class Abonnement extends Model
 {
@@ -20,6 +21,9 @@ class Abonnement extends Model
         'date_debut',
         'date_fin',
         'statut',
+        'paydunya_token',
+        'paydunya_status',
+        'paydunya_paid_at',
     ];
 
     protected $casts = [
@@ -28,6 +32,7 @@ class Abonnement extends Model
         'date_debut' => 'datetime',
         'date_fin' => 'datetime',
         'statut' => 'boolean',
+        'paydunya_paid_at' => 'datetime',
     ];
 
     public function agence(): BelongsTo
@@ -56,4 +61,52 @@ class Abonnement extends Model
     {
         return $this->statut && $this->date_fin->between(now(), now()->addDays($days));
     }
+
+    /**
+     * Génère l'URL de paiement PayDunya pour cet abonnement
+     */
+    public function getPayDunyaUrl(): string
+    {
+        try {
+            $paydunya = app(PayDunyaService::class);
+            $result = $paydunya->createInvoice($this, $this->agence);
+            
+            if ($result['success']) {
+                return $result['invoice_url'];
+            }
+            
+            return '';
+        } catch (\Exception $e) {
+            \Log::error('Erreur PayDunya: ' . $e->getMessage());
+            return '';
+        }
+    }
+
+    /**
+     * Vérifie si l'abonnement a un token PayDunya
+     */
+    public function hasPayDunyaToken(): bool
+    {
+        return !empty($this->paydunya_token);
+    }
+
+    /**
+     * Vérifie si le paiement PayDunya est en attente
+     */
+    public function isPayDunyaPending(): bool
+    {
+        return $this->paydunya_status === 'pending' && !$this->estActif();
+    }
+
+    /**
+     * Vérifie si le paiement PayDunya a été payé
+     */
+    public function isPayDunyaPaid(): bool
+    {
+        return $this->paydunya_status === 'paid' || $this->estActif();
+    }
+
+    // Dans app/Models/Abonnement.php
+
+
 }

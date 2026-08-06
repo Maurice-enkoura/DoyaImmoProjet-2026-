@@ -37,7 +37,7 @@
             line-height: 1.6;
         }
 
-        /* Auth Shell */
+        /* ==================== AUTH SHELL ==================== */
         .auth-shell {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -50,7 +50,7 @@
             }
         }
 
-        /* Visual Side */
+        /* ==================== VISUAL SIDE ==================== */
         .auth-visual {
             background: var(--ink);
             color: #fff;
@@ -102,6 +102,7 @@
             margin-top: 40px;
             position: relative;
             z-index: 2;
+            flex-wrap: wrap;
         }
 
         .auth-stats div b {
@@ -116,13 +117,21 @@
             color: #8A91A0;
         }
 
-        /* Form Side */
+        /* ==================== FORM SIDE ==================== */
         .auth-form-side {
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 40px 24px;
             background: #fff;
+            min-height: 100vh;
+        }
+
+        @media (max-width: 860px) {
+            .auth-form-side {
+                min-height: auto;
+                padding: 32px 20px;
+            }
         }
 
         .auth-box {
@@ -130,7 +139,7 @@
             width: 100%;
         }
 
-        /* Brand */
+        /* ==================== BRAND ==================== */
         .brand {
             display: flex;
             align-items: center;
@@ -160,7 +169,7 @@
             font-size: 18px;
         }
 
-        /* Role Toggle - Style moderne */
+        /* ==================== ROLE TOGGLE ==================== */
         .role-toggle {
             display: flex;
             background: #F0F2F5;
@@ -228,7 +237,7 @@
             color: #fff;
         }
 
-        /* Typography */
+        /* ==================== TYPOGRAPHY ==================== */
         .auth-box h1 {
             font-family: var(--display);
             font-weight: 700;
@@ -242,7 +251,7 @@
             margin-bottom: 24px;
         }
 
-        /* Buttons */
+        /* ==================== BUTTONS ==================== */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -271,6 +280,11 @@
             color: #fff;
         }
 
+        .btn-rust:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .btn-ghost {
             background: transparent;
             color: var(--text-soft);
@@ -292,7 +306,12 @@
             font-size: 15px;
         }
 
-        /* Choice Cards */
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 12.5px;
+        }
+
+        /* ==================== CHOICE CARDS ==================== */
         .choice-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -339,35 +358,56 @@
             margin-top: 2px;
         }
 
+        .choice-card .badge {
+            position: absolute;
+            top: -8px;
+            right: -6px;
+            background: var(--rust);
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 2px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+        }
+
+        .choice-card .badge.badge-teal {
+            background: var(--teal);
+        }
+
         .choice-card.active {
             border-color: var(--rust);
             background: var(--rust-soft);
         }
 
-        /* Auth Footer */
-        .auth-foot-link {
-            text-align: center;
-            margin-top: 24px;
-            font-size: 14px;
-            color: var(--text-soft);
+        /* ==================== AUTH DIVIDER ==================== */
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 20px 0;
+            color: var(--muted);
+            font-size: 13px;
         }
 
-        .auth-foot-link a {
-            color: var(--rust);
-            text-decoration: none;
-            font-weight: 600;
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
         }
 
-        .auth-foot-link a:hover {
-            text-decoration: underline;
-        }
-
-        /* Flash Messages */
+        /* ==================== FLASH MESSAGES ==================== */
         .flash-message {
             padding: 12px 20px;
             border-radius: 12px;
             margin-bottom: 16px;
             font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .flash-success {
@@ -388,32 +428,195 @@
             border: 1px solid #BBDEFB;
         }
 
-        /* Responsive */
-        @media (max-width: 480px) {
+        /* ==================== FORM FIELDS ==================== */
+        .field {
+            margin-bottom: 16px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text-soft);
+            margin-bottom: 4px;
+        }
+
+        .field input,
+        .field textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 13px;
+            font-family: inherit;
+            transition: all 0.2s;
+            background: #fff;
+        }
+
+        .field input:focus,
+        .field textarea:focus {
+            outline: none;
+            border-color: var(--rust);
+            box-shadow: 0 0 0 3px rgba(181, 80, 42, 0.08);
+        }
+
+        .field input::placeholder,
+        .field textarea::placeholder {
+            color: #B0B8C4;
+        }
+
+        .field input.is-invalid,
+        .field textarea.is-invalid {
+            border-color: #C62828;
+        }
+
+        .field input.is-invalid:focus,
+        .field textarea.is-invalid:focus {
+            box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.08);
+        }
+
+        .field-hint {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .error-message {
+            display: block;
+            color: #C62828;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .required {
+            color: var(--rust);
+            font-weight: 600;
+            margin-left: 2px;
+        }
+
+        /* ==================== PASSWORD WRAPPER ==================== */
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper input {
+            padding-right: 44px;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 16px;
+            transition: color 0.2s;
+        }
+
+        .toggle-password:hover {
+            color: var(--text);
+        }
+
+        /* ==================== CHECKBOX ==================== */
+        .check-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-soft);
+            cursor: pointer;
+        }
+
+        .check-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            min-width: 18px;
+            margin-top: 2px;
+            cursor: pointer;
+            accent-color: var(--rust);
+        }
+
+        .check-row .link {
+            color: var(--rust);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .check-row .link:hover {
+            text-decoration: underline;
+        }
+
+        /* ==================== AUTH FOOTER ==================== */
+        .auth-foot-link {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 14px;
+            color: var(--text-soft);
+        }
+
+        .auth-foot-link a {
+            color: var(--rust);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .auth-foot-link a:hover {
+            text-decoration: underline;
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 860px) {
             .auth-visual {
-                padding: 32px 20px;
+                padding: 32px 24px;
             }
-            
+
             .auth-visual .quote {
                 font-size: 16px;
                 margin-top: 24px;
             }
-            
+
             .auth-stats {
                 gap: 20px;
-                flex-wrap: wrap;
             }
-            
+
             .auth-stats div b {
                 font-size: 18px;
             }
-            
-            .choice-grid {
-                grid-template-columns: 1fr;
+        }
+
+        @media (max-width: 480px) {
+            .auth-visual {
+                padding: 24px 16px;
             }
-            
+
+            .auth-visual .quote {
+                font-size: 15px;
+                margin-top: 16px;
+            }
+
+            .auth-stats {
+                gap: 16px;
+            }
+
+            .auth-stats div b {
+                font-size: 16px;
+            }
+
+            .auth-stats div span {
+                font-size: 11px;
+            }
+
             .auth-box h1 {
                 font-size: 20px;
+            }
+
+            .auth-box .sub {
+                font-size: 13px;
             }
 
             .role-toggle a {
@@ -429,6 +632,126 @@
             .role-toggle a .role-badge {
                 display: none;
             }
+
+            .choice-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .choice-card {
+                padding: 16px;
+                min-height: 80px;
+                flex-direction: row;
+                gap: 16px;
+            }
+
+            .choice-card .icon {
+                font-size: 22px;
+                margin-bottom: 0;
+            }
+
+            .choice-card .label {
+                font-size: 14px;
+            }
+
+            .choice-card .desc {
+                font-size: 11px;
+            }
+
+            .field input,
+            .field textarea {
+                font-size: 16px;
+                padding: 12px 14px;
+            }
+
+            .btn {
+                font-size: 14px;
+                padding: 12px 20px;
+            }
+
+            .btn-lg {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+
+            .auth-form-side {
+                padding: 24px 16px;
+            }
+
+            .auth-box {
+                max-width: 100%;
+            }
+
+            .flash-message {
+                font-size: 13px;
+                padding: 10px 16px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .auth-visual {
+                padding: 16px 12px;
+            }
+
+            .auth-visual .quote {
+                font-size: 13px;
+            }
+
+            .auth-stats div b {
+                font-size: 14px;
+            }
+
+            .auth-stats div span {
+                font-size: 10px;
+            }
+
+            .auth-box h1 {
+                font-size: 18px;
+            }
+
+            .role-toggle {
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .role-toggle a {
+                padding: 8px 12px;
+            }
+
+            .choice-card {
+                flex-direction: column;
+                text-align: center;
+                padding: 14px;
+                min-height: 70px;
+            }
+        }
+
+        /* ==================== ACCESSIBILITY ==================== */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ==================== SCROLLBAR ==================== */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-soft);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--muted);
         }
     </style>
 

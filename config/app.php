@@ -15,6 +15,11 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
+    'providers' => [
+    // ...
+    App\Providers\AdminViewServiceProvider::class,
+],
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment

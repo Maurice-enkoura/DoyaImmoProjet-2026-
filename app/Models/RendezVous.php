@@ -97,7 +97,7 @@ class RendezVous extends Model
     public function getAgencePhoneFormattedAttribute(): string
     {
         if (!$this->isPhoneVisible()) {
-            return '🔒 Non disponible';
+            return ' Non disponible';
         }
         
         $phone = $this->agence?->telephone;
@@ -110,7 +110,7 @@ class RendezVous extends Model
     public function getParticulierPhoneFormattedAttribute(): string
     {
         if (!$this->isPhoneVisible()) {
-            return '🔒 Non disponible';
+            return 'Non disponible';
         }
         
         $phone = $this->particulier?->user?->telephone;
@@ -136,5 +136,19 @@ class RendezVous extends Model
         }
         
         return $phone;
+    }
+
+    public function getStatutLabelAttribute()
+    {
+        if (is_object($this->statut) && method_exists($this->statut, 'label')) {
+            return $this->statut->label();
+        }
+        $labels = [
+            'planifie' => 'Planifié',
+            'confirme' => 'Confirmé',
+            'termine' => 'Terminé',
+            'annule' => 'Annulé',
+        ];
+        return $labels[$this->statut] ?? $this->statut;
     }
 }

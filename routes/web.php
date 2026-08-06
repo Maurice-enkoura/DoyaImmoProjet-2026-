@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\PayDunyaController;
 
 // Contrôleurs Particulier
 use App\Http\Controllers\Particulier\ParticulierDashboardController;
@@ -29,6 +30,12 @@ use App\Http\Controllers\Admin\AdminAbonnementController;
 use App\Http\Controllers\Admin\AdminStatistiqueController;
 use App\Http\Controllers\Admin\AdminSignalementController;
 use App\Http\Controllers\Admin\AdminQuartierController;
+use App\Http\Controllers\Admin\AdminBienController;
+use App\Http\Controllers\Admin\AdminDemandeController;
+use App\Http\Controllers\Admin\AdminPropositionController;
+use App\Http\Controllers\Admin\AdminEvaluationController;
+use App\Http\Controllers\Admin\AdminRendezVousController;
+use App\Http\Controllers\Admin\AdminProfilController;
 
 /*
 |--------------------------------------------------------------------------
@@ -88,6 +95,20 @@ Route::post('/register/agence', [AuthController::class, 'registerAgence']);
 
 /*
 |--------------------------------------------------------------------------
+| ROUTES PAYDUNYA (Paiement en ligne)
+|--------------------------------------------------------------------------
+*/
+// Dans routes/web.php - s'assurer que le callback accepte GET et POST
+Route::prefix('paydunya')->name('paydunya.')->group(function () {
+    Route::get('/pay/{abonnement}', [PayDunyaController::class, 'pay'])->name('pay');
+    Route::match(['GET', 'POST'], '/callback', [PayDunyaController::class, 'callback'])->name('callback');
+    Route::get('/cancel', [PayDunyaController::class, 'cancel'])->name('cancel');
+    Route::get('/status/{abonnement}', [PayDunyaController::class, 'status'])->name('status');
+    Route::get('/force-update/{abonnement}', [PayDunyaController::class, 'forceUpdate'])->name('force-update');
+});
+
+/*
+|--------------------------------------------------------------------------
 | ROUTES AUTHENTIFIÉES - DASHBOARD GÉNÉRAL
 |--------------------------------------------------------------------------
 */
@@ -98,6 +119,32 @@ Route::middleware(['auth'])->group(function () {
         if ($user->isAgence()) return redirect()->route('agence.dashboard');
         return redirect()->route('particulier.dashboard');
     })->name('dashboard');
+
+
+    /*
+|--------------------------------------------------------------------------
+| ROUTES NOTIFICATIONS
+|--------------------------------------------------------------------------
+*/
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/notifications', function () {
+            $notifications = auth()->user()->notifications()->paginate(20);
+            return view('notifications.index', compact('notifications'));
+        })->name('notifications.index');
+
+        Route::post('/notifications/{id}/read', function ($id) {
+            $notification = auth()->user()->notifications()->find($id);
+            if ($notification) {
+                $notification->markAsRead();
+            }
+            return back()->with('success', 'Notification marquée comme lue.');
+        })->name('notifications.read');
+
+        Route::post('/notifications/read-all', function () {
+            auth()->user()->unreadNotifications()->markAsRead();
+            return back()->with('success', 'Toutes les notifications ont été marquées comme lues.');
+        })->name('notifications.read-all');
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -170,14 +217,13 @@ Route::middleware(['auth'])->group(function () {
 
         // Profil
         Route::get('/profil', [AgenceController::class, 'profil'])->name('profil');
-        Route::put('/profil', [AgenceController::class, 'update'])->name('profil.update'); // Changé de profilUpdate à update
+        Route::put('/profil', [AgenceController::class, 'update'])->name('profil.update');
 
         // Rendez-vous
-
-
         Route::get('/rendezvous', [AgenceController::class, 'rendezvous'])->name('rendezvous.index');
         Route::get('/rendezvous/{rendezVous}', [AgenceController::class, 'rendezvousShow'])->name('rendezvous.show');
         Route::put('/rendezvous/{rendezVous}', [AgenceController::class, 'rendezvousUpdate'])->name('rendezvous.update');
+
         // Évaluations
         Route::get('/evaluations', [AgenceController::class, 'evaluations'])->name('evaluations.index');
         Route::get('/evaluations/{evaluation}', [AgenceController::class, 'evaluationsShow'])->name('evaluations.show');
@@ -185,9 +231,9 @@ Route::middleware(['auth'])->group(function () {
 
         // Abonnement
         Route::get('/abonnement', [AgenceController::class, 'abonnement'])->name('abonnement');
-        Route::get('/abonnement/plans', [AbonnementController::class, 'plans'])->name('abonnement.plans');
-        Route::post('/abonnement/souscrire', [AbonnementController::class, 'souscrire'])->name('abonnement.souscrire');
-
+        Route::post('/abonnement/souscrire', [AgenceController::class, 'souscrire'])->name('abonnement.souscrire');
+        Route::post('/abonnement/upgrade', [AgenceController::class, 'upgrade'])->name('abonnement.upgrade'); // Nouvelle route
+        Route::post('/abonnement/{abonnement}/annuler', [AgenceController::class, 'annuler'])->name('abonnement.annuler');
         // ============ CRÉNEAUX RENDEZ-VOUS (avec AgenceController) ============
         Route::post('/creneaux/generer', [AgenceController::class, 'genererCreneaux'])->name('creneaux.generer');
         Route::post('/creneaux/{creneau}/toggle', [AgenceController::class, 'toggleCreneau'])->name('creneaux.toggle');
@@ -226,25 +272,29 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('admin')->name('admin.')->middleware(['role:admin'])->group(function () {
         // Dashboard
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/statistiques', [AdminStatistiqueController::class, 'index'])->name('statistiques');
+        Route::get('/statistiques/export', [AdminStatistiqueController::class, 'export'])->name('statistiques.export');
 
         // Agences
-        Route::get('/agences', [AdminAgenceController::class, 'index'])->name('agences');
+        Route::get('/agences', [AdminAgenceController::class, 'index'])->name('agences.index');
         Route::get('/agences/{agence}', [AdminAgenceController::class, 'show'])->name('agences.show');
         Route::get('/agences/{agence}/documents', [AdminAgenceController::class, 'documents'])->name('agences.documents');
         Route::post('/agences/{agence}/documents/valider', [AdminAgenceController::class, 'validerDocuments'])->name('agences.valider-documents');
         Route::post('/agences/{agence}/valider', [AdminAgenceController::class, 'valider'])->name('agences.valider');
         Route::post('/agences/{agence}/refuser', [AdminAgenceController::class, 'refuser'])->name('agences.refuser');
-        Route::post('/agences/{agence}/toggle', [AdminAgenceController::class, 'toggleStatut'])->name('agences.toggle');
+        Route::post('/agences/{agence}/bloquer', [AdminAgenceController::class, 'bloquer'])->name('agences.bloquer');
+        Route::post('/agences/{agence}/debloquer', [AdminAgenceController::class, 'debloquer'])->name('agences.debloquer');
         Route::delete('/agences/{agence}', [AdminAgenceController::class, 'destroy'])->name('agences.destroy');
 
         // Utilisateurs
-        Route::get('/utilisateurs', [AdminUtilisateurController::class, 'index'])->name('utilisateurs');
+        Route::get('/utilisateurs', [AdminUtilisateurController::class, 'index'])->name('utilisateurs.index');
         Route::get('/utilisateurs/create', [AdminUtilisateurController::class, 'create'])->name('utilisateurs.create');
         Route::post('/utilisateurs', [AdminUtilisateurController::class, 'store'])->name('utilisateurs.store');
         Route::get('/utilisateurs/{user}', [AdminUtilisateurController::class, 'show'])->name('utilisateurs.show');
         Route::get('/utilisateurs/{user}/edit', [AdminUtilisateurController::class, 'edit'])->name('utilisateurs.edit');
         Route::put('/utilisateurs/{user}', [AdminUtilisateurController::class, 'update'])->name('utilisateurs.update');
         Route::delete('/utilisateurs/{user}', [AdminUtilisateurController::class, 'destroy'])->name('utilisateurs.destroy');
+        Route::post('/utilisateurs/{user}/toggle-block', [AdminUtilisateurController::class, 'toggleBlock'])->name('utilisateurs.toggle-block');
 
         // Quartiers
         Route::get('/quartiers', [AdminQuartierController::class, 'index'])->name('quartiers.index');
@@ -258,23 +308,86 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/quartiers/import', [AdminQuartierController::class, 'import'])->name('quartiers.import');
         Route::get('/quartiers/export', [AdminQuartierController::class, 'export'])->name('quartiers.export');
 
-        // Abonnements
-        Route::get('/abonnements', [AdminAbonnementController::class, 'index'])->name('abonnements');
-        Route::get('/abonnements/create', [AdminAbonnementController::class, 'create'])->name('abonnements.create');
-        Route::post('/abonnements', [AdminAbonnementController::class, 'store'])->name('abonnements.store');
-        Route::get('/abonnements/{abonnement}', [AdminAbonnementController::class, 'show'])->name('abonnements.show');
-        Route::get('/abonnements/{abonnement}/edit', [AdminAbonnementController::class, 'edit'])->name('abonnements.edit');
-        Route::put('/abonnements/{abonnement}', [AdminAbonnementController::class, 'update'])->name('abonnements.update');
-        Route::delete('/abonnements/{abonnement}', [AdminAbonnementController::class, 'destroy'])->name('abonnements.destroy');
-
         // Signalements
-        Route::get('/signalements', [AdminSignalementController::class, 'index'])->name('signalements');
+        Route::get('/signalements', [AdminSignalementController::class, 'index'])->name('signalements.index');
         Route::get('/signalements/{signalement}', [AdminSignalementController::class, 'show'])->name('signalements.show');
         Route::post('/signalements/{signalement}/traiter', [AdminSignalementController::class, 'traiter'])->name('signalements.traiter');
         Route::post('/signalements/{signalement}/rejeter', [AdminSignalementController::class, 'rejeter'])->name('signalements.rejeter');
+        Route::post('/signalements/{signalement}/sanctionner', [AdminSignalementController::class, 'sanctionner'])->name('signalements.sanctionner');
 
-        // Statistiques
-        Route::get('/statistiques', [AdminStatistiqueController::class, 'index'])->name('statistiques');
-        Route::get('/statistiques/export', [AdminStatistiqueController::class, 'export'])->name('statistiques.export');
+        // Abonnements
+        Route::get('/abonnements', [AdminAbonnementController::class, 'index'])->name('abonnements.index');
+        Route::get('/abonnements/{abonnement}', [AdminAbonnementController::class, 'show'])->name('abonnements.show');
+        Route::put('/abonnements/{abonnement}/activer', [AdminAbonnementController::class, 'activer'])->name('abonnements.activer');
+        Route::put('/abonnements/{abonnement}/desactiver', [AdminAbonnementController::class, 'desactiver'])->name('abonnements.desactiver');
+        Route::delete('/abonnements/{abonnement}', [AdminAbonnementController::class, 'destroy'])->name('abonnements.destroy');
+
+        // Biens
+        Route::get('/biens', [AdminBienController::class, 'index'])->name('biens.index');
+        Route::get('/biens/{bien}', [AdminBienController::class, 'show'])->name('biens.show');
+        Route::post('/biens/{bien}/desactiver', [AdminBienController::class, 'desactiver'])->name('biens.desactiver');
+        Route::post('/biens/{bien}/activer', [AdminBienController::class, 'activer'])->name('biens.activer');
+        Route::delete('/biens/{bien}', [AdminBienController::class, 'destroy'])->name('biens.destroy');
+
+        // Demandes
+        Route::get('/demandes', [AdminDemandeController::class, 'index'])->name('demandes.index');
+        Route::get('/demandes/{demande}', [AdminDemandeController::class, 'show'])->name('demandes.show');
+        Route::delete('/demandes/{demande}', [AdminDemandeController::class, 'destroy'])->name('demandes.destroy');
+
+        // Propositions (lecture seule)
+        Route::get('/propositions', [AdminPropositionController::class, 'index'])->name('propositions.index');
+        Route::get('/propositions/{proposition}', [AdminPropositionController::class, 'show'])->name('propositions.show');
+
+        // Rendez-vous (lecture seule)
+        Route::get('/rendezvous', [AdminRendezVousController::class, 'index'])->name('rendezvous.index');
+        Route::get('/rendezvous/{rendezVous}', [AdminRendezVousController::class, 'show'])->name('rendezvous.show');
+
+
+        Route::get('/profil', [AdminProfilController::class, 'index'])->name('profil');
+        Route::put('/profil', [AdminProfilController::class, 'update'])->name('profil.update');
+        Route::put('/profil/password', [AdminProfilController::class, 'updatePassword'])->name('profil.password');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | ROUTES API NOTIFICATIONS
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/api/notifications/count', function () {
+        return response()->json([
+            'count' => auth()->user()->unreadNotifications()->count()
+        ]);
+    });
+
+    Route::post('/api/notifications/{id}/read', function ($id) {
+        $notification = auth()->user()->notifications()->find($id);
+        if ($notification) {
+            $notification->markAsRead();
+        }
+        return response()->json(['success' => true]);
+    });
+
+    Route::post('/api/notifications/read-all', function () {
+        auth()->user()->unreadNotifications()->markAsRead();
+        return response()->json(['success' => true]);
+    });
+
+    Route::get('/api/notifications/new', function () {
+        $notifications = auth()->user()->notifications()
+            ->where('created_at', '>', request()->get('last_check', now()->subMinutes(5)))
+            ->get();
+
+        return response()->json([
+            'notifications' => $notifications->map(function ($n) {
+                return [
+                    'title' => $n->data['title'] ?? 'Notification',
+                    'message' => $n->data['message'] ?? '',
+                    'type' => $n->data['type'] ?? 'info',
+                    'icon' => $n->data['icon'] ?? null,
+                    'link' => $n->data['link'] ?? null,
+                ];
+            }),
+            'count' => auth()->user()->unreadNotifications()->count()
+        ]);
     });
 });

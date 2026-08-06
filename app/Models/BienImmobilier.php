@@ -32,6 +32,7 @@ class BienImmobilier extends Model
         'est_meuble',
         'description',
         'statut',
+        'vues',
     ];
 
     protected $casts = [
@@ -44,6 +45,8 @@ class BienImmobilier extends Model
         'statut' => 'boolean',
     ];
 
+    // ==================== RELATIONS ====================
+    
     public function agence(): BelongsTo
     {
         return $this->belongsTo(Agence::class);
@@ -54,7 +57,6 @@ class BienImmobilier extends Model
         return $this->morphMany(Media::class, 'mediable');
     }
 
-    // Correction: Spécifier la clé étrangère
     public function propositions(): HasMany
     {
         return $this->hasMany(Proposition::class, 'bien_id');
@@ -65,10 +67,14 @@ class BienImmobilier extends Model
         return $this->belongsTo(Quartier::class);
     }
 
+    // ==================== SCOPES ====================
+
     public function scopeDisponibles($query)
     {
         return $query->where('statut', true);
     }
+
+    // ==================== ACCESSORS ====================
 
     public function getImagesAttribute()
     {
@@ -80,8 +86,50 @@ class BienImmobilier extends Model
         return $this->medias()->where('type_media', 'video')->get();
     }
 
-    public function getQuartierNameAttribute(): string
+    // Accesseur pour le type de contrat (affichage)
+    public function getTypeContratLabelAttribute()
     {
-        return $this->quartier ? $this->quartier->nom : $this->quartier;
+        if (is_object($this->type_contrat) && method_exists($this->type_contrat, 'label')) {
+            return $this->type_contrat->label();
+        }
+        return $this->type_contrat;
+    }
+
+    // Accesseur pour le type de bien (affichage)
+    public function getTypeBienLabelAttribute()
+    {
+        if (is_object($this->type_bien) && method_exists($this->type_bien, 'label')) {
+            return $this->type_bien->label();
+        }
+        return $this->type_bien;
+    }
+
+    // Accesseur pour le nom du quartier
+    public function getQuartierNomAttribute(): string
+    {
+        if ($this->quartier) {
+            if (is_object($this->quartier)) {
+                return $this->quartier->nom ?? 'N/A';
+            }
+            return $this->quartier;
+        }
+        if ($this->quartier_id) {
+            $quartier = Quartier::find($this->quartier_id);
+            if ($quartier) {
+                return $quartier->nom;
+            }
+        }
+        return 'N/A';
+    }
+
+    // Accesseur pour afficher le type de contrat avec le titre
+    public function getTitreWithContratAttribute(): string
+    {
+        $titre = $this->titre ?? 'N/A';
+        $contrat = $this->type_contrat_label;
+        if ($contrat && $contrat !== 'N/A') {
+            return $titre . ' (' . $contrat . ')';
+        }
+        return $titre;
     }
 }

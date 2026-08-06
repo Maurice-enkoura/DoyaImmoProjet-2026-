@@ -9,26 +9,56 @@ use App\Models\User;
 use App\Services\DocumentService;
 use App\Notifications\AgenceValideeNotification;
 use App\Notifications\AgenceRefuseeNotification;
+use App\Notifications\DocumentValideNotification;
+use App\Notifications\DocumentRejeteNotification;
 use Illuminate\Http\Request;
 use App\Enums\StatutDocumentEnum;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 class AdminAgenceController extends Controller
 {
     public function __construct(private DocumentService $documentService) {}
 
-    public function index()
+    public function index(Request $request)
     {
-        $agences = Agence::with('user')
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        $query = Agence::with(['user', 'quartier', 'documents', 'biens']);
+
+        if ($request->filled('filtre')) {
+            switch ($request->filtre) {
+                case 'en_attente':
+                    $query->where('statut_validation', false);
+                    break;
+                case 'validees':
+                    $query->where('statut_validation', true);
+                    if (Schema::hasColumn('agences', 'bloque')) {
+                        $query->where('bloque', false);
+                    }
+                    break;
+                case 'bloquees':
+                    if (Schema::hasColumn('agences', 'bloque')) {
+                        $query->where('bloque', true);
+                    } else {
+                        $query->whereRaw('1 = 0');
+                    }
+                    break;
+            }
+        }
+
+        $agences = $query->orderBy('created_at', 'desc')->paginate(20);
 
         return view('admin.agences.index', compact('agences'));
     }
 
     public function show(Agence $agence)
     {
-        $agence->load(['user', 'documents', 'biens', 'evaluations.particulier.user']);
+        $agence->load([
+            'user', 
+            'documents', 
+            'biens.medias', 
+            'quartier'
+        ]);
         return view('admin.agences.show', compact('agence'));
     }
 
@@ -48,44 +78,74 @@ class AdminAgenceController extends Controller
         ]);
 
         $statut = StatutDocumentEnum::from($request->statut);
-        $adminId = Auth::user()->administrateur->id;
+        $adminId = Auth::user()->administrateur->id ?? null;
 
-        foreach ($request->document_ids as $documentId) {
-            $document = DocumentAgence::find($documentId);
-            $document->update([
-                'statut_validation' => $statut,
-                'valide_par' => $adminId,
-                'date_validation' => now(),
-                'commentaire' => $request->commentaire,
-            ]);
+        DB::beginTransaction();
+
+        try {
+            foreach ($request->document_ids as $documentId) {
+                $document = DocumentAgence::find($documentId);
+                $document->update([
+                    'statut_validation' => $statut,
+                    'valide_par' => $adminId,
+                    'date_validation' => now(),
+                    'commentaire' => $request->commentaire,
+                ]);
+
+                // Envoyer une notification pour chaque document
+                $user = $agence->user;
+                
+                if ($statut === StatutDocumentEnum::VALIDE) {
+                    $user->notify(new DocumentValideNotification($agence, $document));
+                } elseif ($statut === StatutDocumentEnum::REJETE && $request->commentaire) {
+                    $user->notify(new DocumentRejeteNotification($agence, $document, $request->commentaire));
+                }
+            }
+
+            // Vérifier si tous les documents obligatoires sont validés
+            $documentsObligatoires = $agence->documents()
+                ->where('type_document', '!=', 'logo')
+                ->where('statut_validation', StatutDocumentEnum::VALIDE)
+                ->count();
+
+            $totalObligatoires = $agence->documents()
+                ->where('type_document', '!=', 'logo')
+                ->count();
+
+            // Si tous les documents sont validés, valider l'agence
+            if ($documentsObligatoires === $totalObligatoires && $totalObligatoires > 0) {
+                $agence->update(['statut_validation' => true]);
+                $agence->user->notify(new AgenceValideeNotification($agence));
+            }
+
+            DB::commit();
+
+            $message = $statut === StatutDocumentEnum::VALIDE 
+                ? 'Documents validés avec succès.' 
+                : 'Documents rejetés avec succès. Un email a été envoyé à l\'agence.';
+
+            return redirect()->route('admin.agences.documents', $agence)
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('admin.agences.documents', $agence)
+                ->with('error', 'Une erreur est survenue: ' . $e->getMessage());
         }
-
-        // Vérifier si tous les documents obligatoires sont validés
-        $documentsObligatoires = $agence->documents()
-            ->where('type_document', '!=', 'logo')
-            ->where('statut_validation', StatutDocumentEnum::VALIDE)
-            ->count();
-
-        $totalObligatoires = $agence->documents()
-            ->where('type_document', '!=', 'logo')
-            ->count();
-
-        if ($documentsObligatoires === $totalObligatoires && $totalObligatoires > 0) {
-            $agence->update(['statut_validation' => true]);
-            $agence->user->notify(new AgenceValideeNotification($agence));
-        } elseif ($statut === StatutDocumentEnum::REJETE) {
-            $agence->user->notify(new AgenceRefuseeNotification($agence, $request->commentaire));
-        }
-
-        return redirect()->back()->with('success', 'Documents traités avec succès.');
     }
 
     public function valider(Agence $agence)
     {
-        $agence->update(['statut_validation' => true]);
-        $agence->user->notify(new AgenceValideeNotification($agence));
+        try {
+            $agence->update(['statut_validation' => true]);
+            $agence->user->notify(new AgenceValideeNotification($agence));
 
-        return redirect()->route('admin.agences')->with('success', 'Agence validée avec succès.');
+            return redirect()->route('admin.agences.index')
+                ->with('success', 'Agence validée avec succès. Un email a été envoyé.');
+        } catch (\Exception $e) {
+            return redirect()->route('admin.agences.index')
+                ->with('error', 'Erreur lors de la validation: ' . $e->getMessage());
+        }
     }
 
     public function refuser(Request $request, Agence $agence)
@@ -94,26 +154,51 @@ class AdminAgenceController extends Controller
             'motif' => 'required|string|max:1000',
         ]);
 
-        $agence->update(['statut_validation' => false]);
-        $agence->user->notify(new AgenceRefuseeNotification($agence, $request->motif));
+        try {
+            $agence->update(['statut_validation' => false]);
+            
+            // Envoyer la notification avec le motif
+            $agence->user->notify(new AgenceRefuseeNotification($agence, $request->motif));
 
-        return redirect()->route('admin.agences')->with('success', 'Agence refusée.');
+            return redirect()->route('admin.agences.index')
+                ->with('success', 'Agence refusée. Un email a été envoyé avec le motif du refus.');
+        } catch (\Exception $e) {
+            return redirect()->route('admin.agences.index')
+                ->with('error', 'Erreur lors du refus: ' . $e->getMessage());
+        }
     }
 
-    public function toggleStatut(Agence $agence)
+    public function bloquer(Agence $agence)
     {
-        $agence->update(['statut_validation' => !$agence->statut_validation]);
-
-        if ($agence->statut_validation) {
-            $agence->user->notify(new AgenceValideeNotification($agence));
+        if (Schema::hasColumn('agences', 'bloque')) {
+            $agence->update(['bloque' => true]);
+            return redirect()->route('admin.agences.index')
+                ->with('success', 'Agence bloquée.');
         }
+        
+        return redirect()->route('admin.agences.index')
+            ->with('error', 'La fonction de blocage n\'est pas disponible.');
+    }
 
-        return redirect()->back()->with('success', 'Statut de l\'agence mis à jour.');
+    public function debloquer(Agence $agence)
+    {
+        if (Schema::hasColumn('agences', 'bloque')) {
+            $agence->update(['bloque' => false]);
+            return redirect()->route('admin.agences.index')
+                ->with('success', 'Agence débloquée.');
+        }
+        
+        return redirect()->route('admin.agences.index')
+            ->with('error', 'La fonction de déblocage n\'est pas disponible.');
     }
 
     public function destroy(Agence $agence)
     {
+        $user = $agence->user;
         $agence->delete();
-        return redirect()->route('admin.agences')->with('success', 'Agence supprimée avec succès.');
+        $user->delete();
+
+        return redirect()->route('admin.agences.index')
+            ->with('success', 'Agence supprimée avec succès.');
     }
 }

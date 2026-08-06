@@ -12,6 +12,8 @@ use App\Models\Signalement;
 use App\Models\Abonnement;
 use App\Models\Evaluation;
 use App\Models\BienImmobilier;
+use App\Models\RendezVous;
+use App\Models\Quartier;
 use Illuminate\Http\Request;
 use App\Enums\StatutDocumentEnum;
 use App\Enums\StatutSignalementEnum;
@@ -20,15 +22,20 @@ class AdminDashboardController extends Controller
 {
     public function index()
     {
+        // Statistiques globales
         $stats = [
             'total_users' => User::count(),
             'users_par_role' => User::selectRaw('role, count(*) as total')->groupBy('role')->get(),
+            'users_evolution' => $this->calculateEvolution(User::class),
             
             'agences' => [
                 'total' => Agence::count(),
                 'en_attente' => Agence::where('statut_validation', false)->count(),
                 'validees' => Agence::where('statut_validation', true)->count(),
+                // Supprimer 'bloquees' car la colonne n'existe pas
+                // Si vous avez besoin de cette statistique, ajoutez d'abord la colonne via une migration
             ],
+            'agences_evolution' => $this->calculateEvolution(Agence::class),
             
             'documents' => [
                 'total' => DocumentAgence::count(),
@@ -52,6 +59,14 @@ class AdminDashboardController extends Controller
                 'refusees' => Proposition::where('statut', 'refusee')->count(),
             ],
             
+            'rendezvous' => [
+                'total' => RendezVous::count(),
+                'planifies' => RendezVous::where('statut', 'planifie')->count(),
+                'confirmes' => RendezVous::where('statut', 'confirme')->count(),
+                'termines' => RendezVous::where('statut', 'termine')->count(),
+                'annules' => RendezVous::where('statut', 'annule')->count(),
+            ],
+            
             'signalements' => [
                 'total' => Signalement::count(),
                 'en_attente' => Signalement::where('statut', StatutSignalementEnum::EN_ATTENTE)->count(),
@@ -62,7 +77,7 @@ class AdminDashboardController extends Controller
             'abonnements' => [
                 'total' => Abonnement::count(),
                 'actifs' => Abonnement::where('statut', true)->where('date_fin', '>', now())->count(),
-                'expires' => Abonnement::where('statut', false)->count(),
+                'expires' => Abonnement::where('statut', false)->orWhere('date_fin', '<=', now())->count(),
                 'par_formule' => Abonnement::where('statut', true)
                     ->selectRaw('formule, count(*) as total')
                     ->groupBy('formule')
@@ -87,6 +102,11 @@ class AdminDashboardController extends Controller
                     ->get(),
             ],
             
+            'quartiers' => [
+                'total' => Quartier::count(),
+                'actifs' => Quartier::where('est_actif', true)->count(),
+            ],
+            
             'inscriptions' => User::selectRaw('DATE(created_at) as date, count(*) as total')
                 ->where('created_at', '>=', now()->subDays(30))
                 ->groupBy('date')
@@ -94,6 +114,68 @@ class AdminDashboardController extends Controller
                 ->get(),
         ];
 
-        return view('admin.dashboard', compact('stats'));
+        // Variables pour le layout (badges et listes récentes)
+        $agencesEnAttente = Agence::where('statut_validation', false)->count();
+        $signalementsEnAttente = Signalement::where('statut', StatutSignalementEnum::EN_ATTENTE)->count();
+        
+        // Derniers utilisateurs inscrits
+        $derniersUtilisateurs = User::with(['particulier', 'agence', 'administrateur'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+        
+        // Derniers signalements
+        $derniersSignalements = Signalement::with(['particulier.user'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+        
+        // Agences en attente de validation
+        $agencesEnAttenteList = Agence::with(['user', 'quartier'])
+            ->where('statut_validation', false)
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Derniers biens publiés
+        $derniersBiens = BienImmobilier::with(['agence.user', 'quartier'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Dernières demandes
+        $dernieresDemandes = DemandeImmobiliere::with(['particulier.user', 'quartier'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        return view('admin.dashboard', compact(
+            'stats',
+            'agencesEnAttente',
+            'signalementsEnAttente',
+            'derniersUtilisateurs',
+            'derniersSignalements',
+            'agencesEnAttenteList',
+            'derniersBiens',
+            'dernieresDemandes'
+        ));
+    }
+
+    /**
+     * Calcule l'évolution en pourcentage sur les 30 derniers jours
+     */
+    private function calculateEvolution($model)
+    {
+        try {
+            $total = $model::count();
+            if ($total === 0) return 0;
+            
+            $ancienTotal = $model::where('created_at', '<', now()->subDays(30))->count();
+            if ($ancienTotal === 0) return 100;
+            
+            return round((($total - $ancienTotal) / $ancienTotal) * 100);
+        } catch (\Exception $e) {
+            return 0;
+        }
     }
 }

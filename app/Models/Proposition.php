@@ -5,17 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use App\Enums\StatutPropositionEnum;
-use App\Models\DemandeImmobiliere;  
-use App\Models\Agence;
 
 class Proposition extends Model
 {
     use HasFactory;
-
-    protected $table = 'propositions';
 
     protected $fillable = [
         'demande_id',
@@ -29,14 +23,16 @@ class Proposition extends Model
     ];
 
     protected $casts = [
-        'statut' => StatutPropositionEnum::class,
         'prix_propose' => 'decimal:2',
         'date_proposition' => 'datetime',
+        'statut' => StatutPropositionEnum::class,
     ];
+
+    // ==================== RELATIONS ====================
 
     public function demande(): BelongsTo
     {
-        return $this->belongsTo(DemandeImmobiliere::class, 'demande_id');
+        return $this->belongsTo(DemandeImmobiliere::class);
     }
 
     public function agence(): BelongsTo
@@ -46,7 +42,7 @@ class Proposition extends Model
 
     public function bien(): BelongsTo
     {
-        return $this->belongsTo(BienImmobilier::class, 'bien_id');
+        return $this->belongsTo(BienImmobilier::class);
     }
 
     public function particulier(): BelongsTo
@@ -54,24 +50,18 @@ class Proposition extends Model
         return $this->belongsTo(Particulier::class);
     }
 
-    public function rendezVous(): HasMany
-    {
-        return $this->hasMany(RendezVous::class);
-    }
+    // ==================== ACCESSORS ====================
 
-    // Ajout de la relation polymorphique pour les médias
-    public function medias(): MorphMany
+    public function getStatutLabelAttribute()
     {
-        return $this->morphMany(Media::class, 'mediable');
-    }
-
-    public function scopeEnAttente($query)
-    {
-        return $query->where('statut', StatutPropositionEnum::EN_ATTENTE);
-    }
-
-    public function scopeAcceptees($query)
-    {
-        return $query->where('statut', StatutPropositionEnum::ACCEPTEE);
+        if (is_object($this->statut) && method_exists($this->statut, 'label')) {
+            return $this->statut->label();
+        }
+        $labels = [
+            'en_attente' => 'En attente',
+            'acceptee' => 'Acceptée',
+            'refusee' => 'Refusée',
+        ];
+        return $labels[$this->statut] ?? $this->statut;
     }
 }

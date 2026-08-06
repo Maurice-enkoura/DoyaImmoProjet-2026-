@@ -10,14 +10,38 @@
             <div class="brand-mark">D</div>
             <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--gold)">Immo</span></div>
         </div>
-        <div>
-            <p class="quote">« Publier ma recherche m'a pris 3 minutes. Le lendemain j'avais déjà deux propositions. »</p>
-            <p class="quote-by">— Moussa D., client à Plateau</p>
+        
+        <!-- Statistiques -->
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:24px;">
+            <!-- Citation -->
+            <div>
+                <p class="quote" style="font-size:20px;margin:0;">
+                    « Publier ma recherche m'a pris 3 minutes. Le lendemain j'avais déjà deux propositions. »
+                </p>
+                <p class="quote-by" style="margin-top:8px;">— Moussa D., client à Plateau</p>
+            </div>
+
+            <!-- Statistiques dynamiques -->
+            <div class="auth-stats" style="margin-top:0;">
+                <div>
+                    <b style="font-size:28px;">{{ $stats['besoins'] ?? 0 }}+</b>
+                    <span style="font-size:13px;color:#9AA1AB;">Besoins publiés</span>
+                </div>
+                <div>
+                    <b style="font-size:28px;">{{ $stats['agences'] ?? 0 }}+</b>
+                    <span style="font-size:13px;color:#9AA1AB;">Agences inscrites</span>
+                </div>
+                <div>
+                    <b style="font-size:28px;">{{ $stats['delai_moyen'] ?? '48h' }}</b>
+                    <span style="font-size:13px;color:#9AA1AB;">Délai moyen de 1ère offre</span>
+                </div>
+            </div>
         </div>
-        <div class="auth-stats">
-            <div><b>1 200+</b><span>Besoins publiés</span></div>
-            <div><b>180+</b><span>Agences inscrites</span></div>
-            <div><b>48h</b><span>Délai moyen de 1ère offre</span></div>
+
+        <!-- Footer visuel -->
+        <div style="font-size:12px;color:#6A7280;margin-top:20px;">
+            <i class="fa-regular fa-circle-check" style="color:var(--gold);"></i>
+            {{ $stats['clients'] ?? 0 }} clients déjà inscrits sur DoyaImmo
         </div>
     </div>
 
@@ -32,8 +56,12 @@
             
             <!-- Toggle rôles -->
             <div class="role-toggle">
-                <a href="{{ route('register.particulier') }}" class="active">Espace client</a>
-                <a href="{{ route('register.agence') }}">Espace agence</a>
+                <a href="{{ route('register.particulier') }}" class="active">
+                    <i class="fa-solid fa-user"></i> Espace client
+                </a>
+                <a href="{{ route('register.agence') }}">
+                    <i class="fa-solid fa-building"></i> Espace agence
+                </a>
             </div>
 
             <h1>Créer mon compte client</h1>
@@ -426,10 +454,20 @@ document.addEventListener('DOMContentLoaded', function() {
         cursor: pointer;
         padding: 4px;
         font-size: 16px;
+        transition: color 0.2s;
     }
 
     .toggle-password:hover {
         color: var(--text);
+    }
+
+    .password-strength {
+        animation: strengthPulse 0.3s ease;
+    }
+
+    @keyframes strengthPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
     }
 
     .conditions-field {
@@ -521,16 +559,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     .auth-foot-link a:hover {
         text-decoration: underline;
-    }
-
-    /* Password strength animation */
-    @keyframes strengthPulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
-    }
-
-    .password-strength {
-        animation: strengthPulse 0.3s ease;
     }
 </style>
 @endpush

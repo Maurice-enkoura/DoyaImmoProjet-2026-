@@ -20,9 +20,14 @@
                     <i class="fa-solid fa-location-dot"></i> {{ $bien->adresse }} · {{ $bien->quartier }}
                 </div>
             </div>
-            <span class="status-pill status-{{ $bien->statut ? 'disponible' : 'indisponible' }}">
-                {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
-            </span>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span style="font-size:13px;color:var(--muted);">
+                    <i class="fa-regular fa-eye"></i> {{ $bien->vues ?? 0 }} vues
+                </span>
+                <span class="status-pill status-{{ $bien->statut ? 'disponible' : 'indisponible' }}">
+                    {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
+                </span>
+            </div>
         </div>
 
         <div style="padding:24px;">
@@ -39,14 +44,18 @@
                     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;">
                         @foreach($images->take(6) as $index => $media)
                             @if($index === 0)
-                                <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:#F7F9FC;cursor:pointer;border:1px solid var(--border);grid-column:span 2;grid-row:span 2;" 
+                                <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:#F7F9FC;cursor:pointer;border:1px solid var(--border);grid-column:span 2;grid-row:span 2;position:relative;" 
                                      onclick="openLightbox('{{ asset('storage/' . $media->fichier) }}')">
                                     <img src="{{ asset('storage/' . $media->fichier) }}" 
                                          alt="Photo du bien" 
                                          style="width:100%;height:100%;object-fit:cover;">
+                                    <!-- Type de bien sur l'image -->
+                                    <div style="position:absolute;bottom:12px;left:12px;padding:4px 14px;border-radius:999px;font-size:11px;font-weight:600;color:#fff;background:rgba(0,0,0,0.7);z-index:2;">
+                                        {{ $bien->type_bien->label() }}
+                                    </div>
                                 </div>
                             @elseif($index < 6)
-                                <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:#F7F9FC;cursor:pointer;border:1px solid var(--border);" 
+                                <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:#F7F9FC;cursor:pointer;border:1px solid var(--border);position:relative;" 
                                      onclick="openLightbox('{{ asset('storage/' . $media->fichier) }}')">
                                     <img src="{{ asset('storage/' . $media->fichier) }}" 
                                          alt="Photo du bien" 
@@ -56,7 +65,7 @@
                         @endforeach
                         
                         @if($images->count() > 6)
-                            <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:var(--ink);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border:1px solid var(--border);"
+                            <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:var(--ink);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border:1px solid var(--border);position:relative;"
                                  onclick="openLightbox('{{ asset('storage/' . $images->skip(6)->first()->fichier) }}')">
                                 <span style="font-size:24px;font-weight:700;">+{{ $images->count() - 6 }}</span>
                                 <span style="font-size:11px;opacity:0.7;">photos</span>
@@ -82,11 +91,14 @@
                     </h4>
                     <div style="display:flex;gap:12px;flex-wrap:wrap;">
                         @foreach($videos as $media)
-                            <div style="border-radius:10px;overflow:hidden;width:240px;background:#000;border:1px solid var(--border);">
+                            <div style="border-radius:10px;overflow:hidden;width:240px;background:#000;border:1px solid var(--border);position:relative;">
                                 <video src="{{ asset('storage/' . $media->fichier) }}" 
                                        style="width:100%;height:140px;object-fit:cover;display:block;"
                                        controls>
                                 </video>
+                                <div style="position:absolute;bottom:8px;left:8px;padding:3px 12px;border-radius:999px;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,0.7);z-index:2;">
+                                    {{ $bien->type_bien->label() }}
+                                </div>
                             </div>
                         @endforeach
                     </div>
@@ -127,6 +139,14 @@
                     <span style="color:var(--muted);font-size:13px;">Meublé</span>
                     <span style="font-weight:500;font-size:13px;">{{ $bien->est_meuble ? ' Oui' : ' Non' }}</span>
                 </div>
+                <div style="padding:12px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
+                    <span style="color:var(--muted);font-size:13px;">Vues</span>
+                    <span style="font-weight:500;font-size:13px;">{{ $bien->vues ?? 0 }}</span>
+                </div>
+                <div style="padding:12px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
+                    <span style="color:var(--muted);font-size:13px;">Publié le</span>
+                    <span style="font-weight:500;font-size:13px;">{{ $bien->created_at->format('d/m/Y') }}</span>
+                </div>
             </div>
 
             <!-- Description -->
@@ -144,6 +164,13 @@
                 <a href="{{ route('agence.biens.edit', $bien) }}" class="btn btn-ghost">
                     <i class="fa-solid fa-pen"></i> Modifier
                 </a>
+                <form action="{{ route('agence.biens.activer', $bien) }}" method="POST" style="display:inline;">
+                    @csrf
+                    <button type="submit" class="btn {{ $bien->statut ? 'btn-ghost' : 'btn-rust' }}">
+                        <i class="fa-solid {{ $bien->statut ? 'fa-eye-slash' : 'fa-eye' }}"></i>
+                        {{ $bien->statut ? 'Masquer' : 'Publier' }}
+                    </button>
+                </form>
                 <a href="{{ route('agence.biens.index') }}" class="btn btn-ghost btn-sm" style="margin-left:auto;">
                     <i class="fa-solid fa-list"></i> Tous mes biens
                 </a>
@@ -199,6 +226,46 @@
     .status-indisponible {
         background: #FFEBEE;
         color: #C62828;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border-radius: 12px;
+        font-size: 13.5px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-family: inherit;
+    }
+
+    .btn-ghost {
+        background: transparent;
+        color: var(--text-soft);
+        border-color: var(--border);
+    }
+
+    .btn-ghost:hover {
+        background: var(--border);
+    }
+
+    .btn-rust {
+        background: var(--rust);
+        color: #fff;
+    }
+
+    .btn-rust:hover {
+        background: #9A4523;
+        color: #fff;
+    }
+
+    .btn-sm {
+        padding: 6px 14px;
+        font-size: 12.5px;
     }
 
     @media (max-width: 1024px) {

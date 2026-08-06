@@ -96,6 +96,7 @@ class RendezVousController extends Controller
         if ($rendezVous->particulier_id !== Auth::user()->particulier->id) {
             abort(403);
         }
+        $rendezVous->agence->user->notify(new RendezVousConfirmeNotification($rendezVous));
 
         $rendezVous->update(['statut' => StatutRendezVousEnum::CONFIRME]);
 

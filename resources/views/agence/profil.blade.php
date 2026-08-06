@@ -29,9 +29,16 @@
         <div class="profile-grid">
             <!-- Carte de gauche - Profil -->
             <div class="profile-card profile-left">
-                <div class="profile-avatar">
-                    {{ strtoupper(substr($agence->nom_agence, 0, 2)) }}
-                </div>
+                <!-- ✅ Affichage du logo ou avatar -->
+                @if($agence->logo)
+                    <div class="profile-logo">
+                        <img src="{{ asset('storage/' . $agence->logo) }}" alt="{{ $agence->nom_agence }}">
+                    </div>
+                @else
+                    <div class="profile-avatar">
+                        {{ strtoupper(substr($agence->nom_agence, 0, 2)) }}
+                    </div>
+                @endif
                 <h3 class="profile-name">{{ $agence->nom_agence }}</h3>
                 <div class="profile-status {{ $agence->statut_validation ? 'verified' : 'pending' }}">
                     <i class="fa-solid {{ $agence->statut_validation ? 'fa-circle-check' : 'fa-clock' }}"></i>
@@ -96,15 +103,39 @@
                         @error('description') <span class="error">{{ $message }}</span> @enderror
                     </div>
 
-                    <div class="field">
-                        <label>Logo</label>
-                        <input type="file" name="logo" accept="image/*">
-                        @if($agence->logo)
-                            <div class="file-info">
-                                <i class="fa-solid fa-check-circle" style="color:var(--green);"></i>
-                                Logo actuel
+                    <!-- ✅ Upload Logo amélioré -->
+                    <div class="field logo-field">
+                        <label>Logo de l'agence</label>
+                        <div class="logo-upload-wrapper">
+                            <div class="logo-upload-area" id="logoUploadArea" role="button" tabindex="0">
+                                <div class="logo-preview" id="logoPreview">
+                                    @if($agence->logo)
+                                        <img src="{{ asset('storage/' . $agence->logo) }}" alt="Logo actuel" id="logoPreviewImg">
+                                    @else
+                                        <div class="logo-placeholder">
+                                            <i class="fa-solid fa-image"></i>
+                                            <span>Aucun logo</span>
+                                        </div>
+                                    @endif
+                                </div>
+                                <div class="logo-upload-info">
+                                    <p class="logo-upload-title">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i> Cliquez pour changer le logo
+                                    </p>
+                                    <p class="logo-upload-hint">PNG, JPEG, SVG · Max 2 Mo</p>
+                                    <p class="logo-upload-current">
+                                        @if($agence->logo)
+                                            <i class="fa-solid fa-check-circle" style="color:var(--green);"></i>
+                                            Logo actuel : {{ basename($agence->logo) }}
+                                        @else
+                                            <i class="fa-solid fa-info-circle" style="color:var(--muted);"></i>
+                                            Aucun logo téléchargé
+                                        @endif
+                                    </p>
+                                </div>
                             </div>
-                        @endif
+                            <input type="file" name="logo" accept="image/*" id="logoInput" class="logo-input">
+                        </div>
                         @error('logo') <span class="error">{{ $message }}</span> @enderror
                     </div>
 
@@ -352,6 +383,42 @@
 
     // Fermer le modal en cliquant sur l'overlay
     document.querySelector('.modal-overlay').addEventListener('click', closeModal);
+
+    // ===================== APERÇU DU LOGO =====================
+    document.addEventListener('DOMContentLoaded', function() {
+        const logoInput = document.getElementById('logoInput');
+        const logoUploadArea = document.getElementById('logoUploadArea');
+        const previewContainer = document.getElementById('logoPreview');
+
+        if (logoInput && logoUploadArea) {
+            // ✅ Cliquer sur la zone (image, texte, hint...) ouvre le sélecteur de fichier
+            logoUploadArea.addEventListener('click', function() {
+                logoInput.click();
+            });
+
+            // ✅ Accessibilité clavier (Enter / Espace)
+            logoUploadArea.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    logoInput.click();
+                }
+            });
+
+            // Aperçu de l'image choisie
+            logoInput.addEventListener('change', function(e) {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        previewContainer.innerHTML = `
+                            <img src="${event.target.result}" alt="Aperçu logo" id="logoPreviewImg">
+                        `;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+    });
 </script>
 @endpush
 
@@ -422,6 +489,26 @@
 
     .profile-left {
         text-align: center;
+    }
+
+    /* ✅ LOGO */
+    .profile-logo {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        overflow: hidden;
+        margin: 0 auto 12px;
+        border: 3px solid var(--border);
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .profile-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
 
     .profile-avatar {
@@ -562,22 +649,6 @@
         min-height: 100px;
     }
 
-    .field input[type="file"] {
-        padding: 8px;
-        border: 1px dashed var(--border);
-        cursor: pointer;
-    }
-
-    .field input[type="file"]:hover {
-        border-color: var(--rust);
-    }
-
-    .file-info {
-        font-size: 12px;
-        color: var(--muted);
-        margin-top: 4px;
-    }
-
     .required {
         color: var(--rust);
     }
@@ -595,6 +666,113 @@
         padding-top: 16px;
         border-top: 1px solid var(--border);
         margin-top: 8px;
+    }
+
+    /* ===================== LOGO UPLOAD ===================== */
+    .logo-field {
+        margin-top: 8px;
+    }
+
+    .logo-upload-wrapper {
+        position: relative;
+    }
+
+    .logo-upload-area {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        padding: 16px 20px;
+        border: 2px dashed var(--border);
+        border-radius: 12px;
+        background: #FAFBFC;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .logo-upload-area:hover {
+        border-color: var(--rust);
+        background: rgba(181, 80, 42, 0.02);
+    }
+
+    .logo-upload-area:focus-visible {
+        outline: 2px solid var(--rust);
+        outline-offset: 2px;
+    }
+
+    .logo-preview {
+        width: 80px;
+        height: 80px;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid var(--border);
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    .logo-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .logo-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+        font-size: 12px;
+    }
+
+    .logo-placeholder i {
+        font-size: 28px;
+        margin-bottom: 4px;
+        opacity: 0.3;
+    }
+
+    .logo-upload-info {
+        flex: 1;
+        pointer-events: none;
+    }
+
+    .logo-upload-title {
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--text);
+        margin-bottom: 2px;
+    }
+
+    .logo-upload-title i {
+        color: var(--rust);
+        margin-right: 6px;
+    }
+
+    .logo-upload-hint {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 0;
+    }
+
+    .logo-upload-current {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 4px;
+    }
+
+    .logo-upload-current i {
+        margin-right: 4px;
+    }
+
+    .logo-input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
     }
 
     /* ===================== CRÉNEAUX ===================== */
@@ -1076,6 +1254,25 @@
     .btn-sm {
         padding: 6px 14px;
         font-size: 12.5px;
+    }
+
+    /* ===================== RESPONSIVE ===================== */
+    @media (max-width: 480px) {
+        .logo-upload-area {
+            flex-direction: column;
+            text-align: center;
+            padding: 16px;
+        }
+
+        .logo-preview {
+            width: 100px;
+            height: 100px;
+        }
+
+        .profile-logo {
+            width: 80px;
+            height: 80px;
+        }
     }
 </style>
 @endpush

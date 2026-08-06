@@ -7,36 +7,40 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use App\Enums\StatutSignalementEnum;
-use App\Enums\MotifSignalementEnum;
 
 class Signalement extends Model
 {
     use HasFactory;
 
-    protected $table = 'signalements';
-
     protected $fillable = [
         'particulier_id',
-        'signalable_id',
+        'agence_id',
         'signalable_type',
+        'signalable_id',
         'motif',
         'description',
         'statut',
         'date_signalement',
         'date_traitement',
         'commentaire_admin',
+        'sanction',
     ];
 
     protected $casts = [
-        'statut' => StatutSignalementEnum::class,
-        'motif' => MotifSignalementEnum::class,
         'date_signalement' => 'datetime',
         'date_traitement' => 'datetime',
+        'statut' => StatutSignalementEnum::class,
     ];
 
+    // Relations
     public function particulier(): BelongsTo
     {
         return $this->belongsTo(Particulier::class);
+    }
+
+    public function agence(): BelongsTo
+    {
+        return $this->belongsTo(Agence::class);
     }
 
     public function signalable(): MorphTo
@@ -44,18 +48,16 @@ class Signalement extends Model
         return $this->morphTo();
     }
 
-    public function scopeEnAttente($query)
+    // Accesseurs
+    public function getMotifLabelAttribute()
     {
-        return $query->where('statut', StatutSignalementEnum::EN_ATTENTE);
-    }
-
-    public function scopeTraites($query)
-    {
-        return $query->where('statut', StatutSignalementEnum::TRAITE);
-    }
-
-    public function scopeRejetes($query)
-    {
-        return $query->where('statut', StatutSignalementEnum::REJETE);
+        $motifs = [
+            'arnaque' => 'Arnaque',
+            'contenu_inapproprie' => 'Contenu inapproprié',
+            'fausse_annonce' => 'Fausse annonce',
+            'comportement_inapproprié' => 'Comportement inapproprié',
+            'autre' => 'Autre',
+        ];
+        return $motifs[$this->motif] ?? $this->motif;
     }
 }

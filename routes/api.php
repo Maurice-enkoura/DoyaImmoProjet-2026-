@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Agence\CreneauRendezVousController;
+use App\Http\Controllers\Agence\ProfilController;
 
 Route::prefix('search')->group(function () {
     Route::get('/quartiers', [SearchController::class, 'quartiers'])->name('api.search.quartiers');
@@ -19,4 +20,4 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // AJOUTER CETTE ROUTE (sans middleware auth pour que les particuliers puissent y accéder)
-Route::get('/creneaux/disponibles', [CreneauRendezVousController::class, 'getDisponibles'])->name('api.creneaux.disponibles');
+//Route::get('/creneaux/disponibles', [CreneauRendezVousController::class, 'getDisponibles'])->name('api.creneaux.disponibles');

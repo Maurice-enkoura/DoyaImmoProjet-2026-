@@ -10,14 +10,38 @@
             <div class="brand-mark">D</div>
             <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--gold)">Immo</span></div>
         </div>
-        <div>
-            <p class="quote">« Publier ma recherche m'a pris 3 minutes. Le lendemain j'avais déjà deux propositions. »</p>
-            <p class="quote-by">— Moussa D., client à Plateau</p>
+        
+        <!-- Statistiques -->
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:24px;">
+            <!-- Citation -->
+            <div>
+                <p class="quote" style="font-size:20px;margin:0;">
+                    « Publier ma recherche m'a pris 3 minutes. Le lendemain j'avais déjà deux propositions. »
+                </p>
+                <p class="quote-by" style="margin-top:8px;">— Moussa D., client à Plateau</p>
+            </div>
+
+            <!-- Statistiques dynamiques -->
+            <div class="auth-stats" style="margin-top:0;">
+                <div>
+                    <b style="font-size:28px;">{{ $stats['besoins'] ?? 0 }}+</b>
+                    <span style="font-size:13px;color:#9AA1AB;">Besoins publiés</span>
+                </div>
+                <div>
+                    <b style="font-size:28px;">{{ $stats['agences'] ?? 0 }}+</b>
+                    <span style="font-size:13px;color:#9AA1AB;">Agences inscrites</span>
+                </div>
+                <div>
+                    <b style="font-size:28px;">{{ $stats['delai_moyen'] ?? '48h' }}</b>
+                    <span style="font-size:13px;color:#9AA1AB;">Délai moyen de 1ère offre</span>
+                </div>
+            </div>
         </div>
-        <div class="auth-stats">
-            <div><b>1 200+</b><span>Besoins publiés</span></div>
-            <div><b>180+</b><span>Agences inscrites</span></div>
-            <div><b>48h</b><span>Délai moyen de 1ère offre</span></div>
+
+        <!-- Footer visuel -->
+        <div style="font-size:12px;color:#6A7280;margin-top:20px;">
+            <i class="fa-regular fa-circle-check" style="color:var(--gold);"></i>
+            {{ $stats['clients'] ?? 0 }} clients déjà inscrits sur DoyaImmo
         </div>
     </div>
 
@@ -48,6 +72,7 @@
                     <div class="choice-arrow">
                         <i class="fa-solid fa-arrow-right"></i>
                     </div>
+                    <span class="badge">Populaire</span>
                 </a>
 
                 <a href="{{ route('register.agence') }}" class="choice-card choice-agence">
@@ -61,6 +86,7 @@
                     <div class="choice-arrow">
                         <i class="fa-solid fa-arrow-right"></i>
                     </div>
+                    <span class="badge badge-teal">Pro</span>
                 </a>
             </div>
 
@@ -204,7 +230,7 @@
         color: var(--teal);
     }
 
-    /* ===================== BADGE "POPULAIRE" ===================== */
+    /* ===================== BADGES ===================== */
     .choice-card .badge {
         position: absolute;
         top: -8px;
@@ -251,6 +277,11 @@
 
         .auth-header h1 {
             font-size: 20px;
+        }
+
+        .choice-card .badge {
+            font-size: 8px;
+            padding: 1px 8px;
         }
     }
 

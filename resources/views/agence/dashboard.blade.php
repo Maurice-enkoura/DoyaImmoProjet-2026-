@@ -7,7 +7,34 @@
 @section('content')
 <div class="view active">
 
-    <!-- Statistiques rapides -->
+    @php
+        $limite = $abonnementActuel ? $abonnementActuel->formule->limiteBiens() : 0;
+        $estIllimite = $limite === PHP_INT_MAX;
+        $pct = $estIllimite ? 0 : min(100, max(0, $pourcentageOffres ?? 0));
+    @endphp
+
+    <!-- ==================== ALERTES ==================== -->
+    @if(!$peutEnvoyerOffres && $abonnementActuel && !$estIllimite)
+        <div class="alert alert-warning">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <div>
+                <strong>Quota atteint.</strong>
+                <span>Vous avez utilisé toutes vos offres. <a href="{{ route('agence.abonnement') }}">Passez à un abonnement supérieur</a></span>
+            </div>
+        </div>
+    @endif
+
+    @if(!$abonnementActuel)
+        <div class="alert alert-danger">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <div>
+                <strong>Aucun abonnement actif.</strong>
+                <span>Souscrivez un abonnement pour publier des biens. <a href="{{ route('agence.abonnement') }}">Voir les offres</a></span>
+            </div>
+        </div>
+    @endif
+
+    <!-- ==================== STATISTIQUES ==================== -->
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-icon" style="background:var(--teal-soft); color:var(--teal);">
@@ -47,7 +74,7 @@
         </div>
     </div>
 
-    <!-- Abonnement & Offres -->
+    <!-- ==================== ABONNEMENT & OFFRES ==================== -->
     <div class="subscription-row">
         <div class="sub-card">
             <div class="sub-label">Abonnement</div>
@@ -57,13 +84,13 @@
                     <span class="sub-badge">Actif</span>
                 @else
                     <span style="color:#C62828;">Aucun</span>
-                    <span class="sub-badge" style="background:#FFEBEE;color:#C62828;">Inactif</span>
+                    <span class="sub-badge sub-badge--off">Inactif</span>
                 @endif
             </div>
             @if($abonnementActuel)
                 <div class="sub-date">Valable jusqu'au {{ $abonnementActuel->date_fin->format('d/m/Y') }}</div>
             @endif
-            <a href="{{ route('agence.abonnement') }}" class="btn btn-ghost btn-sm" style="margin-top:8px;">
+            <a href="{{ route('agence.abonnement') }}" class="btn btn-ghost btn-sm">
                 {{ $abonnementActuel ? 'Gérer' : 'Souscrire' }}
             </a>
         </div>
@@ -71,70 +98,41 @@
         <div class="sub-card">
             <div class="sub-label">Offres restantes</div>
             <div class="sub-plan">
-                @php
-                    $limite = $abonnementActuel ? $abonnementActuel->formule->limiteBiens() : 0;
-                    $estIllimite = $limite === PHP_INT_MAX;
-                @endphp
-                
                 @if($estIllimite)
-                    <span style="font-size:28px;font-weight:700;color:var(--rust);">♾️</span>
-                    <span style="font-size:18px;font-weight:600;color:var(--rust);">Illimité</span>
+                    <span class="sub-value">Illimité</span>
                 @else
-                    <span style="font-size:28px;font-weight:700;color:{{ $offresRestantes > 0 ? 'var(--rust)' : '#C62828' }};">
+                    <span class="sub-value" style="color:{{ $offresRestantes > 0 ? 'var(--ink)' : '#C62828' }};">
                         {{ $offresRestantes }}
                     </span>
-                    <span style="font-size:14px;color:var(--muted);">
-                        / {{ $limite }}
-                    </span>
+                    <span class="sub-value-total">/ {{ $limite }}</span>
                 @endif
             </div>
             @if($abonnementActuel && !$estIllimite)
                 <div class="progress-bar">
-                    <div class="progress-fill" style="width:{{ $pourcentageOffres }}%;background:{{ $pourcentageOffres > 80 ? '#C62828' : ($pourcentageOffres > 60 ? '#F5A623' : 'var(--rust)') }};"></div>
+                    <div class="progress-fill" style="width:{{ $pct }}%;background:{{ $pct > 80 ? '#C62828' : ($pct > 60 ? '#D4AF37' : 'var(--rust)') }};"></div>
                 </div>
-                <div class="progress-label">{{ $pourcentageOffres }}% utilisé</div>
+                <div class="progress-label">{{ $pct }}% utilisé</div>
             @endif
             @if($estIllimite)
-                <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+                <div class="sub-date">
                     <i class="fa-regular fa-circle-check" style="color:#1E7A47;"></i> Offres illimitées
                 </div>
             @endif
         </div>
     </div>
 
-    <!-- Alertes -->
-    @if(!$peutEnvoyerOffres && $abonnementActuel && !$estIllimite)
-        <div class="alert alert-warning">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            <div>
-                <strong>Quota atteint !</strong>
-                <span>Vous avez utilisé toutes vos offres. <a href="{{ route('agence.abonnement') }}">Passez à un abonnement supérieur</a></span>
-            </div>
-        </div>
-    @endif
-
-    @if(!$abonnementActuel)
-        <div class="alert alert-danger">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            <div>
-                <strong>Aucun abonnement actif !</strong>
-                <span>Souscrivez un abonnement pour publier des biens. <a href="{{ route('agence.abonnement') }}">Voir les offres</a></span>
-            </div>
-        </div>
-    @endif
-
-    <!-- Activité récente -->
+    <!-- ==================== ACTIVITÉ RÉCENTE ==================== -->
     <div class="activity-grid">
         <!-- Besoins récents -->
         <div class="activity-card">
             <div class="activity-header">
                 <h3>Besoins récents</h3>
-                <a href="{{ route('agence.demandes.index') }}">Voir tout →</a>
+                <a href="{{ route('agence.demandes.index') }}">Voir tout</a>
             </div>
             @forelse($derniersBesoins as $besoin)
                 <div class="activity-item">
-                    <div class="activity-dot" style="background:#F5A623;"></div>
-                    <div>
+                    <div class="activity-dot" style="background:#D4AF37;"></div>
+                    <div class="activity-main">
                         <div class="activity-title">{{ $besoin->type_bien->label() }}</div>
                         <div class="activity-desc">{{ $besoin->zone_recherchee }} · {{ number_format($besoin->budget_maximum, 0, ',', ' ') }} F</div>
                     </div>
@@ -149,12 +147,12 @@
         <div class="activity-card">
             <div class="activity-header">
                 <h3>Prochains rendez-vous</h3>
-                <a href="{{ route('agence.rendezvous.index') }}">Voir tout →</a>
+                <a href="{{ route('agence.rendezvous.index') }}">Voir tout</a>
             </div>
             @forelse($prochainsRendezVous as $rdv)
                 <div class="activity-item">
                     <div class="activity-dot" style="background:var(--rust);"></div>
-                    <div>
+                    <div class="activity-main">
                         <div class="activity-title">{{ $rdv->proposition->bien->titre ?? 'Visite' }}</div>
                         <div class="activity-desc">{{ $rdv->particulier->user->prenom ?? '' }} · {{ \Carbon\Carbon::parse($rdv->heure_visite)->format('H:i') }}</div>
                     </div>
@@ -169,12 +167,12 @@
         <div class="activity-card">
             <div class="activity-header">
                 <h3>Derniers avis</h3>
-                <a href="{{ route('agence.evaluations.index') }}">Voir tout →</a>
+                <a href="{{ route('agence.evaluations.index') }}">Voir tout</a>
             </div>
             @forelse($derniersAvis as $avis)
                 <div class="activity-item">
                     <div class="activity-dot" style="background:#1E7A47;"></div>
-                    <div>
+                    <div class="activity-main">
                         <div class="activity-title">{{ $avis->particulier->user->prenom ?? '' }}</div>
                         <div class="activity-desc">
                             @for($i = 1; $i <= 5; $i++)
@@ -190,7 +188,7 @@
         </div>
     </div>
 
-    <!-- Actions rapides -->
+    <!-- ==================== ACTIONS RAPIDES ==================== -->
     <div class="quick-actions">
         <a href="{{ route('agence.biens.create') }}" class="btn btn-rust">
             <i class="fa-solid fa-plus"></i> Publier un bien
@@ -211,11 +209,12 @@
 
 @push('styles')
 <style>
+    /* ===================== STATISTIQUES ===================== */
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 16px;
-        margin-bottom: 24px;
+        margin-bottom: 20px;
     }
 
     @media (max-width: 820px) {
@@ -243,75 +242,85 @@
     .stat-card {
         background: #fff;
         border-radius: var(--radius);
-        padding: 16px 20px;
+        padding: 18px 20px;
         display: flex;
         align-items: center;
         gap: 14px;
         border: 1px solid var(--border);
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
 
     .stat-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 18px;
+        font-size: 16px;
         flex-shrink: 0;
     }
 
     .stat-info {
         flex: 1;
+        min-width: 0;
     }
 
     .stat-value {
         font-family: var(--display);
         font-weight: 700;
-        font-size: 24px;
+        font-size: 22px;
         line-height: 1.2;
+        color: var(--ink);
     }
 
     .stat-label {
-        font-size: 13px;
+        font-size: 12.5px;
         color: var(--muted);
     }
 
+    /* ===================== ABONNEMENT ===================== */
     .subscription-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 16px;
-        margin-bottom: 24px;
+        margin-bottom: 20px;
     }
 
     .sub-card {
         background: #fff;
         border-radius: var(--radius);
-        padding: 16px 20px;
+        padding: 18px 20px;
         border: 1px solid var(--border);
     }
 
     .sub-label {
-        font-size: 12px;
+        font-size: 11.5px;
+        font-weight: 600;
         color: var(--muted);
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        margin-bottom: 6px;
     }
 
     .sub-plan {
         font-family: var(--display);
         font-weight: 700;
-        font-size: 20px;
-        margin: 4px 0 2px;
+        font-size: 19px;
+        color: var(--ink);
+        margin-bottom: 2px;
         display: flex;
-        align-items: center;
+        align-items: baseline;
         gap: 10px;
+    }
+
+    .sub-value {
+        font-size: 22px;
+    }
+
+    .sub-value-total {
+        font-size: 13px;
+        font-weight: 400;
+        color: var(--muted);
     }
 
     .sub-badge {
@@ -323,32 +332,39 @@
         color: #1E7A47;
     }
 
+    .sub-badge--off {
+        background: #FFEBEE;
+        color: #C62828;
+    }
+
     .sub-date {
-        font-size: 13px;
+        font-size: 12.5px;
         color: var(--muted);
+        margin-bottom: 10px;
     }
 
     .progress-bar {
         width: 100%;
-        height: 4px;
+        height: 6px;
         background: var(--border);
         border-radius: 999px;
         overflow: hidden;
-        margin-top: 8px;
+        margin-top: 10px;
     }
 
     .progress-fill {
         height: 100%;
         border-radius: 999px;
-        transition: width 0.5s;
     }
 
     .progress-label {
-        font-size: 11px;
+        font-size: 11.5px;
         color: var(--muted);
-        margin-top: 4px;
+        margin-top: 6px;
+        margin-bottom: 10px;
     }
 
+    /* ===================== ALERTES ===================== */
     .alert {
         padding: 12px 16px;
         border-radius: 10px;
@@ -381,6 +397,7 @@
         text-decoration: underline;
     }
 
+    /* ===================== ACTIVITÉ ===================== */
     .activity-grid {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
@@ -391,7 +408,7 @@
     .activity-card {
         background: #fff;
         border-radius: var(--radius);
-        padding: 16px 20px;
+        padding: 18px 20px;
         border: 1px solid var(--border);
     }
 
@@ -400,20 +417,23 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border);
     }
 
     .activity-header h3 {
         font-family: var(--display);
         font-size: 14px;
-        font-weight: 600;
+        font-weight: 700;
         margin: 0;
+        color: var(--ink);
     }
 
     .activity-header a {
         font-size: 12px;
         color: var(--rust);
         text-decoration: none;
-        font-weight: 500;
+        font-weight: 600;
     }
 
     .activity-header a:hover {
@@ -423,37 +443,49 @@
     .activity-item {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 8px 0;
+        gap: 10px;
+        padding: 9px 0;
         border-bottom: 1px solid var(--border);
     }
 
     .activity-item:last-child {
         border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .activity-item:first-child {
+        padding-top: 0;
     }
 
     .activity-dot {
-        width: 8px;
-        height: 8px;
+        width: 7px;
+        height: 7px;
         border-radius: 50%;
         flex-shrink: 0;
     }
 
+    .activity-main {
+        min-width: 0;
+        flex: 1;
+    }
+
     .activity-title {
-        font-weight: 500;
+        font-weight: 600;
         font-size: 13px;
+        color: var(--ink);
     }
 
     .activity-desc {
         font-size: 12px;
         color: var(--muted);
+        margin-top: 1px;
     }
 
     .activity-time {
         font-size: 11px;
         color: var(--muted);
-        margin-left: auto;
         flex-shrink: 0;
+        white-space: nowrap;
     }
 
     .empty-state {
@@ -463,11 +495,12 @@
         color: var(--muted);
     }
 
+    /* ===================== ACTIONS RAPIDES ===================== */
     .quick-actions {
         display: flex;
         gap: 12px;
         flex-wrap: wrap;
-        padding-top: 8px;
+        padding-top: 4px;
     }
 
     .btn {
@@ -475,11 +508,11 @@
         align-items: center;
         gap: 8px;
         padding: 10px 20px;
-        border-radius: 12px;
+        border-radius: 10px;
         font-size: 13.5px;
         font-weight: 600;
         text-decoration: none;
-        transition: all 0.2s;
+        transition: background 0.15s;
         border: 1px solid transparent;
         cursor: pointer;
         font-family: inherit;
@@ -506,8 +539,9 @@
     }
 
     .btn-sm {
-        padding: 6px 14px;
+        padding: 7px 14px;
         font-size: 12.5px;
+        margin-top: 4px;
     }
 </style>
 @endpush

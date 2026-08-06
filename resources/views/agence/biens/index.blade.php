@@ -12,7 +12,7 @@
             <p>Gérez vos biens immobiliers</p>
         </div>
         <a href="{{ route('agence.biens.create') }}" class="btn btn-rust btn-sm">
-            + Nouveau bien
+            <i class="fa-solid fa-plus"></i> Nouveau bien
         </a>
     </div>
 
@@ -24,6 +24,8 @@
             <div class="bien-image">
                 @php
                     $image = $bien->medias->where('type_media', 'image')->first();
+                    $imagesCount = $bien->medias->where('type_media', 'image')->count();
+                    $videosCount = $bien->medias->where('type_media', 'video')->count();
                 @endphp
                 @if($image)
                     <img src="{{ asset('storage/' . $image->fichier) }}" alt="{{ $bien->titre }}">
@@ -32,8 +34,20 @@
                         <i class="fa-solid fa-image"></i>
                     </div>
                 @endif
+                <!-- Statut du bien -->
                 <div class="bien-status {{ $bien->statut ? 'disponible' : 'indisponible' }}">
                     {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
+                </div>
+                <!-- Type de bien sur l'image -->
+                <div class="bien-type-badge">{{ $bien->type_bien->label() }}</div>
+                <!-- Compteur de médias -->
+                <div class="media-badge">
+                    @if($imagesCount > 0)
+                        <span><i class="fa-regular fa-image"></i> {{ $imagesCount }}</span>
+                    @endif
+                    @if($videosCount > 0)
+                        <span><i class="fa-regular fa-circle-play"></i> {{ $videosCount }}</span>
+                    @endif
                 </div>
             </div>
             
@@ -44,9 +58,10 @@
                     <i class="fa-solid fa-location-dot"></i> {{ $bien->quartier }}
                 </div>
                 <div class="bien-features">
-                    <span class="meta-pill">{{ $bien->type_bien->label() }}</span>
+                    <span class="meta-pill"><i class="fa-solid fa-home"></i> {{ $bien->type_bien->label() }}</span>
                     <span class="meta-pill">{{ $bien->type_contrat->label() }}</span>
                     <span class="meta-pill">{{ $bien->surface }} m²</span>
+                    <span class="meta-pill"><i class="fa-regular fa-eye"></i> {{ $bien->vues ?? 0 }}</span>
                 </div>
                 <div class="bien-actions">
                     <a href="{{ route('agence.biens.edit', $bien) }}" class="btn btn-ghost btn-sm">
@@ -121,6 +136,7 @@
         opacity: 0.3;
     }
 
+    /* Statut du bien sur l'image */
     .bien-status {
         position: absolute;
         top: 12px;
@@ -130,6 +146,7 @@
         font-size: 11px;
         font-weight: 600;
         color: #fff;
+        z-index: 2;
     }
 
     .bien-status.disponible {
@@ -138,6 +155,41 @@
 
     .bien-status.indisponible {
         background: var(--muted);
+    }
+
+    /* Type de bien sur l'image */
+    .bien-type-badge {
+        position: absolute;
+        bottom: 12px;
+        left: 12px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #fff;
+        background: rgba(0,0,0,0.7);
+        z-index: 2;
+    }
+
+    /* Compteur de médias */
+    .media-badge {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        display: flex;
+        gap: 6px;
+        font-size: 10px;
+        color: #fff;
+        background: rgba(0,0,0,0.6);
+        padding: 3px 10px;
+        border-radius: 4px;
+        z-index: 2;
+    }
+
+    .media-badge span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
     }
 
     .bien-body {
@@ -174,11 +226,16 @@
     .meta-pill {
         display: inline-flex;
         align-items: center;
+        gap: 4px;
         background: var(--border);
         padding: 2px 12px;
         border-radius: 999px;
         font-size: 11px;
         color: var(--text-soft);
+    }
+
+    .meta-pill i {
+        font-size: 10px;
     }
 
     .bien-actions {
@@ -274,6 +331,55 @@
         background: var(--rust);
         color: #fff;
         border-color: var(--rust);
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+        .biens-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .bien-actions {
+            flex-direction: column;
+        }
+
+        .bien-actions .btn {
+            justify-content: center;
+        }
+
+        .bien-features {
+            gap: 4px;
+        }
+
+        .meta-pill {
+            font-size: 10px;
+            padding: 1px 10px;
+        }
+
+        .bien-type-badge {
+            font-size: 10px;
+            padding: 3px 10px;
+        }
+
+        .media-badge {
+            font-size: 9px;
+            padding: 2px 8px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .bien-title {
+            font-size: 14px;
+        }
+
+        .bien-price {
+            font-size: 15px;
+        }
+
+        .bien-status {
+            font-size: 10px;
+            padding: 3px 10px;
+        }
     }
 </style>
 @endpush

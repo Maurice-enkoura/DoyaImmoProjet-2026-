@@ -13,7 +13,16 @@ enum RoleEnum: string
         return match($this) {
             self::ADMIN => 'Administrateur',
             self::PARTICULIER => 'Particulier',
-            self::AGENCE => 'Agence immobilière',
+            self::AGENCE => 'Agence',
+        };
+    }
+
+    public function badge(): string
+    {
+        return match($this) {
+            self::ADMIN => 'danger',
+            self::PARTICULIER => 'info',
+            self::AGENCE => 'warning',
         };
     }
 

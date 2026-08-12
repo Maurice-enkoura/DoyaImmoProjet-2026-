@@ -39,9 +39,9 @@
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
             @php
                 $total = $documents->count();
-                $valides = $documents->where('statut_validation', 'valide')->count();
-                $enAttente = $documents->where('statut_validation', 'en_attente')->count();
-                $rejetes = $documents->where('statut_validation', 'rejete')->count();
+                $valides = $documents->filter(function($doc) { return $doc->est_valide; })->count();
+                $enAttente = $documents->filter(function($doc) { return $doc->est_en_attente; })->count();
+                $rejetes = $documents->filter(function($doc) { return $doc->est_rejete; })->count();
             @endphp
             <div style="padding:8px;background:#F7F9FC;border-radius:8px;text-align:center;">
                 <div style="font-size:20px;font-weight:700;">{{ $total }}</div>
@@ -66,19 +66,19 @@
         <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">
             Sélectionnez les documents à valider ou rejeter.
         </p>
-        <form action="{{ route('admin.agences.valider-documents', $agence) }}" method="POST">
+        <form id="validationForm" action="{{ route('admin.agences.valider-documents', $agence) }}" method="POST">
             @csrf
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <select name="statut" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;flex:1;">
-                    <option value="valide">Valider</option>
-                    <option value="rejete">Rejeter</option>
+                <select id="validationStatut" name="statut" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;flex:1;">
+                    <option value="valide"> Valider</option>
+                    <option value="rejete"> Rejeter</option>
                 </select>
                 <button type="submit" class="btn btn-rust">
                     <i class="fa-solid fa-check"></i> Appliquer
                 </button>
             </div>
             <div style="margin-top:8px;">
-                <input type="text" name="commentaire" placeholder="Commentaire (optionnel)" 
+                <input type="text" id="validationCommentaire" name="commentaire" placeholder="Commentaire (optionnel)" 
                        style="width:100%;padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
             </div>
         </form>
@@ -104,11 +104,15 @@
             @csrf
             <div style="display:flex;flex-direction:column;gap:8px;">
                 @foreach($documents as $document)
-                    <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#F7F9FC;border-radius:8px;border-left:4px solid 
-                        @if($document->statut_validation === 'valide') var(--green)
-                        @elseif($document->statut_validation === 'rejete') var(--red)
-                        @else #E65100
-                        @endif;">
+                    @php
+                        // Déterminer la couleur de la bordure selon le statut
+                        $borderColor = $document->est_valide ? 'var(--green)' : ($document->est_rejete ? 'var(--red)' : '#E65100');
+                        
+                        // Déterminer le statut CSS
+                        $statusClass = $document->est_valide ? 'status-active' : ($document->est_rejete ? 'status-annule' : 'status-en_attente');
+                        $statusLabel = $document->statut_validation_label;
+                    @endphp
+                    <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#F7F9FC;border-radius:8px;border-left:4px solid {{ $borderColor }};">
                         
                         <!-- Checkbox pour sélectionner -->
                         <div>
@@ -118,29 +122,29 @@
 
                         <!-- Informations du document -->
                         <div style="flex:1;">
-                            <div style="display:flex;align-items:center;gap:8px;">
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                                 <span style="font-weight:600;font-size:14px;">
                                     <i class="fa-solid fa-file-pdf" style="color:var(--red);"></i>
-                                    {{ $document->type_document }}
+                                    {{ $document->type_document_label }}
                                 </span>
                                 <span style="font-size:11px;color:var(--muted);">
-                                    ({{ basename($document->fichier) }})
+                                    ({{ basename($document->nom_fichier) }})
                                 </span>
                             </div>
                             <div style="font-size:12px;color:var(--muted);margin-top:4px;">
                                 <i class="fa-solid fa-clock"></i> 
                                 Téléchargé le {{ $document->created_at->format('d/m/Y H:i') }}
                             </div>
-                            @if($document->statut_validation === 'valide' && $document->date_validation)
-                                <div style="font-size:12px;color:var(--green);">
+                            @if($document->est_valide && $document->date_validation)
+                                <div style="font-size:12px;color:var(--green);margin-top:2px;">
                                     ✓ Validé le {{ \Carbon\Carbon::parse($document->date_validation)->format('d/m/Y') }}
                                     @if($document->validePar)
                                         par {{ $document->validePar->user->prenom ?? '' }} {{ $document->validePar->user->nom ?? '' }}
                                     @endif
                                 </div>
                             @endif
-                            @if($document->statut_validation === 'rejete' && $document->commentaire)
-                                <div style="font-size:12px;color:var(--red);">
+                            @if($document->est_rejete && $document->commentaire)
+                                <div style="font-size:12px;color:var(--red);margin-top:2px;">
                                     ✗ Rejeté: "{{ $document->commentaire }}"
                                 </div>
                             @endif
@@ -148,21 +152,18 @@
 
                         <!-- Statut -->
                         <div>
-                            @if($document->statut_validation === 'valide')
-                                <span class="status-pill status-active">Validé</span>
-                            @elseif($document->statut_validation === 'rejete')
-                                <span class="status-pill status-annule">Rejeté</span>
-                            @else
-                                <span class="status-pill status-en_attente">En attente</span>
-                            @endif
+                            <span class="status-pill {{ $statusClass }}">
+                                <i class="fa-solid fa-circle" style="font-size:6px;"></i>
+                                {{ $statusLabel }}
+                            </span>
                         </div>
 
                         <!-- Actions -->
                         <div style="display:flex;gap:4px;">
-                            <a href="{{ asset('storage/' . $document->fichier) }}" target="_blank" class="btn btn-ghost btn-sm" title="Voir le document">
+                            <a href="{{ $document->fichier_url }}" target="_blank" class="btn btn-ghost btn-sm" title="Voir le document">
                                 <i class="fa-solid fa-eye"></i>
                             </a>
-                            <a href="{{ asset('storage/' . $document->fichier) }}" download class="btn btn-ghost btn-sm" title="Télécharger">
+                            <a href="{{ $document->fichier_url }}" download class="btn btn-ghost btn-sm" title="Télécharger">
                                 <i class="fa-solid fa-download"></i>
                             </a>
                         </div>
@@ -242,3 +243,117 @@
     }
 </script>
 @endsection
+
+@push('styles')
+<style>
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .status-active {
+        background: #E8F5E9;
+        color: #1E7A47;
+    }
+    .status-annule {
+        background: #FFEBEE;
+        color: #C62828;
+    }
+    .status-en_attente {
+        background: #FFF8E1;
+        color: #E65100;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 12.5px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-family: inherit;
+    }
+
+    .btn-ghost {
+        background: transparent;
+        color: var(--text-soft);
+        border-color: var(--border);
+    }
+
+    .btn-ghost:hover {
+        background: var(--border);
+    }
+
+    .btn-rust {
+        background: var(--rust);
+        color: #fff;
+        border-color: var(--rust);
+    }
+
+    .btn-rust:hover {
+        background: #9A4523;
+        color: #fff;
+    }
+
+    .btn-sm {
+        padding: 4px 12px;
+        font-size: 12px;
+    }
+
+    .btn-success {
+        background: #1E7A47;
+        color: #fff;
+        border-color: #1E7A47;
+    }
+
+    .btn-success:hover {
+        background: #145A35;
+        color: #fff;
+    }
+
+    .btn-danger {
+        background: #C62828;
+        color: #fff;
+        border-color: #C62828;
+    }
+
+    .btn-danger:hover {
+        background: #B71C1C;
+        color: #fff;
+    }
+
+    .panel {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px 24px;
+        margin-bottom: 20px;
+    }
+
+    .panel:last-child {
+        margin-bottom: 0;
+    }
+
+    .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .grid-2 {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+@endpush

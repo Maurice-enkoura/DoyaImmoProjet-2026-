@@ -13,6 +13,55 @@
 </div>
 
 <div class="wrap section" style="padding-top:20px;">
+    <!-- ==================== BIENS EN VEDETTE ==================== -->
+    @if(isset($biensVedette) && $biensVedette->count() > 0)
+    <div class="vedette-section">
+        <div class="vedette-header">
+            <span class="eyebrow">⭐ À la une</span>
+            <h2 class="h-section" style="font-size: clamp(18px, 2vw, 22px);">Biens en vedette</h2>
+        </div>
+        <div class="vedette-grid">
+            @foreach($biensVedette as $bien)
+                <div class="vedette-card">
+                    <div class="vedette-image">
+                        @php
+                            $image = $bien->medias->where('type_media', 'image')->first();
+                        @endphp
+                        @if($image)
+                            <img src="{{ asset('storage/' . $image->fichier) }}" alt="{{ $bien->titre }}" loading="lazy">
+                        @else
+                            <div class="image-placeholder">
+                                <i class="fa-solid fa-image"></i>
+                            </div>
+                        @endif
+                        <span class="vedette-badge">
+                            <i class="fa-solid fa-star"></i> Vedette
+                        </span>
+                        <span class="bien-status {{ $bien->statut ? 'disponible' : 'indisponible' }}">
+                            {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
+                        </span>
+                    </div>
+                    <div class="vedette-body">
+                        <h3 class="vedette-title">{{ $bien->titre }}</h3>
+                        <div class="vedette-price">{{ number_format($bien->prix, 0, ',', ' ') }} FCFA</div>
+                        <div class="vedette-location">
+                            <i class="fa-solid fa-location-dot"></i> {{ $bien->quartier->nom ?? $bien->quartier }}
+                        </div>
+                        <div class="vedette-features">
+                            <span><i class="fa-solid fa-vector-square"></i> {{ $bien->surface }} m²</span>
+                            <span><i class="fa-solid fa-bed"></i> {{ $bien->nombre_chambres }} ch.</span>
+                            <span><i class="fa-solid fa-bath"></i> {{ $bien->nombre_salles_bain }} sdb</span>
+                        </div>
+                        <a href="{{ route('biens.show', $bien) }}" class="btn btn-rust btn-sm btn-block">
+                            <i class="fa-regular fa-eye"></i> Voir le bien
+                        </a>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
     <!-- Barre de recherche avancée -->
     <div class="search-container">
         <form action="{{ route('biens.index') }}" method="GET" id="searchForm">
@@ -169,7 +218,7 @@
     <div class="biens-wrapper">
         <div class="biens-grid" id="biensContainer">
             @forelse($biens as $bien)
-                <div class="bien-card">
+                <div class="bien-card {{ $bien->est_vedette && $bien->vedette_fin > now() ? 'vedette-card' : '' }}">
                     <div class="bien-image">
                         @php
                             $image = $bien->medias->where('type_media', 'image')->first();
@@ -182,7 +231,15 @@
                                 <span>Aucune image</span>
                             </div>
                         @endif
-                        <div class="bien-type-badge">{{ $bien->type_bien->label() }}</div>
+                        
+                        <!-- BADGE VEDETTE sur la carte -->
+                        @if($bien->est_vedette && $bien->vedette_fin > now())
+                            <span class="badge-vedette">
+                                <i class="fa-solid fa-star"></i> Vedette
+                            </span>
+                        @endif
+                        
+                        <div class="bien-type-badge">{{ is_object($bien->type_bien) && method_exists($bien->type_bien, 'label') ? $bien->type_bien->label() : $bien->type_bien }}</div>
                         <div class="media-badge">
                             @php
                                 $imagesCount = $bien->medias->where('type_media', 'image')->count();
@@ -203,14 +260,14 @@
                         <div class="bien-title">{{ $bien->titre }}</div>
                         <div class="bien-price">{{ number_format($bien->prix, 0, ',', ' ') }} FCFA</div>
                         <div class="bien-location">
-                            <i class="fa-solid fa-location-dot"></i> {{ $bien->quartier }}
+                            <i class="fa-solid fa-location-dot"></i> {{ $bien->quartier->nom ?? $bien->quartier }}
                         </div>
                         <div class="bien-type-tags">
                             <span class="meta-pill">
-                                <i class="fa-solid fa-home"></i> {{ $bien->type_bien->label() }}
+                                <i class="fa-solid fa-home"></i> {{ is_object($bien->type_bien) && method_exists($bien->type_bien, 'label') ? $bien->type_bien->label() : $bien->type_bien }}
                             </span>
                             <span class="meta-pill">
-                                <i class="fa-solid fa-tag"></i> {{ $bien->type_contrat->label() }}
+                                <i class="fa-solid fa-tag"></i> {{ is_object($bien->type_contrat) && method_exists($bien->type_contrat, 'label') ? $bien->type_contrat->label() : $bien->type_contrat }}
                             </span>
                         </div>
                         <div class="bien-infos">
@@ -240,10 +297,88 @@
         </div>
     </div>
 
-    <!-- Pagination -->
+    <!-- ==================== PAGINATION RÉORGANISÉE ==================== -->
+    @if($biens->hasPages())
     <div class="pagination-container">
-        {{ $biens->appends(request()->query())->links() }}
+        <nav class="pagination-nav" aria-label="Pagination des biens">
+            {{-- Informations de pagination --}}
+            <div class="pagination-info">
+                <span class="pagination-stats">
+                    Affichage de <strong>{{ $biens->firstItem() }}</strong> à <strong>{{ $biens->lastItem() }}</strong> 
+                    sur <strong>{{ $biens->total() }}</strong> biens
+                </span>
+            </div>
+
+            {{-- Liens de pagination --}}
+            <ul class="pagination">
+                {{-- Lien "Précédent" --}}
+                @if($biens->onFirstPage())
+                    <li class="disabled" aria-disabled="true">
+                        <span>&laquo; Précédent</span>
+                    </li>
+                @else
+                    <li>
+                        <a href="{{ $biens->previousPageUrl() }}" rel="prev" aria-label="Page précédente">
+                            &laquo; Précédent
+                        </a>
+                    </li>
+                @endif
+
+                {{-- Éléments de pagination --}}
+                @php
+                    $currentPage = $biens->currentPage();
+                    $lastPage = $biens->lastPage();
+                    $window = 2; // Nombre de pages autour de la page courante
+                @endphp
+
+                @foreach(range(1, $lastPage) as $page)
+                    @if($page == 1 || $page == $lastPage || abs($page - $currentPage) <= $window)
+                        @if($page == $currentPage)
+                            <li class="active" aria-current="page">
+                                <span>{{ $page }}</span>
+                            </li>
+                        @else
+                            <li>
+                                <a href="{{ $biens->url($page) }}" aria-label="Page {{ $page }}">
+                                    {{ $page }}
+                                </a>
+                            </li>
+                        @endif
+                    @elseif($page == $currentPage - $window - 1 || $page == $currentPage + $window + 1)
+                        <li class="disabled" aria-disabled="true">
+                            <span>&hellip;</span>
+                        </li>
+                    @endif
+                @endforeach
+
+                {{-- Lien "Suivant" --}}
+                @if($biens->hasMorePages())
+                    <li>
+                        <a href="{{ $biens->nextPageUrl() }}" rel="next" aria-label="Page suivante">
+                            Suivant &raquo;
+                        </a>
+                    </li>
+                @else
+                    <li class="disabled" aria-disabled="true">
+                        <span>Suivant &raquo;</span>
+                    </li>
+                @endif
+            </ul>
+
+            {{-- Sélecteur de nombre d'éléments par page --}}
+            <div class="pagination-per-page">
+                <label for="perPage" class="per-page-label">Afficher :</label>
+                <select id="perPage" class="per-page-select" onchange="changePerPage(this.value)">
+                    <option value="12" {{ request('per_page') == 12 ? 'selected' : '' }}>12</option>
+                    <option value="24" {{ request('per_page') == 24 ? 'selected' : '' }}>24</option>
+                    <option value="48" {{ request('per_page') == 48 ? 'selected' : '' }}>48</option>
+                    <option value="96" {{ request('per_page') == 96 ? 'selected' : '' }}>96</option>
+                </select>
+                <span class="per-page-text">par page</span>
+            </div>
+        </nav>
     </div>
+    @endif
 </div>
 
 <style>
@@ -285,6 +420,259 @@
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-bottom: 8px;
+    }
+
+    /* ===== BADGE VEDETTE SUR CARTE ===== */
+    .badge-vedette {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        padding: 3px 12px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+        color: #fff;
+        background: #F5A623;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        z-index: 2;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        box-shadow: 0 2px 8px rgba(245, 166, 35, 0.3);
+        animation: pulseVedette 2s ease-in-out infinite;
+    }
+
+    .badge-vedette i {
+        font-size: 10px;
+    }
+
+    /* ===== CARTE AVEC VEDETTE ===== */
+    .bien-card.vedette-card {
+        border: 2px solid #F5A623;
+        position: relative;
+    }
+
+    .bien-card.vedette-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(245, 166, 35, 0.05), transparent);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    @keyframes pulseVedette {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.85; }
+    }
+
+    /* ===== VEDETTE SECTION ===== */
+    .vedette-section {
+        background: linear-gradient(135deg, #FFF8E1 0%, #FFF3E0 100%);
+        border: 2px solid #F5A623;
+        border-radius: 16px;
+        padding: 20px 20px 24px;
+        margin-bottom: 24px;
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .vedette-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .vedette-header .eyebrow {
+        margin-bottom: 0;
+        background: #F5A623;
+        color: #fff;
+        padding: 4px 16px;
+        border-radius: 999px;
+    }
+
+    .vedette-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 16px;
+    }
+
+    .vedette-card {
+        background: #fff;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .vedette-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+
+    .vedette-image {
+        height: 150px;
+        background: #E8ECF0;
+        position: relative;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .vedette-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .vedette-image .image-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+        font-size: 28px;
+        opacity: 0.3;
+    }
+
+    .vedette-badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        padding: 2px 12px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+        color: #fff;
+        background: #F5A623;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        z-index: 2;
+        animation: pulseVedette 2s ease-in-out infinite;
+    }
+
+    .vedette-badge i {
+        font-size: 10px;
+    }
+
+    .vedette-body {
+        padding: 12px 14px 14px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .vedette-title {
+        font-weight: 700;
+        font-size: 14px;
+        margin-bottom: 2px;
+        color: var(--ink);
+        line-height: 1.3;
+        word-break: break-word;
+    }
+
+    .vedette-price {
+        font-weight: 700;
+        color: var(--rust);
+        font-size: 15px;
+        margin-bottom: 3px;
+    }
+
+    .vedette-location {
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 6px;
+        word-break: break-word;
+    }
+
+    .vedette-location i {
+        font-size: 11px;
+        margin-right: 3px;
+    }
+
+    .vedette-features {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--text-soft);
+        margin-bottom: 10px;
+    }
+
+    .vedette-features span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .vedette-features span i {
+        font-size: 10px;
+    }
+
+    .vedette-body .btn {
+        margin-top: auto;
+    }
+
+    @media (max-width: 640px) {
+        .vedette-section {
+            padding: 16px;
+            border-radius: 12px;
+        }
+
+        .vedette-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .vedette-image {
+            height: 120px;
+        }
+
+        .vedette-title {
+            font-size: 13px;
+        }
+
+        .vedette-price {
+            font-size: 14px;
+        }
+
+        .vedette-location {
+            font-size: 11px;
+        }
+
+        .vedette-features {
+            font-size: 10px;
+            gap: 4px;
+        }
+    }
+
+    @media (max-width: 460px) {
+        .vedette-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .vedette-image {
+            height: 160px;
+        }
+
+        .vedette-title {
+            font-size: 15px;
+        }
+
+        .vedette-price {
+            font-size: 16px;
+        }
     }
 
     /* ===== SEARCH CONTAINER ===== */
@@ -628,6 +1016,8 @@
         transition: transform 0.2s, box-shadow 0.2s;
         display: flex;
         flex-direction: column;
+        position: relative;
+        z-index: 1;
     }
 
     .bien-card:hover {
@@ -683,6 +1073,7 @@
         background: rgba(0, 0, 0, 0.7);
         text-transform: uppercase;
         letter-spacing: 0.3px;
+        z-index: 2;
     }
 
     .bien-status {
@@ -696,6 +1087,7 @@
         color: #fff;
         text-transform: uppercase;
         letter-spacing: 0.3px;
+        z-index: 2;
     }
 
     .bien-status.disponible {
@@ -717,6 +1109,7 @@
         background: rgba(0,0,0,0.6);
         padding: 3px 8px;
         border-radius: 4px;
+        z-index: 2;
     }
 
     .media-badge span {
@@ -730,6 +1123,8 @@
         flex: 1;
         display: flex;
         flex-direction: column;
+        position: relative;
+        z-index: 1;
     }
 
     .bien-title {
@@ -832,13 +1227,13 @@
         font-size: clamp(14px, 0.9vw, 15px);
     }
 
-    /* ===== PAGINATION ===== */
+    /* ============================================
+       PAGINATION RÉORGANISÉE
+    ============================================ */
     .pagination-container {
         max-width: 1200px;
         margin: 32px auto 0;
         padding: 0 16px;
-        display: flex;
-        justify-content: center;
     }
 
     @media (min-width: 768px) {
@@ -853,9 +1248,35 @@
         }
     }
 
+    .pagination-nav {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        align-items: center;
+    }
+
+    .pagination-info {
+        width: 100%;
+        text-align: center;
+    }
+
+    .pagination-stats {
+        font-size: clamp(12px, 0.8vw, 14px);
+        color: var(--text-soft);
+    }
+
+    .pagination-stats strong {
+        color: var(--ink);
+        font-weight: 700;
+    }
+
     .pagination {
         display: flex;
-        gap: 5px;
+        gap: 4px;
         list-style: none;
         padding: 0;
         margin: 0;
@@ -867,34 +1288,97 @@
         display: inline;
     }
 
-    .pagination a, 
+    .pagination a,
     .pagination span {
-        display: inline-block;
-        padding: clamp(5px, 0.5vw, 8px) clamp(8px, 0.8vw, 14px);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: clamp(6px, 0.5vw, 8px) clamp(10px, 0.8vw, 14px);
         border-radius: 8px;
         border: 1px solid var(--border);
         color: var(--text-soft);
         text-decoration: none;
         font-size: clamp(11px, 0.8vw, 13px);
-        transition: all 0.2s;
-        min-width: clamp(28px, 3vw, 40px);
+        transition: all 0.2s ease;
+        min-width: clamp(32px, 3vw, 40px);
+        min-height: clamp(32px, 3vw, 40px);
         text-align: center;
+        background: #fff;
+        font-weight: 500;
     }
 
     .pagination a:hover {
         background: var(--border);
         border-color: var(--border);
+        color: var(--ink);
+        transform: translateY(-1px);
     }
 
     .pagination .active span {
         background: var(--rust);
         color: #fff;
         border-color: var(--rust);
+        box-shadow: 0 2px 8px rgba(181, 80, 42, 0.25);
     }
 
     .pagination .disabled span {
         opacity: 0.5;
         cursor: not-allowed;
+        background: #f7f7f7;
+    }
+
+    .pagination .disabled span:hover {
+        transform: none;
+    }
+
+    .pagination a[rel="prev"],
+    .pagination a[rel="next"] {
+        font-weight: 600;
+        gap: 4px;
+    }
+
+    /* ===== PER PAGE SELECTOR ===== */
+    .pagination-per-page {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: clamp(12px, 0.8vw, 13px);
+        color: var(--text-soft);
+        border-top: 1px solid var(--border);
+        padding-top: 14px;
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .per-page-label {
+        font-weight: 500;
+    }
+
+    .per-page-select {
+        padding: 4px 24px 4px 10px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: clamp(12px, 0.8vw, 13px);
+        font-family: inherit;
+        color: var(--ink);
+        background: #fff;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%238A91A0' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+        cursor: pointer;
+        -webkit-appearance: none;
+        appearance: none;
+        transition: border-color 0.3s;
+    }
+
+    .per-page-select:focus {
+        outline: none;
+        border-color: var(--rust);
+    }
+
+    .per-page-text {
+        color: var(--muted);
     }
 
     /* ===== BUTTONS ===== */
@@ -952,7 +1436,6 @@
        RESPONSIVE
     ============================================ */
 
-    /* Tablette */
     @media (max-width: 820px) {
         .search-filters {
             grid-template-columns: 1fr 1fr;
@@ -966,9 +1449,12 @@
             grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
             gap: 16px;
         }
+
+        .pagination-nav {
+            padding: 14px 16px;
+        }
     }
 
-    /* Mobile - FILTRES MASQUÉS PAR DÉFAUT */
     @media (max-width: 640px) {
         .page-head {
             padding: 16px 0 8px;
@@ -1072,15 +1558,33 @@
             padding: 2px 6px;
         }
 
-        .pagination a, 
+        /* ===== PAGINATION RESPONSIVE ===== */
+        .pagination-container {
+            padding: 0 12px;
+        }
+
+        .pagination-nav {
+            padding: 12px;
+            gap: 12px;
+        }
+
+        .pagination a,
         .pagination span {
             padding: 4px 8px;
             font-size: 11px;
             min-width: 28px;
+            min-height: 28px;
         }
 
-        .pagination-container {
-            padding: 0 12px;
+        .pagination-per-page {
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 4px;
+            padding-top: 10px;
+        }
+
+        .pagination-info {
+            font-size: 12px;
         }
 
         .search-input {
@@ -1110,9 +1614,17 @@
             font-size: 13px;
             padding: 8px 14px;
         }
+
+        .badge-vedette {
+            font-size: 9px;
+            padding: 2px 10px;
+        }
+
+        .badge-vedette i {
+            font-size: 9px;
+        }
     }
 
-    /* Petit mobile */
     @media (max-width: 460px) {
         .search-container {
             padding: 10px;
@@ -1165,19 +1677,54 @@
             font-size: 13px;
             padding: 8px 14px;
         }
+
+        /* ===== PAGINATION MOBILE ===== */
+        .pagination a,
+        .pagination span {
+            padding: 3px 6px;
+            font-size: 10px;
+            min-width: 24px;
+            min-height: 24px;
+            border-radius: 6px;
+        }
+
+        .pagination-nav {
+            padding: 10px;
+            gap: 10px;
+        }
+
+        .pagination a[rel="prev"],
+        .pagination a[rel="next"] {
+            font-size: 10px;
+            padding: 3px 8px;
+        }
+
+        .per-page-select {
+            font-size: 12px;
+            padding: 3px 20px 3px 8px;
+        }
     }
 
-    /* ===== ACCESSIBILITÉ ===== */
     @media (prefers-reduced-motion: reduce) {
         * {
             animation-duration: 0.01ms !important;
             animation-iteration-count: 1 !important;
             transition-duration: 0.01ms !important;
         }
+        .badge-vedette {
+            animation: none !important;
+        }
+        .vedette-badge {
+            animation: none !important;
+        }
         .search-filters {
             transition: none !important;
         }
         .btn-filters-toggle .fa-chevron-down {
+            transition: none !important;
+        }
+        .pagination a,
+        .pagination span {
             transition: none !important;
         }
     }
@@ -1190,7 +1737,6 @@ function removeFilter(name) {
     window.location.href = url.toString();
 }
 
-// Toggle des filtres sur mobile
 function toggleFilters() {
     const filters = document.getElementById('searchFilters');
     const arrow = document.getElementById('filtersArrow');
@@ -1198,7 +1744,13 @@ function toggleFilters() {
     arrow.classList.toggle('open');
 }
 
-// Autocomplétion en temps réel
+function changePerPage(value) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('per_page', value);
+    url.searchParams.set('page', 1); // Revenir à la première page
+    window.location.href = url.toString();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     const resultsContainer = document.getElementById('autocompleteResults');
@@ -1241,7 +1793,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
     });
 
-    // Fermer l'autocomplétion en cliquant ailleurs
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.search-input-wrapper')) {
             resultsContainer.style.display = 'none';
@@ -1249,10 +1800,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Fermer les filtres si on clique en dehors
 document.addEventListener('click', function(e) {
     const filters = document.getElementById('searchFilters');
-    const toggleBtn = document.getElementById('filtersToggle');
     if (window.innerWidth <= 640) {
         if (!e.target.closest('.search-container') && filters && filters.classList.contains('open')) {
             filters.classList.remove('open');

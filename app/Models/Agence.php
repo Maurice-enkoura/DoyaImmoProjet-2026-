@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Enums\StatutPropositionEnum;
+use Carbon\Carbon;
 
 class Agence extends Model
 {
@@ -26,12 +27,18 @@ class Agence extends Model
         'logo',
         'statut_validation',
         'bloque',
+        // ✅ Ajouter les nouveaux champs
+        'est_refusee',
+        'motif_refus',
+        'date_refus',
     ];
 
     protected $casts = [
         'statut_validation' => 'boolean',
         'bloque' => 'boolean',
+        'est_refusee' => 'boolean',
         'zones_intervention' => 'array',
+        'date_refus' => 'datetime', // ✅ Convertir en objet Carbon
     ];
 
     // ==================== RELATIONS ====================
@@ -76,8 +83,6 @@ class Agence extends Model
         return $this->belongsTo(Quartier::class);
     }
 
-    // ==================== RELATION CRÉNEAUX ====================
-    // AJOUTER CETTE RELATION ICI
     public function creneaux(): HasMany
     {
         return $this->hasMany(CreneauRendezVous::class, 'agence_id');
@@ -193,5 +198,83 @@ class Agence extends Model
     public function intervientDansZone(string $zone): bool
     {
         return in_array($zone, $this->toutesZones);
+    }
+
+    // ==================== ✅ NOUVEAUX ACCESSORS ====================
+
+    /**
+     * Accesseur pour le statut de l'agence (label)
+     */
+    public function getStatutLabelAttribute(): string
+    {
+        if ($this->est_refusee) {
+            return 'Refusée';
+        }
+        if ($this->bloque) {
+            return 'Bloquée';
+        }
+        if ($this->statut_validation) {
+            return 'Validée';
+        }
+        return 'En attente';
+    }
+
+    /**
+     * Accesseur pour la classe CSS du statut
+     */
+    public function getStatutClassAttribute(): string
+    {
+        if ($this->est_refusee || $this->bloque) {
+            return 'status-refusee';
+        }
+        if ($this->statut_validation) {
+            return 'status-active';
+        }
+        return 'status-en_attente';
+    }
+
+    /**
+     * Accesseur pour la date de refus formatée
+     */
+    public function getDateRefusFormateeAttribute(): string
+    {
+        if (empty($this->date_refus)) {
+            return '-';
+        }
+        
+        try {
+            // Si c'est déjà un objet Carbon
+            if ($this->date_refus instanceof Carbon) {
+                return $this->date_refus->format('d/m/Y');
+            }
+            // Si c'est une chaîne
+            return Carbon::parse($this->date_refus)->format('d/m/Y');
+        } catch (\Exception $e) {
+            return (string) $this->date_refus;
+        }
+    }
+
+    /**
+     * Accesseur pour savoir si l'agence est refusée
+     */
+    public function getEstRefuseeAttribute(): bool
+    {
+        return $this->attributes['est_refusee'] ?? false;
+    }
+
+    /**
+     * Accesseur pour savoir si l'agence est en attente
+     */
+    public function getEstEnAttenteAttribute(): bool
+    {
+        return !$this->statut_validation && !$this->est_refusee && !$this->bloque;
+    }
+
+    /**
+     * Accesseur pour savoir si l'agence est validée
+     */
+    public function getEstValideeAttribute(): bool
+    {
+        return $this->statut_validation && !$this->bloque;
     }
 }

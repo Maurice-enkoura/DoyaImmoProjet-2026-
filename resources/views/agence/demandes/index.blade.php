@@ -13,7 +13,7 @@
            style="padding:10px 20px;text-decoration:none;color:{{ $onglet === 'compatibles' ? 'var(--rust)' : 'var(--text-soft)' }};font-weight:600;border-bottom:3px solid {{ $onglet === 'compatibles' ? 'var(--rust)' : 'transparent' }};transition:all 0.2s;display:flex;align-items:center;gap:8px;">
             <i class="fa-solid fa-robot"></i>
             Demandes compatibles
-            <span style="background:var(--teal-soft);color:var(--teal);padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;">
+            <span style="background:var(--border);color:var(--text-soft);padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;">
                 {{ $stats['compatibles'] ?? 0 }}
             </span>
         </a>
@@ -76,11 +76,11 @@
                         <div class="besoin-type">
                             {{ $demande->type_bien->label() }}
                             @if($estCompatible)
-                                <span class="compatible-badge" style="background:{{ $score >= 80 ? '#E8F5E9' : ($score >= 60 ? '#FFF8E1' : '#FFF3E0') }};color:{{ $score >= 80 ? '#1E7A47' : ($score >= 60 ? '#E65100' : '#E65100') }};">
+                                <span class="compatible-badge">
                                     <i class="fa-solid fa-circle-check"></i> {{ $score }}% compatible
                                 </span>
                             @elseif($onglet === 'toutes')
-                                <span class="compatible-badge" style="background:#FFEBEE;color:#C62828;">
+                                <span class="compatible-badge non-compatible">
                                     <i class="fa-solid fa-circle-xmark"></i> Non compatible
                                 </span>
                             @endif
@@ -90,7 +90,7 @@
 
                     <!-- Niveau de compatibilité -->
                     @if($estCompatible)
-                        <div class="niveau-badge niveau-{{ strtolower($niveau) }}">
+                        <div class="niveau-badge">
                             <i class="fa-solid fa-robot"></i> {{ $niveau }}
                         </div>
                     @endif
@@ -100,7 +100,7 @@
                         <span class="meta-pill"><i class="fa-solid fa-house"></i> {{ $demande->type_operation->label() }}</span>
                         <span class="meta-pill">Publié {{ $demande->created_at->diffForHumans() }}</span>
                         @if($estCompatible && $bien)
-                            <span class="meta-pill compat" style="background:var(--teal-soft);color:var(--teal);">
+                            <span class="meta-pill compat">
                                 <i class="fa-solid fa-building"></i> {{ $bien->titre }}
                             </span>
                         @endif
@@ -110,7 +110,7 @@
                     @if($estCompatible)
                         <div class="compat-progress">
                             <div class="progress-bar">
-                                <div class="progress-fill" style="width:{{ $score }}%;background:{{ $score >= 80 ? '#1E7A47' : ($score >= 60 ? '#F5A623' : '#E65100') }};"></div>
+                                <div class="progress-fill" style="width:{{ $score }}%;"></div>
                             </div>
                             <div class="progress-label">{{ $score }}% compatible</div>
                         </div>
@@ -136,7 +136,7 @@
         @empty
             <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted);background:#fff;border-radius:var(--radius);border:1px solid var(--border);">
                 @if($onglet === 'compatibles')
-                    <i class="fa-solid fa-robot" style="font-size:48px;display:block;margin-bottom:16px;opacity:0.3;color:var(--teal);"></i>
+                    <i class="fa-solid fa-robot" style="font-size:48px;display:block;margin-bottom:16px;opacity:0.3;"></i>
                     <p style="font-size:16px;font-weight:600;color:var(--text-soft);">Aucune demande compatible</p>
                     <p style="font-size:13px;max-width:400px;margin:0 auto;">
                         Publiez des biens dans les zones où il y a des demandes pour voir des correspondances.
@@ -253,8 +253,8 @@
     }
 
     .besoin-card.compatible {
-        border-color: var(--teal);
-        box-shadow: 0 0 0 1px var(--teal-soft);
+        border-color: var(--rust);
+        border-width: 2px;
     }
 
     .besoin-card:hover {
@@ -297,6 +297,15 @@
         padding: 2px 10px;
         border-radius: 999px;
         white-space: nowrap;
+        background: #E8F5E9;
+        color: #1E7A47;
+        border: 1px solid #C8E6C9;
+    }
+
+    .compatible-badge.non-compatible {
+        background: #FFEBEE;
+        color: #C62828;
+        border-color: #FFCDD2;
     }
 
     .niveau-badge {
@@ -306,27 +315,9 @@
         padding: 2px 12px;
         border-radius: 999px;
         margin-bottom: 8px;
-    }
-
-    .niveau-excellent {
-        background: #E8F5E9;
-        color: #1E7A47;
-    }
-    .niveau-bon {
-        background: #FFF8E1;
-        color: #E65100;
-    }
-    .niveau-moyen {
-        background: #FFF3E0;
-        color: #E65100;
-    }
-    .niveau-faible {
-        background: #FFEBEE;
-        color: #C62828;
-    }
-    .niveau-minimal {
-        background: #FFEBEE;
-        color: #C62828;
+        background: var(--border);
+        color: var(--text-soft);
+        border: 1px solid var(--border);
     }
 
     .besoin-budget {
@@ -347,16 +338,18 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: var(--border);
+        background: #F7F9FC;
         padding: 2px 12px;
         border-radius: 999px;
         font-size: 11.5px;
         color: var(--text-soft);
+        border: 1px solid var(--border);
     }
 
     .meta-pill.compat {
-        background: var(--teal-soft);
-        color: var(--teal);
+        background: #F7F9FC;
+        color: var(--text-soft);
+        border-color: var(--border);
     }
 
     .compat-progress {
@@ -375,6 +368,7 @@
         height: 100%;
         border-radius: 999px;
         transition: width 0.5s;
+        background: var(--rust);
     }
 
     .progress-label {
@@ -428,11 +422,13 @@
     .btn-rust {
         background: var(--rust);
         color: #fff;
+        border-color: var(--rust);
     }
 
     .btn-rust:hover {
         background: #9A4523;
         color: #fff;
+        border-color: #9A4523;
     }
 
     .btn-ghost {

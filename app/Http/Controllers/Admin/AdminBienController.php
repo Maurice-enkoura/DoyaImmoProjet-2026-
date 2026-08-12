@@ -24,13 +24,21 @@ class AdminBienController extends Controller
             }
         }
 
+        // Filtre vedette (pour la page "À la une")
+        if ($request->has('vedette')) {
+            $query->vedette();
+        }
+
         // Recherche
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('titre', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('adresse', 'like', "%{$search}%");
+                  ->orWhere('adresse', 'like', "%{$search}%")
+                  ->orWhereHas('agence', function ($sub) use ($search) {
+                      $sub->where('nom_agence', 'like', "%{$search}%");
+                  });
             });
         }
 
@@ -40,6 +48,7 @@ class AdminBienController extends Controller
             'total' => BienImmobilier::count(),
             'disponibles' => BienImmobilier::where('statut', true)->count(),
             'indisponibles' => BienImmobilier::where('statut', false)->count(),
+            'en_vedette' => BienImmobilier::vedette()->count(),
         ];
 
         return view('admin.biens.index', compact('biens', 'stats'));
@@ -47,15 +56,104 @@ class AdminBienController extends Controller
 
     public function show(BienImmobilier $bien)
     {
-        // Charger les relations sans order by est_principal
         $bien->load([
             'agence.user', 
-            'medias', // On charge simplement les médias
+            'medias',
             'quartier', 
             'propositions.agence.user'
         ]);
         
         return view('admin.biens.show', compact('bien'));
+    }
+
+    /**
+     * Mettre un bien en vedette
+     */
+    public function mettreEnVedette(Request $request, BienImmobilier $bien)
+    {
+        $request->validate([
+            'duree' => 'required|integer|min:1|max:30',
+        ]);
+
+        // Vérifier si le bien est déjà en vedette
+        if ($bien->est_vedette && $bien->vedette_fin > now()) {
+            return redirect()->route('admin.biens.index')
+                ->with('error', 'Ce bien est déjà en vedette jusqu\'au ' . $bien->vedette_fin->format('d/m/Y'));
+        }
+
+        $duree = (int) $request->duree;
+
+        $bien->update([
+            'est_vedette' => true,
+            'vedette_debut' => now(),
+            'vedette_fin' => now()->addDays($duree),
+            'vedette_duree' => $duree,
+        ]);
+
+        return redirect()->route('admin.biens.index')
+            ->with('success', ' Bien mis en vedette pour ' . $duree . ' jours.');
+    }
+
+    /**
+     * Retirer un bien de la vedette
+     */
+    public function retirerVedette(BienImmobilier $bien)
+    {
+        $bien->update([
+            'est_vedette' => false,
+            'vedette_fin' => null,
+        ]);
+
+        return redirect()->route('admin.biens.index')
+            ->with('success', ' Bien retiré de la vedette.');
+    }
+
+    /**
+     * Prolonger la vedette d'un bien
+     */
+    public function prolongerVedette(Request $request, BienImmobilier $bien)
+    {
+        $request->validate([
+            'duree' => 'required|integer|min:1|max:30',
+        ]);
+
+        if (!$bien->est_vedette) {
+            return redirect()->route('admin.biens.index')
+                ->with('error', 'Ce bien n\'est pas en vedette.');
+        }
+
+        $duree = (int) $request->duree;
+
+        // Si vedette_fin est null, utiliser now()
+        $dateFin = $bien->vedette_fin ?? now();
+        $nouvelleFin = $dateFin->addDays($duree);
+
+        $bien->update([
+            'vedette_fin' => $nouvelleFin,
+            'vedette_duree' => ($bien->vedette_duree ?? 0) + $duree,
+        ]);
+
+        return redirect()->route('admin.biens.index')
+            ->with('success', ' Vedette prolongée de ' . $duree . ' jours.');
+    }
+
+    /**
+     * Liste des biens en vedette
+     */
+    public function vedette()
+    {
+        $biens = BienImmobilier::with(['agence.user', 'medias', 'quartier'])
+            ->vedette()
+            ->orderBy('vedette_fin', 'asc')
+            ->paginate(20);
+
+        $stats = [
+            'total' => BienImmobilier::count(),
+            'en_vedette' => BienImmobilier::vedette()->count(),
+            'expirees' => BienImmobilier::vedetteExpire()->count(),
+        ];
+
+        return view('admin.biens.vedette', compact('biens', 'stats'));
     }
 
     public function desactiver(BienImmobilier $bien)

@@ -104,7 +104,34 @@ class DemandeImmobiliere extends Model
 
     public function getStatutLabelAttribute()
     {
-        return is_object($this->statut) ? $this->statut->label() : $this->statut;
+        if (is_object($this->statut) && method_exists($this->statut, 'label')) {
+            return $this->statut->label();
+        }
+        
+        $labels = [
+            'en_attente' => 'En attente',
+            'en_cours' => 'En cours',
+            'terminee' => 'Terminée',
+            'annulee' => 'Annulée',
+        ];
+        
+        return $labels[$this->statut] ?? (string) $this->statut;
+    }
+
+    // ✅ CORRECTION : Accesseur pour la valeur du statut
+    public function getStatutValueAttribute()
+    {
+        if (is_object($this->statut) && method_exists($this->statut, 'value')) {
+            return $this->statut->value;
+        }
+        
+        // Si c'est une chaîne, la retourner directement
+        if (is_string($this->statut)) {
+            return $this->statut;
+        }
+        
+        // Fallback
+        return 'en_attente';
     }
 
     // Accesseur pour le nom du quartier
@@ -226,15 +253,15 @@ class DemandeImmobiliere extends Model
             if ($surfaceMin <= $surfaceBien) {
                 $score += 8;
                 $criteres['surface'] = true;
-                $details['surface'] = 'Surface: ' . $surfaceMin . ' m² ≤ ' . $surfaceBien . ' m²';
+                $details['surface'] = '✅ Surface: ' . $surfaceMin . ' m² ≤ ' . $surfaceBien . ' m²';
             } elseif ($surfaceMinTolere <= $surfaceBien) {
                 $score += 5;
                 $criteres['surface'] = 'partiel';
-                $details['surface'] = 'Surface: ' . $surfaceMin . ' m² (tolérance -20%)';
+                $details['surface'] = '⚠️ Surface: ' . $surfaceMin . ' m² (tolérance -20%)';
             } else {
                 $score += 0;
                 $criteres['surface'] = false;
-                $details['surface'] = 'Surface: ' . $surfaceMin . ' m² > ' . $surfaceBien . ' m²';
+                $details['surface'] = '❌ Surface: ' . $surfaceMin . ' m² > ' . $surfaceBien . ' m²';
             }
         }
 
@@ -246,15 +273,15 @@ class DemandeImmobiliere extends Model
             if ($chambresDemande <= $chambresBien) {
                 $score += 8;
                 $criteres['chambres'] = true;
-                $details['chambres'] = 'Chambres: ' . $chambresDemande . ' ≤ ' . $chambresBien;
+                $details['chambres'] = '✅ Chambres: ' . $chambresDemande . ' ≤ ' . $chambresBien;
             } elseif ($chambresDemande - 1 <= $chambresBien) {
                 $score += 5;
                 $criteres['chambres'] = 'partiel';
-                $details['chambres'] = 'Chambres: ' . $chambresDemande . ' (tolérance -1)';
+                $details['chambres'] = '⚠️ Chambres: ' . $chambresDemande . ' (tolérance -1)';
             } else {
                 $score += 0;
                 $criteres['chambres'] = false;
-                $details['chambres'] = ' Chambres: ' . $chambresDemande . ' > ' . $chambresBien;
+                $details['chambres'] = '❌ Chambres: ' . $chambresDemande . ' > ' . $chambresBien;
             }
         }
 
@@ -266,15 +293,15 @@ class DemandeImmobiliere extends Model
             if ($sdbDemande <= $sdbBien) {
                 $score += 8;
                 $criteres['sdb'] = true;
-                $details['sdb'] = 'Salles de bain: ' . $sdbDemande . ' ≤ ' . $sdbBien;
+                $details['sdb'] = '✅ Salles de bain: ' . $sdbDemande . ' ≤ ' . $sdbBien;
             } elseif ($sdbDemande - 1 <= $sdbBien) {
                 $score += 5;
                 $criteres['sdb'] = 'partiel';
-                $details['sdb'] = 'Salles de bain: ' . $sdbDemande . ' (tolérance -1)';
+                $details['sdb'] = '⚠️ Salles de bain: ' . $sdbDemande . ' (tolérance -1)';
             } else {
                 $score += 0;
                 $criteres['sdb'] = false;
-                $details['sdb'] = ' Salles de bain: ' . $sdbDemande . ' > ' . $sdbBien;
+                $details['sdb'] = '❌ Salles de bain: ' . $sdbDemande . ' > ' . $sdbBien;
             }
         }
 

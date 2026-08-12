@@ -860,6 +860,13 @@
                     href="{{ route('admin.biens.index') }}">
                     <i class="ic fa-solid fa-house"></i> Biens
                 </a>
+
+                <a class="navlink {{ request()->routeIs('admin.biens.vedette') ? 'active' : '' }}"
+                    href="{{ route('admin.biens.vedette') }}">
+                    <i class="ic fa-solid fa-star" style="color:#F5A623;"></i> À la une
+                    <span class="badge red">{{ \App\Models\BienImmobilier::vedette()->count() }}</span>
+                </a>
+
                 <a class="navlink {{ request()->routeIs('admin.demandes.*') ? 'active' : '' }}"
                     href="{{ route('admin.demandes.index') }}">
                     <i class="ic fa-solid fa-house-circle-check"></i> Demandes
@@ -886,6 +893,14 @@
                     href="{{ route('admin.quartiers.index') }}">
                     <i class="ic fa-solid fa-location-dot"></i> Quartiers
                 </a>
+                <div class="nav-group-label">Contenu</div>
+
+                <a class="navlink {{ request()->routeIs('admin.bannieres.*') ? 'active' : '' }}"
+                    href="{{ route('admin.bannieres.index') }}">
+                    <i class="ic fa-solid fa-images"></i> Bannières
+                    <span class="badge">{{ \App\Models\Banniere::where('est_actif', true)->count() }}</span>
+                </a>
+
                 <a class="navlink {{ request()->routeIs('admin.statistiques') ? 'active' : '' }}"
                     href="{{ route('admin.statistiques') }}">
                     <i class="ic fa-solid fa-chart-bar"></i> Statistiques

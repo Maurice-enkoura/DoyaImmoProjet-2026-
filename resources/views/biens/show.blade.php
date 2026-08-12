@@ -36,13 +36,28 @@
                             $firstImage = $images->first();
                         @endphp
                         @if($firstImage)
-                            <img src="{{ asset('storage/' . $firstImage->fichier) }}" alt="{{ $bien->titre }}" loading="lazy">
+                            <img src="{{ asset('storage/' . $firstImage->fichier) }}" 
+                                 alt="{{ $bien->titre }}" 
+                                 loading="lazy"
+                                 onclick="openLightbox(0)"
+                                 style="cursor:pointer;">
                         @else
                             <div class="gallery-placeholder">
                                 <i class="fa-solid fa-image"></i>
                                 <span>Aucune image</span>
                             </div>
                         @endif
+                        
+                        <!-- BADGE VEDETTE -->
+                        @if($bien->est_vedette && $bien->vedette_fin > now())
+                            <div class="badge-vedette-detail">
+                                <i class="fa-solid fa-star"></i> En vedette
+                                <span style="font-size:10px;font-weight:400;opacity:0.8;margin-left:4px;">
+                                    ({{ $bien->vedette_jours_restants }} jour(s) restant(s))
+                                </span>
+                            </div>
+                        @endif
+                        
                         <div class="bien-status {{ $bien->statut ? 'disponible' : 'indisponible' }}">
                             {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
                         </div>
@@ -50,15 +65,15 @@
                             <i class="fa-regular fa-eye"></i> {{ $bien->vues ?? 0 }} vues
                         </div>
                         <div class="bien-type-on-image">
-                            {{ $bien->type_bien->label() }}
+                            {{ is_object($bien->type_bien) && method_exists($bien->type_bien, 'label') ? $bien->type_bien->label() : $bien->type_bien }}
                         </div>
                     </div>
 
                     <!-- Miniatures -->
                     @if($images->count() > 0 || $videos->count() > 0)
                         <div class="gallery-thumbnails">
-                            @foreach($images as $image)
-                                <div class="thumbnail" onclick="changeMainImage('{{ asset('storage/' . $image->fichier) }}')">
+                            @foreach($images as $index => $image)
+                                <div class="thumbnail" onclick="changeMainImage('{{ asset('storage/' . $image->fichier) }}', {{ $index }})">
                                     <img src="{{ asset('storage/' . $image->fichier) }}" alt="" loading="lazy">
                                 </div>
                             @endforeach
@@ -78,16 +93,21 @@
                 <div class="panel">
                     <h1 class="bien-title">{{ $bien->titre }}</h1>
                     <div class="bien-location">
-                        <i class="fa-solid fa-location-dot"></i> {{ $bien->adresse }} · {{ $bien->quartier }}
+                        <i class="fa-solid fa-location-dot"></i> {{ $bien->adresse }} · {{ $bien->quartier->nom ?? $bien->quartier }}
                     </div>
 
                     <div class="bien-prix">
                         {{ number_format($bien->prix, 0, ',', ' ') }} FCFA
-                        <span class="bien-contrat">{{ $bien->type_contrat->label() }}</span>
+                        <span class="bien-contrat">{{ is_object($bien->type_contrat) && method_exists($bien->type_contrat, 'label') ? $bien->type_contrat->label() : $bien->type_contrat }}</span>
+                        @if($bien->est_vedette && $bien->vedette_fin > now())
+                            <span class="bien-vedette-tag">
+                                <i class="fa-solid fa-star"></i> Vedette
+                            </span>
+                        @endif
                     </div>
 
                     <div class="bien-tags">
-                        <span class="meta-pill"><i class="fa-solid fa-home"></i> {{ $bien->type_bien->label() }}</span>
+                        <span class="meta-pill"><i class="fa-solid fa-home"></i> {{ is_object($bien->type_bien) && method_exists($bien->type_bien, 'label') ? $bien->type_bien->label() : $bien->type_bien }}</span>
                         @if($bien->parking_disponible)
                             <span class="meta-pill"><i class="fa-solid fa-car"></i> Parking</span>
                         @endif
@@ -106,7 +126,7 @@
                     <div class="info-grid">
                         <div class="info-item">
                             <span class="info-label">Type de bien</span>
-                            <span class="info-value">{{ $bien->type_bien->label() }}</span>
+                            <span class="info-value">{{ is_object($bien->type_bien) && method_exists($bien->type_bien, 'label') ? $bien->type_bien->label() : $bien->type_bien }}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Surface</span>
@@ -130,7 +150,7 @@
                         </div>
                         <div class="info-item">
                             <span class="info-label">Contrat</span>
-                            <span class="info-value">{{ $bien->type_contrat->label() }}</span>
+                            <span class="info-value">{{ is_object($bien->type_contrat) && method_exists($bien->type_contrat, 'label') ? $bien->type_contrat->label() : $bien->type_contrat }}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Publié le</span>
@@ -140,10 +160,21 @@
                             <span class="info-label">Statut</span>
                             <span class="info-value">{{ $bien->statut ? 'Disponible' : 'Indisponible' }}</span>
                         </div>
-                        <div class="info-item full">
+                        <div class="info-item">
                             <span class="info-label">Vues</span>
                             <span class="info-value">{{ $bien->vues ?? 0 }}</span>
                         </div>
+                        @if($bien->est_vedette && $bien->vedette_fin > now())
+                        <div class="info-item full" style="border: 2px solid #F5A623; background: #FFF8E1;">
+                            <span class="info-label" style="color:#F5A623; font-weight:700;">
+                                <i class="fa-solid fa-star"></i> Vedette
+                            </span>
+                            <span class="info-value" style="color:#E65100; font-weight:600;">
+                                Jusqu'au {{ $bien->vedette_fin->format('d/m/Y') }}
+                                ({{ $bien->vedette_jours_restants }} jour(s) restant(s))
+                            </span>
+                        </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -254,7 +285,12 @@
                                     <i class="fa-solid fa-image"></i>
                                 </div>
                             @endif
-                            <div class="similar-type-badge">{{ $bienSimilaire->type_bien->label() }}</div>
+                            @if($bienSimilaire->est_vedette && $bienSimilaire->vedette_fin > now())
+                                <div class="badge-vedette-similar">
+                                    <i class="fa-solid fa-star"></i> Vedette
+                                </div>
+                            @endif
+                            <div class="similar-type-badge">{{ is_object($bienSimilaire->type_bien) && method_exists($bienSimilaire->type_bien, 'label') ? $bienSimilaire->type_bien->label() : $bienSimilaire->type_bien }}</div>
                             <div class="similar-status {{ $bienSimilaire->statut ? 'disponible' : 'indisponible' }}">
                                 {{ $bienSimilaire->statut ? 'Disponible' : 'Indisponible' }}
                             </div>
@@ -263,7 +299,7 @@
                             <div class="bien-title">{{ $bienSimilaire->titre }}</div>
                             <div class="bien-price">{{ number_format($bienSimilaire->prix, 0, ',', ' ') }} FCFA</div>
                             <div class="bien-location">
-                                <i class="fa-solid fa-location-dot"></i> {{ $bienSimilaire->quartier }}
+                                <i class="fa-solid fa-location-dot"></i> {{ $bienSimilaire->quartier->nom ?? $bienSimilaire->quartier }}
                             </div>
                             <div class="bien-features">
                                 <span class="meta-pill">
@@ -284,105 +320,284 @@
         @endif
     </div>
 </div>
-@endsection
 
-@push('scripts')
-<script>
-    // Changer l'image principale
-    function changeMainImage(src) {
-        const mainImage = document.getElementById('mainImage');
-        mainImage.innerHTML = `<img src="${src}" alt="Bien" loading="lazy">`;
-        
-        document.querySelectorAll('.thumbnail').forEach(el => {
-            el.classList.remove('active');
-        });
-        if (event && event.target) {
-            event.target.closest('.thumbnail').classList.add('active');
-        }
-    }
+<!-- ============================================ -->
+<!-- LIGHTBOX AVEC NAVIGATION < et > -->
+<!-- ============================================ -->
+<div id="lightbox" class="lightbox" onclick="closeLightboxOutside(event)">
+    <button class="lightbox-close" onclick="closeLightbox()" aria-label="Fermer">
+        <i class="fa-solid fa-xmark"></i>
+    </button>
+    
+    <!-- Flèche précédent -->
+    <button class="lightbox-nav lightbox-prev" id="lightboxPrev" onclick="lightboxPrev()" aria-label="Précédent">
+        <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    
+    <!-- Flèche suivant -->
+    <button class="lightbox-nav lightbox-next" id="lightboxNext" onclick="lightboxNext()" aria-label="Suivant">
+        <i class="fa-solid fa-chevron-right"></i>
+    </button>
+    
+    <div class="lightbox-content" id="lightboxContent">
+        <img id="lightboxImage" src="" alt="Agrandir">
+        <div class="lightbox-counter" id="lightboxCounter"></div>
+    </div>
+</div>
 
-    // Lire une vidéo
-    function playVideo(src) {
-        const mainImage = document.getElementById('mainImage');
-        mainImage.innerHTML = `
-            <video src="${src}" controls autoplay>
-                Votre navigateur ne supporte pas la lecture de vidéos.
-            </video>
-        `;
-        
-        document.querySelectorAll('.thumbnail').forEach(el => {
-            el.classList.remove('active');
-        });
-        if (event && event.target) {
-            event.target.closest('.thumbnail').classList.add('active');
-        }
-    }
-
-    // Partager sur Facebook
-    function shareFacebook() {
-        const url = encodeURIComponent(window.location.href);
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=400');
-    }
-
-    // Partager sur WhatsApp
-    function shareWhatsApp() {
-        const url = encodeURIComponent(window.location.href);
-        const text = encodeURIComponent("Découvrez ce bien immobilier sur DoyaImmo !");
-        window.open(`https://wa.me/?text=${text}%20${url}`, '_blank', 'width=600,height=400');
-    }
-
-    // Copier le lien
-    function copyLink() {
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(window.location.href).then(() => {
-                showToast('Lien copié dans le presse-papier !');
-            }).catch(() => {
-                fallbackCopy();
-            });
-        } else {
-            fallbackCopy();
-        }
-    }
-
-    function fallbackCopy() {
-        const input = document.createElement('input');
-        input.value = window.location.href;
-        document.body.appendChild(input);
-        input.select();
-        document.execCommand('copy');
-        document.body.removeChild(input);
-        showToast('Lien copié dans le presse-papier !');
-    }
-
-    function showToast(message) {
-        const toast = document.createElement('div');
-        toast.style.cssText = `
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--ink);
-            color: #fff;
-            padding: 12px 24px;
-            border-radius: 12px;
-            font-size: 14px;
-            z-index: 9999;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-            animation: fadeInUp 0.3s ease;
-        `;
-        toast.textContent = message;
-        document.body.appendChild(toast);
-        
-        setTimeout(() => {
-            toast.style.animation = 'fadeOutDown 0.3s ease';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
-    }
-</script>
-@endpush
-
-@push('styles')
 <style>
+    /* ============================================
+       LIGHTBOX
+    ============================================ */
+    .lightbox {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        backdrop-filter: blur(8px);
+    }
+
+    .lightbox.active {
+        display: flex;
+        animation: lightboxFadeIn 0.3s ease;
+    }
+
+    @keyframes lightboxFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .lightbox-close {
+        position: absolute;
+        top: 20px;
+        right: 30px;
+        background: none;
+        border: none;
+        color: #fff;
+        font-size: 40px;
+        cursor: pointer;
+        opacity: 0.7;
+        transition: opacity 0.2s, transform 0.2s;
+        z-index: 10;
+        padding: 8px;
+        line-height: 1;
+    }
+
+    .lightbox-close:hover {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
+    .lightbox-content {
+        position: relative;
+        max-width: 95vw;
+        max-height: 90vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        touch-action: pan-y;
+    }
+
+    .lightbox-content img {
+        max-width: 95vw;
+        max-height: 85vh;
+        object-fit: contain;
+        border-radius: 4px;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    .lightbox-counter {
+        position: absolute;
+        bottom: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: rgba(255,255,255,0.6);
+        font-size: 14px;
+        font-weight: 500;
+        background: rgba(0,0,0,0.4);
+        padding: 4px 16px;
+        border-radius: 999px;
+        backdrop-filter: blur(4px);
+    }
+
+    /* ============================================
+       FLÈCHES DE NAVIGATION
+    ============================================ */
+    .lightbox-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(255, 255, 255, 0.15);
+        border: none;
+        color: #fff;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        font-size: 24px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(4px);
+        z-index: 5;
+    }
+
+    .lightbox-nav:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-50%) scale(1.05);
+    }
+
+    .lightbox-nav:active {
+        transform: translateY(-50%) scale(0.95);
+    }
+
+    .lightbox-prev {
+        left: 20px;
+    }
+
+    .lightbox-next {
+        right: 20px;
+    }
+
+    .lightbox-nav.hidden {
+        display: none;
+    }
+
+    /* ============================================
+       RESPONSIVE LIGHTBOX
+    ============================================ */
+    @media (max-width: 768px) {
+        .lightbox-nav {
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+        }
+
+        .lightbox-prev {
+            left: 8px;
+        }
+
+        .lightbox-next {
+            right: 8px;
+        }
+
+        .lightbox-close {
+            top: 12px;
+            right: 16px;
+            font-size: 30px;
+        }
+
+        .lightbox-content img {
+            max-height: 80vh;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .lightbox-nav {
+            width: 32px;
+            height: 32px;
+            font-size: 14px;
+        }
+
+        .lightbox-prev {
+            left: 4px;
+        }
+
+        .lightbox-next {
+            right: 4px;
+        }
+
+        .lightbox-close {
+            top: 8px;
+            right: 12px;
+            font-size: 24px;
+        }
+
+        .lightbox-counter {
+            font-size: 12px;
+            padding: 2px 12px;
+            bottom: -32px;
+        }
+    }
+
+    /* ============================================
+       RESTE DU CSS
+    ============================================ */
+    .badge-vedette-detail {
+        position: absolute;
+        top: clamp(12px, 1.5vw, 16px);
+        left: clamp(12px, 1.5vw, 16px);
+        padding: clamp(6px, 0.7vw, 8px) clamp(14px, 1.5vw, 18px);
+        border-radius: 999px;
+        font-size: clamp(12px, 1vw, 14px);
+        font-weight: 700;
+        color: #fff;
+        background: linear-gradient(135deg, #F5A623 0%, #E8951A 100%);
+        box-shadow: 0 4px 16px rgba(245, 166, 35, 0.4);
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        animation: pulseVedette 2s ease-in-out infinite;
+    }
+
+    .badge-vedette-detail i {
+        font-size: clamp(12px, 1vw, 14px);
+    }
+
+    .badge-vedette-similar {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: clamp(8px, 0.6vw, 9px);
+        font-weight: 700;
+        color: #fff;
+        background: #F5A623;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        z-index: 2;
+    }
+
+    .badge-vedette-similar i {
+        font-size: 8px;
+    }
+
+    .bien-vedette-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 12px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fff;
+        background: #F5A623;
+        margin-left: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .bien-vedette-tag i {
+        font-size: 10px;
+    }
+
+    @keyframes pulseVedette {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.85; }
+    }
+
     /* ===== CONTENEUR ===== */
     .detail-container {
         max-width: 1200px;
@@ -505,6 +720,7 @@
         width: 100%;
         height: clamp(250px, 40vw, 400px);
         object-fit: cover;
+        cursor: pointer;
     }
 
     .gallery-main video {
@@ -538,6 +754,7 @@
         font-size: clamp(10px, 0.8vw, 12px);
         font-weight: 600;
         color: #fff;
+        z-index: 2;
     }
 
     .bien-status.disponible { background: #1E7A47; }
@@ -553,6 +770,7 @@
         font-weight: 500;
         color: #fff;
         background: rgba(0,0,0,0.6);
+        z-index: 2;
     }
 
     .bien-type-on-image {
@@ -565,6 +783,7 @@
         font-weight: 600;
         color: #fff;
         background: rgba(0,0,0,0.7);
+        z-index: 2;
     }
 
     .gallery-thumbnails {
@@ -1191,6 +1410,17 @@
             font-size: 10px;
             padding: 3px 10px;
         }
+
+        .badge-vedette-detail {
+            font-size: 10px;
+            padding: 4px 12px;
+            top: 10px;
+            left: 10px;
+        }
+
+        .badge-vedette-detail i {
+            font-size: 10px;
+        }
     }
 
     @media (max-width: 460px) {
@@ -1234,6 +1464,20 @@
             height: 30px;
             font-size: 11px;
         }
+
+        .lightbox-nav {
+            width: 28px;
+            height: 28px;
+            font-size: 12px;
+        }
+
+        .lightbox-prev {
+            left: 4px;
+        }
+
+        .lightbox-next {
+            right: 4px;
+        }
     }
 
     /* ===== ANIMATIONS ===== */
@@ -1246,5 +1490,271 @@
         from { opacity: 1; transform: translateX(-50%) translateY(0); }
         to { opacity: 0; transform: translateX(-50%) translateY(20px); }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+        * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+        .badge-vedette-detail {
+            animation: none !important;
+        }
+        .lightbox.active {
+            animation: none !important;
+        }
+    }
 </style>
-@endpush
+
+<script>
+    // ============================================
+    // LIGHTBOX - VERSION AVEC FLÈCHES
+    // ============================================
+    let lightboxImages = [];
+    let currentLightboxIndex = 0;
+    let isLightboxOpen = false;
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let totalImages = 0;
+
+    // Initialisation immédiate avec les données PHP
+    (function() {
+        @php
+            $imageUrls = [];
+            foreach($images as $img) {
+                $imageUrls[] = asset('storage/' . $img->fichier);
+            }
+        @endphp
+        lightboxImages = {!! json_encode($imageUrls) !!};
+        totalImages = lightboxImages.length;
+    })();
+
+    function openLightbox(index) {
+        if (totalImages === 0) {
+            return;
+        }
+        if (index < 0 || index >= totalImages) return;
+        
+        currentLightboxIndex = index;
+        const lightbox = document.getElementById('lightbox');
+        const image = document.getElementById('lightboxImage');
+        const counter = document.getElementById('lightboxCounter');
+        const prevBtn = document.getElementById('lightboxPrev');
+        const nextBtn = document.getElementById('lightboxNext');
+        
+        if (!lightboxImages[currentLightboxIndex]) {
+            return;
+        }
+        
+        image.src = lightboxImages[currentLightboxIndex];
+        image.alt = 'Photo du bien ' + (currentLightboxIndex + 1);
+        
+        if (totalImages > 1) {
+            counter.textContent = (currentLightboxIndex + 1) + ' / ' + totalImages;
+            counter.style.display = 'block';
+            prevBtn.classList.toggle('hidden', currentLightboxIndex === 0);
+            nextBtn.classList.toggle('hidden', currentLightboxIndex === totalImages - 1);
+        } else {
+            counter.style.display = 'none';
+            prevBtn.classList.add('hidden');
+            nextBtn.classList.add('hidden');
+        }
+        
+        lightbox.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        isLightboxOpen = true;
+        
+        preloadImages(currentLightboxIndex);
+    }
+
+    function closeLightbox() {
+        const lightbox = document.getElementById('lightbox');
+        lightbox.classList.remove('active');
+        document.body.style.overflow = 'auto';
+        isLightboxOpen = false;
+    }
+
+    function closeLightboxOutside(event) {
+        if (event.target === event.currentTarget) {
+            closeLightbox();
+        }
+    }
+
+    function lightboxPrev() {
+        if (currentLightboxIndex > 0) {
+            openLightbox(currentLightboxIndex - 1);
+        }
+    }
+
+    function lightboxNext() {
+        if (currentLightboxIndex < totalImages - 1) {
+            openLightbox(currentLightboxIndex + 1);
+        }
+    }
+
+    function preloadImages(index) {
+        if (index + 1 < totalImages && lightboxImages[index + 1]) {
+            const img = new Image();
+            img.src = lightboxImages[index + 1];
+        }
+        if (index - 1 >= 0 && lightboxImages[index - 1]) {
+            const img = new Image();
+            img.src = lightboxImages[index - 1];
+        }
+    }
+
+    // ============================================
+    // GESTION DU GLISSEMENT POUR LA LIGHTBOX
+    // ============================================
+    const lightboxContent = document.getElementById('lightboxContent');
+
+    if (lightboxContent) {
+        lightboxContent.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 1) {
+                touchStartX = e.touches[0].clientX;
+            }
+        }, { passive: true });
+
+        lightboxContent.addEventListener('touchmove', function(e) {
+            if (e.touches.length === 1) {
+                touchEndX = e.touches[0].clientX;
+                if (Math.abs(touchEndX - touchStartX) > 10) {
+                    e.preventDefault();
+                }
+            }
+        }, { passive: false });
+
+        lightboxContent.addEventListener('touchend', function(e) {
+            if (touchStartX > 0 && touchEndX > 0) {
+                const diff = touchStartX - touchEndX;
+                if (Math.abs(diff) > 50) {
+                    if (diff > 0) {
+                        lightboxNext();
+                    } else {
+                        lightboxPrev();
+                    }
+                }
+                touchStartX = 0;
+                touchEndX = 0;
+            }
+        }, { passive: true });
+    }
+
+    // ============================================
+    // CLAVIER
+    // ============================================
+    document.addEventListener('keydown', function(e) {
+        if (!isLightboxOpen) return;
+        
+        if (e.key === 'Escape') {
+            closeLightbox();
+        } else if (e.key === 'ArrowRight') {
+            lightboxNext();
+        } else if (e.key === 'ArrowLeft') {
+            lightboxPrev();
+        }
+    });
+
+    // ============================================
+    // CHANGER L'IMAGE PRINCIPALE (miniatures)
+    // ============================================
+    function changeMainImage(src, index) {
+        const mainImage = document.getElementById('mainImage');
+        const img = mainImage.querySelector('img');
+        if (img) {
+            img.src = src;
+        } else {
+            mainImage.innerHTML = `<img src="${src}" alt="Bien" loading="lazy">`;
+        }
+        
+        document.querySelectorAll('.thumbnail').forEach(el => {
+            el.classList.remove('active');
+        });
+        const thumbnails = document.querySelectorAll('.thumbnail');
+        if (thumbnails[index]) {
+            thumbnails[index].classList.add('active');
+        }
+    }
+
+    // ============================================
+    // LECTURE VIDÉO
+    // ============================================
+    function playVideo(src) {
+        const mainImage = document.getElementById('mainImage');
+        mainImage.innerHTML = `
+            <video src="${src}" controls autoplay style="width:100%;height:100%;object-fit:cover;">
+                Votre navigateur ne supporte pas la lecture de vidéos.
+            </video>
+        `;
+        
+        document.querySelectorAll('.thumbnail').forEach(el => {
+            el.classList.remove('active');
+        });
+        if (event && event.target) {
+            const thumb = event.target.closest('.thumbnail');
+            if (thumb) thumb.classList.add('active');
+        }
+    }
+
+    // ============================================
+    // SHARE FUNCTIONS
+    // ============================================
+    function shareFacebook() {
+        const url = encodeURIComponent(window.location.href);
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=400');
+    }
+
+    function shareWhatsApp() {
+        const url = encodeURIComponent(window.location.href);
+        const text = encodeURIComponent("Découvrez ce bien immobilier sur DoyaImmo !");
+        window.open(`https://wa.me/?text=${text}%20${url}`, '_blank', 'width=600,height=400');
+    }
+
+    function copyLink() {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                showToast('Lien copié dans le presse-papier !');
+            }).catch(() => {
+                fallbackCopy();
+            });
+        } else {
+            fallbackCopy();
+        }
+    }
+
+    function fallbackCopy() {
+        const input = document.createElement('input');
+        input.value = window.location.href;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        showToast('Lien copié dans le presse-papier !');
+    }
+
+    function showToast(message) {
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--ink);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            z-index: 9999;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            animation: fadeInUp 0.3s ease;
+        `;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'fadeOutDown 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+</script>
+@endsection

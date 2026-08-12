@@ -1,0 +1,81 @@
+@startuml Figure2_Diagramme_Cas_Utilisation_Particulier
+
+' ==============================================================================
+' Figure 2 : Diagramme de cas d'utilisation du Particulier (Mise en page propre)
+' ==============================================================================
+
+left to right direction
+skinparam linetype ortho
+skinparam nodesep 40
+skinparam ranksep 50
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+skinparam actor {
+    BackgroundColor #EBF4FF
+    BorderColor #2B6CB0
+    FontName Arial
+}
+
+skinparam usecase {
+    BackgroundColor #FFFFFF
+    BorderColor #4A5568
+    ArrowColor #2D3748
+    FontName Arial
+}
+
+actor "Particulier" as Particulier
+
+rectangle "Plateforme DoyaImmo" {
+    
+    package "Authentification & Compte" {
+        usecase "S'inscrire" as UC_Inscrire
+        usecase "Se connecter" as UC_Connecter
+    }
+    
+    package "Gestion des Demandes" {
+        usecase "Publier une demande" as UC_PublierDemande
+        usecase "Modifier une demande" as UC_ModifierDemande
+        usecase "Supprimer une demande" as UC_SupprimerDemande
+    }
+    
+    package "Offres & Propositions" {
+        usecase "Consulter les offres reçues" as UC_ConsulterOffres
+        usecase "Comparer les offres" as UC_Comparer
+        usecase "Accepter une offre" as UC_AccepterOffre
+    }
+    
+    package "Visites, Évaluations & Signalements" {
+        usecase "Consulter ses rendez-vous" as UC_ConsulterRDV
+        usecase "Planifier une visite" as UC_Planifier
+        usecase "Évaluer une agence" as UC_Evaluer
+        usecase "Signaler une annonce" as UC_Signaler
+    }
+}
+
+' --- Interactions Acteur ---
+Particulier --> UC_Inscrire
+Particulier --> UC_PublierDemande
+Particulier --> UC_ModifierDemande
+Particulier --> UC_SupprimerDemande
+Particulier --> UC_ConsulterOffres
+Particulier --> UC_Comparer
+Particulier --> UC_Planifier
+Particulier --> UC_ConsulterRDV
+Particulier --> UC_AccepterOffre
+Particulier --> UC_Evaluer
+Particulier --> UC_Signaler
+
+' --- Relations de dépendance (Extend & Include) ---
+UC_Comparer .> UC_ConsulterOffres : <<extend>>
+UC_Planifier .> UC_AccepterOffre : <<extend>>
+UC_Evaluer .> UC_ConsulterRDV : <<extend>>
+
+UC_ConsulterOffres .> UC_Connecter : <<include>>
+UC_AccepterOffre .> UC_Connecter : <<include>>
+UC_ConsulterRDV .> UC_Connecter : <<include>>
+UC_PublierDemande .> UC_Connecter : <<include>>
+UC_ModifierDemande .> UC_Connecter : <<include>>
+UC_SupprimerDemande .> UC_Connecter : <<include>>
+
+@endluml

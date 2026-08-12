@@ -1,0 +1,71 @@
+@startuml Figure11_Diagramme_Classes_Gestion_RendezVous
+
+' ==============================================================================
+' Figure 11 : Diagramme de classes – Gestion des rendez-vous
+' ==============================================================================
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+skinparam class {
+    BackgroundColor #FFFFFF
+    BorderColor #2B6CB0
+    HeaderBackgroundColor #EBF4FF
+    ArrowColor #2D3748
+    FontName Arial
+}
+
+class CreneauRendezVous {
+    - id : bigint
+    - agence_id : bigint
+    - jour_semaine : integer
+    - heure_debut : time
+    - heure_fin : time
+    - est_disponible : boolean
+    + agence()
+    + rendezVous()
+}
+
+class RendezVous {
+    - id : bigint
+    - particulier_id : bigint
+    - agence_id : bigint
+    - proposition_id : bigint
+    - creneau_id : bigint
+    - date_rendez_vous : datetime
+    - statut : StatutRendezVousEnum
+    - motif_annulation : string
+    + particulier()
+    + agence()
+    + proposition()
+    + creneau()
+}
+
+class Agence {
+    - id : bigint
+    - nom_agence : string
+    + creneaux()
+    + rendezVous()
+}
+
+class Particulier {
+    - id : bigint
+    - user_id : bigint
+    + rendezVous()
+}
+
+class Proposition {
+    - id : bigint
+    - prix_propose : decimal
+    + rendezVous()
+}
+
+' --- Relations & Multiplicités ---
+Agence "1" -- "0..*" CreneauRendezVous : définit >
+Agence "1" -- "0..*" RendezVous : reçoit >
+Particulier "1" -- "0..*" RendezVous : réserve >
+CreneauRendezVous "1" -- "0..*" RendezVous : concerne >
+Proposition "0..1" -- "0..*" RendezVous : s'appuie sur >
+
+@endluml

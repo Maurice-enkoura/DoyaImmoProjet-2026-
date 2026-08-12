@@ -17,6 +17,7 @@ use App\Models\Quartier;
 use Illuminate\Http\Request;
 use App\Enums\StatutDocumentEnum;
 use App\Enums\StatutSignalementEnum;
+use Illuminate\Support\Facades\Schema;
 
 class AdminDashboardController extends Controller
 {
@@ -30,10 +31,9 @@ class AdminDashboardController extends Controller
             
             'agences' => [
                 'total' => Agence::count(),
-                'en_attente' => Agence::where('statut_validation', false)->count(),
+                'en_attente' => Agence::where('statut_validation', false)->where('est_refusee', false)->count(),
+                'refusees' => Agence::where('est_refusee', true)->count(),
                 'validees' => Agence::where('statut_validation', true)->count(),
-                // Supprimer 'bloquees' car la colonne n'existe pas
-                // Si vous avez besoin de cette statistique, ajoutez d'abord la colonne via une migration
             ],
             'agences_evolution' => $this->calculateEvolution(Agence::class),
             
@@ -115,7 +115,7 @@ class AdminDashboardController extends Controller
         ];
 
         // Variables pour le layout (badges et listes récentes)
-        $agencesEnAttente = Agence::where('statut_validation', false)->count();
+        $agencesEnAttente = Agence::where('statut_validation', false)->where('est_refusee', false)->count();
         $signalementsEnAttente = Signalement::where('statut', StatutSignalementEnum::EN_ATTENTE)->count();
         
         // Derniers utilisateurs inscrits
@@ -130,10 +130,18 @@ class AdminDashboardController extends Controller
             ->limit(5)
             ->get();
         
-        // Agences en attente de validation
+        // ✅ Agences en attente de validation (exclure les refusées)
         $agencesEnAttenteList = Agence::with(['user', 'quartier'])
             ->where('statut_validation', false)
+            ->where('est_refusee', false)
             ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // ✅ Agences refusées
+        $agencesRefuseesList = Agence::with(['user', 'quartier'])
+            ->where('est_refusee', true)
+            ->orderBy('date_refus', 'desc')
             ->limit(5)
             ->get();
 
@@ -156,6 +164,7 @@ class AdminDashboardController extends Controller
             'derniersUtilisateurs',
             'derniersSignalements',
             'agencesEnAttenteList',
+            'agencesRefuseesList',
             'derniersBiens',
             'dernieresDemandes'
         ));

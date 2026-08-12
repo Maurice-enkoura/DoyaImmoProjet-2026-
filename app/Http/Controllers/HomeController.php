@@ -6,6 +6,7 @@ use App\Models\BienImmobilier;
 use App\Models\Agence;
 use App\Models\DemandeImmobiliere;
 use App\Models\Quartier;
+use App\Models\Banniere;
 use App\Enums\TypeBienEnum;
 use App\Enums\TypeContratEnum;
 use App\Enums\TypeOperationEnum;
@@ -13,14 +14,27 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;    
 use App\Enums\StatutDemandeEnum;
+
 class HomeController extends Controller
 {
     /**
      * Page d'accueil
      */
-   public function index()
+    public function index()
     {
-        // Récupérer les quartiers avec des demandes actives
+        // ==================== BANNIÈRES ====================
+        $bannieres = Banniere::actifs()
+            ->orderBy('ordre', 'asc')
+            ->get();
+
+        // ==================== BIENS EN VEDETTE ====================
+        $biensVedette = BienImmobilier::with(['agence', 'medias', 'quartier'])
+            ->vedette()
+            ->orderBy('vedette_fin', 'asc')
+            ->limit(6)
+            ->get();
+
+        // ==================== QUARTIERS POPULAIRES ====================
         $quartiersPopulaires = Quartier::whereHas('demandes', function ($query) {
             $query->where('statut', 'en_attente');
         })
@@ -31,28 +45,31 @@ class HomeController extends Controller
         ->take(6)
         ->get();
 
-        // Dernières demandes (pour le hero)
+        // ==================== DERNIÈRES DEMANDES ====================
         $demandesRecentes = DemandeImmobiliere::with(['propositions', 'particulier.user'])
             ->where('statut', 'en_attente')
             ->orderBy('created_at', 'desc')
             ->take(3)
             ->get();
 
-        // ✅ Derniers biens (3 derniers avec statut)
+        // ==================== DERNIERS BIENS ====================
         $derniersBiens = BienImmobilier::with(['agence', 'medias', 'quartier'])
             ->where('statut', true)
             ->orderBy('created_at', 'desc')
             ->take(3)
             ->get();
 
-        // Statistiques
+        // ==================== STATISTIQUES ====================
         $stats = [
             'besoins' => DemandeImmobiliere::where('statut', 'en_attente')->count(),
             'biens' => BienImmobilier::where('statut', true)->count(),
             'agences' => Agence::where('statut_validation', true)->count(),
+            'en_vedette' => BienImmobilier::vedette()->count(),
         ];
 
         return view('home', compact(
+            'bannieres',
+            'biensVedette',
             'quartiersPopulaires',
             'demandesRecentes',
             'derniersBiens',
@@ -79,10 +96,7 @@ class HomeController extends Controller
     /**
      * Recherche globale
      */
-
-
-
-  public function recherche(Request $request)
+    public function recherche(Request $request)
     {
         $query = $request->get('q', '');
         $type = $request->get('type', 'tous');
@@ -120,7 +134,10 @@ class HomeController extends Controller
             $biensQuery->where('quartier_id', $quartierId);
         }
 
-        $biens = $biensQuery->orderBy('created_at', 'desc')->paginate(12);
+        // Ajouter les biens en vedette en premier
+        $biensQuery->orderByRaw('est_vedette DESC, created_at DESC');
+
+        $biens = $biensQuery->paginate(12);
 
         // ==================== AGENCES ====================
         $agencesQuery = Agence::with(['user', 'quartier', 'evaluations'])
@@ -172,135 +189,132 @@ class HomeController extends Controller
     /**
      * Liste des biens avec filtres avancés
      */
-   /**
- * Liste des biens immobiliers (publiques)
- */
-public function biens(Request $request)
-{
-    $query = BienImmobilier::with(['agence.user', 'medias', 'quartier'])
-        ->where('statut', true);
+    public function biens(Request $request)
+    {
+        $query = BienImmobilier::with(['agence.user', 'medias', 'quartier'])
+            ->where('statut', true);
 
-    // Recherche par mot-clé
-    if ($request->filled('search')) {
-        $search = $request->search;
-        $query->where(function ($q) use ($search) {
-            $q->where('titre', 'like', "%{$search}%")
-              ->orWhere('description', 'like', "%{$search}%")
-              ->orWhere('adresse', 'like', "%{$search}%")
-              ->orWhere('quartier', 'like', "%{$search}%");
-        });
+        // Recherche par mot-clé
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('titre', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('adresse', 'like', "%{$search}%")
+                  ->orWhere('quartier', 'like', "%{$search}%");
+            });
+        }
+
+        // Filtre par quartier
+        if ($request->filled('quartier')) {
+            $query->where('quartier_id', $request->quartier);
+        }
+
+        // Filtre par type de bien
+        if ($request->filled('type_bien')) {
+            $query->where('type_bien', $request->type_bien);
+        }
+
+        // Filtre par type de contrat
+        if ($request->filled('type_contrat')) {
+            $query->where('type_contrat', $request->type_contrat);
+        }
+
+        // Filtre par prix
+        if ($request->filled('prix_min')) {
+            $query->where('prix', '>=', (int)$request->prix_min);
+        }
+        if ($request->filled('prix_max')) {
+            $query->where('prix', '<=', (int)$request->prix_max);
+        }
+
+        // Filtre par surface
+        if ($request->filled('surface_min')) {
+            $query->where('surface', '>=', (int)$request->surface_min);
+        }
+        if ($request->filled('surface_max')) {
+            $query->where('surface', '<=', (int)$request->surface_max);
+        }
+
+        // Filtre par nombre de chambres
+        if ($request->filled('chambres')) {
+            $query->where('nombre_chambres', '>=', (int)$request->chambres);
+        }
+
+        // Filtres booléens
+        if ($request->has('parking')) {
+            $query->where('parking_disponible', $request->boolean('parking'));
+        }
+        if ($request->has('meuble')) {
+            $query->where('est_meuble', $request->boolean('meuble'));
+        }
+
+        // Tri
+        $sort = $request->get('sort', 'recent');
+        switch ($sort) {
+            case 'prix_asc':
+                $query->orderBy('prix', 'asc');
+                break;
+            case 'prix_desc':
+                $query->orderBy('prix', 'desc');
+                break;
+            case 'surface_desc':
+                $query->orderBy('surface', 'desc');
+                break;
+            case 'popularite':
+                $query->withCount('propositions')->orderBy('propositions_count', 'desc');
+                break;
+            case 'recent':
+            default:
+                $query->orderBy('created_at', 'desc');
+                break;
+        }
+
+        $biens = $query->paginate(12);
+
+        // Données pour les filtres
+        $quartiers = Quartier::actif()->orderBy('nom')->get();
+        $typesBien = collect(TypeBienEnum::cases())->mapWithKeys(function ($case) {
+            return [$case->value => $case->label()];
+        })->toArray();
+
+        return view('biens.index', compact('biens', 'quartiers', 'typesBien'));
     }
 
-    // Filtre par quartier
-    if ($request->filled('quartier')) {
-        $query->where('quartier_id', $request->quartier);
+    /**
+     * Détail d'un bien
+     */
+    public function bienShow(BienImmobilier $bien)
+    {
+        // Incrémenter les vues
+        $bien->increment('vues');
+        
+        $bien->load(['agence.user', 'medias', 'agence.evaluations.particulier.user', 'quartier']);
+
+        // Biens similaires
+        $biensSimilaires = BienImmobilier::with(['agence.user', 'medias'])
+            ->where('statut', true)
+            ->where('id', '!=', $bien->id)
+            ->where('type_bien', $bien->type_bien)
+            ->where('quartier', $bien->quartier)
+            ->limit(4)
+            ->get();
+
+        $peutDemanderVisite = false;
+        if (auth()->check() && auth()->user()->isParticulier()) {
+            $peutDemanderVisite = true;
+        }
+
+        return view('biens.show', compact('bien', 'biensSimilaires', 'peutDemanderVisite'));
     }
-
-    // Filtre par type de bien
-    if ($request->filled('type_bien')) {
-        $query->where('type_bien', $request->type_bien);
-    }
-
-    // Filtre par type de contrat
-    if ($request->filled('type_contrat')) {
-        $query->where('type_contrat', $request->type_contrat);
-    }
-
-    // Filtre par prix
-    if ($request->filled('prix_min')) {
-        $query->where('prix', '>=', (int)$request->prix_min);
-    }
-    if ($request->filled('prix_max')) {
-        $query->where('prix', '<=', (int)$request->prix_max);
-    }
-
-    // Filtre par surface
-    if ($request->filled('surface_min')) {
-        $query->where('surface', '>=', (int)$request->surface_min);
-    }
-    if ($request->filled('surface_max')) {
-        $query->where('surface', '<=', (int)$request->surface_max);
-    }
-
-    // Filtre par nombre de chambres
-    if ($request->filled('chambres')) {
-        $query->where('nombre_chambres', '>=', (int)$request->chambres);
-    }
-
-    // Filtres booléens
-    if ($request->has('parking')) {
-        $query->where('parking_disponible', $request->boolean('parking'));
-    }
-    if ($request->has('meuble')) {
-        $query->where('est_meuble', $request->boolean('meuble'));
-    }
-
-    // Tri
-    $sort = $request->get('sort', 'recent');
-    switch ($sort) {
-        case 'prix_asc':
-            $query->orderBy('prix', 'asc');
-            break;
-        case 'prix_desc':
-            $query->orderBy('prix', 'desc');
-            break;
-        case 'surface_desc':
-            $query->orderBy('surface', 'desc');
-            break;
-        case 'popularite':
-            $query->withCount('propositions')->orderBy('propositions_count', 'desc');
-            break;
-        case 'recent':
-        default:
-            $query->orderBy('created_at', 'desc');
-            break;
-    }
-
-    $biens = $query->paginate(12);
-
-    // Données pour les filtres
-    $quartiers = Quartier::actif()->orderBy('nom')->get();
-    $typesBien = collect(TypeBienEnum::cases())->mapWithKeys(function ($case) {
-        return [$case->value => $case->label()];
-    })->toArray();
-
-    return view('biens.index', compact('biens', 'quartiers', 'typesBien'));
-}
-
-/**
- * Détail d'un bien
- */
-public function bienShow(BienImmobilier $bien)
-{
-    // Incrémenter les vues
-    $bien->increment('vues');
-    
-    $bien->load(['agence.user', 'medias', 'agence.evaluations.particulier.user', 'quartier']);
-
-    // Biens similaires
-    $biensSimilaires = BienImmobilier::with(['agence.user', 'medias'])
-        ->where('statut', true)
-        ->where('id', '!=', $bien->id)
-        ->where('type_bien', $bien->type_bien)
-        ->where('quartier', $bien->quartier)
-        ->limit(4)
-        ->get();
-
-    $peutDemanderVisite = false;
-    if (auth()->check() && auth()->user()->isParticulier()) {
-        $peutDemanderVisite = true;
-    }
-
-    return view('biens.show', compact('bien', 'biensSimilaires', 'peutDemanderVisite'));
-}
 
     /**
      * Liste des besoins avec filtres avancés
      */
-   public function demandes(Request $request)
+    public function demandes(Request $request)
     {
         $query = DemandeImmobiliere::with(['particulier.user', 'propositions', 'quartier'])
-            ->where('statut', StatutDemandeEnum::EN_ATTENTE); // ✅ UNIQUEMENT EN ATTENTE
+            ->where('statut', StatutDemandeEnum::EN_ATTENTE);
 
         // Recherche par mot-clé
         if ($request->filled('search')) {
@@ -406,48 +420,47 @@ public function bienShow(BienImmobilier $bien)
     /**
      * Liste des agences
      */
- public function agences(Request $request)
-{
-    $query = Agence::with('user')
-        ->where('statut_validation', true);
+    public function agences(Request $request)
+    {
+        $query = Agence::with('user')
+            ->where('statut_validation', true);
 
-    // Recherche par mot-clé
-    if ($request->filled('search')) {
-        $search = $request->search;
-        $query->where(function ($q) use ($search) {
-            $q->where('nom_agence', 'like', "%{$search}%")
-              ->orWhere('quartier', 'like', "%{$search}%")
-              ->orWhere('description', 'like', "%{$search}%");
-        });
+        // Recherche par mot-clé
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nom_agence', 'like', "%{$search}%")
+                  ->orWhere('quartier', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        // Filtre par quartier
+        if ($request->filled('quartier')) {
+            $query->where('quartier_id', $request->quartier);
+        }
+
+        // Tri
+        $sort = $request->get('sort', 'recent');
+        switch ($sort) {
+            case 'note':
+                $query->withAvg('evaluations', 'note')->orderBy('evaluations_avg_note', 'desc');
+                break;
+            case 'biens':
+                $query->withCount('biens')->orderBy('biens_count', 'desc');
+                break;
+            case 'recent':
+            default:
+                $query->orderBy('created_at', 'desc');
+                break;
+        }
+
+        $agences = $query->paginate(12);
+
+        $quartiers = Quartier::actif()->orderBy('nom')->get();
+
+        return view('agence.public-index', compact('agences', 'quartiers'));
     }
-
-    // Filtre par quartier
-    if ($request->filled('quartier')) {
-        $query->where('quartier_id', $request->quartier);
-    }
-
-    // Tri
-    $sort = $request->get('sort', 'recent');
-    switch ($sort) {
-        case 'note':
-            $query->withAvg('evaluations', 'note')->orderBy('evaluations_avg_note', 'desc');
-            break;
-        case 'biens':
-            $query->withCount('biens')->orderBy('biens_count', 'desc');
-            break;
-        case 'recent':
-        default:
-            $query->orderBy('created_at', 'desc');
-            break;
-    }
-
-    $agences = $query->paginate(12);
-
-    $quartiers = Quartier::actif()->orderBy('nom')->get();
-
-    // CORRECTION : Utiliser 'agences.public-index' au lieu de 'agence.public-index'
-    return view('agence.public-index', compact('agences', 'quartiers'));
-}
 
     /**
      * Détail d'une agence
@@ -500,7 +513,7 @@ public function bienShow(BienImmobilier $bien)
                     'value' => $item->id,
                     'description' => $item->ville,
                     'icon' => 'fa-solid fa-location-dot',
-                    'url' => route('recherche', ['quartier_id' => $item->id]),
+                    'url' => route('recherche', ['quartier' => $item->id]),
                 ];
             });
 
@@ -611,6 +624,7 @@ public function bienShow(BienImmobilier $bien)
             'total_agences' => Agence::where('statut_validation', true)->count(),
             'total_rendezvous' => \App\Models\RendezVous::count(),
             'total_evaluations' => \App\Models\Evaluation::count(),
+            'en_vedette' => BienImmobilier::vedette()->count(),
         ];
 
         return response()->json($stats);

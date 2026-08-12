@@ -165,6 +165,154 @@ class AgenceController extends Controller
         ), $notifData));
     }
 
+    // ==================== GESTION DES BIENS EN VEDETTE ====================
+
+    /**
+     * Affiche la liste des biens de l'agence avec option vedette
+     */
+    public function biensVedette(Request $request)
+    {
+        $agence = Auth::user()->agence;
+
+        $abonnementActuel = $agence->abonnements()
+            ->where('statut', true)
+            ->where('date_fin', '>', now())
+            ->first();
+
+        $peutMettreEnVedette = $abonnementActuel && 
+            in_array($abonnementActuel->formule->value, ['premium', 'pro']);
+
+        $biens = $agence->biens()
+            ->with(['medias', 'quartier'])
+            ->orderBy('est_vedette', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(12);
+
+        $stats = [
+            'total' => $agence->biens()->count(),
+            'disponibles' => $agence->biens()->where('statut', true)->count(),
+            'en_vedette' => $agence->biens()->where('est_vedette', true)->count(),
+            'max_vedette' => $this->getMaxVedette($abonnementActuel),
+        ];
+
+        $notifData = $this->getNotifications();
+
+        return view('agence.biens.vedette', array_merge(compact(
+            'biens',
+            'stats',
+            'abonnementActuel',
+            'peutMettreEnVedette'
+        ), $notifData));
+    }
+
+    /**
+     * Active la mise en vedette d'un bien
+     */
+    public function activerVedette(Request $request, BienImmobilier $bien)
+    {
+        try {
+            $agence = Auth::user()->agence;
+
+            if ($bien->agence_id !== $agence->id) {
+                return redirect()->back()
+                    ->with('error', 'Ce bien ne vous appartient pas.');
+            }
+
+            $abonnementActuel = $agence->abonnements()
+                ->where('statut', true)
+                ->where('date_fin', '>', now())
+                ->first();
+
+            if (!$abonnementActuel || !in_array($abonnementActuel->formule->value, ['premium', 'pro'])) {
+                return redirect()->back()
+                    ->with('error', 'Vous devez avoir un abonnement Premium ou Pro pour mettre un bien en vedette.');
+            }
+
+            $maxVedette = $this->getMaxVedette($abonnementActuel);
+            $vedettesActuelles = $agence->biens()->where('est_vedette', true)->count();
+
+            if ($vedettesActuelles >= $maxVedette) {
+                return redirect()->back()
+                    ->with('error', 'Vous avez atteint le nombre maximum de biens en vedette (' . $maxVedette . ').');
+            }
+
+            $bien->update([
+                'est_vedette' => true,
+                'vedette_fin' => now()->addDays(30),
+            ]);
+
+            return redirect()->back()
+                ->with('success', 'Le bien "' . $bien->titre . '" est maintenant en vedette pour 30 jours !');
+
+        } catch (\Exception $e) {
+            Log::error('Erreur activation vedette: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Erreur lors de l\'activation de la vedette.');
+        }
+    }
+
+    /**
+     * Désactive la mise en vedette d'un bien
+     */
+    public function desactiverVedette(BienImmobilier $bien)
+    {
+        try {
+            $agence = Auth::user()->agence;
+
+            if ($bien->agence_id !== $agence->id) {
+                return redirect()->back()
+                    ->with('error', 'Ce bien ne vous appartient pas.');
+            }
+
+            $bien->update([
+                'est_vedette' => false,
+                'vedette_fin' => null,
+            ]);
+
+            return redirect()->back()
+                ->with('success', 'Le bien "' . $bien->titre . '" n\'est plus en vedette.');
+
+        } catch (\Exception $e) {
+            Log::error('Erreur désactivation vedette: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Erreur lors de la désactivation de la vedette.');
+        }
+    }
+
+    /**
+     * Retourne le nombre maximum de vedettes selon l'abonnement
+     */
+    private function getMaxVedette($abonnement)
+    {
+        if (!$abonnement) return 0;
+        
+        return match($abonnement->formule->value) {
+            'basic' => 0,
+            'premium' => 3,
+            'pro' => PHP_INT_MAX,
+            default => 0,
+        };
+    }
+
+    /**
+     * Vérifie et désactive automatiquement les vedettes expirées
+     */
+    public function verifierVedettesExpirees()
+    {
+        $biensExpires = BienImmobilier::where('est_vedette', true)
+            ->where('vedette_fin', '<', now())
+            ->get();
+
+        foreach ($biensExpires as $bien) {
+            $bien->update([
+                'est_vedette' => false,
+                'vedette_fin' => null,
+            ]);
+        }
+
+        return $biensExpires->count();
+    }
+
     // ==================== DEMANDES ====================
 
     /**
@@ -328,9 +476,7 @@ class AgenceController extends Controller
     public function demandesShow(DemandeImmobiliere $demande)
     {
         $demande->load(['particulier.user']);
-
         $notifData = $this->getNotifications();
-
         return view('agence.demandes.show', array_merge(compact('demande'), $notifData));
     }
 
@@ -578,6 +724,44 @@ class AgenceController extends Controller
         return $semaine;
     }
 
+    /**
+     * Gestion des créneaux horaires - Page d'index
+     */
+    public function creneauxIndex()
+    {
+        $agence = Auth::user()->agence;
+        
+        $semaine = $this->getSemaine();
+        $creneaux = [];
+        foreach ($semaine as $date) {
+            $creneaux[$date] = CreneauRendezVous::where('agence_id', $agence->id)
+                ->where('date', $date)
+                ->orderBy('heure_debut')
+                ->get();
+        }
+
+        $abonnementActuel = $agence->abonnements()
+            ->where('statut', true)
+            ->where('date_fin', '>', now())
+            ->first();
+        
+        $besoinsDisponibles = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count();
+        $rendezvousAVenir = $agence->rendezVous()
+            ->whereIn('statut', [StatutRendezVousEnum::PLANIFIE, StatutRendezVousEnum::CONFIRME])
+            ->where('date_visite', '>=', now()->toDateString())
+            ->count();
+
+        $notifData = $this->getNotifications();
+
+        return view('agence.creneaux.index', array_merge(compact(
+            'semaine',
+            'creneaux',
+            'abonnementActuel',
+            'besoinsDisponibles',
+            'rendezvousAVenir'
+        ), $notifData));
+    }
+
     // ==================== RENDEZ-VOUS ====================
 
     /**
@@ -656,6 +840,87 @@ class AgenceController extends Controller
 
         return redirect()->route('agence.rendezvous.index')
             ->with('success', $message);
+    }
+
+    /**
+     * Confirmer un rendez-vous
+     */
+    public function rendezvousConfirmer(RendezVous $rendezVous)
+    {
+        if ($rendezVous->agence_id !== Auth::user()->agence->id) {
+            abort(403);
+        }
+
+        $rendezVous->update(['statut' => StatutRendezVousEnum::CONFIRME]);
+
+        try {
+            $rendezVous->particulier->user->notify(new RendezVousConfirmeNotification($rendezVous));
+        } catch (\Exception $e) {
+            Log::error('Erreur notification confirmation: ' . $e->getMessage());
+        }
+
+        return redirect()->route('agence.rendezvous.index')
+            ->with('success', 'Rendez-vous confirmé avec succès.');
+    }
+
+    /**
+     * Annuler un rendez-vous
+     */
+    public function rendezvousAnnuler(RendezVous $rendezVous)
+    {
+        if ($rendezVous->agence_id !== Auth::user()->agence->id) {
+            abort(403);
+        }
+
+        if ($rendezVous->creneau_id) {
+            $creneau = CreneauRendezVous::find($rendezVous->creneau_id);
+            if ($creneau) {
+                $creneau->update(['est_disponible' => true]);
+            }
+        }
+
+        $rendezVous->update(['statut' => StatutRendezVousEnum::ANNULE]);
+
+        try {
+            $rendezVous->particulier->user->notify(new RendezVousAnnuleNotification($rendezVous));
+        } catch (\Exception $e) {
+            Log::error('Erreur notification annulation: ' . $e->getMessage());
+        }
+
+        return redirect()->route('agence.rendezvous.index')
+            ->with('success', 'Rendez-vous annulé avec succès.');
+    }
+
+    /**
+     * Marquer un rendez-vous comme terminé
+     */
+    public function rendezvousTermine(RendezVous $rendezVous)
+    {
+        if ($rendezVous->agence_id !== Auth::user()->agence->id) {
+            abort(403);
+        }
+
+        try {
+            $rendezVous->update(['statut' => StatutRendezVousEnum::TERMINE]);
+
+            $proposition = $rendezVous->proposition;
+            if ($proposition) {
+                $proposition->update(['statut' => StatutPropositionEnum::TERMINEE]);
+                
+                $demande = $proposition->demande;
+                if ($demande) {
+                    $demande->update(['statut' => StatutDemandeEnum::TERMINEE]);
+                }
+            }
+
+            return redirect()->route('agence.rendezvous.index')
+                ->with('success', 'Rendez-vous terminé avec succès ! La demande est maintenant clôturée.');
+
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la clôture du rendez-vous: ' . $e->getMessage());
+            return redirect()->route('agence.rendezvous.index')
+                ->with('error', 'Une erreur est survenue lors de la clôture du rendez-vous.');
+        }
     }
 
     // ==================== ÉVALUATIONS ====================
@@ -751,7 +1016,10 @@ class AgenceController extends Controller
     /**
      * Gestion de l'abonnement
      */
-    /**
+   /**
+ * Gestion de l'abonnement
+ */
+/**
  * Gestion de l'abonnement
  */
 public function abonnement()
@@ -763,13 +1031,30 @@ public function abonnement()
             ->with('error', 'Agence non trouvée.');
     }
 
-    // Abonnement actuel
+    // ✅ Déclarer la variable avec une valeur par défaut
+    $estNonValidee = false;
+
+    // ✅ Vérifier si l'agence est validée
+    if (!$agence->statut_validation) {
+        $estNonValidee = true;
+        
+        $notifData = $this->getNotifications();
+        
+        return view('agence.abonnement.index', array_merge([
+            'agence' => $agence,
+            'abonnementActuel' => null,
+            'historique' => collect(),
+            'plans' => [],
+            'abonnementGratuitExpire' => false,
+            'estNonValidee' => $estNonValidee,
+        ], $notifData))->with('error', 'Votre agence doit être validée par un administrateur pour accéder à cette fonctionnalité.');
+    }
+
     $abonnementActuel = $agence->abonnements()
         ->where('statut', true)
         ->where('date_fin', '>', now())
         ->first();
 
-    // Vérifier si l'abonnement gratuit est expiré
     $abonnementGratuitExpire = false;
     $dernierAbonnement = $agence->abonnements()
         ->where('formule', 'basic')
@@ -781,19 +1066,17 @@ public function abonnement()
         $abonnementGratuitExpire = true;
     }
 
-    // Historique des abonnements
     $historique = $agence->abonnements()
         ->orderBy('created_at', 'desc')
         ->limit(10)
         ->get();
 
-    // Plans d'abonnement avec les nouveaux prix
     $plans = [
         'basic' => [
             'label' => 'Basique',
             'price' => 0,
             'price_label' => 'Gratuit',
-            'period' => '12 mois',
+            'period' => '1 mois',
             'features' => [
                 '5 offres envoyées / mois',
                 'Accès aux besoins publics',
@@ -808,13 +1091,14 @@ public function abonnement()
             'label' => 'Premium',
             'price' => 200,
             'price_label' => '200 FCFA',
-            'period' => '12 mois',
+            'period' => '1 mois',
             'features' => [
                 '20 offres envoyées / mois',
                 'Mise en avant des annonces',
                 'Badge "Agence Premium"',
                 'Accès anticipé aux nouveaux besoins',
-                'Profil agence optimisé'
+                'Profil agence optimisé',
+                '3 biens en vedette'
             ],
             'limite' => 20,
             'badge' => 'Populaire',
@@ -825,14 +1109,15 @@ public function abonnement()
             'label' => 'Pro',
             'price' => 500,
             'price_label' => '500 FCFA',
-            'period' => '12 mois',
+            'period' => '1 mois',
             'features' => [
                 'Offres illimitées',
                 'Badge "Agence Pro"',
                 'Mise en avant prioritaire',
                 'Accès anticipé exclusif',
                 'Profil agence complet',
-                'Support prioritaire'
+                'Support prioritaire',
+                'Biens en vedette illimités'
             ],
             'limite' => PHP_INT_MAX,
             'badge' => 'Recommandé',
@@ -841,15 +1126,16 @@ public function abonnement()
         ]
     ];
 
-    // Notifications
     $notifData = $this->getNotifications();
 
+    // ✅ Maintenant la variable est définie dans tous les cas
     return view('agence.abonnement.index', array_merge(compact(
         'abonnementActuel',
         'historique',
         'plans',
         'abonnementGratuitExpire',
-        'agence'
+        'agence',
+        'estNonValidee'
     ), $notifData));
 }
 
@@ -857,9 +1143,6 @@ public function abonnement()
      * Souscrire à un abonnement
      */
     /**
- * Souscrire à un abonnement
- */
-/**
  * Souscrire à un abonnement
  */
 public function souscrire(Request $request)
@@ -876,16 +1159,20 @@ public function souscrire(Request $request)
                 ->with('error', 'Agence non trouvée.');
         }
 
+        // ✅ Vérifier si l'agence est validée
+        if (!$agence->statut_validation) {
+            return redirect()->route('agence.abonnement')
+                ->with('error', 'Votre agence doit être validée par un administrateur pour souscrire à un abonnement.');
+        }
+
         $formule = \App\Enums\FormuleAbonnementEnum::from($request->formule);
         $montant = $formule->prix();
 
-        // Vérifier si un abonnement actif existe déjà
         $abonnementActuel = $agence->abonnements()
             ->where('statut', true)
             ->where('date_fin', '>', now())
             ->first();
 
-        // Si l'abonnement actuel est gratuit et qu'on veut passer à un payant
         if ($abonnementActuel && $abonnementActuel->formule->value === 'basic' && $montant > 0) {
             $abonnementActuel->update(['statut' => false]);
         } elseif ($abonnementActuel && $montant > 0) {
@@ -896,7 +1183,6 @@ public function souscrire(Request $request)
                 ->with('info', 'Vous avez déjà un abonnement gratuit actif.');
         }
 
-        // Vérifier si l'abonnement gratuit a déjà été utilisé
         if ($montant == 0) {
             $aDejaEuGratuit = $agence->abonnements()
                 ->where('formule', 'basic')
@@ -909,23 +1195,21 @@ public function souscrire(Request $request)
             }
         }
 
-        // Créer l'abonnement - DURÉE 1 MOIS au lieu de 12 mois
         $abonnement = \App\Models\Abonnement::create([
             'agence_id' => $agence->id,
             'formule' => $formule,
             'montant' => $montant,
             'date_debut' => now(),
-            'date_fin' => now()->addMonth(), // 1 MOIS au lieu de 12 mois
+            'date_fin' => now()->addMonth(),
             'statut' => $montant == 0,
         ]);
 
-        // Si c'est un abonnement payant, rediriger vers PayDunya
         if ($montant > 0) {
             return redirect()->route('paydunya.pay', ['abonnement' => $abonnement->id]);
         }
 
         return redirect()->route('agence.abonnement')
-            ->with('success', ' Abonnement gratuit activé avec succès !');
+            ->with('success', 'Abonnement gratuit activé avec succès !');
 
     } catch (\Exception $e) {
         Log::error('Erreur souscription: ' . $e->getMessage());
@@ -934,54 +1218,52 @@ public function souscrire(Request $request)
     }
 }
 
-/**
- * Mettre à jour/Changer d'abonnement
- */
-public function upgrade(Request $request)
-{
-    try {
-        $request->validate([
-            'formule' => 'required|in:basic,premium,pro'
-        ]);
+    /**
+     * Mettre à jour/Changer d'abonnement
+     */
+    public function upgrade(Request $request)
+    {
+        try {
+            $request->validate([
+                'formule' => 'required|in:basic,premium,pro'
+            ]);
 
-        $agence = Auth::user()->agence;
-        
-        if (!$agence) {
-            return redirect()->route('agence.dashboard')
-                ->with('error', 'Agence non trouvée.');
+            $agence = Auth::user()->agence;
+            
+            if (!$agence) {
+                return redirect()->route('agence.dashboard')
+                    ->with('error', 'Agence non trouvée.');
+            }
+
+            $formule = \App\Enums\FormuleAbonnementEnum::from($request->formule);
+            $montant = $formule->prix();
+
+            Abonnement::where('agence_id', $agence->id)
+                ->where('statut', true)
+                ->update(['statut' => false]);
+
+            $abonnement = \App\Models\Abonnement::create([
+                'agence_id' => $agence->id,
+                'formule' => $formule,
+                'montant' => $montant,
+                'date_debut' => now(),
+                'date_fin' => now()->addMonths(12),
+                'statut' => $montant == 0,
+            ]);
+
+            if ($montant > 0) {
+                return redirect()->route('paydunya.pay', ['abonnement' => $abonnement->id]);
+            }
+
+            return redirect()->route('agence.abonnement')
+                ->with('success', 'Abonnement mis à jour avec succès !');
+
+        } catch (\Exception $e) {
+            Log::error('Erreur mise à jour abonnement: ' . $e->getMessage());
+            return redirect()->route('agence.abonnement')
+                ->with('error', 'Erreur lors de la mise à jour: ' . $e->getMessage());
         }
-
-        $formule = \App\Enums\FormuleAbonnementEnum::from($request->formule);
-        $montant = $formule->prix();
-
-        // Désactiver tous les abonnements actifs
-        Abonnement::where('agence_id', $agence->id)
-            ->where('statut', true)
-            ->update(['statut' => false]);
-
-        // Créer le nouvel abonnement
-        $abonnement = \App\Models\Abonnement::create([
-            'agence_id' => $agence->id,
-            'formule' => $formule,
-            'montant' => $montant,
-            'date_debut' => now(),
-            'date_fin' => now()->addMonths(12),
-            'statut' => $montant == 0,
-        ]);
-
-        if ($montant > 0) {
-            return redirect()->route('paydunya.pay', ['abonnement' => $abonnement->id]);
-        }
-
-        return redirect()->route('agence.abonnement')
-            ->with('success', ' Abonnement mis à jour avec succès !');
-
-    } catch (\Exception $e) {
-        Log::error('Erreur mise à jour abonnement: ' . $e->getMessage());
-        return redirect()->route('agence.abonnement')
-            ->with('error', 'Erreur lors de la mise à jour: ' . $e->getMessage());
     }
-}
 
     /**
      * Annuler un abonnement
@@ -1022,7 +1304,6 @@ public function upgrade(Request $request)
         
         $activites = collect();
         
-        // Propositions
         $propositions = $agence->propositions()
             ->with('demande')
             ->orderBy('created_at', 'desc')
@@ -1039,7 +1320,6 @@ public function upgrade(Request $request)
                 ];
             });
         
-        // Rendez-vous
         $rendezVous = $agence->rendezVous()
             ->with(['proposition.bien', 'particulier.user'])
             ->orderBy('created_at', 'desc')
@@ -1056,7 +1336,6 @@ public function upgrade(Request $request)
                 ];
             });
         
-        // Évaluations
         $evaluations = $agence->evaluations()
             ->with('particulier.user')
             ->orderBy('created_at', 'desc')

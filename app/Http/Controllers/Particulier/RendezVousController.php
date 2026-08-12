@@ -8,7 +8,7 @@ use App\Models\RendezVous;
 use App\Models\Proposition;
 use App\Models\CreneauRendezVous;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Http\Request; // <-- IMPORTANT : Utiliser Illuminate\Http\Request
+use Illuminate\Http\Request;
 use App\Enums\StatutRendezVousEnum;
 use App\Enums\StatutPropositionEnum;
 use App\Notifications\RendezVousConfirmeNotification;
@@ -45,17 +45,19 @@ class RendezVousController extends Controller
             return back()->with('error', 'Cette proposition n\'est pas acceptée.');
         }
 
-        return view('particulier.rendezvous.create', compact('proposition'));
+        // Récupérer les créneaux disponibles pour cette agence
+        $creneaux = CreneauRendezVous::where('agence_id', $proposition->agence_id)
+            ->where('est_disponible', true)
+            ->where('date', '>=', now()->toDateString())
+            ->orderBy('date')
+            ->orderBy('heure_debut')
+            ->get();
+
+        return view('particulier.rendezvous.create', compact('proposition', 'creneaux'));
     }
 
-    public function store(Request $request) // <-- Utiliser Illuminate\Http\Request
+    public function store(RendezVousRequest $request) // Utiliser RendezVousRequest
     {
-        // Validation
-        $request->validate([
-            'proposition_id' => 'required|exists:propositions,id',
-            'creneau_id' => 'required|exists:creneaux_rendez_vous,id',
-        ]);
-
         $proposition = Proposition::findOrFail($request->proposition_id);
 
         if ($proposition->particulier_id !== Auth::user()->particulier->id) {
@@ -85,7 +87,12 @@ class RendezVousController extends Controller
         ]);
 
         // Notifier l'agence
-        $rendezVous->agence->user->notify(new RendezVousConfirmeNotification($rendezVous));
+        try {
+            $rendezVous->agence->user->notify(new RendezVousConfirmeNotification($rendezVous));
+        } catch (\Exception $e) {
+            // Log l'erreur mais continue
+            \Log::error('Erreur envoi notification rendez-vous: ' . $e->getMessage());
+        }
 
         return redirect()->route('particulier.rendezvous.index')
             ->with('success', 'Visite planifiée avec succès.');
@@ -96,9 +103,15 @@ class RendezVousController extends Controller
         if ($rendezVous->particulier_id !== Auth::user()->particulier->id) {
             abort(403);
         }
-        $rendezVous->agence->user->notify(new RendezVousConfirmeNotification($rendezVous));
 
         $rendezVous->update(['statut' => StatutRendezVousEnum::CONFIRME]);
+
+        // Notifier l'agence
+        try {
+            $rendezVous->agence->user->notify(new RendezVousConfirmeNotification($rendezVous));
+        } catch (\Exception $e) {
+            \Log::error('Erreur envoi notification confirmation: ' . $e->getMessage());
+        }
 
         return redirect()->route('particulier.rendezvous.index')
             ->with('success', 'Rendez-vous confirmé avec succès.');

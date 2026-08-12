@@ -1441,10 +1441,16 @@
                     href="{{ route('agence.historique') }}">
                     <i class="ic fa-solid fa-clock-rotate-left"></i> Historique
                 </a>
+                
+                {{-- ✅ CORRECTION : Gérer le cas où l'agence est null --}}
+                @php
+                    $agence = Auth::user()->agence;
+                    $biensCount = $agence ? $agence->biens()->where('statut', true)->count() : 0;
+                @endphp
                 <a class="navlink {{ request()->routeIs('agence.biens.*') ? 'active' : '' }}"
                     href="{{ route('agence.biens.index') }}">
                     <i class="ic fa-solid fa-building"></i> Publier vos biens
-                    <span class="badge">{{ Auth::user()->agence->biens()->where('statut', true)->count() ?? 0 }}</span>
+                    <span class="badge">{{ $biensCount }}</span>
                 </a>
             </div>
 
@@ -1488,13 +1494,21 @@
                     </div>
                     <a href="{{ route('agence.abonnement') }}">Voir les plans →</a>
                 </div>
+                
+                {{-- ✅ CORRECTION : Gérer le cas où l'agence est null --}}
+                @php
+                    $agence = Auth::user()->agence;
+                    $agenceNom = $agence ? $agence->nom_agence : 'Agence';
+                    $agenceStatut = $agence ? ($agence->statut_validation ? 'Agence vérifiée' : 'En attente de validation') : 'Non configurée';
+                    $agenceInitiales = $agence ? strtoupper(substr($agence->nom_agence, 0, 2)) : 'AG';
+                @endphp
                 <div class="agency-mini">
                     <div class="av" style="background:var(--rust);">
-                        {{ strtoupper(substr(Auth::user()->agence->nom_agence, 0, 2)) }}
+                        {{ $agenceInitiales }}
                     </div>
                     <div>
-                        <div class="name">{{ Auth::user()->agence->nom_agence }}</div>
-                        <div class="role">{{ Auth::user()->agence->statut_validation ? 'Agence vérifiée' : 'En attente de validation' }}</div>
+                        <div class="name">{{ $agenceNom }}</div>
+                        <div class="role">{{ $agenceStatut }}</div>
                     </div>
                 </div>
             </div>
@@ -1569,7 +1583,7 @@
 
                     <!-- Avatar -->
                     <div class="topbar-avatar" style="background:var(--rust);">
-                        {{ strtoupper(substr(Auth::user()->agence->nom_agence, 0, 2)) }}
+                        {{ $agenceInitiales ?? 'AG' }}
                     </div>
                 </div>
             </div>

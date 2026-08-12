@@ -149,32 +149,117 @@
         background: #fff;
         transform: scale(1.3);
     }
+
+    /* Style pour le badge vedette */
+    .badge-vedette {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 14px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        background: #F5A623;
+        color: #fff;
+    }
+
+    .badge-vedette i {
+        font-size: 14px;
+    }
+
+    .vedette-info {
+        margin-top: 8px;
+        padding: 10px 14px;
+        background: #FFF8E1;
+        border-radius: 8px;
+        border: 1px solid #FFE0B2;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .vedette-info .label {
+        font-size: 12px;
+        color: var(--muted);
+    }
+
+    .vedette-info .value {
+        font-weight: 600;
+        color: #E65100;
+    }
+
+    .vedette-info .progress {
+        flex: 1;
+        min-width: 100px;
+    }
+
+    .vedette-info .progress-bar {
+        width: 100%;
+        height: 6px;
+        background: #E8ECF0;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .vedette-info .progress-bar .fill {
+        height: 100%;
+        border-radius: 3px;
+        background: #F5A623;
+        transition: width 0.3s ease;
+    }
 </style>
 
 <div style="margin-bottom:20px;">
     <a href="{{ route('admin.biens.index') }}" class="btn btn-ghost btn-sm">
         <i class="fa-solid fa-arrow-left"></i> Retour aux biens
     </a>
+    @if($bien->est_vedette && $bien->vedette_fin > now())
+    <span class="badge-vedette" style="margin-left:12px;">
+        <i class="fa-solid fa-star"></i> En vedette
+    </span>
+    @endif
 </div>
 
 <div class="grid-2">
     <!-- Informations générales -->
     <div class="panel">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
-            <h3 style="font-size:18px;font-weight:700;">{{ $bien->titre }}</h3>
+            <div>
+                <h3 style="font-size:18px;font-weight:700;">{{ $bien->titre }}</h3>
+                @if($bien->est_vedette && $bien->vedette_fin > now())
+                    @php
+                        $joursRestants = $bien->vedette_fin->diffInDays(now(), false);
+                        $joursRestants = max(0, ceil($joursRestants));
+                    @endphp
+                    <div style="font-size:13px;color:#F5A623;margin-top:4px;">
+                        <i class="fa-solid fa-star"></i> 
+                        @if($joursRestants === 0)
+                            Dernier jour
+                        @else
+                            {{ $joursRestants }} jour(s) restant(s)
+                        @endif
+                        (fin: {{ $bien->vedette_fin->format('d/m/Y') }})
+                    </div>
+                @endif
+            </div>
             <span class="status-pill {{ $bien->statut ? 'status-active' : 'status-inactif' }}">
-                {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
+                {{ $bien->statut ? ' Disponible' : ' Indisponible' }}
             </span>
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div style="padding:8px 12px;background:#F7F9FC;border-radius:8px;">
                 <div style="font-size:11px;color:var(--muted);">Type de bien</div>
-                <div style="font-weight:600;">{{ $bien->type_bien ?? 'N/A' }}</div>
+                <div style="font-weight:600;">
+                    {{ is_object($bien->type_bien) && method_exists($bien->type_bien, 'label') ? $bien->type_bien->label() : ($bien->type_bien ?? 'N/A') }}
+                </div>
             </div>
             <div style="padding:8px 12px;background:#F7F9FC;border-radius:8px;">
                 <div style="font-size:11px;color:var(--muted);">Type de contrat</div>
-                <div style="font-weight:600;">{{ $bien->type_contrat ?? 'N/A' }}</div>
+                <div style="font-weight:600;">
+                    {{ is_object($bien->type_contrat) && method_exists($bien->type_contrat, 'label') ? $bien->type_contrat->label() : ($bien->type_contrat ?? 'N/A') }}
+                </div>
             </div>
             <div style="padding:8px 12px;background:#F7F9FC;border-radius:8px;">
                 <div style="font-size:11px;color:var(--muted);">Prix</div>
@@ -197,17 +282,17 @@
             <div style="padding:8px 12px;background:#F7F9FC;border-radius:8px;">
                 <div style="font-size:11px;color:var(--muted);">Parking</div>
                 <div style="font-weight:600;">
-                    {{ $bien->parking_disponible ? ' Oui' : 'Non' }}
+                    {{ $bien->parking_disponible ? ' Oui' : ' Non' }}
                 </div>
             </div>
             <div style="padding:8px 12px;background:#F7F9FC;border-radius:8px;">
                 <div style="font-size:11px;color:var(--muted);">Meublé</div>
                 <div style="font-weight:600;">
-                    {{ $bien->est_meuble ? 'Oui' : ' Non' }}
+                    {{ $bien->est_meuble ? ' Oui' : ' Non' }}
                 </div>
             </div>
 
-            <!-- QUARTIER CORRIGÉ -->
+            <!-- QUARTIER -->
             <div style="padding:8px 12px;background:#F7F9FC;border-radius:8px;grid-column:span 2;">
                 <div style="font-size:11px;color:var(--muted);">Quartier</div>
                 <div style="font-weight:600;">
@@ -254,6 +339,50 @@
         </div>
         @endif
 
+        <!-- Vedette Info -->
+        @if($bien->est_vedette && $bien->vedette_fin > now())
+        <div class="vedette-info">
+            <i class="fa-solid fa-star" style="color:#F5A623;font-size:20px;"></i>
+            <div>
+                <div class="label">Statut</div>
+                <div class="value">En vedette</div>
+            </div>
+            <div>
+                <div class="label">Début</div>
+                <div class="value">{{ $bien->vedette_debut->format('d/m/Y') }}</div>
+            </div>
+            <div>
+                <div class="label">Fin</div>
+                <div class="value">{{ $bien->vedette_fin->format('d/m/Y') }}</div>
+            </div>
+            <div>
+                <div class="label">Jours restants</div>
+                <div class="value">
+                    @php
+                        $jours = $bien->vedette_fin->diffInDays(now(), false);
+                        $jours = max(0, ceil($jours));
+                    @endphp
+                    {{ $jours }} jour(s)
+                </div>
+            </div>
+            <div class="progress">
+                <div class="label">Progression</div>
+                @php
+                    $total = $bien->vedette_debut->diffInDays($bien->vedette_fin);
+                    $ecoule = $bien->vedette_debut->diffInDays(now());
+                    $pourcentage = $total > 0 ? round(($ecoule / $total) * 100) : 0;
+                    $pourcentage = min(100, max(0, $pourcentage));
+                @endphp
+                <div class="progress-bar">
+                    <div class="fill" style="width:{{ $pourcentage }}%;"></div>
+                </div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px;text-align:right;">
+                    {{ $pourcentage }}%
+                </div>
+            </div>
+        </div>
+        @endif
+
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
             <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Agence propriétaire</div>
             <div style="display:flex;align-items:center;gap:12px;">
@@ -271,9 +400,9 @@
                     <div style="font-size:12px;color:var(--muted);">
                         {{ $bien->agence->user->email ?? '' }}
                         @if($bien->agence && $bien->agence->statut_validation)
-                        <span class="status-pill status-active" style="font-size:10px;padding:1px 10px;">Validée</span>
+                        <span class="status-pill status-active" style="font-size:10px;padding:1px 10px;"> Validée</span>
                         @else
-                        <span class="status-pill status-en_attente" style="font-size:10px;padding:1px 10px;">En attente</span>
+                        <span class="status-pill status-en_attente" style="font-size:10px;padding:1px 10px;"> En attente</span>
                         @endif
                     </div>
                 </div>
@@ -301,6 +430,19 @@
                     <i class="fa-solid fa-eye"></i> Activer
                 </button>
             </form>
+            @endif
+            @if($bien->est_vedette && $bien->vedette_fin > now())
+            <form action="{{ route('admin.biens.vedette.retirer', $bien) }}" method="POST">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-warning" style="background:#F5A623;color:#fff;border-color:#F5A623;" onclick="return confirm('Retirer ce bien de la vedette ?')">
+                    <i class="fa-solid fa-star-half-stroke"></i> Retirer de la vedette
+                </button>
+            </form>
+            @else
+            <button type="button" class="btn btn-ghost" onclick="openVedetteModal({{ $bien->id }})">
+                <i class="fa-solid fa-star" style="color:#F5A623;"></i> Mettre en vedette
+            </button>
             @endif
             <form action="{{ route('admin.biens.destroy', $bien) }}" method="POST" onsubmit="return confirm('Supprimer ce bien définitivement ? Cette action est irréversible.')">
                 @csrf
@@ -395,7 +537,7 @@
                         </div>
                     </div>
                     <span class="status-pill status-{{ $proposition->statut }}">
-                        {{ $proposition->statut }}
+                        {{ is_object($proposition->statut) && method_exists($proposition->statut, 'label') ? $proposition->statut->label() : ($proposition->statut ?? 'N/A') }}
                     </span>
                 </div>
                 @endforeach
@@ -431,11 +573,9 @@ foreach($photos as $media) {
 foreach($videos as $media) {
     $mediaItems[] = ['type' => 'video', 'url' => asset('storage/' . $media->fichier)];
 }
-$mediaJson = json_encode($mediaItems);
 @endphp
 
 <script>
-    // Remplacer {!! $mediaJson !!} par @json($mediaItems) pour un échappement correct
     const mediaItems = @json($mediaItems);
     let currentIndex = 0;
 
@@ -495,7 +635,6 @@ $mediaJson = json_encode($mediaItems);
             counter.textContent = `▶ Vidéo ${currentIndex + 1} / ${mediaItems.length}`;
         }
 
-        // Mettre à jour les indicateurs
         let dots = '';
         for (let i = 0; i < mediaItems.length; i++) {
             const active = i === currentIndex ? 'active' : '';
@@ -529,7 +668,6 @@ $mediaJson = json_encode($mediaItems);
         document.body.style.overflow = '';
     }
 
-    // Navigation au clavier
     document.addEventListener('keydown', function(e) {
         if (!document.getElementById('lightboxOverlay').classList.contains('open')) return;
 
@@ -542,9 +680,116 @@ $mediaJson = json_encode($mediaItems);
         }
     });
 
-    // Empêcher la propagation des clics sur le contenu
     document.getElementById('lightboxContent').addEventListener('click', function(e) {
         e.stopPropagation();
+    });
+
+    // Modal pour mettre en vedette
+    function openVedetteModal(bienId) {
+        // Créer un formulaire dynamique
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/admin/biens/${bienId}/vedette`;
+        
+        const csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = '_token';
+        csrf.value = '{{ csrf_token() }}';
+        form.appendChild(csrf);
+        
+        const duree = document.createElement('select');
+        duree.name = 'duree';
+        duree.innerHTML = `
+            <option value="1">1 jour</option>
+            <option value="3">3 jours</option>
+            <option value="7" selected>7 jours</option>
+            <option value="14">14 jours</option>
+            <option value="30">30 jours</option>
+        `;
+        
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        wrapper.innerHTML = `
+            <div style="background:#fff;border-radius:var(--radius);padding:32px;max-width:400px;width:90%;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                    <h3 style="font-family:var(--display);font-size:18px;">
+                        <i class="fa-solid fa-star" style="color:#F5A623;"></i> Mettre en vedette
+                    </h3>
+                    <button onclick="this.closest('div[style]').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">&times;</button>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;font-weight:600;margin-bottom:4px;">Durée (en jours)</label>
+                    ${duree.outerHTML}
+                </div>
+                <div style="padding:12px 16px;background:#FFF8E1;border-radius:8px;border:1px solid #FFE0B2;margin-bottom:16px;">
+                    <p style="font-size:13px;color:#BF360C;margin:0;">
+                        <i class="fa-solid fa-info-circle"></i> 
+                        Le bien apparaîtra dans la section "À la une" de l'accueil.
+                    </p>
+                </div>
+                <button type="submit" class="btn btn-rust" style="width:100%;justify-content:center;">
+                    <i class="fa-solid fa-star"></i> Mettre en vedette
+                </button>
+            </div>
+        `;
+        
+        form.appendChild(wrapper.querySelector('div'));
+        document.body.appendChild(form);
+        
+        // Soumettre le formulaire
+        form.onsubmit = function(e) {
+            const dureeSelect = form.querySelector('select[name="duree"]');
+            const dureeInput = document.createElement('input');
+            dureeInput.type = 'hidden';
+            dureeInput.name = 'duree';
+            dureeInput.value = dureeSelect.value;
+            form.appendChild(dureeInput);
+        };
+    }
+</script>
+
+<!-- Modal pour mettre en vedette (fallback) -->
+<div id="vedetteModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:var(--radius);padding:32px;max-width:400px;width:90%;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h3 style="font-family:var(--display);font-size:18px;">
+                <i class="fa-solid fa-star" style="color:#F5A623;"></i> Mettre en vedette
+            </h3>
+            <button onclick="closeVedetteModal()" style="background:none;border:none;font-size:24px;cursor:pointer;">&times;</button>
+        </div>
+        
+        <form id="vedetteForm" method="POST">
+            @csrf
+            <div style="margin-bottom:16px;">
+                <label for="duree" style="display:block;font-weight:600;margin-bottom:4px;">Durée (en jours)</label>
+                <select name="duree" id="duree" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+                    <option value="1">1 jour</option>
+                    <option value="3">3 jours</option>
+                    <option value="7" selected>7 jours</option>
+                    <option value="14">14 jours</option>
+                    <option value="30">30 jours</option>
+                </select>
+            </div>
+            <div style="padding:12px 16px;background:#FFF8E1;border-radius:8px;border:1px solid #FFE0B2;margin-bottom:16px;">
+                <p style="font-size:13px;color:#BF360C;margin:0;">
+                    <i class="fa-solid fa-info-circle"></i> 
+                    Le bien apparaîtra dans la section "À la une" de l'accueil.
+                </p>
+            </div>
+            <button type="submit" class="btn btn-rust" style="width:100%;justify-content:center;">
+                <i class="fa-solid fa-star"></i> Mettre en vedette
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function closeVedetteModal() {
+        document.getElementById('vedetteModal').style.display = 'none';
+    }
+
+    document.getElementById('vedetteModal').addEventListener('click', function(e) {
+        if (e.target === this) closeVedetteModal();
     });
 </script>
 @endsection

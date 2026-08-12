@@ -1,0 +1,53 @@
+@startuml Figure4_Diagramme_Cas_Utilisation_Administrateur
+
+' ==============================================================================
+' Figure 4 : Diagramme de cas d'utilisation de l'Administrateur
+' ==============================================================================
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam actor {
+    BackgroundColor #EBF4FF
+    BorderColor #2B6CB0
+    FontName Arial
+}
+
+skinparam usecase {
+    BackgroundColor #FFFFFF
+    BorderColor #4A5568
+    ArrowColor #2D3748
+    FontName Arial
+}
+
+actor "Administrateur" as Admin
+
+rectangle "Plateforme DoyaImmo" {
+    usecase "Valider une agence" as UC_ValiderAgence
+    usecase "Vérifier les documents" as UC_VerifierDoc
+    usecase "Gérer les utilisateurs" as UC_GererUsers
+    usecase "Gérer les abonnements" as UC_GererAbonnements
+    usecase "Gérer les signalements" as UC_GererSignalements
+    usecase "Consulter les statistiques" as UC_ConsulterStats
+    usecase "Se connecter" as UC_Connecter
+}
+
+' --- Interactions Acteur ---
+Admin --> UC_ValiderAgence
+Admin --> UC_GererUsers
+Admin --> UC_GererAbonnements
+Admin --> UC_GererSignalements
+Admin --> UC_ConsulterStats
+
+' --- Inclusions internes ---
+UC_ValiderAgence .> UC_VerifierDoc : <<include>>
+
+' --- Inclusions de connexion ---
+UC_ValiderAgence .> UC_Connecter : <<include>>
+UC_GererUsers .> UC_Connecter : <<include>>
+UC_GererAbonnements .> UC_Connecter : <<include>>
+UC_GererSignalements .> UC_Connecter : <<include>>
+UC_ConsulterStats .> UC_Connecter : <<include>>
+
+@enduml

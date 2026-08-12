@@ -13,13 +13,11 @@ class NouvelleUtilisateurNotification extends Notification implements ShouldQueu
     use Queueable;
 
     protected $user;
-    protected $plainPassword;
     protected $role;
 
-    public function __construct(User $user, string $plainPassword, string $role)
+    public function __construct(User $user, string $role)
     {
         $this->user = $user;
-        $this->plainPassword = $plainPassword;
         $this->role = $role;
     }
 
@@ -38,35 +36,52 @@ class NouvelleUtilisateurNotification extends Notification implements ShouldQueu
 
         $roleLabel = $roleLabels[$this->role] ?? $this->role;
 
-        return (new MailMessage)
-            ->subject('Bienvenue sur DoyaImmo - Votre compte a été créé')
+        $mail = (new MailMessage)
+            ->subject('Bienvenue sur DoyaImmo - ' . $this->user->prenom . ' !')
             ->greeting('Bonjour ' . $this->user->prenom . ' ' . $this->user->nom . ' !')
-            ->line('Votre compte **' . $roleLabel . '** a été créé avec succès sur la plateforme DoyaImmo.')
+            ->line('Nous sommes ravis de vous accueillir sur **DoyaImmo** !')
             ->line('')
-            ->line('**Voici vos informations de connexion :**')
-            ->line('- **Email :** ' . $this->user->email)
-            ->line('- **Mot de passe :** ' . $this->plainPassword)
-            ->line('- **Rôle :** ' . $roleLabel)
+            ->line('Votre compte **' . $roleLabel . '** a été créé avec succès.')
+            ->line('');
+
+        if ($this->role === 'agence') {
+            $mail->line('📌 Votre agence est en cours de validation par nos équipes.');
+            $mail->line('Vous serez notifié dès que votre compte sera activé.');
+        } elseif ($this->role === 'particulier') {
+            $mail->line('🏠 Vous pouvez dès maintenant publier vos besoins et trouver le logement idéal.');
+            $mail->line('Créez votre première demande de logement en quelques minutes.');
+        }
+
+        return $mail
             ->line('')
-            ->line('🔐 Pour des raisons de sécurité, nous vous recommandons de changer votre mot de passe lors de votre première connexion.')
-            ->action('Se connecter à DoyaImmo', url('/login'))
+            ->action('Accéder à mon tableau de bord', route('dashboard'))
             ->line('')
-            ->line('Nous vous souhaitons une excellente expérience sur DoyaImmo !')
+            ->line('🔐 Pour toute question, n\'hésitez pas à contacter notre support.')
             ->salutation('L\'équipe DoyaImmo');
     }
 
     public function toDatabase($notifiable): array
     {
+        $messages = [
+            'particulier' => 'Bienvenue sur DoyaImmo ! Commencez à publier vos besoins immobiliers.',
+            'agence' => 'Votre agence est en cours de validation par nos équipes.',
+            'admin' => 'Bienvenue sur le tableau de bord administrateur.',
+        ];
+
+        $titles = [
+            'particulier' => 'Bienvenue ! 🏠',
+            'agence' => 'Votre agence est en cours de validation 📌',
+            'admin' => 'Bienvenue administrateur ! 👋',
+        ];
+
         return [
-            'title' => 'Bienvenue sur DoyaImmo',
-            'message' => 'Votre compte a été créé avec succès.',
+            'title' => $titles[$this->role] ?? 'Bienvenue sur DoyaImmo',
+            'message' => $messages[$this->role] ?? 'Votre compte a été créé avec succès.',
             'type' => 'success',
             'icon' => 'fa-user-plus',
-            'link' => route('login'),
-            'role' => $this->role,
+            'link' => route('dashboard'),
             'user_id' => $this->user->id,
-            'user_email' => $this->user->email,
-            'user_name' => $this->user->prenom . ' ' . $this->user->nom,
+            'role' => $this->role,
         ];
     }
 

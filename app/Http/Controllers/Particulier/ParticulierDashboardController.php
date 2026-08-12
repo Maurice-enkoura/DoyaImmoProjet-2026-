@@ -39,24 +39,38 @@ class ParticulierDashboardController extends Controller
                 ->count(),
         ];
 
-        // Derniers besoins actifs
+        // Derniers besoins actifs (UNIQUEMENT EN_ATTENTE et EN_COURS)
         $derniersBesoins = $particulier->demandes()
             ->with('propositions')
             ->whereIn('statut', [StatutDemandeEnum::EN_ATTENTE, StatutDemandeEnum::EN_COURS])
             ->orderBy('created_at', 'desc')
             ->limit(3)
-            ->get();
+            ->get()
+            ->map(function($demande) {
+                // Convertir le statut en Enum si c'est une chaîne
+                if (is_string($demande->statut)) {
+                    $demande->statut = StatutDemandeEnum::from($demande->statut);
+                }
+                return $demande;
+            });
 
-        // ✅ Prochains rendez-vous (pluriel - pour la liste)
+        // Prochains rendez-vous
         $prochainsRendezVous = $particulier->rendezVous()
             ->with(['proposition.bien', 'agence'])
             ->whereIn('statut', [StatutRendezVousEnum::PLANIFIE, StatutRendezVousEnum::CONFIRME])
             ->where('date_visite', '>=', now()->toDateString())
             ->orderBy('date_visite', 'asc')
             ->limit(3)
-            ->get();
+            ->get()
+            ->map(function($rdv) {
+                // Convertir le statut en Enum si c'est une chaîne
+                if (is_string($rdv->statut)) {
+                    $rdv->statut = StatutRendezVousEnum::from($rdv->statut);
+                }
+                return $rdv;
+            });
 
-        // ✅ Prochain rendez-vous (singulier - pour l'affichage unique si besoin)
+        // Prochain rendez-vous (singulier)
         $prochainRendezVous = $particulier->rendezVous()
             ->with(['proposition.bien', 'agence'])
             ->whereIn('statut', [StatutRendezVousEnum::PLANIFIE, StatutRendezVousEnum::CONFIRME])
@@ -70,13 +84,20 @@ class ParticulierDashboardController extends Controller
             ->where('statut', StatutPropositionEnum::EN_ATTENTE)
             ->orderBy('created_at', 'desc')
             ->limit(5)
-            ->get();
+            ->get()
+            ->map(function($offre) {
+                // Convertir le statut en Enum si c'est une chaîne
+                if (is_string($offre->statut)) {
+                    $offre->statut = StatutPropositionEnum::from($offre->statut);
+                }
+                return $offre;
+            });
 
         // Notifications
         $notifications = Auth::user()->unreadNotifications()->limit(5)->get();
         $notificationsCount = Auth::user()->unreadNotifications()->count();
 
-        // Messages (exemple statique pour le moment)
+        // Messages
         $messages = [
             [
                 'sender' => 'Teranga Immobilier',
@@ -103,7 +124,7 @@ class ParticulierDashboardController extends Controller
             'stats',
             'derniersBesoins',
             'prochainRendezVous',
-            'prochainsRendezVous', // ✅ Ajout de la variable
+            'prochainsRendezVous',
             'dernieresOffres',
             'besoinsCount',
             'offresCount',

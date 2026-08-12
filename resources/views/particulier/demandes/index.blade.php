@@ -2,27 +2,56 @@
 
 @section('title', 'Mes besoins publiés — DoyaImmo')
 @section('page_title', 'Mes besoins publiés')
-@section('page_sub', 'Gérez vos demandes de logement')
+@section('page_sub', 'Gérez vos demandes de logement actives')
 
 @section('content')
 <div class="view active">
     <div class="page-header">
         <div>
             <h2>Mes besoins publiés</h2>
-            <p class="sub">Gérez vos demandes de logement</p>
+            <p class="sub">Gérez vos demandes de logement actives</p>
         </div>
-        <a href="{{ route('particulier.demandes.create') }}" class="btn btn-rust btn-sm">
-            <i class="fa-solid fa-plus"></i> Nouveau besoin
-        </a>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="{{ route('particulier.historique') }}" class="btn btn-ghost btn-sm">
+                <i class="fa-solid fa-clock-rotate-left"></i> Voir historique
+            </a>
+            <a href="{{ route('particulier.demandes.create') }}" class="btn btn-rust btn-sm">
+                <i class="fa-solid fa-plus"></i> Nouveau besoin
+            </a>
+        </div>
     </div>
 
     <!-- Statistiques rapides -->
+    <div class="stats-row">
+        <div class="stat-box">
+            <span class="stat-number">{{ $demandes->total() }}</span>
+            <span class="stat-label">Total actifs</span>
+        </div>
+        <div class="stat-box">
+            @php
+                $enAttente = $demandes->filter(function($d) {
+                    return $d->statut_value === 'en_attente';
+                })->count();
+            @endphp
+            <span class="stat-number">{{ $enAttente }}</span>
+            <span class="stat-label">En attente</span>
+        </div>
+        <div class="stat-box">
+            @php
+                $enCours = $demandes->filter(function($d) {
+                    return $d->statut_value === 'en_cours';
+                })->count();
+            @endphp
+            <span class="stat-number">{{ $enCours }}</span>
+            <span class="stat-label">En cours</span>
+        </div>
+    </div>
 
     <div class="besoin-grid">
         @forelse($demandes as $demande)
             <div class="besoin-card">
                 <!-- Barre de statut -->
-                <div class="tier-bar tier-{{ $demande->statut->value === 'en_attente' ? 'prem' : ($demande->statut->value === 'en_cours' ? 'std' : 'eco') }}"></div>
+                <div class="tier-bar tier-{{ $demande->statut_value === 'en_attente' ? 'prem' : ($demande->statut_value === 'en_cours' ? 'std' : 'eco') }}"></div>
                 
                 <div class="besoin-body">
                     <div class="besoin-top">
@@ -36,18 +65,38 @@
                     </div>
 
                     <!-- Statut avec badge -->
-                    <div class="status-badge status-{{ $demande->statut->value }}">
+                    <div class="status-badge status-{{ $demande->statut_value }}">
                         <i class="fa-solid fa-circle" style="font-size:8px;"></i>
-                        {{ $demande->statut->label() }}
+                        {{ $demande->statut_label }}
                     </div>
 
                     <p class="besoin-desc">
-                        {{ $demande->description }}
+                        {{ Str::limit($demande->description, 120) }}
                     </p>
+
+                    <!-- ✅ NOMBRE D'OFFRES SUR LA CARTE -->
+                    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                        <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:999px;font-size:13px;font-weight:600;background:#E3F2FD;color:#0D47A1;border:1px solid #BBDEFB;">
+                            <i class="fa-regular fa-envelope"></i>
+                            {{ $demande->propositions->count() }} offre(s) reçue(s)
+                        </span>
+                        @if($demande->propositions->where('statut', 'en_attente')->count() > 0)
+                            <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:999px;font-size:13px;font-weight:600;background:#FFF8E1;color:#E65100;border:1px solid #FFE0B2;">
+                                <i class="fa-regular fa-clock"></i>
+                                {{ $demande->propositions->where('statut', 'en_attente')->count() }} en attente
+                            </span>
+                        @endif
+                        @if($demande->propositions->where('statut', 'acceptee')->count() > 0)
+                            <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:999px;font-size:13px;font-weight:600;background:#E8F5E9;color:#1E7A47;border:1px solid #C8E6C9;">
+                                <i class="fa-regular fa-check-circle"></i>
+                                {{ $demande->propositions->where('statut', 'acceptee')->count() }} acceptée(s)
+                            </span>
+                        @endif
+                    </div>
                     
                     <div class="besoin-foot">
                         <span class="posted">
-                            <i class="fa-regular fa-message"></i> {{ $demande->propositions->count() }} offre(s) reçue(s)
+                            <i class="fa-regular fa-clock"></i> {{ $demande->created_at->diffForHumans() }}
                         </span>
                         <div class="besoin-actions">
                             <a href="{{ route('particulier.demandes.show', $demande) }}" class="btn btn-ghost btn-sm">
@@ -65,8 +114,8 @@
         @empty
             <div class="empty-state">
                 <i class="fa-regular fa-house-circle-check"></i>
-                <h3>Aucun besoin publié</h3>
-                <p>Vous n'avez pas encore publié de besoin de logement.</p>
+                <h3>Aucun besoin actif</h3>
+                <p>Vous n'avez pas encore publié de besoin de logement actif.</p>
                 <a href="{{ route('particulier.demandes.create') }}" class="btn btn-rust">
                     <i class="fa-solid fa-plus"></i> Publier un besoin
                 </a>
@@ -108,7 +157,7 @@
     /* ===================== STATS ===================== */
     .stats-row {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
         gap: 12px;
         margin-bottom: 24px;
     }
@@ -257,6 +306,42 @@
         -webkit-box-orient: vertical;
         overflow: hidden;
         line-height: 1.6;
+    }
+
+    /* ===================== OFFRE COUNTER ===================== */
+    .offre-counter {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+    }
+
+    .offre-counter .badge-offre {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 14px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .badge-offre.total {
+        background: #E3F2FD;
+        color: #0D47A1;
+        border: 1px solid #BBDEFB;
+    }
+
+    .badge-offre.attente {
+        background: #FFF8E1;
+        color: #E65100;
+        border: 1px solid #FFE0B2;
+    }
+
+    .badge-offre.acceptee {
+        background: #E8F5E9;
+        color: #1E7A47;
+        border: 1px solid #C8E6C9;
     }
 
     .besoin-foot {
@@ -442,6 +527,10 @@
             flex: 1;
             justify-content: center;
         }
+
+        .offre-counter {
+            justify-content: center;
+        }
     }
 
     @media (max-width: 480px) {
@@ -476,6 +565,11 @@
         .besoin-actions .btn {
             font-size: 11px;
             padding: 4px 10px;
+        }
+
+        .offre-counter .badge-offre {
+            font-size: 11px;
+            padding: 3px 10px;
         }
     }
 </style>

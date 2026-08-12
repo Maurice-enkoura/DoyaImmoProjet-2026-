@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\PayDunyaController;
+use App\Http\Controllers\NotificationController; // ✅ Ajouter cette ligne
 
 // Contrôleurs Particulier
 use App\Http\Controllers\Particulier\ParticulierDashboardController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\Admin\AdminPropositionController;
 use App\Http\Controllers\Admin\AdminEvaluationController;
 use App\Http\Controllers\Admin\AdminRendezVousController;
 use App\Http\Controllers\Admin\AdminProfilController;
+use App\Http\Controllers\Admin\AdminBanniereController;
 
 /*
 |--------------------------------------------------------------------------
@@ -98,7 +100,6 @@ Route::post('/register/agence', [AuthController::class, 'registerAgence']);
 | ROUTES PAYDUNYA (Paiement en ligne)
 |--------------------------------------------------------------------------
 */
-// Dans routes/web.php - s'assurer que le callback accepte GET et POST
 Route::prefix('paydunya')->name('paydunya.')->group(function () {
     Route::get('/pay/{abonnement}', [PayDunyaController::class, 'pay'])->name('pay');
     Route::match(['GET', 'POST'], '/callback', [PayDunyaController::class, 'callback'])->name('callback');
@@ -120,30 +121,27 @@ Route::middleware(['auth'])->group(function () {
         return redirect()->route('particulier.dashboard');
     })->name('dashboard');
 
+    /*
+    |--------------------------------------------------------------------------
+    | ROUTES NOTIFICATIONS (avec le contrôleur)
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [NotificationController::class, 'index'])->name('index');
+        Route::post('/{id}/read', [NotificationController::class, 'read'])->name('read');
+        Route::post('/read-all', [NotificationController::class, 'readAll'])->name('read-all');
+    });
 
     /*
-|--------------------------------------------------------------------------
-| ROUTES NOTIFICATIONS
-|--------------------------------------------------------------------------
-*/
-    Route::middleware(['auth'])->group(function () {
-        Route::get('/notifications', function () {
-            $notifications = auth()->user()->notifications()->paginate(20);
-            return view('notifications.index', compact('notifications'));
-        })->name('notifications.index');
-
-        Route::post('/notifications/{id}/read', function ($id) {
-            $notification = auth()->user()->notifications()->find($id);
-            if ($notification) {
-                $notification->markAsRead();
-            }
-            return back()->with('success', 'Notification marquée comme lue.');
-        })->name('notifications.read');
-
-        Route::post('/notifications/read-all', function () {
-            auth()->user()->unreadNotifications()->markAsRead();
-            return back()->with('success', 'Toutes les notifications ont été marquées comme lues.');
-        })->name('notifications.read-all');
+    |--------------------------------------------------------------------------
+    | ROUTES API NOTIFICATIONS
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('api/notifications')->name('api.notifications.')->group(function () {
+        Route::get('/count', [NotificationController::class, 'count'])->name('count');
+        Route::post('/{id}/read', [NotificationController::class, 'read'])->name('read');
+        Route::post('/read-all', [NotificationController::class, 'readAll'])->name('read-all');
+        Route::get('/new', [NotificationController::class, 'new'])->name('new');
     });
 
     /*
@@ -163,7 +161,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/demandes/{demande}/edit', [DemandeController::class, 'edit'])->name('demandes.edit');
         Route::put('/demandes/{demande}', [DemandeController::class, 'update'])->name('demandes.update');
         Route::delete('/demandes/{demande}', [DemandeController::class, 'destroy'])->name('demandes.destroy');
-
         Route::get('/demandes/{demande}/offres', [DemandeController::class, 'offres'])->name('demandes.offres');
 
         // Propositions
@@ -219,10 +216,20 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/profil', [AgenceController::class, 'profil'])->name('profil');
         Route::put('/profil', [AgenceController::class, 'update'])->name('profil.update');
 
-        // Rendez-vous
+        // ============ CRÉNEAUX RENDEZ-VOUS ============
+        Route::get('/creneaux', [AgenceController::class, 'creneauxIndex'])->name('creneaux.index');
+        Route::post('/creneaux/generer', [AgenceController::class, 'genererCreneaux'])->name('creneaux.generer');
+        Route::post('/creneaux/{creneau}/toggle', [AgenceController::class, 'toggleCreneau'])->name('creneaux.toggle');
+        Route::delete('/creneaux/{creneau}', [AgenceController::class, 'supprimerCreneau'])->name('creneaux.supprimer');
+        Route::delete('/creneaux/date', [AgenceController::class, 'supprimerCreneauxDate'])->name('creneaux.supprimerDate');
+
+        // ============ RENDEZ-VOUS ============
         Route::get('/rendezvous', [AgenceController::class, 'rendezvous'])->name('rendezvous.index');
         Route::get('/rendezvous/{rendezVous}', [AgenceController::class, 'rendezvousShow'])->name('rendezvous.show');
         Route::put('/rendezvous/{rendezVous}', [AgenceController::class, 'rendezvousUpdate'])->name('rendezvous.update');
+        Route::post('/rendezvous/{rendezVous}/confirmer', [AgenceController::class, 'rendezvousConfirmer'])->name('rendezvous.confirmer');
+        Route::post('/rendezvous/{rendezVous}/annuler', [AgenceController::class, 'rendezvousAnnuler'])->name('rendezvous.annuler');
+        Route::post('/rendezvous/{rendezVous}/termine', [AgenceController::class, 'rendezvousTermine'])->name('rendezvous.termine');
 
         // Évaluations
         Route::get('/evaluations', [AgenceController::class, 'evaluations'])->name('evaluations.index');
@@ -232,13 +239,8 @@ Route::middleware(['auth'])->group(function () {
         // Abonnement
         Route::get('/abonnement', [AgenceController::class, 'abonnement'])->name('abonnement');
         Route::post('/abonnement/souscrire', [AgenceController::class, 'souscrire'])->name('abonnement.souscrire');
-        Route::post('/abonnement/upgrade', [AgenceController::class, 'upgrade'])->name('abonnement.upgrade'); // Nouvelle route
+        Route::post('/abonnement/upgrade', [AgenceController::class, 'upgrade'])->name('abonnement.upgrade');
         Route::post('/abonnement/{abonnement}/annuler', [AgenceController::class, 'annuler'])->name('abonnement.annuler');
-        // ============ CRÉNEAUX RENDEZ-VOUS (avec AgenceController) ============
-        Route::post('/creneaux/generer', [AgenceController::class, 'genererCreneaux'])->name('creneaux.generer');
-        Route::post('/creneaux/{creneau}/toggle', [AgenceController::class, 'toggleCreneau'])->name('creneaux.toggle');
-        Route::delete('/creneaux/{creneau}', [AgenceController::class, 'supprimerCreneau'])->name('creneaux.supprimer');
-        Route::delete('/creneaux/date', [AgenceController::class, 'supprimerCreneauxDate'])->name('creneaux.supprimerDate');
 
         // Historique
         Route::get('/historique', [AgenceController::class, 'historique'])->name('historique');
@@ -254,6 +256,7 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/biens/{bien}', [BienController::class, 'destroy'])->name('biens.destroy');
             Route::post('/biens/{bien}/activer', [BienController::class, 'activer'])->name('biens.activer');
             Route::delete('/medias/{media}', [BienController::class, 'supprimerMedia'])->name('medias.destroy');
+            Route::patch('biens/{bien}/vedette/toggle', [BienController::class, 'toggleVedette'])->name('biens.vedette.toggle');
 
             // Propositions
             Route::get('/propositions', [PropositionAgenceController::class, 'index'])->name('propositions.index');
@@ -282,6 +285,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/agences/{agence}/documents/valider', [AdminAgenceController::class, 'validerDocuments'])->name('agences.valider-documents');
         Route::post('/agences/{agence}/valider', [AdminAgenceController::class, 'valider'])->name('agences.valider');
         Route::post('/agences/{agence}/refuser', [AdminAgenceController::class, 'refuser'])->name('agences.refuser');
+        Route::post('/agences/{agence}/reactiver', [AdminAgenceController::class, 'reactiver'])->name('agences.reactiver');
         Route::post('/agences/{agence}/bloquer', [AdminAgenceController::class, 'bloquer'])->name('agences.bloquer');
         Route::post('/agences/{agence}/debloquer', [AdminAgenceController::class, 'debloquer'])->name('agences.debloquer');
         Route::delete('/agences/{agence}', [AdminAgenceController::class, 'destroy'])->name('agences.destroy');
@@ -324,11 +328,17 @@ Route::middleware(['auth'])->group(function () {
 
         // Biens
         Route::get('/biens', [AdminBienController::class, 'index'])->name('biens.index');
+        Route::get('/biens/vedette', [AdminBienController::class, 'vedette'])->name('biens.vedette');
         Route::get('/biens/{bien}', [AdminBienController::class, 'show'])->name('biens.show');
         Route::post('/biens/{bien}/desactiver', [AdminBienController::class, 'desactiver'])->name('biens.desactiver');
         Route::post('/biens/{bien}/activer', [AdminBienController::class, 'activer'])->name('biens.activer');
         Route::delete('/biens/{bien}', [AdminBienController::class, 'destroy'])->name('biens.destroy');
 
+        // Vedette
+        Route::post('/biens/{bien}/vedette', [AdminBienController::class, 'mettreEnVedette'])->name('biens.vedette.mettre');
+        Route::delete('/biens/{bien}/vedette', [AdminBienController::class, 'retirerVedette'])->name('biens.vedette.retirer');
+        Route::post('/biens/{bien}/vedette/prolonger', [AdminBienController::class, 'prolongerVedette'])->name('biens.vedette.prolonger');
+        
         // Demandes
         Route::get('/demandes', [AdminDemandeController::class, 'index'])->name('demandes.index');
         Route::get('/demandes/{demande}', [AdminDemandeController::class, 'show'])->name('demandes.show');
@@ -342,52 +352,20 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/rendezvous', [AdminRendezVousController::class, 'index'])->name('rendezvous.index');
         Route::get('/rendezvous/{rendezVous}', [AdminRendezVousController::class, 'show'])->name('rendezvous.show');
 
-
+        // Profil
         Route::get('/profil', [AdminProfilController::class, 'index'])->name('profil');
         Route::put('/profil', [AdminProfilController::class, 'update'])->name('profil.update');
         Route::put('/profil/password', [AdminProfilController::class, 'updatePassword'])->name('profil.password');
-    });
 
-    /*
-    |--------------------------------------------------------------------------
-    | ROUTES API NOTIFICATIONS
-    |--------------------------------------------------------------------------
-    */
-    Route::get('/api/notifications/count', function () {
-        return response()->json([
-            'count' => auth()->user()->unreadNotifications()->count()
-        ]);
-    });
-
-    Route::post('/api/notifications/{id}/read', function ($id) {
-        $notification = auth()->user()->notifications()->find($id);
-        if ($notification) {
-            $notification->markAsRead();
-        }
-        return response()->json(['success' => true]);
-    });
-
-    Route::post('/api/notifications/read-all', function () {
-        auth()->user()->unreadNotifications()->markAsRead();
-        return response()->json(['success' => true]);
-    });
-
-    Route::get('/api/notifications/new', function () {
-        $notifications = auth()->user()->notifications()
-            ->where('created_at', '>', request()->get('last_check', now()->subMinutes(5)))
-            ->get();
-
-        return response()->json([
-            'notifications' => $notifications->map(function ($n) {
-                return [
-                    'title' => $n->data['title'] ?? 'Notification',
-                    'message' => $n->data['message'] ?? '',
-                    'type' => $n->data['type'] ?? 'info',
-                    'icon' => $n->data['icon'] ?? null,
-                    'link' => $n->data['link'] ?? null,
-                ];
-            }),
-            'count' => auth()->user()->unreadNotifications()->count()
-        ]);
+        // Bannières
+        Route::get('/bannieres', [AdminBanniereController::class, 'index'])->name('bannieres.index');
+        Route::get('/bannieres/create', [AdminBanniereController::class, 'create'])->name('bannieres.create');
+        Route::post('/bannieres', [AdminBanniereController::class, 'store'])->name('bannieres.store');
+        Route::get('/bannieres/{banniere}', [AdminBanniereController::class, 'show'])->name('bannieres.show');
+        Route::get('/bannieres/{banniere}/edit', [AdminBanniereController::class, 'edit'])->name('bannieres.edit');
+        Route::put('/bannieres/{banniere}', [AdminBanniereController::class, 'update'])->name('bannieres.update');
+        Route::delete('/bannieres/{banniere}', [AdminBanniereController::class, 'destroy'])->name('bannieres.destroy');
+        Route::post('/bannieres/{banniere}/toggle', [AdminBanniereController::class, 'toggleActif'])->name('bannieres.toggle');
+        Route::post('/bannieres/reordonner', [AdminBanniereController::class, 'reordonner'])->name('bannieres.reordonner');
     });
 });

@@ -72,12 +72,15 @@
                                 <span class="meta-pill">
                                     <i class="fa-regular fa-coins"></i> {{ number_format($demande->budget_maximum, 0, ',', ' ') }} F
                                 </span>
+                                <span class="meta-pill">
+                                    <i class="fa-regular fa-clock"></i> {{ $demande->created_at->diffForHumans() }}
+                                </span>
                             </div>
                         </div>
                         <div class="besoin-status">
-                            <span class="status-badge status-{{ $demande->statut->value }}">
+                            <span class="status-badge status-{{ $demande->statut_value }}">
                                 <i class="fa-solid fa-circle" style="font-size:8px;"></i>
-                                {{ $demande->statut->label() }}
+                                {{ $demande->statut_label }}
                             </span>
                             <a href="{{ route('particulier.demandes.show', $demande) }}" class="btn btn-ghost btn-sm">
                                 <i class="fa-solid fa-eye"></i>
@@ -128,9 +131,9 @@
                             </div>
                         </div>
                         <div class="rdv-status">
-                            <span class="status-badge status-{{ $rdv->statut->value }}">
+                            <span class="status-badge status-{{ $rdv->statut_value }}">
                                 <i class="fa-solid fa-circle" style="font-size:8px;"></i>
-                                {{ $rdv->statut->label() }}
+                                {{ $rdv->statut_label }}
                             </span>
                         </div>
                     </div>
@@ -173,9 +176,9 @@
                         </div>
                         <div class="offre-right">
                             <div class="offre-price">{{ number_format($offre->prix_propose, 0, ',', ' ') }} FCFA</div>
-                            <span class="status-badge status-{{ $offre->statut->value }}">
+                            <span class="status-badge status-{{ $offre->statut_value }}">
                                 <i class="fa-solid fa-circle" style="font-size:8px;"></i>
-                                {{ $offre->statut->label() }}
+                                {{ $offre->statut_label }}
                             </span>
                         </div>
                     </div>

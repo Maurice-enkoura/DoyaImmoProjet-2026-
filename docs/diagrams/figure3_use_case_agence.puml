@@ -1,0 +1,74 @@
+@startuml Figure3_Diagramme_Cas_Utilisation_Agence
+
+' ==============================================================================
+' Figure 3 : Diagramme de cas d'utilisation de l'Agence immobilière (Mise en page propre)
+' ==============================================================================
+
+left to right direction
+skinparam linetype ortho
+skinparam nodesep 40
+skinparam ranksep 50
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+skinparam actor {
+    BackgroundColor #EBF4FF
+    BorderColor #2B6CB0
+    FontName Arial
+}
+
+skinparam usecase {
+    BackgroundColor #FFFFFF
+    BorderColor #4A5568
+    ArrowColor #2D3748
+    FontName Arial
+}
+
+actor "Agence immobilière" as Agence
+
+rectangle "Plateforme DoyaImmo" {
+
+    package "Authentification & Agrément" {
+        usecase "S'inscrire" as UC_Inscrire
+        usecase "Déposer les documents" as UC_DeposerDoc
+        usecase "Se connecter" as UC_Connecter
+    }
+
+    package "Gestion du Catalogue & Biens" {
+        usecase "Gérer les biens" as UC_GererBiens
+        usecase "Ajouter photos / vidéos" as UC_AddMedia
+    }
+
+    package "Propositions Commerciales" {
+        usecase "Consulter les besoins disponibles" as UC_ConsulterBesoins
+        usecase "Proposer une offre" as UC_ProposerOffre
+    }
+
+    package "Rendez-vous, Avis & Abonnements" {
+        usecase "Gérer les rendez-vous" as UC_GererRDV
+        usecase "Consulter les évaluations" as UC_ConsulterEval
+        usecase "Souscrire un abonnement" as UC_SouscrireAbonnement
+    }
+}
+
+' --- Interactions Acteur ---
+Agence --> UC_Inscrire
+Agence --> UC_GererBiens
+Agence --> UC_ConsulterBesoins
+Agence --> UC_ProposerOffre
+Agence --> UC_GererRDV
+Agence --> UC_ConsulterEval
+Agence --> UC_SouscrireAbonnement
+
+' --- Dépendances ---
+UC_Inscrire .> UC_DeposerDoc : <<include>>
+UC_AddMedia .> UC_GererBiens : <<extend>>
+
+UC_GererBiens .> UC_Connecter : <<include>>
+UC_ConsulterBesoins .> UC_Connecter : <<include>>
+UC_ProposerOffre .> UC_Connecter : <<include>>
+UC_GererRDV .> UC_Connecter : <<include>>
+UC_ConsulterEval .> UC_Connecter : <<include>>
+UC_SouscrireAbonnement .> UC_Connecter : <<include>>
+
+@endluml

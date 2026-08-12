@@ -11,11 +11,19 @@
             <h2>Mes offres envoyées</h2>
             <p>Suivez le statut de chaque proposition envoyée à un client</p>
         </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:13px;color:var(--muted);">
+                <i class="fa-solid fa-star" style="color:#F5A623;"></i> En vedette
+            </span>
+            <span style="font-size:13px;color:var(--muted);">
+                <i class="fa-solid fa-file-invoice"></i> {{ $propositions->total() }} offres
+            </span>
+        </div>
     </div>
 
     @if($propositions->count() > 0)
         <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:auto;">
-            <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:600px;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:700px;">
                 <thead>
                     <tr style="background:#FAFBFC;border-bottom:1px solid var(--border);">
                         <th style="padding:12px 16px;text-align:left;">Bien proposé</th>
@@ -28,13 +36,20 @@
                 </thead>
                 <tbody>
                     @foreach($propositions as $proposition)
-                        <tr style="border-bottom:1px solid var(--border);">
+                        <tr style="border-bottom:1px solid var(--border);{{ $proposition->bien && $proposition->bien->est_vedette ? 'background:#FFFDF5;' : '' }}">
                             <td style="padding:12px 16px;">
-                                <div style="font-weight:600;font-size:13px;">{{ $proposition->bien->titre ?? 'Bien' }}</div>
+                                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                    <span style="font-weight:600;font-size:13px;">{{ $proposition->bien->titre ?? 'Bien' }}</span>
+                                    @if($proposition->bien && $proposition->bien->est_vedette)
+                                        <span class="vedette-tag-table">
+                                            <i class="fa-solid fa-star"></i> Vedette
+                                        </span>
+                                    @endif
+                                </div>
                                 <div style="font-size:12px;color:var(--muted);">{{ $proposition->demande->type_bien->label() }} — {{ $proposition->demande->zone_recherchee }}</div>
                             </td>
                             <td style="padding:12px 16px;">
-                                <div style="font-size:13px;">Client #{{ $proposition->particulier->id }}</div>
+                                <div style="font-size:13px;">{{ $proposition->particulier->user->prenom ?? 'Client' }} {{ $proposition->particulier->user->nom ?? '' }}</div>
                                 <div style="font-size:12px;color:var(--muted);">{{ $proposition->particulier->user->email ?? '' }}</div>
                             </td>
                             <td style="padding:12px 16px;font-weight:600;color:var(--rust);">
@@ -59,9 +74,7 @@
             </table>
         </div>
 
-        <div style="margin-top:30px;">
-            {{ $propositions->links() }}
-        </div>
+        
     @else
         <div style="text-align:center;padding:60px 20px;color:var(--muted);background:#fff;border-radius:var(--radius);border:1px solid var(--border);">
             <i class="fa-solid fa-file-invoice" style="font-size:40px;display:block;margin-bottom:16px;opacity:0.3;"></i>
@@ -97,6 +110,36 @@
         background: #FFEBEE;
         color: #C62828;
     }
+    
+    /* ===== TAG VEDETTE DANS LE TABLEAU ===== */
+    .vedette-tag-table {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #fff;
+        background: #F5A623;
+        box-shadow: 0 2px 6px rgba(245, 166, 35, 0.25);
+        animation: pulseVedette 2s ease-in-out infinite;
+    }
+
+    .vedette-tag-table i {
+        font-size: 9px;
+    }
+
+    @keyframes pulseVedette {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.8;
+        }
+    }
+
+    /* ===== PAGINATION ===== */
     .pagination {
         display: flex;
         gap: 6px;
@@ -121,6 +164,34 @@
         background: var(--rust);
         color: #fff;
         border-color: var(--rust);
+    }
+
+    /* ============================================
+       RESPONSIVE
+    ============================================ */
+    @media (max-width: 768px) {
+        .section-head {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        table {
+            font-size: 12px;
+        }
+        table th,
+        table td {
+            padding: 8px 10px !important;
+        }
+        .vedette-tag-table {
+            font-size: 9px;
+            padding: 1px 8px;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
     }
 </style>
 @endpush

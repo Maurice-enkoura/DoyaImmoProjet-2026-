@@ -28,7 +28,10 @@ class AdminAgenceController extends Controller
         if ($request->filled('filtre')) {
             switch ($request->filtre) {
                 case 'en_attente':
-                    $query->where('statut_validation', false);
+                    $query->where('statut_validation', false)->where('est_refusee', false);
+                    break;
+                case 'refusees':
+                    $query->where('est_refusee', true);
                     break;
                 case 'validees':
                     $query->where('statut_validation', true);
@@ -92,7 +95,6 @@ class AdminAgenceController extends Controller
                     'commentaire' => $request->commentaire,
                 ]);
 
-                // Envoyer une notification pour chaque document
                 $user = $agence->user;
                 
                 if ($statut === StatutDocumentEnum::VALIDE) {
@@ -102,7 +104,6 @@ class AdminAgenceController extends Controller
                 }
             }
 
-            // Vérifier si tous les documents obligatoires sont validés
             $documentsObligatoires = $agence->documents()
                 ->where('type_document', '!=', 'logo')
                 ->where('statut_validation', StatutDocumentEnum::VALIDE)
@@ -112,7 +113,6 @@ class AdminAgenceController extends Controller
                 ->where('type_document', '!=', 'logo')
                 ->count();
 
-            // Si tous les documents sont validés, valider l'agence
             if ($documentsObligatoires === $totalObligatoires && $totalObligatoires > 0) {
                 $agence->update(['statut_validation' => true]);
                 $agence->user->notify(new AgenceValideeNotification($agence));
@@ -137,6 +137,15 @@ class AdminAgenceController extends Controller
     public function valider(Agence $agence)
     {
         try {
+            // Si l'agence était refusée, la remettre en attente avant de valider
+            if ($agence->est_refusee) {
+                $agence->update([
+                    'est_refusee' => false,
+                    'motif_refus' => null,
+                    'date_refus' => null,
+                ]);
+            }
+            
             $agence->update(['statut_validation' => true]);
             $agence->user->notify(new AgenceValideeNotification($agence));
 
@@ -155,9 +164,14 @@ class AdminAgenceController extends Controller
         ]);
 
         try {
-            $agence->update(['statut_validation' => false]);
+            // ✅ Marquer l'agence comme refusée
+            $agence->update([
+                'statut_validation' => false,
+                'est_refusee' => true,
+                'motif_refus' => $request->motif,
+                'date_refus' => now(),
+            ]);
             
-            // Envoyer la notification avec le motif
             $agence->user->notify(new AgenceRefuseeNotification($agence, $request->motif));
 
             return redirect()->route('admin.agences.index')
@@ -165,6 +179,27 @@ class AdminAgenceController extends Controller
         } catch (\Exception $e) {
             return redirect()->route('admin.agences.index')
                 ->with('error', 'Erreur lors du refus: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * ✅ Réactiver une agence refusée
+     */
+    public function reactiver(Agence $agence)
+    {
+        try {
+            $agence->update([
+                'statut_validation' => false,
+                'est_refusee' => false,
+                'motif_refus' => null,
+                'date_refus' => null,
+            ]);
+
+            return redirect()->route('admin.agences.index')
+                ->with('success', 'Agence réactivée avec succès. Elle est maintenant en attente de validation.');
+        } catch (\Exception $e) {
+            return redirect()->route('admin.agences.index')
+                ->with('error', 'Erreur lors de la réactivation: ' . $e->getMessage());
         }
     }
 

@@ -16,11 +16,24 @@
                     {{ strtoupper(substr($agence->nom_agence, 0, 1)) }}
                 </div>
                 <div class="agency-info">
-                    <h1 class="agency-name">{{ $agence->nom_agence }}</h1>
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <h1 class="agency-name">{{ $agence->nom_agence }}</h1>
+                        @php
+                            $hasVedette = $agence->biens()->where('est_vedette', true)->exists();
+                        @endphp
+                        @if($hasVedette)
+                            <span class="badge-vedette-agency">
+                                <i class="fa-solid fa-star"></i> Vedette
+                            </span>
+                        @endif
+                    </div>
                     <div class="agency-meta">
                         <span><i class="fa-solid fa-location-dot"></i> {{ $agence->adresse }}</span>
                         <span><i class="fa-solid fa-star" style="color:#F5A623;"></i> {{ number_format($stats['note_moyenne'] ?? 0, 1) }} / 5 ({{ $stats['total_evaluations'] ?? 0 }} avis)</span>
                         <span><i class="fa-solid fa-building"></i> {{ $stats['biens_disponibles'] ?? 0 }} biens disponibles</span>
+                        @if($hasVedette)
+                            <span style="color:#F5A623;"><i class="fa-solid fa-star"></i> Biens en vedette</span>
+                        @endif
                     </div>
                 </div>
                 <div class="agency-action">
@@ -95,7 +108,7 @@
             @if(isset($biens) && $biens->count() > 0)
                 <div class="biens-grid">
                     @foreach($biens as $bien)
-                        <div class="bien-card">
+                        <div class="bien-card {{ $bien->est_vedette ? 'vedette-card' : '' }}">
                             <div class="bien-image">
                                 @if($bien->medias->first())
                                     <img src="{{ asset('storage/' . $bien->medias->first()->fichier) }}" alt="{{ $bien->titre }}" loading="lazy">
@@ -104,9 +117,20 @@
                                         <i class="fa-solid fa-image"></i>
                                     </div>
                                 @endif
+                                <!-- ✅ Badge Vedette -->
+                                @if($bien->est_vedette)
+                                    <span class="badge-vedette">
+                                        <i class="fa-solid fa-star"></i> Vedette
+                                    </span>
+                                @endif
                             </div>
                             <div class="bien-body">
-                                <div class="bien-title">{{ $bien->titre }}</div>
+                                <div class="bien-title">
+                                    {{ $bien->titre }}
+                                    @if($bien->est_vedette)
+                                        <span class="vedette-tag"><i class="fa-solid fa-star"></i></span>
+                                    @endif
+                                </div>
                                 <div class="bien-price">{{ number_format($bien->prix, 0, ',', ' ') }} FCFA</div>
                                 <div class="bien-location">
                                     <i class="fa-solid fa-location-dot"></i> {{ $bien->quartier }}
@@ -115,6 +139,9 @@
                                     <span class="meta-pill">{{ $bien->type_bien->label() }}</span>
                                     <span class="meta-pill">{{ $bien->type_contrat->label() }}</span>
                                     <span class="meta-pill">{{ $bien->surface }} m²</span>
+                                    @if($bien->est_vedette)
+                                        <span class="meta-pill vedette-pill"><i class="fa-solid fa-star"></i> Vedette</span>
+                                    @endif
                                 </div>
                                 <div class="bien-action">
                                     <a href="{{ route('biens.show', $bien) }}" class="btn btn-rust btn-sm btn-block">Voir le détail</a>
@@ -210,6 +237,34 @@
 
     .back-link i {
         font-size: 12px;
+    }
+
+    /* ===== BADGE VEDETTE AGENCE ===== */
+    .badge-vedette-agency {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 14px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+        background: #F5A623;
+        box-shadow: 0 2px 8px rgba(245, 166, 35, 0.3);
+        animation: pulseVedette 2s ease-in-out infinite;
+    }
+
+    .badge-vedette-agency i {
+        font-size: 11px;
+    }
+
+    @keyframes pulseVedette {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.85;
+        }
     }
 
     /* ===== AGENCY HEADER ===== */
@@ -407,9 +462,23 @@
         flex-direction: column;
     }
 
-    .bien-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    .bien-card.vedette-card {
+        border-color: #F5A623;
+        border-width: 2px;
+        position: relative;
+    }
+
+    .bien-card.vedette-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: var(--radius);
+        background: linear-gradient(135deg, rgba(245, 166, 35, 0.05), transparent);
+        pointer-events: none;
+        z-index: 0;
     }
 
     .bien-image {
@@ -444,11 +513,35 @@
         font-size: 32px;
     }
 
+    .badge-vedette {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        padding: 3px 12px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #fff;
+        background: #F5A623;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        box-shadow: 0 2px 8px rgba(245, 166, 35, 0.3);
+        animation: pulseVedette 2s ease-in-out infinite;
+    }
+
+    .badge-vedette i {
+        font-size: 9px;
+    }
+
     .bien-body {
         padding: clamp(12px, 1.5vw, 14px) clamp(14px, 1.5vw, 16px) clamp(14px, 1.5vw, 16px);
         flex: 1;
         display: flex;
         flex-direction: column;
+        position: relative;
+        z-index: 1;
     }
 
     .bien-title {
@@ -456,6 +549,17 @@
         font-size: clamp(14px, 1vw, 15px);
         margin-bottom: 2px;
         word-break: break-word;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .vedette-tag {
+        color: #F5A623;
+        font-size: 12px;
+        display: inline-flex;
+        align-items: center;
     }
 
     .bien-price {
@@ -492,6 +596,16 @@
         border-radius: 999px;
         font-size: clamp(10px, 0.7vw, 11px);
         color: var(--text-soft);
+    }
+
+    .vedette-pill {
+        background: #FFF8E1;
+        color: #E65100;
+        font-weight: 600;
+    }
+
+    .vedette-pill i {
+        color: #F5A623;
     }
 
     .bien-action {
@@ -796,6 +910,24 @@
         .evaluation-stars {
             font-size: 13px;
         }
+
+        .badge-vedette {
+            font-size: 9px;
+            padding: 2px 10px;
+        }
+
+        .badge-vedette i {
+            font-size: 8px;
+        }
+
+        .badge-vedette-agency {
+            font-size: 11px;
+            padding: 3px 10px;
+        }
+
+        .badge-vedette-agency i {
+            font-size: 10px;
+        }
     }
 
     @media (max-width: 460px) {
@@ -846,12 +978,15 @@
         }
     }
 
-    /* ===== ACCESSIBILITÉ ===== */
     @media (prefers-reduced-motion: reduce) {
         * {
             animation-duration: 0.01ms !important;
             animation-iteration-count: 1 !important;
             transition-duration: 0.01ms !important;
+        }
+        .badge-vedette,
+        .badge-vedette-agency {
+            animation: none !important;
         }
     }
 </style>

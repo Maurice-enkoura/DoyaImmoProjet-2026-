@@ -1,0 +1,104 @@
+@startuml Diagramme_De_Cas_D_Utilisation_Lisible_DoyaImmo
+
+' ==============================================================================
+' Diagramme de Cas d'Utilisation Optimisé (Lisible, sans croisements) - DoyaImmo
+' ==============================================================================
+
+' Lignes orthogonales à 90 degrés pour éviter le chevauchement et l'effet "sac de nœuds"
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+' Styles des composants
+skinparam actor {
+    BackgroundColor #E1F5FE
+    BorderColor #0288D1
+    FontName Arial
+    FontSize 13
+    FontStyle bold
+}
+
+skinparam usecase {
+    BackgroundColor #FFFFFF
+    BorderColor #37474F
+    ArrowColor #455A64
+    FontName Arial
+    FontSize 12
+}
+
+skinparam rectangle {
+    BorderColor #0288D1
+    BackgroundColor #FAFAFA
+    FontName Arial
+    FontSize 14
+    FontStyle bold
+}
+
+' --- 1. POSITIONNEMENT STRATÉGIQUE DES ACTEURS ---
+' Particulier à GAUCHE, Agence à DROITE, Administrateur en BAS
+actor "Particulier / Client" as Particulier
+actor "Agence Immobilière" as Agence
+actor "Administrateur" as Admin
+
+' --- 2. SYSTÈME DÉCOUPÉ EN 3 COLONNES / ZONES LISIBLES ---
+rectangle "Plateforme Immobilière DoyaImmo" {
+
+    ' ZONE GAUCHE : Dédiée au Particulier
+    package "Fonctionnalités Particulier" {
+        usecase "CU-01: Gérer son profil" as CU01
+        usecase "CU-04: Rechercher des biens" as CU04
+        usecase "CU-05: Publier une annonce" as CU05
+        usecase "CU-06: Ajouter des médias" as CU06
+        usecase "CU-07: Déposer une demande" as CU07
+        usecase "CU-09: Consulter les offres" as CU09
+        usecase "CU-10: Demander une visite (RDV)" as CU10
+        usecase "CU-12: Évaluer / Signaler" as CU12
+    }
+
+    ' ZONE DROITE : Dédiée à l'Agence
+    package "Fonctionnalités Agence" {
+        usecase "CU-02: Demander un agrément" as CU02
+        usecase "CU-08: Proposer un bien à un client" as CU08
+        usecase "CU-11: Gérer planning & valider RDV" as CU11
+        usecase "CU-14: Souscrire abonnement / pub" as CU14
+    }
+
+    ' ZONE BASSE : Dédiée à l'Administration
+    package "Fonctionnalités Administration" {
+        usecase "CU-03: Valider les agences" as CU03
+        usecase "CU-15: Modérer les contenus" as CU15
+        usecase "CU-16: Gérer les comptes & abonnements" as CU16
+        usecase "CU-17: Suivre les statistiques" as CU17
+    }
+}
+
+' --- 3. LIAISONS NETTES ET FLUIDES (SANS CROISEMENTS) ---
+
+' Particulier relié uniquement à la zone Gauche
+Particulier --> CU01
+Particulier --> CU04
+Particulier --> CU05
+Particulier --> CU07
+Particulier --> CU09
+Particulier --> CU10
+Particulier --> CU12
+
+' Agence reliée uniquement à la zone Droite (et accès annonces)
+Agence --> CU02
+Agence --> CU05
+Agence --> CU08
+Agence --> CU11
+Agence --> CU14
+
+' Administrateur relié uniquement à la zone Basse
+Admin --> CU03
+Admin --> CU15
+Admin --> CU16
+Admin --> CU17
+
+' Inclusions internes propres
+CU05 .> CU06 : <<include>>
+
+@enduml

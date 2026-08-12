@@ -18,8 +18,13 @@ class DemandeController extends Controller
     {
         $particulier = Particulier::where('user_id', Auth::id())->first();
         
+        // ✅ Récupérer UNIQUEMENT les demandes actives (en_attente et en_cours)
         $demandes = DemandeImmobiliere::where('particulier_id', $particulier->id)
             ->with('propositions')
+            ->whereIn('statut', [
+                StatutDemandeEnum::EN_ATTENTE->value,
+                StatutDemandeEnum::EN_COURS->value
+            ])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
@@ -39,7 +44,7 @@ class DemandeController extends Controller
     {
         $particulier = Particulier::where('user_id', Auth::id())->first();
 
-        DemandeImmobiliere::create([
+        $demande = DemandeImmobiliere::create([
             'particulier_id' => $particulier->id,
             'type_operation' => $request->type_operation,
             'type_bien' => $request->type_bien,
@@ -60,7 +65,7 @@ class DemandeController extends Controller
             'date_entree_souhaitee' => $request->date_entree_souhaitee,
             'criteres_particuliers' => $request->criteres_particuliers,
             'description' => $request->description,
-            'statut' => StatutDemandeEnum::EN_ATTENTE,
+            'statut' => StatutDemandeEnum::EN_ATTENTE->value,
         ]);
 
         return redirect()->route('particulier.demandes.index')
@@ -83,7 +88,7 @@ class DemandeController extends Controller
             abort(403);
         }
 
-        if ($demande->statut !== StatutDemandeEnum::EN_ATTENTE) {
+        if ($demande->statut !== StatutDemandeEnum::EN_ATTENTE->value) {
             return back()->with('error', 'Cette demande ne peut plus être modifiée.');
         }
 
@@ -100,7 +105,7 @@ class DemandeController extends Controller
             abort(403);
         }
 
-        if ($demande->statut !== StatutDemandeEnum::EN_ATTENTE) {
+        if ($demande->statut !== StatutDemandeEnum::EN_ATTENTE->value) {
             return back()->with('error', 'Cette demande ne peut plus être modifiée.');
         }
 
@@ -136,7 +141,7 @@ class DemandeController extends Controller
             abort(403);
         }
 
-        $demande->update(['statut' => StatutDemandeEnum::ANNULEE]);
+        $demande->update(['statut' => StatutDemandeEnum::ANNULEE->value]);
 
         return redirect()->route('particulier.demandes.index')
             ->with('success', 'Demande annulée avec succès.');
@@ -146,6 +151,7 @@ class DemandeController extends Controller
     {
         $particulier = Particulier::where('user_id', Auth::id())->first();
         
+        // ✅ Récupérer TOUTES les demandes pour l'historique
         $demandes = DemandeImmobiliere::where('particulier_id', $particulier->id)
             ->orderBy('created_at', 'desc')
             ->paginate(10);
@@ -153,18 +159,15 @@ class DemandeController extends Controller
         return view('particulier.demandes.mes-demandes', compact('demandes'));
     }
 
-    // ==================== ✅ AJOUTER CETTE MÉTHODE ====================
     /**
      * Affiche les offres reçues pour une demande
      */
     public function offres(DemandeImmobiliere $demande)
     {
-        // Vérifier que la demande appartient au particulier connecté
         if ($demande->particulier->user_id !== Auth::id()) {
             abort(403);
         }
 
-        // Récupérer les propositions avec l'agence et le bien
         $offres = $demande->propositions()
             ->with(['agence', 'bien'])
             ->orderBy('created_at', 'desc')

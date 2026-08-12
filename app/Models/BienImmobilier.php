@@ -33,6 +33,10 @@ class BienImmobilier extends Model
         'description',
         'statut',
         'vues',
+        'est_vedette',
+        'vedette_debut',
+        'vedette_fin',
+        'vedette_duree',
     ];
 
     protected $casts = [
@@ -43,6 +47,9 @@ class BienImmobilier extends Model
         'parking_disponible' => 'boolean',
         'est_meuble' => 'boolean',
         'statut' => 'boolean',
+        'est_vedette' => 'boolean',
+        'vedette_debut' => 'datetime',
+        'vedette_fin' => 'datetime',
     ];
 
     // ==================== RELATIONS ====================
@@ -74,6 +81,18 @@ class BienImmobilier extends Model
         return $query->where('statut', true);
     }
 
+    public function scopeVedette($query)
+    {
+        return $query->where('est_vedette', true)
+            ->where('vedette_fin', '>', now());
+    }
+
+    public function scopeVedetteExpire($query)
+    {
+        return $query->where('est_vedette', true)
+            ->where('vedette_fin', '<=', now());
+    }
+
     // ==================== ACCESSORS ====================
 
     public function getImagesAttribute()
@@ -86,7 +105,6 @@ class BienImmobilier extends Model
         return $this->medias()->where('type_media', 'video')->get();
     }
 
-    // Accesseur pour le type de contrat (affichage)
     public function getTypeContratLabelAttribute()
     {
         if (is_object($this->type_contrat) && method_exists($this->type_contrat, 'label')) {
@@ -95,7 +113,6 @@ class BienImmobilier extends Model
         return $this->type_contrat;
     }
 
-    // Accesseur pour le type de bien (affichage)
     public function getTypeBienLabelAttribute()
     {
         if (is_object($this->type_bien) && method_exists($this->type_bien, 'label')) {
@@ -104,7 +121,6 @@ class BienImmobilier extends Model
         return $this->type_bien;
     }
 
-    // Accesseur pour le nom du quartier
     public function getQuartierNomAttribute(): string
     {
         if ($this->quartier) {
@@ -122,7 +138,6 @@ class BienImmobilier extends Model
         return 'N/A';
     }
 
-    // Accesseur pour afficher le type de contrat avec le titre
     public function getTitreWithContratAttribute(): string
     {
         $titre = $this->titre ?? 'N/A';
@@ -131,5 +146,82 @@ class BienImmobilier extends Model
             return $titre . ' (' . $contrat . ')';
         }
         return $titre;
+    }
+
+    // ==================== VEDETTE ====================
+
+    public function getEstVedetteAttribute($value)
+    {
+        if ($value && $this->vedette_fin && $this->vedette_fin <= now()) {
+            $this->update(['est_vedette' => false]);
+            return false;
+        }
+        return $value;
+    }
+
+    /**
+     * Récupère le nombre de jours restants pour la vedette
+     * Retourne un entier et gère les cas où il reste moins d'un jour
+     */
+    public function getVedetteJoursRestantsAttribute(): int
+    {
+        if (!$this->est_vedette || !$this->vedette_fin) {
+            return 0;
+        }
+        
+        // Si la date est déjà passée
+        if ($this->vedette_fin->isPast()) {
+            return 0;
+        }
+        
+        // Calculer la différence en jours
+        $diff = now()->diffInDays($this->vedette_fin, true);
+        
+        // Si la différence est de 0 (moins de 24h), retourner 1
+        if ($diff < 1 && $this->vedette_fin->isFuture()) {
+            return 1;
+        }
+        
+        return (int) floor($diff);
+    }
+
+    /**
+     * Récupère le libellé des jours restants
+     */
+    public function getVedetteJoursLabelAttribute(): string
+    {
+        $jours = $this->vedette_jours_restants;
+        
+        if (!$this->est_vedette || $this->vedette_fin->isPast()) {
+            return 'Expirée';
+        }
+        
+        if ($jours === 0) {
+            return 'Aujourd\'hui';
+        }
+        
+        if ($jours === 1) {
+            return '1 jour restant';
+        }
+        
+        return $jours . ' jours restants';
+    }
+
+    public function getVedettePourcentageAttribute(): int
+    {
+        if (!$this->est_vedette || !$this->vedette_debut || !$this->vedette_fin) {
+            return 0;
+        }
+        
+        $total = $this->vedette_debut->diffInDays($this->vedette_fin);
+        if ($total <= 0) return 0;
+        
+        $ecoule = $this->vedette_debut->diffInDays(now());
+        if ($ecoule >= $total) {
+            return 100;
+        }
+        
+        $pourcentage = ($ecoule / $total) * 100;
+        return (int) round(min(100, max(0, $pourcentage)));
     }
 }

@@ -294,7 +294,7 @@
             </div>
 
             <!-- Boutons -->
-            <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:12px;">
+            <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:12px;flex-wrap:wrap;">
                 <button type="submit" class="btn btn-rust" id="submitBtn">
                     <i class="fa-solid fa-save"></i> Mettre à jour
                 </button>

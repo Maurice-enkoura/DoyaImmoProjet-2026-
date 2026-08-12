@@ -42,12 +42,14 @@
             <div style="padding:8px 12px;background:#F7F9FC;border-radius:8px;">
                 <div style="font-size:11px;color:var(--muted);">Statut</div>
                 <div style="font-weight:600;">
-                    @if(!$agence->statut_validation)
-                        <span class="status-pill status-en_attente">En attente de validation</span>
-                    @elseif(isset($agence->bloque) && $agence->bloque)
+                    @if($agence->bloque)
                         <span class="status-pill status-annule">Bloquée</span>
-                    @else
+                    @elseif($agence->est_refusee)
+                        <span class="status-pill status-refusee">Refusée</span>
+                    @elseif($agence->statut_validation)
                         <span class="status-pill status-active">Validée et active</span>
+                    @else
+                        <span class="status-pill status-en_attente">En attente de validation</span>
                     @endif
                 </div>
             </div>
@@ -64,18 +66,18 @@
                 <div style="font-weight:600;">
                     {{ $agence->documents->count() }}
                     @php
-                        $valides = $agence->documents->where('statut_validation', 'valide')->count();
-                        $enAttente = $agence->documents->where('statut_validation', 'en_attente')->count();
-                        $rejetes = $agence->documents->where('statut_validation', 'rejete')->count();
+                        $valides = $agence->documents->filter(function($doc) { return $doc->est_valide; })->count();
+                        $enAttente = $agence->documents->filter(function($doc) { return $doc->est_en_attente; })->count();
+                        $rejetes = $agence->documents->filter(function($doc) { return $doc->est_rejete; })->count();
                     @endphp
                     @if($valides > 0)
-                        <span style="color:var(--green);font-size:12px;">({{ $valides }} ✓)</span>
+                        <span style="color:var(--green);font-size:12px;">({{ $valides }} )</span>
                     @endif
                     @if($enAttente > 0)
-                        <span style="color:#E65100;font-size:12px;">({{ $enAttente }} ⏳)</span>
+                        <span style="color:#E65100;font-size:12px;">({{ $enAttente }} )</span>
                     @endif
                     @if($rejetes > 0)
-                        <span style="color:var(--red);font-size:12px;">({{ $rejetes }} ✗)</span>
+                        <span style="color:var(--red);font-size:12px;">({{ $rejetes }} )</span>
                     @endif
                 </div>
             </div>
@@ -110,29 +112,38 @@
             @endif
         </div>
 
-        <!-- Actions -->
+        <!-- ✅ Actions simplifiées selon le statut -->
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;">
-            @if(!$agence->statut_validation)
-                <form action="{{ route('admin.agences.valider', $agence) }}" method="POST">
+
+            {{-- Cas 1: Agence en attente de validation --}}
+            @if(!$agence->statut_validation && !$agence->est_refusee && !$agence->bloque)
+                <form action="{{ route('admin.agences.valider', $agence) }}" method="POST" style="display:inline;">
                     @csrf
                     <button type="submit" class="btn btn-success" onclick="return confirm('Valider cette agence ?')">
-                        <i class="fa-solid fa-check"></i> Valider l'agence
+                        <i class="fa-solid fa-check"></i> Valider
                     </button>
                 </form>
-                <form action="{{ route('admin.agences.refuser', $agence) }}" method="POST">
+                <form action="{{ route('admin.agences.refuser', $agence) }}" method="POST" style="display:inline;">
                     @csrf
-                    <div style="display:flex;gap:8px;align-items:center;">
-                        <input type="text" name="motif" placeholder="Motif du refus" 
-                               style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;flex:1;">
-                        <button type="submit" class="btn btn-danger" onclick="return confirm('Refuser cette agence ?')">
-                            <i class="fa-solid fa-times"></i> Refuser
-                        </button>
-                    </div>
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Refuser cette agence ?')">
+                        <i class="fa-solid fa-times"></i> Refuser
+                    </button>
                 </form>
             @endif
 
-            @if($agence->statut_validation && (!isset($agence->bloque) || !$agence->bloque))
-                <form action="{{ route('admin.agences.bloquer', $agence) }}" method="POST">
+            {{-- Cas 2: Agence refusée --}}
+            @if($agence->est_refusee)
+                <form action="{{ route('admin.agences.reactiver', $agence) }}" method="POST" style="display:inline;">
+                    @csrf
+                    <button type="submit" class="btn btn-success" onclick="return confirm('Réactiver cette agence ? Elle sera remise en attente de validation.')">
+                        <i class="fa-solid fa-rotate-left"></i> Réactiver
+                    </button>
+                </form>
+            @endif
+
+            {{-- Cas 3: Agence validée et non bloquée --}}
+            @if($agence->statut_validation && !$agence->bloque)
+                <form action="{{ route('admin.agences.bloquer', $agence) }}" method="POST" style="display:inline;">
                     @csrf
                     <button type="submit" class="btn btn-danger" onclick="return confirm('Bloquer cette agence ?')">
                         <i class="fa-solid fa-ban"></i> Bloquer
@@ -140,8 +151,9 @@
                 </form>
             @endif
 
-            @if(isset($agence->bloque) && $agence->bloque)
-                <form action="{{ route('admin.agences.debloquer', $agence) }}" method="POST">
+            {{-- Cas 4: Agence bloquée --}}
+            @if($agence->bloque)
+                <form action="{{ route('admin.agences.debloquer', $agence) }}" method="POST" style="display:inline;">
                     @csrf
                     <button type="submit" class="btn btn-success" onclick="return confirm('Débloquer cette agence ?')">
                         <i class="fa-solid fa-unlock"></i> Débloquer
@@ -149,11 +161,12 @@
                 </form>
             @endif
 
+            {{-- Actions communes à tous les statuts --}}
             <a href="{{ route('admin.agences.documents', $agence) }}" class="btn btn-ghost">
-                <i class="fa-solid fa-file"></i> Voir les documents
+                <i class="fa-solid fa-file"></i> Documents
             </a>
 
-            <form action="{{ route('admin.agences.destroy', $agence) }}" method="POST" onsubmit="return confirm('Supprimer définitivement cette agence ? Cette action est irréversible.')">
+            <form action="{{ route('admin.agences.destroy', $agence) }}" method="POST" onsubmit="return confirm('Supprimer définitivement cette agence ? Cette action est irréversible.')" style="display:inline;">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-danger">
@@ -174,24 +187,25 @@
         @if($agence->documents->count() > 0)
             <div style="display:flex;flex-direction:column;gap:8px;">
                 @foreach($agence->documents as $document)
-                    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#F7F9FC;border-radius:8px;border-left:4px solid 
-                        @if($document->statut_validation === 'valide') var(--green)
-                        @elseif($document->statut_validation === 'rejete') var(--red)
-                        @else #E65100
-                        @endif;">
+                    @php
+                        $borderColor = $document->est_valide ? 'var(--green)' : ($document->est_rejete ? 'var(--red)' : '#E65100');
+                        $statusLabel = $document->statut_validation_label;
+                        $statusClass = $document->est_valide ? 'status-active' : ($document->est_rejete ? 'status-annule' : 'status-en_attente');
+                    @endphp
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#F7F9FC;border-radius:8px;border-left:4px solid {{ $borderColor }};">
                         <div>
                             <div style="font-weight:600;font-size:13px;">
                                 <i class="fa-solid fa-file-pdf" style="color:var(--red);"></i>
-                                {{ $document->type_document }}
+                                {{ $document->type_document_label }}
                             </div>
                             <div style="font-size:12px;color:var(--muted);">
-                                @if($document->statut_validation === 'valide')
-                                    <span style="color:var(--green);">✓ Validé</span>
+                                @if($document->est_valide)
+                                    <span style="color:var(--green);">Validé</span>
                                     @if($document->date_validation)
                                         <span style="margin-left:8px;">le {{ \Carbon\Carbon::parse($document->date_validation)->format('d/m/Y') }}</span>
                                     @endif
-                                @elseif($document->statut_validation === 'rejete')
-                                    <span style="color:var(--red);">✗ Rejeté</span>
+                                @elseif($document->est_rejete)
+                                    <span style="color:var(--red);"> Rejeté</span>
                                     @if($document->commentaire)
                                         <span style="margin-left:8px;font-style:italic;">"{{ $document->commentaire }}"</span>
                                     @endif
@@ -201,10 +215,10 @@
                             </div>
                         </div>
                         <div style="display:flex;gap:4px;">
-                            <a href="{{ asset('storage/' . $document->fichier) }}" target="_blank" class="btn btn-ghost btn-sm">
+                            <a href="{{ $document->fichier_url }}" target="_blank" class="btn btn-ghost btn-sm">
                                 <i class="fa-solid fa-eye"></i>
                             </a>
-                            <a href="{{ asset('storage/' . $document->fichier) }}" download class="btn btn-ghost btn-sm">
+                            <a href="{{ $document->fichier_url }}" download class="btn btn-ghost btn-sm">
                                 <i class="fa-solid fa-download"></i>
                             </a>
                         </div>
@@ -220,3 +234,110 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .status-active {
+        background: #E8F5E9;
+        color: #1E7A47;
+    }
+    .status-annule {
+        background: #FFEBEE;
+        color: #C62828;
+    }
+    .status-refusee {
+        background: #FFEBEE;
+        color: #C62828;
+    }
+    .status-en_attente {
+        background: #FFF8E1;
+        color: #E65100;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-family: inherit;
+    }
+
+    .btn-ghost {
+        background: transparent;
+        color: var(--text-soft);
+        border-color: var(--border);
+    }
+
+    .btn-ghost:hover {
+        background: var(--border);
+    }
+
+    .btn-sm {
+        padding: 4px 12px;
+        font-size: 12px;
+    }
+
+    .btn-success {
+        background: #1E7A47;
+        color: #fff;
+        border-color: #1E7A47;
+    }
+
+    .btn-success:hover {
+        background: #145A35;
+        color: #fff;
+    }
+
+    .btn-danger {
+        background: #C62828;
+        color: #fff;
+        border-color: #C62828;
+    }
+
+    .btn-danger:hover {
+        background: #B71C1C;
+        color: #fff;
+    }
+
+    .panel {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px 24px;
+        margin-bottom: 20px;
+    }
+
+    .panel:last-child {
+        margin-bottom: 0;
+    }
+
+    .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .grid-2 {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+@endpush

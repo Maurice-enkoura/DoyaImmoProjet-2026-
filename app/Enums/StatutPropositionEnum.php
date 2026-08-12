@@ -7,6 +7,7 @@ enum StatutPropositionEnum: string
     case EN_ATTENTE = 'en_attente';
     case ACCEPTEE = 'acceptee';
     case REFUSEE = 'refusee';
+    case TERMINEE = 'terminee'; // ✅ Ajouter ce cas
 
     public function label(): string
     {
@@ -14,6 +15,7 @@ enum StatutPropositionEnum: string
             self::EN_ATTENTE => 'En attente',
             self::ACCEPTEE => 'Acceptée',
             self::REFUSEE => 'Refusée',
+            self::TERMINEE => 'Terminée',
         };
     }
 

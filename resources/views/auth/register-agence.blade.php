@@ -11,9 +11,7 @@
             <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--gold)">Immo</span></div>
         </div>
         
-        <!-- Statistiques -->
         <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:24px;">
-            <!-- Citation -->
             <div>
                 <p class="quote" style="font-size:20px;margin:0;">
                     « On touche des clients qu'on n'aurait jamais eus par le bouche-à-oreille. »
@@ -21,7 +19,6 @@
                 <p class="quote-by" style="margin-top:8px;">— Agence partenaire, Almadies</p>
             </div>
 
-            <!-- Statistiques dynamiques -->
             <div class="auth-stats" style="margin-top:0;">
                 <div>
                     <b style="font-size:28px;">{{ $stats['offres_gratuites'] ?? 5 }}</b>
@@ -38,7 +35,6 @@
             </div>
         </div>
 
-        <!-- Footer visuel -->
         <div style="font-size:12px;color:#6A7280;margin-top:20px;">
             <i class="fa-regular fa-circle-check" style="color:var(--gold);"></i>
             {{ $stats['agences'] ?? 0 }} agences déjà inscrites sur DoyaImmo
@@ -48,13 +44,11 @@
     <!-- Section droite - Formulaire -->
     <div class="auth-form-side">
         <div class="auth-box" style="max-width:480px;">
-            <!-- En-tête -->
             <div class="brand">
                 <div class="brand-mark">D</div>
                 <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
             </div>
             
-            <!-- Toggle rôles -->
             <div class="role-toggle">
                 <a href="{{ route('register.particulier') }}">Espace client</a>
                 <a href="{{ route('register.agence') }}" class="active">Espace agence</a>
@@ -62,6 +56,17 @@
 
             <h1>Inscription de l'agence</h1>
             <p class="sub">Complétez les informations ci-dessous pour rejoindre notre réseau d'agences partenaires.</p>
+
+            <!-- Affichage des erreurs -->
+            @if($errors->any())
+                <div style="padding:12px 16px;background:#FFEBEE;border-radius:10px;border:1px solid #FFCDD2;margin-bottom:16px;">
+                    <ul style="margin:0;padding:0 0 0 16px;color:#C62828;font-size:13px;">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
             <form method="POST" action="{{ route('register.agence') }}" enctype="multipart/form-data" id="registerForm">
                 @csrf
@@ -173,14 +178,7 @@
                     <div class="field">
                         <label for="mot_de_passe_confirmation">Confirmation <span class="required">*</span></label>
                         <input type="password" id="mot_de_passe_confirmation" name="mot_de_passe_confirmation" placeholder="Confirmer le mot de passe" required>
-                    </div>
-
-                    <!-- Indicateur de force du mot de passe -->
-                    <div class="password-strength" style="display:none;margin-top:8px;">
-                        <div style="height:4px;border-radius:2px;background:var(--border);overflow:hidden;">
-                            <div id="strengthBar" style="height:100%;width:0%;transition:width 0.3s;border-radius:2px;"></div>
-                        </div>
-                        <span id="strengthText" style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">Force : Faible</span>
+                        @error('mot_de_passe_confirmation') <span class="error-message">{{ $message }}</span> @enderror
                     </div>
                 </div>
 
@@ -195,7 +193,7 @@
 
                     <div class="document-grid">
                         <div class="document-item">
-                            <label for="document_rccm" class="document-label">
+                            <label for="rccm" class="document-label">
                                 <i class="fas fa-file-pdf"></i>
                                 <div>
                                     <span>Registre de Commerce</span>
@@ -203,12 +201,12 @@
                                 </div>
                                 <span class="required">*</span>
                             </label>
-                            <input type="file" id="document_rccm" name="documents[rccm]" accept=".pdf,.jpg,.jpeg,.png" required>
-                            @error('documents.rccm') <span class="error-message">{{ $message }}</span> @enderror
+                            <input type="file" id="rccm" name="rccm" accept=".pdf,.jpg,.jpeg,.png" required>
+                            @error('rccm') <span class="error-message">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="document-item">
-                            <label for="document_ninea" class="document-label">
+                            <label for="ninea" class="document-label">
                                 <i class="fas fa-file-invoice"></i>
                                 <div>
                                     <span>NINEA</span>
@@ -216,12 +214,12 @@
                                 </div>
                                 <span class="required">*</span>
                             </label>
-                            <input type="file" id="document_ninea" name="documents[ninea]" accept=".pdf,.jpg,.jpeg,.png" required>
-                            @error('documents.ninea') <span class="error-message">{{ $message }}</span> @enderror
+                            <input type="file" id="ninea" name="ninea" accept=".pdf,.jpg,.jpeg,.png" required>
+                            @error('ninea') <span class="error-message">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="document-item">
-                            <label for="document_piece_identite" class="document-label">
+                            <label for="piece_identite" class="document-label">
                                 <i class="fas fa-id-card"></i>
                                 <div>
                                     <span>Pièce d'identité</span>
@@ -229,20 +227,20 @@
                                 </div>
                                 <span class="required">*</span>
                             </label>
-                            <input type="file" id="document_piece_identite" name="documents[piece_identite]" accept=".pdf,.jpg,.jpeg,.png" required>
-                            @error('documents.piece_identite') <span class="error-message">{{ $message }}</span> @enderror
+                            <input type="file" id="piece_identite" name="piece_identite" accept=".pdf,.jpg,.jpeg,.png" required>
+                            @error('piece_identite') <span class="error-message">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="document-item">
-                            <label for="document_logo" class="document-label">
+                            <label for="logo" class="document-label">
                                 <i class="fas fa-image"></i>
                                 <div>
                                     <span>Logo</span>
                                     <small>Optionnel · PNG, JPEG</small>
                                 </div>
                             </label>
-                            <input type="file" id="document_logo" name="documents[logo]" accept=".jpg,.jpeg,.png">
-                            @error('documents.logo') <span class="error-message">{{ $message }}</span> @enderror
+                            <input type="file" id="logo" name="logo" accept=".jpg,.jpeg,.png">
+                            @error('logo') <span class="error-message">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
@@ -255,17 +253,18 @@
                 <!-- Conditions -->
                 <div class="conditions">
                     <label class="checkbox">
-                        <input type="checkbox" name="conditions" required>
+                        <input type="checkbox" name="conditions" value="1" required>
                         <span>
                             Je certifie l'exactitude des informations fournies et j'accepte les 
                             <a href="#" class="link">Conditions d'utilisation</a>
                         </span>
                         <span class="required">*</span>
                     </label>
+                    @error('conditions') <span class="error-message">{{ $message }}</span> @enderror
                 </div>
 
                 <!-- Actions -->
-                <button type="submit" class="btn-submit">
+                <button type="submit" class="btn-submit" id="submitBtn">
                     <i class="fas fa-paper-plane"></i>
                     Soumettre la demande
                 </button>
@@ -428,16 +427,6 @@
 
     .toggle-password:hover {
         color: var(--text);
-    }
-
-    /* Password strength */
-    .password-strength {
-        animation: strengthPulse 0.3s ease;
-    }
-
-    @keyframes strengthPulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
     }
 
     /* ===================== DOCUMENTS ===================== */
@@ -643,7 +632,7 @@
 
         .field input,
         .field textarea {
-            font-size: 16px; /* Évite le zoom sur mobile */
+            font-size: 16px;
         }
     }
 </style>
@@ -652,140 +641,47 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Toggle password
+    // ==================== TOGGLE PASSWORD ====================
     document.querySelectorAll('.toggle-password').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const input = this.closest('.password-wrapper').querySelector('input');
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const wrapper = this.closest('.password-wrapper');
+            const input = wrapper.querySelector('input');
             const icon = this.querySelector('i');
             
             if (input.type === 'password') {
                 input.type = 'text';
-                icon.classList.replace('fa-eye', 'fa-eye-slash');
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
             } else {
                 input.type = 'password';
-                icon.classList.replace('fa-eye-slash', 'fa-eye');
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
             }
         });
     });
 
-    // Password strength meter
-    const passwordInput = document.getElementById('mot_de_passe');
-    const strengthBar = document.getElementById('strengthBar');
-    const strengthText = document.getElementById('strengthText');
-    const strengthContainer = document.querySelector('.password-strength');
-
-    passwordInput.addEventListener('input', function() {
-        const password = this.value;
-        
-        if (password.length === 0) {
-            strengthContainer.style.display = 'none';
-            return;
-        }
-
-        strengthContainer.style.display = 'block';
-        
-        let strength = 0;
-        let label = 'Faible';
-        let color = '#C62828';
-
-        if (password.length >= 8) strength += 1;
-        if (password.length >= 12) strength += 1;
-        if (/[A-Z]/.test(password)) strength += 1;
-        if (/[a-z]/.test(password)) strength += 1;
-        if (/[0-9]/.test(password)) strength += 1;
-        if (/[^A-Za-z0-9]/.test(password)) strength += 1;
-
-        let percentage = Math.min((strength / 6) * 100, 100);
-
-        if (strength <= 2) {
-            label = 'Faible';
-            color = '#C62828';
-        } else if (strength <= 4) {
-            label = 'Moyen';
-            color = '#F5A623';
-        } else if (strength <= 5) {
-            label = 'Fort';
-            color = '#4A90D9';
-        } else {
-            label = 'Très fort';
-            color = '#1E7A47';
-        }
-
-        strengthBar.style.width = percentage + '%';
-        strengthBar.style.background = color;
-        strengthText.textContent = 'Force : ' + label;
-        strengthText.style.color = color;
-    });
-
-    // File upload indicator
+    // ==================== FILE UPLOAD INDICATOR ====================
     document.querySelectorAll('.document-item input[type="file"]').forEach(input => {
         input.addEventListener('change', function() {
             const item = this.closest('.document-item');
-            const label = item.querySelector('.document-label span');
-            
             if (this.files.length > 0) {
                 item.classList.add('has-file');
-                const fileName = this.files[0].name;
-                const text = label.textContent;
-                label.textContent = text.length > 15 ? text.substring(0, 12) + '…' : text;
             } else {
                 item.classList.remove('has-file');
             }
         });
     });
 
-    // Auto-capitalization
+    // ==================== AUTO-CAPITALIZATION ====================
     ['nom', 'prenom', 'nom_agence', 'quartier'].forEach(id => {
         const input = document.getElementById(id);
         if (input) {
             input.addEventListener('blur', function() {
-                this.value = this.value.charAt(0).toUpperCase() + this.value.slice(1).toLowerCase();
+                if (this.value.length > 0) {
+                    this.value = this.value.charAt(0).toUpperCase() + this.value.slice(1).toLowerCase();
+                }
             });
-        }
-    });
-
-    // Form validation
-    const form = document.getElementById('registerForm');
-    form.addEventListener('submit', function(e) {
-        const password = document.getElementById('mot_de_passe').value;
-        const confirm = document.getElementById('mot_de_passe_confirmation').value;
-        const conditions = document.querySelector('input[name="conditions"]');
-
-        if (password !== confirm) {
-            e.preventDefault();
-            alert('Les mots de passe ne correspondent pas.');
-            return;
-        }
-
-        if (password.length < 8) {
-            e.preventDefault();
-            alert('Le mot de passe doit contenir au moins 8 caractères.');
-            return;
-        }
-
-        if (!conditions.checked) {
-            e.preventDefault();
-            alert('Vous devez accepter les conditions d\'utilisation.');
-            return;
-        }
-
-        // Vérifier les fichiers obligatoires
-        const requiredDocs = ['document_rccm', 'document_ninea', 'document_piece_identite'];
-        let missingDocs = false;
-        requiredDocs.forEach(id => {
-            const input = document.getElementById(id);
-            if (!input.files || !input.files[0]) {
-                missingDocs = true;
-                input.classList.add('is-invalid');
-            } else {
-                input.classList.remove('is-invalid');
-            }
-        });
-
-        if (missingDocs) {
-            e.preventDefault();
-            alert('Veuillez télécharger tous les documents obligatoires.');
-            return;
         }
     });
 });

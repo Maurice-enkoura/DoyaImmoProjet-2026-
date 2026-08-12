@@ -95,7 +95,7 @@
         padding: 8px 12px;
         border: 1px solid var(--border);
         border-radius: 8px;
-        font-size: 16px !important; /* Force 16px pour éviter le zoom sur iOS */
+        font-size: 16px !important;
         font-family: inherit;
         background: #fff;
         color: var(--ink);
@@ -158,6 +158,26 @@
         text-align: center;
         display: flex;
         flex-direction: column;
+        position: relative;
+    }
+
+    /* ✅ Carte agence avec biens en vedette */
+    .agency-card.has-vedette {
+        border-color: #F5A623;
+        border-width: 2px;
+    }
+
+    .agency-card.has-vedette::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: var(--radius);
+        background: linear-gradient(135deg, rgba(245, 166, 35, 0.04), transparent);
+        pointer-events: none;
+        z-index: 0;
     }
 
     .agency-card:hover {
@@ -181,6 +201,8 @@
         color: var(--muted);
         flex-shrink: 0;
         overflow: hidden;
+        position: relative;
+        z-index: 1;
     }
 
     .agency-logo img {
@@ -196,6 +218,13 @@
         font-size: clamp(16px, 1.2vw, 18px);
         margin-bottom: 4px;
         word-break: break-word;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        position: relative;
+        z-index: 1;
     }
 
     .agency-location {
@@ -203,6 +232,8 @@
         color: var(--muted);
         margin-bottom: 8px;
         word-break: break-word;
+        position: relative;
+        z-index: 1;
     }
 
     .agency-stats {
@@ -212,6 +243,8 @@
         margin: 10px 0;
         font-size: clamp(12px, 0.8vw, 13px);
         flex-wrap: wrap;
+        position: relative;
+        z-index: 1;
     }
 
     .agency-stats span {
@@ -226,6 +259,8 @@
         font-weight: 700;
         font-size: clamp(14px, 1vw, 16px);
         margin-bottom: 10px;
+        position: relative;
+        z-index: 1;
     }
 
     .agency-description {
@@ -238,6 +273,8 @@
         -webkit-box-orient: vertical;
         overflow: hidden;
         flex: 1;
+        position: relative;
+        z-index: 1;
     }
 
     .agency-actions {
@@ -246,6 +283,8 @@
         justify-content: center;
         flex-wrap: wrap;
         margin-top: auto;
+        position: relative;
+        z-index: 1;
     }
 
     .agency-actions .btn {
@@ -275,6 +314,60 @@
         font-size: clamp(10px, 0.7vw, 11px);
         font-weight: 600;
         margin-left: 6px;
+    }
+
+    /* ✅ Badge Vedette sur l'agence */
+    .badge-vedette-agency {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #fff;
+        background: #F5A623;
+        box-shadow: 0 2px 8px rgba(245, 166, 35, 0.3);
+        margin-left: 4px;
+        animation: pulseVedette 2s ease-in-out infinite;
+        position: relative;
+        z-index: 1;
+    }
+
+    .badge-vedette-agency i {
+        font-size: 9px;
+    }
+
+    /* ✅ Tag Vedette sur la carte */
+    .vedette-tag-card {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #fff;
+        background: #F5A623;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        z-index: 10;
+        box-shadow: 0 2px 8px rgba(245, 166, 35, 0.3);
+        animation: pulseVedette 2s ease-in-out infinite;
+    }
+
+    .vedette-tag-card i {
+        font-size: 9px;
+    }
+
+    @keyframes pulseVedette {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.8;
+        }
     }
 
     /* ===== PAGINATION ===== */
@@ -464,7 +557,6 @@
             justify-content: center;
         }
 
-        /* ===== IMPORTANT : Garder 16px sur mobile ===== */
         .filter-section .filter-group select,
         .filter-section .filter-group input {
             font-size: 16px !important;
@@ -528,6 +620,22 @@
             font-size: 9px;
             padding: 1px 8px;
         }
+
+        .vedette-tag-card {
+            font-size: 9px;
+            padding: 3px 10px;
+            top: 8px;
+            right: 8px;
+        }
+
+        .vedette-tag-card i {
+            font-size: 8px;
+        }
+
+        .badge-vedette-agency {
+            font-size: 9px;
+            padding: 1px 8px;
+        }
     }
 
     @media (max-width: 460px) {
@@ -583,6 +691,10 @@
             animation-iteration-count: 1 !important;
             transition-duration: 0.01ms !important;
         }
+        .badge-vedette-agency,
+        .vedette-tag-card {
+            animation: none !important;
+        }
     }
 </style>
 
@@ -631,7 +743,16 @@
 
     <div class="agencies-grid">
         @forelse($agences as $agence)
-            <div class="agency-card">
+            @php
+                $hasVedette = $agence->biens()->where('est_vedette', true)->exists();
+            @endphp
+            <div class="agency-card {{ $hasVedette ? 'has-vedette' : '' }}">
+                @if($hasVedette)
+                    <div class="vedette-tag-card">
+                        <i class="fa-solid fa-star"></i> Vedette
+                    </div>
+                @endif
+
                 <div class="agency-logo">
                     @if($agence->logo)
                         <img src="{{ asset('storage/' . $agence->logo) }}" alt="{{ $agence->nom_agence }}">
@@ -642,10 +763,15 @@
 
                 <div class="agency-name">
                     {{ $agence->nom_agence }}
+                    @if($hasVedette)
+                        <span class="badge-vedette-agency">
+                            <i class="fa-solid fa-star"></i> Vedette
+                        </span>
+                    @endif
                     @if($agence->statut_validation)
-                        <span class="badge-verified">✓ Validée</span>
+                        <span class="badge-verified"> Validée</span>
                     @else
-                        <span class="badge-pending">⏳ En attente</span>
+                        <span class="badge-pending"> En attente</span>
                     @endif
                 </div>
 
@@ -671,6 +797,11 @@
                 <div class="agency-stats">
                     <span><i class="fa-solid fa-house"></i> {{ $agence->biens->count() }} biens</span>
                     <span><i class="fa-solid fa-handshake"></i> {{ $agence->propositions->count() }} offres</span>
+                    @if($hasVedette)
+                        <span style="color:#F5A623;">
+                            <i class="fa-solid fa-star"></i> En vedette
+                        </span>
+                    @endif
                 </div>
 
                 @if($agence->description)

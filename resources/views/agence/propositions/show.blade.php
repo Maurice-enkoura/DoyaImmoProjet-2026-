@@ -12,13 +12,20 @@
         </a>
     </div>
 
-    <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+    <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;{{ $proposition->bien && $proposition->bien->est_vedette ? 'border-color:#F5A623;border-width:2px;' : '' }}">
         <!-- En-tête -->
         <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;background:#FAFBFC;">
             <div>
-                <h3 style="font-family:var(--display);font-size:18px;font-weight:700;margin:0;">
-                    {{ $proposition->demande->type_bien->label() }} — {{ $proposition->demande->zone_recherchee }}
-                </h3>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <h3 style="font-family:var(--display);font-size:18px;font-weight:700;margin:0;">
+                        {{ $proposition->demande->type_bien->label() }} — {{ $proposition->demande->zone_recherchee }}
+                    </h3>
+                    @if($proposition->bien && $proposition->bien->est_vedette)
+                        <span class="vedette-badge-header">
+                            <i class="fa-solid fa-star"></i> Vedette
+                        </span>
+                    @endif
+                </div>
                 <div style="font-size:13px;color:var(--muted);margin-top:4px;">
                     Budget max : {{ number_format($proposition->demande->budget_maximum, 0, ',', ' ') }} F/mois
                 </div>
@@ -56,6 +63,11 @@
                         {{ number_format($proposition->prix_propose, 0, ',', ' ') }} FCFA
                     </div>
                     <div style="font-size:12px;color:var(--muted);">Prix proposé</div>
+                    @if($proposition->bien && $proposition->bien->est_vedette)
+                        <div style="font-size:11px;color:#F5A623;font-weight:600;margin-top:4px;">
+                            <i class="fa-solid fa-star"></i> Bien en vedette
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -88,6 +100,11 @@
                                     <img src="{{ asset('storage/' . $media->fichier) }}" 
                                          alt="Photo du bien" 
                                          style="width:100%;height:100%;object-fit:cover;">
+                                    @if($proposition->bien && $proposition->bien->est_vedette)
+                                        <div style="position:absolute;top:8px;left:8px;padding:2px 10px;border-radius:999px;font-size:9px;font-weight:600;color:#fff;background:#F5A623;z-index:3;display:flex;align-items:center;gap:3px;">
+                                            <i class="fa-solid fa-star"></i> Vedette
+                                        </div>
+                                    @endif
                                 </div>
                             @elseif($index < 6)
                                 <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:#F7F9FC;cursor:pointer;border:1px solid var(--border);" 
@@ -121,11 +138,16 @@
                     </h4>
                     <div style="display:flex;gap:12px;flex-wrap:wrap;">
                         @foreach($videos as $media)
-                            <div style="border-radius:10px;overflow:hidden;width:240px;background:#000;border:1px solid var(--border);">
+                            <div style="border-radius:10px;overflow:hidden;width:240px;background:#000;border:1px solid var(--border);position:relative;">
                                 <video src="{{ asset('storage/' . $media->fichier) }}" 
                                        style="width:100%;height:140px;object-fit:cover;display:block;"
                                        controls>
                                 </video>
+                                @if($proposition->bien && $proposition->bien->est_vedette)
+                                    <div style="position:absolute;top:8px;left:8px;padding:2px 10px;border-radius:999px;font-size:9px;font-weight:600;color:#fff;background:#F5A623;z-index:3;display:flex;align-items:center;gap:3px;">
+                                        <i class="fa-solid fa-star"></i> Vedette
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>
@@ -144,11 +166,16 @@
                     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;">
                         @foreach($bienImages->take(6) as $index => $media)
                             @if($index === 0)
-                                <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:#F7F9FC;cursor:pointer;border:1px solid var(--border);grid-column:span 2;grid-row:span 2;" 
+                                <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:#F7F9FC;cursor:pointer;border:1px solid var(--border);grid-column:span 2;grid-row:span 2;position:relative;" 
                                      onclick="openLightbox('{{ asset('storage/' . $media->fichier) }}')">
                                     <img src="{{ asset('storage/' . $media->fichier) }}" 
                                          alt="Photo du bien" 
                                          style="width:100%;height:100%;object-fit:cover;">
+                                    @if($proposition->bien && $proposition->bien->est_vedette)
+                                        <div style="position:absolute;top:8px;left:8px;padding:2px 10px;border-radius:999px;font-size:9px;font-weight:600;color:#fff;background:#F5A623;z-index:3;display:flex;align-items:center;gap:3px;">
+                                            <i class="fa-solid fa-star"></i> Vedette
+                                        </div>
+                                    @endif
                                 </div>
                             @elseif($index < 6)
                                 <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:#F7F9FC;cursor:pointer;border:1px solid var(--border);" 
@@ -182,11 +209,16 @@
                     </h4>
                     <div style="display:flex;gap:12px;flex-wrap:wrap;">
                         @foreach($bienVideos as $media)
-                            <div style="border-radius:10px;overflow:hidden;width:240px;background:#000;border:1px solid var(--border);">
+                            <div style="border-radius:10px;overflow:hidden;width:240px;background:#000;border:1px solid var(--border);position:relative;">
                                 <video src="{{ asset('storage/' . $media->fichier) }}" 
                                        style="width:100%;height:140px;object-fit:cover;display:block;"
                                        controls>
                                 </video>
+                                @if($proposition->bien && $proposition->bien->est_vedette)
+                                    <div style="position:absolute;top:8px;left:8px;padding:2px 10px;border-radius:999px;font-size:9px;font-weight:600;color:#fff;background:#F5A623;z-index:3;display:flex;align-items:center;gap:3px;">
+                                        <i class="fa-solid fa-star"></i> Vedette
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>
@@ -197,6 +229,11 @@
             <div style="margin-bottom:24px;">
                 <h4 style="font-family:var(--display);font-size:14px;margin-bottom:12px;color:var(--text-soft);">
                     <i class="fa-regular fa-building" style="margin-right:8px;"></i>Bien proposé
+                    @if($proposition->bien && $proposition->bien->est_vedette)
+                        <span class="vedette-badge-small">
+                            <i class="fa-solid fa-star"></i> Vedette
+                        </span>
+                    @endif
                 </h4>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
                     <div style="padding:10px 16px;background:#FAFBFC;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
@@ -225,7 +262,7 @@
                     </div>
                     <div style="padding:10px 16px;background:#FAFBFC;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
                         <span style="color:var(--muted);font-size:13px;">Parking</span>
-                        <span style="font-weight:500;font-size:13px;">{{ $proposition->bien->parking_disponible ? ' Disponible' : ' Non' }}</span>
+                        <span style="font-weight:500;font-size:13px;">{{ $proposition->bien->parking_disponible ? ' Disponible' : '❌ Non' }}</span>
                     </div>
                     <div style="padding:10px 16px;background:#fff;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
                         <span style="color:var(--muted);font-size:13px;">Meublé</span>
@@ -259,6 +296,11 @@
                             <i class="fa-solid fa-xmark"></i> Annuler
                         </button>
                     </form>
+                @endif
+                @if($proposition->bien && $proposition->bien->est_vedette)
+                    <span style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#FFF8E1;color:#E65100;border-radius:10px;font-size:13px;font-weight:600;">
+                        <i class="fa-solid fa-star" style="color:#F5A623;"></i> Bien en vedette
+                    </span>
                 @endif
                 <a href="{{ route('agence.propositions.index') }}" class="btn btn-ghost btn-sm" style="margin-left:auto;">
                     <i class="fa-solid fa-list"></i> Toutes mes offres
@@ -321,6 +363,41 @@
         color: #C62828;
     }
 
+    .vedette-badge-header {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #fff;
+        background: #F5A623;
+        box-shadow: 0 2px 8px rgba(245, 166, 35, 0.3);
+    }
+
+    .vedette-badge-header i {
+        font-size: 10px;
+    }
+
+    .vedette-badge-small {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #fff;
+        background: #F5A623;
+        margin-left: 8px;
+        box-shadow: 0 2px 6px rgba(245, 166, 35, 0.25);
+    }
+
+    .vedette-badge-small i {
+        font-size: 9px;
+    }
+
     @media (max-width: 1024px) {
         [style*="grid-template-columns: repeat(6,1fr)"] {
             grid-template-columns: repeat(4, 1fr) !important;
@@ -341,6 +418,14 @@
         }
         [style*="grid-template-columns: 1fr 1fr"] {
             grid-template-columns: 1fr !important;
+        }
+        .vedette-badge-header {
+            font-size: 10px;
+            padding: 3px 10px;
+        }
+        .vedette-badge-small {
+            font-size: 9px;
+            padding: 1px 8px;
         }
     }
 

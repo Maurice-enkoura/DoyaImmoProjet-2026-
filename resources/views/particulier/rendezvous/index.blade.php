@@ -14,8 +14,6 @@
     </div>
 
     @if($rendezVous->count() > 0)
-        <!-- Statistiques rapides -->
-        
         <!-- Liste des rendez-vous -->
         <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
             @foreach($rendezVous as $rdv)
@@ -41,13 +39,28 @@
                                 </span>
                             @endif
                         </div>
+                        
+                        <!-- Agence -->
                         <div style="font-size:13px;color:var(--muted);">
                             <i class="fa-regular fa-building" style="margin-right:4px;"></i>
                             {{ $rdv->agence->nom_agence }}
                         </div>
+                        
+                        <!-- ✅ Numéro de téléphone de l'agence -->
+                        <div style="font-size:13px;color:var(--muted);">
+                            <i class="fa-solid fa-phone" style="margin-right:4px;color:var(--rust);"></i>
+                            @if($rdv->agence->user && $rdv->agence->user->telephone)
+                                <a href="tel:{{ $rdv->agence->user->telephone }}" style="color:var(--ink);text-decoration:none;font-weight:500;">
+                                    {{ $rdv->agence->user->telephone }}
+                                </a>
+                            @else
+                                <span style="color:var(--muted);">Non renseigné</span>
+                            @endif
+                        </div>
+                        
+                        <!-- Heure -->
                         <div style="font-size:13px;color:var(--muted);">
                             <i class="fa-regular fa-clock" style="margin-right:4px;"></i>
-                            
                             {{ \Carbon\Carbon::parse($rdv->heure_visite)->format('H:i') }}
                             @if($rdv->proposition->bien)
                                 · Visite du bien
@@ -79,6 +92,12 @@
                                 </button>
                             </form>
                         @elseif($rdv->statut->value === 'confirme')
+                            <!-- ✅ Bouton Appeler l'agence -->
+                            @if($rdv->agence->user && $rdv->agence->user->telephone)
+                                <a href="tel:{{ $rdv->agence->user->telephone }}" class="btn btn-success btn-sm" style="background:#25D366;color:#fff;border:none;padding:6px 14px;border-radius:10px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+                                    <i class="fa-solid fa-phone"></i> Appeler
+                                </a>
+                            @endif
                             <form action="{{ route('particulier.rendezvous.annuler', $rdv) }}" method="POST" style="display:inline;">
                                 @csrf
                                 <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('Annuler ce rendez-vous ?')">
@@ -89,6 +108,11 @@
                             <a href="{{ route('particulier.evaluations.create', $rdv->agence) }}" class="btn btn-rust btn-sm">
                                 <i class="fa-solid fa-star"></i> Évaluer
                             </a>
+                            @if($rdv->agence->user && $rdv->agence->user->telephone)
+                                <a href="tel:{{ $rdv->agence->user->telephone }}" class="btn btn-success btn-sm" style="background:#25D366;color:#fff;border:none;padding:6px 14px;border-radius:10px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+                                    <i class="fa-solid fa-phone"></i> Appeler
+                                </a>
+                            @endif
                         @endif
                         <a href="{{ route('particulier.rendezvous.show', $rdv) }}" class="btn btn-ghost btn-sm">
                             <i class="fa-solid fa-eye"></i> Détails
@@ -149,6 +173,16 @@
     .btn-rust {
         background: var(--rust);
         color: #fff;
+        border: none;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: background 0.2s;
     }
     .btn-rust:hover {
         background: #9A4523;
@@ -157,7 +191,16 @@
     .btn-ghost {
         background: transparent;
         color: var(--text-soft);
-        border-color: var(--border);
+        border: 1px solid var(--border);
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
     }
     .btn-ghost:hover {
         background: var(--border);
@@ -165,6 +208,25 @@
     .btn-sm {
         padding: 6px 14px;
         font-size: 12.5px;
+    }
+
+    .btn-success {
+        background: #25D366;
+        color: #fff;
+        border: none;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: background 0.2s;
+    }
+    .btn-success:hover {
+        background: #1DA851;
+        color: #fff;
     }
 
     .pagination {

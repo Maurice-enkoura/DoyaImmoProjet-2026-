@@ -79,6 +79,25 @@
         background: #FFF8E1;
         color: #E65100;
     }
+    .status-badge {
+        display: inline-block;
+        padding: 2px 12px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .badge-basic {
+        background: #E0E0E0;
+        color: #616161;
+    }
+    .badge-premium {
+        background: #FFF3E0;
+        color: #E65100;
+    }
+    .badge-pro {
+        background: #FFF8E1;
+        color: #F57F17;
+    }
 </style>
 
 <div style="margin-bottom:20px;">
@@ -102,6 +121,7 @@
                 </div>
             </div>
             <span class="status-pill {{ $abonnement->estActif() ? 'status-active' : 'status-inactif' }}">
+                <i class="fa-solid {{ $abonnement->estActif() ? 'fa-circle-check' : 'fa-circle-xmark' }}"></i>
                 {{ $abonnement->estActif() ? ' Actif' : ' Expiré' }}
             </span>
         </div>
@@ -109,7 +129,11 @@
         <div class="info-grid">
             <div class="info-item">
                 <div class="label">Agence</div>
-                <div class="value">{{ $abonnement->agence->nom_agence ?? 'N/A' }}</div>
+                <div class="value">
+                    <a href="{{ route('admin.agences.show', $abonnement->agence_id) }}" style="color:var(--rust);text-decoration:none;">
+                        {{ $abonnement->agence->nom_agence ?? 'N/A' }}
+                    </a>
+                </div>
             </div>
             <div class="info-item">
                 <div class="label">Formule</div>
@@ -118,12 +142,18 @@
                         $formuleLabel = is_object($abonnement->formule) && method_exists($abonnement->formule, 'label') 
                             ? $abonnement->formule->label() 
                             : ucfirst($abonnement->formule);
+                        $formuleClass = match(strtolower($formuleLabel)) {
+                            'pro' => 'badge-pro',
+                            'premium' => 'badge-premium',
+                            default => 'badge-basic',
+                        };
                     @endphp
-                    <span class="status-pill 
-                        @if($formuleLabel === 'Pro') status-active
-                        @elseif($formuleLabel === 'Premium') status-confirme
-                        @else status-en_attente
-                        @endif">
+                    <span class="status-badge {{ $formuleClass }}">
+                        <i class="fa-solid {{ match(strtolower($formuleLabel)) {
+                            'pro' => 'fa-gem',
+                            'premium' => 'fa-crown',
+                            default => 'fa-star',
+                        } }}"></i>
                         {{ $formuleLabel }}
                     </span>
                 </div>
@@ -132,33 +162,37 @@
                 <div class="label">Montant</div>
                 <div class="value" style="color:var(--rust);font-size:16px;">
                     @if($abonnement->montant == 0)
-                        Gratuit
+                        <i class="fa-solid fa-gift"></i> Gratuit
                     @else
-                        {{ number_format($abonnement->montant, 0, ',', ' ') }} FCFA
+                        <i class="fa-solid fa-money-bill-wave"></i> {{ number_format($abonnement->montant, 0, ',', ' ') }} FCFA
                     @endif
                 </div>
             </div>
             <div class="info-item">
                 <div class="label">Durée</div>
                 <div class="value">
+                    <i class="fa-regular fa-calendar"></i> 
                     @php
                         $debut = \Carbon\Carbon::parse($abonnement->date_debut);
                         $fin = \Carbon\Carbon::parse($abonnement->date_fin);
                         $diffMois = $debut->diffInMonths($fin);
+                        $diffJours = $debut->diffInDays($fin);
                     @endphp
-                    {{ $diffMois }} mois
+                    {{ $diffMois }} mois ({{ $diffJours }} jours)
                 </div>
             </div>
             <div class="info-item">
                 <div class="label">Date de début</div>
-                <div class="value">{{ $abonnement->date_debut->format('d/m/Y') }}</div>
+                <div class="value">{{ $abonnement->date_debut->format('d/m/Y H:i') }}</div>
             </div>
             <div class="info-item">
                 <div class="label">Date de fin</div>
                 <div class="value">
-                    {{ $abonnement->date_fin->format('d/m/Y') }}
-                    @if($abonnement->estExpirant(7))
-                        <span class="status-pill status-warning" style="font-size:9px;margin-left:8px;">Expire bientôt</span>
+                    {{ $abonnement->date_fin->format('d/m/Y H:i') }}
+                    @if($abonnement->estActif() && $abonnement->date_fin->diffInDays(now()) <= 7)
+                        <span class="status-pill status-warning" style="font-size:9px;margin-left:8px;">
+                            <i class="fa-solid fa-clock"></i> Expire bientôt
+                        </span>
                     @endif
                 </div>
             </div>
@@ -166,7 +200,7 @@
                 <div class="label">Statut</div>
                 <div class="value">
                     <span class="status-pill {{ $abonnement->estActif() ? 'status-active' : 'status-inactif' }}">
-                        {{ $abonnement->estActif() ? 'Actif' : 'Expiré' }}
+                        {{ $abonnement->estActif() ? ' Actif' : ' Expiré' }}
                     </span>
                 </div>
             </div>
@@ -187,7 +221,9 @@
             @if($abonnement->paydunya_token)
                 <div class="info-item" style="grid-column:span 2;">
                     <div class="label">Token PayDunya</div>
-                    <div class="value" style="font-size:12px;word-break:break-all;">{{ $abonnement->paydunya_token }}</div>
+                    <div class="value" style="font-size:12px;word-break:break-all;background:#F7F9FC;padding:4px 8px;border-radius:4px;font-family:monospace;">
+                        {{ $abonnement->paydunya_token }}
+                    </div>
                 </div>
             @endif
             @if($abonnement->paydunya_paid_at)
@@ -205,7 +241,7 @@
                     <form action="{{ route('admin.abonnements.desactiver', $abonnement) }}" method="POST" style="display:inline;">
                         @csrf
                         @method('PUT')
-                        <button type="submit" class="btn btn-danger" onclick="return confirm('Suspendre cet abonnement ?')">
+                        <button type="submit" class="btn btn-danger" onclick="return confirm(' Suspendre cet abonnement ? L\'agence perdra ses avantages.')">
                             <i class="fa-solid fa-pause"></i> Suspendre
                         </button>
                     </form>
@@ -213,12 +249,12 @@
                     <form action="{{ route('admin.abonnements.activer', $abonnement) }}" method="POST" style="display:inline;">
                         @csrf
                         @method('PUT')
-                        <button type="submit" class="btn btn-success" onclick="return confirm('Réactiver cet abonnement ?')">
+                        <button type="submit" class="btn btn-success" onclick="return confirm(' Réactiver cet abonnement ?')">
                             <i class="fa-solid fa-play"></i> Réactiver
                         </button>
                     </form>
                 @endif
-                <form action="{{ route('admin.abonnements.destroy', $abonnement) }}" method="POST" onsubmit="return confirm('Supprimer définitivement cet abonnement ?')">
+                <form action="{{ route('admin.abonnements.destroy', $abonnement) }}" method="POST" onsubmit="return confirm('🗑️ Supprimer définitivement cet abonnement ? Cette action est irréversible.')">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="btn btn-danger">
@@ -268,9 +304,9 @@
                         <div style="font-size:10px;color:var(--muted);">Statut validation</div>
                         <div style="font-weight:600;">
                             @if($abonnement->agence->statut_validation)
-                                <span class="status-pill status-active">Validée</span>
+                                <span class="status-pill status-active"> Validée</span>
                             @else
-                                <span class="status-pill status-warning">En attente</span>
+                                <span class="status-pill status-warning"> En attente</span>
                             @endif
                         </div>
                     </div>
@@ -325,9 +361,9 @@
                     <div style="font-size:10px;color:var(--muted);">Montant</div>
                     <div style="font-weight:600;color:var(--rust);">
                         @if($abonnement->montant == 0)
-                            Gratuit
+                            <i class="fa-solid fa-gift"></i> Gratuit
                         @else
-                            {{ number_format($abonnement->montant, 0, ',', ' ') }} FCFA
+                            <i class="fa-solid fa-money-bill-wave"></i> {{ number_format($abonnement->montant, 0, ',', ' ') }} FCFA
                         @endif
                     </div>
                 </div>
@@ -342,6 +378,46 @@
                     </div>
                 </div>
             @endif
+        </div>
+
+        <!-- 📊 Détails de l'offre -->
+        <div class="panel" style="margin-top:20px;">
+            <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">
+                <i class="fa-solid fa-list-check"></i> Détails de l'offre
+            </h3>
+            @php
+                $formule = $abonnement->formule;
+                $offres = $formule->limiteOffres() === PHP_INT_MAX ? 'Illimité' : $formule->limiteOffres();
+                $vedettes = $formule->limiteVedettes() === PHP_INT_MAX ? 'Illimité' : $formule->limiteVedettes();
+                $accesAnticipe = $formule->accesAnticipe() ? $formule->accesAnticipe() . ' minutes' : 'Non';
+                $badge = $formule->badge() ?? 'Aucun';
+            @endphp
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="padding:6px 10px;background:#F7F9FC;border-radius:6px;">
+                    <div style="font-size:10px;color:var(--muted);">Offres par mois</div>
+                    <div style="font-weight:600;font-size:15px;">{{ $offres }}</div>
+                </div>
+                <div style="padding:6px 10px;background:#F7F9FC;border-radius:6px;">
+                    <div style="font-size:10px;color:var(--muted);">Biens en vedette</div>
+                    <div style="font-weight:600;font-size:15px;">{{ $vedettes }}</div>
+                </div>
+                <div style="padding:6px 10px;background:#F7F9FC;border-radius:6px;">
+                    <div style="font-size:10px;color:var(--muted);">Accès anticipé</div>
+                    <div style="font-weight:600;font-size:15px;">{{ $accesAnticipe }}</div>
+                </div>
+                <div style="padding:6px 10px;background:#F7F9FC;border-radius:6px;">
+                    <div style="font-size:10px;color:var(--muted);">Badge</div>
+                    <div style="font-weight:600;font-size:15px;">
+                        @if($badge !== 'Aucun')
+                            <span class="status-badge {{ strtolower($badge) === 'recommandé' ? 'badge-pro' : 'badge-premium' }}">
+                                {{ $badge }}
+                            </span>
+                        @else
+                            <span style="color:var(--muted);">—</span>
+                        @endif
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

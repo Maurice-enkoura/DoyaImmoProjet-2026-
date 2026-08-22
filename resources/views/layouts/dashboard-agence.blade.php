@@ -486,8 +486,15 @@
         }
 
         @keyframes pulse-dot {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.2); }
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.2);
+            }
         }
 
         .dropdown {
@@ -760,13 +767,27 @@
         }
 
         @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         @keyframes slideOutRight {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
         }
 
         .toast-removing {
@@ -1441,11 +1462,11 @@
                     href="{{ route('agence.historique') }}">
                     <i class="ic fa-solid fa-clock-rotate-left"></i> Historique
                 </a>
-                
+
                 {{-- ✅ CORRECTION : Gérer le cas où l'agence est null --}}
                 @php
-                    $agence = Auth::user()->agence;
-                    $biensCount = $agence ? $agence->biens()->where('statut', true)->count() : 0;
+                $agence = Auth::user()->agence;
+                $biensCount = $agence ? $agence->biens()->where('statut', true)->count() : 0;
                 @endphp
                 <a class="navlink {{ request()->routeIs('agence.biens.*') ? 'active' : '' }}"
                     href="{{ route('agence.biens.index') }}">
@@ -1483,24 +1504,36 @@
                     </div>
                     <div class="desc">
                         @if(isset($abonnementActuel) && $abonnementActuel)
-                            @php
-                                $limite = $abonnementActuel->formule->limiteBiens();
-                                $limiteAffichage = $limite === PHP_INT_MAX ? 'Illimité' : $limite;
-                            @endphp
-                            Jusqu'à {{ $limiteAffichage }} offres / mois
+                        @php
+                        if (!isset($agence)) {
+                        $agence = Auth::user()->agence;
+                        }
+
+                        $offresUtilisees = $agence->propositions()
+                        ->whereMonth('created_at', now()->month)
+                        ->whereYear('created_at', now()->year)
+                        ->count();
+
+                        $limiteOffres = $abonnementActuel ? $abonnementActuel->formule->limiteOffres() : 0;
+                        $limiteAffichage = $limiteOffres === PHP_INT_MAX ? 'Illimité' : $limiteOffres;
+                        @endphp
+                        Jusqu'à {{ $limiteAffichage }} offres / mois
+                        <div style="font-size:10px;color:#8A91A0;margin-top:2px;">
+                            {{ $offresUtilisees }} utilisées ce mois
+                        </div>
                         @else
-                            Aucun abonnement actif
+                        Aucun abonnement actif
                         @endif
                     </div>
                     <a href="{{ route('agence.abonnement') }}">Voir les plans →</a>
                 </div>
-                
+
                 {{-- ✅ CORRECTION : Gérer le cas où l'agence est null --}}
                 @php
-                    $agence = Auth::user()->agence;
-                    $agenceNom = $agence ? $agence->nom_agence : 'Agence';
-                    $agenceStatut = $agence ? ($agence->statut_validation ? 'Agence vérifiée' : 'En attente de validation') : 'Non configurée';
-                    $agenceInitiales = $agence ? strtoupper(substr($agence->nom_agence, 0, 2)) : 'AG';
+                $agence = Auth::user()->agence;
+                $agenceNom = $agence ? $agence->nom_agence : 'Agence';
+                $agenceStatut = $agence ? ($agence->statut_validation ? 'Agence vérifiée' : 'En attente de validation') : 'Non configurée';
+                $agenceInitiales = $agence ? strtoupper(substr($agence->nom_agence, 0, 2)) : 'AG';
                 @endphp
                 <div class="agency-mini">
                     <div class="av" style="background:var(--rust);">
@@ -1538,45 +1571,45 @@
                         <button class="icon-btn" id="notificationBtn" onclick="toggleNotifications()">
                             <i class="fa-regular fa-bell" style="color:#20262F;"></i>
                             @if($notificationsCount ?? 0 > 0)
-                                <span class="badge-count" id="notificationBadge">{{ $notificationsCount }}</span>
+                            <span class="badge-count" id="notificationBadge">{{ $notificationsCount }}</span>
                             @endif
                         </button>
                         <div class="dropdown" id="notificationDropdown">
                             <div class="dropdown-header">
                                 <span>Notifications</span>
                                 @if($notificationsCount ?? 0 > 0)
-                                    <button onclick="markAllAsRead()">Tout marquer comme lu</button>
+                                <button onclick="markAllAsRead()">Tout marquer comme lu</button>
                                 @endif
                             </div>
                             <div id="notificationList">
                                 @if(isset($notifications) && $notifications->count() > 0)
-                                    @foreach($notifications as $notification)
-                                        <div class="dropdown-item {{ $notification->read_at ? '' : 'unread' }}" onclick="markNotificationRead('{{ $notification->id }}')">
-                                            <div class="dropdown-item-icon {{ $notification->data['type'] ?? 'info' }}">
-                                                <i class="{{ $notification->data['icon'] ?? 'fa-regular fa-bell' }}"></i>
-                                            </div>
-                                            <div class="dropdown-item-content">
-                                                <div class="dropdown-item-title">{{ $notification->data['title'] ?? 'Notification' }}</div>
-                                                <div class="dropdown-item-desc">{{ $notification->data['message'] ?? '' }}</div>
-                                                <div class="dropdown-item-time">{{ $notification->created_at->diffForHumans() }}</div>
-                                                @if(isset($notification->data['link']))
-                                                    <a href="{{ $notification->data['link'] }}" class="dropdown-item-link">Voir les détails →</a>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                @else
-                                    <div class="dropdown-empty">
-                                        <i class="fa-regular fa-bell-slash"></i>
-                                        <span>Aucune notification</span>
-                                        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Vous serez informé des nouvelles activités</div>
+                                @foreach($notifications as $notification)
+                                <div class="dropdown-item {{ $notification->read_at ? '' : 'unread' }}" onclick="markNotificationRead('{{ $notification->id }}')">
+                                    <div class="dropdown-item-icon {{ $notification->data['type'] ?? 'info' }}">
+                                        <i class="{{ $notification->data['icon'] ?? 'fa-regular fa-bell' }}"></i>
                                     </div>
+                                    <div class="dropdown-item-content">
+                                        <div class="dropdown-item-title">{{ $notification->data['title'] ?? 'Notification' }}</div>
+                                        <div class="dropdown-item-desc">{{ $notification->data['message'] ?? '' }}</div>
+                                        <div class="dropdown-item-time">{{ $notification->created_at->diffForHumans() }}</div>
+                                        @if(isset($notification->data['link']))
+                                        <a href="{{ $notification->data['link'] }}" class="dropdown-item-link">Voir les détails →</a>
+                                        @endif
+                                    </div>
+                                </div>
+                                @endforeach
+                                @else
+                                <div class="dropdown-empty">
+                                    <i class="fa-regular fa-bell-slash"></i>
+                                    <span>Aucune notification</span>
+                                    <div style="font-size:12px;color:var(--muted);margin-top:4px;">Vous serez informé des nouvelles activités</div>
+                                </div>
                                 @endif
                             </div>
                             @if(isset($notifications) && $notifications->count() > 0)
-                                <div class="dropdown-footer">
-                                    <a href="{{ route('notifications.index') }}">Voir toutes les notifications</a>
-                                </div>
+                            <div class="dropdown-footer">
+                                <a href="{{ route('notifications.index') }}">Voir toutes les notifications</a>
+                            </div>
                             @endif
                         </div>
                     </div>
@@ -1664,10 +1697,24 @@
 
                 debounceTimer = setTimeout(() => {
                     // Remplacer par votre API
-                    const mockResults = [
-                        { title: 'Appartement 3 pièces', desc: 'Almadies, Dakar', type: 'bien', icon: 'fa-regular fa-building' },
-                        { title: 'Recherche villa 4 pièces', desc: 'Ngor, Dakar', type: 'besoin', icon: 'fa-regular fa-house-circle-check' },
-                        { title: 'Teranga Immobilier', desc: 'Agence à Almadies', type: 'agence', icon: 'fa-regular fa-building-columns' },
+                    const mockResults = [{
+                            title: 'Appartement 3 pièces',
+                            desc: 'Almadies, Dakar',
+                            type: 'bien',
+                            icon: 'fa-regular fa-building'
+                        },
+                        {
+                            title: 'Recherche villa 4 pièces',
+                            desc: 'Ngor, Dakar',
+                            type: 'besoin',
+                            icon: 'fa-regular fa-house-circle-check'
+                        },
+                        {
+                            title: 'Teranga Immobilier',
+                            desc: 'Agence à Almadies',
+                            type: 'agence',
+                            icon: 'fa-regular fa-building-columns'
+                        },
                     ];
 
                     const filtered = mockResults.filter(item =>
@@ -1735,32 +1782,32 @@
 
         function markNotificationRead(id) {
             fetch(`/api/notifications/${id}/read`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Content-Type': 'application/json'
-                }
-            }).then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                }
-            });
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Content-Type': 'application/json'
+                    }
+                }).then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                });
         }
 
         function markAllAsRead() {
             fetch('/api/notifications/read-all', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Content-Type': 'application/json'
-                }
-            }).then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                }
-            });
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Content-Type': 'application/json'
+                    }
+                }).then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                });
         }
 
         // ===================== TOAST =====================
@@ -1801,31 +1848,31 @@
         // ===================== POLLING =====================
         function checkNewNotifications() {
             fetch('/api/notifications/new', {
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Content-Type': 'application/json'
-                }
-            }).then(response => response.json())
-              .then(data => {
-                  if (data.notifications && data.notifications.length > 0) {
-                      data.notifications.forEach(notification => {
-                          showToast(
-                              notification.title || 'Nouvelle notification',
-                              notification.message || '',
-                              notification.type || 'info',
-                              notification.icon || null
-                          );
-                      });
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Content-Type': 'application/json'
+                    }
+                }).then(response => response.json())
+                .then(data => {
+                    if (data.notifications && data.notifications.length > 0) {
+                        data.notifications.forEach(notification => {
+                            showToast(
+                                notification.title || 'Nouvelle notification',
+                                notification.message || '',
+                                notification.type || 'info',
+                                notification.icon || null
+                            );
+                        });
 
-                      if (data.count > 0) {
-                          const badge = document.getElementById('notificationBadge');
-                          if (badge) {
-                              badge.textContent = data.count;
-                          }
-                      }
-                  }
-              })
-              .catch(() => {});
+                        if (data.count > 0) {
+                            const badge = document.getElementById('notificationBadge');
+                            if (badge) {
+                                badge.textContent = data.count;
+                            }
+                        }
+                    }
+                })
+                .catch(() => {});
         }
 
         setInterval(checkNewNotifications, 30000);

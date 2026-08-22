@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'DoyaImmo')</title>
     
@@ -723,6 +723,23 @@
                 text-align: center;
                 padding: 14px;
                 min-height: 70px;
+            }
+        }
+
+        /* ============================================
+           CORRECTION ZOOM SUR MOBILE
+           ============================================ */
+        @media (max-width: 768px) {
+            .field input,
+            .field textarea,
+            .field select,
+            .password-wrapper input {
+                font-size: 16px !important;
+            }
+
+            input::placeholder,
+            textarea::placeholder {
+                font-size: 14px !important;
             }
         }
 

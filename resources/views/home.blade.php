@@ -111,22 +111,30 @@
     </div>
 </section>
 
-<!-- ==================== BIENS EN VEDETTE (HORIZONTAL SCROLL) ==================== -->
+<!-- ==================== BIENS EN VEDETTE (CARROUSEL) ==================== -->
 @if(isset($biensVedette) && $biensVedette->count() > 0)
 <section class="wrap section vedette-section">
     <div class="biens-container">
         <div class="section-header">
             <div>
-                <span class="eyebrow"> À la une</span>
+                <span class="eyebrow">⭐ À la une</span>
                 <h2 class="h-section">Biens en vedette</h2>
             </div>
-            <a href="{{ route('biens.index') }}" class="btn btn-ghost btn-sm">
-                Voir tous les biens →
-            </a>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <button class="carousel-btn prev-btn" onclick="moveVedetteCarousel(-1)" aria-label="Précédent">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <button class="carousel-btn next-btn" onclick="moveVedetteCarousel(1)" aria-label="Suivant">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <a href="{{ route('biens.index') }}" class="btn btn-ghost btn-sm">
+                    Voir tous →
+                </a>
+            </div>
         </div>
 
-        <div class="vedette-scroll-wrapper">
-            <div class="vedette-scroll">
+        <div class="vedette-carousel-wrapper">
+            <div class="vedette-carousel" id="vedetteCarousel">
                 @foreach($biensVedette as $bien)
                     <div class="vedette-card">
                         <div class="vedette-image">
@@ -164,6 +172,18 @@
                 @endforeach
             </div>
         </div>
+
+        {{-- Indicateurs de page --}}
+        @if($biensVedette->count() > 3)
+        <div class="carousel-dots" id="vedetteDots">
+            @php
+                $totalSlides = ceil($biensVedette->count() / 3);
+            @endphp
+            @for($i = 0; $i < $totalSlides; $i++)
+                <span class="dot {{ $i === 0 ? 'active' : '' }}" onclick="goToVedetteSlide({{ $i }})"></span>
+            @endfor
+        </div>
+        @endif
     </div>
 </section>
 @endif
@@ -433,25 +453,32 @@
     transform: translateY(-50%);
     padding: 20px 40px;
     color: #fff;
-    max-width: 600px;
     text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-    width: 100%;
+    box-sizing: border-box;
 }
 
 .banner-content.gauche {
     left: 10%;
+    right: 6%;
+    width: auto;
+    max-width: 600px;
     text-align: left;
 }
 
 .banner-content.droite {
     right: 10%;
-    left: auto;
+    left: 6%;
+    width: auto;
+    max-width: 600px;
     text-align: right;
+    margin-left: auto;
 }
 
 .banner-content.centre {
     left: 50%;
+    right: auto;
     transform: translate(-50%, -50%);
+    width: min(600px, 88%);
     text-align: center;
 }
 
@@ -572,6 +599,7 @@
     color: #fff;
     position: relative;
     overflow: hidden;
+    box-sizing: border-box;
 }
 
 .hero-illustration::before {
@@ -595,6 +623,7 @@
     position: relative;
     z-index: 2;
     transition: background 0.2s;
+    min-width: 0;
 }
 
 .mini-card:hover {
@@ -611,6 +640,7 @@
     font-size: 14px;
     margin-bottom: 2px;
     color: #fff;
+    word-break: break-word;
 }
 
 .mini-card .s {
@@ -689,36 +719,24 @@
 }
 
 /* ============================================
-   VEDETTE - SCROLL HORIZONTAL
+   VEDETTE CARROUSEL
 ============================================ */
-.vedette-scroll-wrapper {
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 8px 0 12px;
-    margin: 0 -4px;
-    scrollbar-width: thin;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x proximity;
+.vedette-carousel-wrapper {
+    overflow: hidden;
+    position: relative;
+    border-radius: var(--radius);
 }
 
-.vedette-scroll-wrapper::-webkit-scrollbar {
-    height: 4px;
-}
-
-.vedette-scroll-wrapper::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 10px;
-}
-
-.vedette-scroll {
+.vedette-carousel {
     display: flex;
-    gap: 16px;
-    padding: 0 4px;
-    min-width: max-content;
+    gap: 20px;
+    transition: transform 0.5s ease-in-out;
+    will-change: transform;
 }
 
-.vedette-card {
-    flex: 0 0 280px;
+.vedette-carousel .vedette-card {
+    flex: 0 0 calc(33.333% - 14px);
+    min-width: 0;
     background: #fff;
     border-radius: var(--radius);
     border: 2px solid #F5A623;
@@ -726,14 +744,69 @@
     transition: transform 0.3s, box-shadow 0.3s;
     display: flex;
     flex-direction: column;
-    scroll-snap-align: start;
 }
 
-.vedette-card:hover {
+.vedette-carousel .vedette-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 30px rgba(245, 166, 35, 0.15);
 }
 
+/* ==================== BOUTONS CARROUSEL ==================== */
+.carousel-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-soft);
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.carousel-btn:hover {
+    border-color: var(--rust);
+    color: var(--rust);
+    background: var(--rust-soft);
+}
+
+.carousel-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* ==================== DOTS INDICATEURS ==================== */
+.carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.carousel-dots .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.carousel-dots .dot.active {
+    background: var(--rust);
+    width: 28px;
+    border-radius: 6px;
+}
+
+.carousel-dots .dot:hover {
+    background: var(--rust);
+    opacity: 0.7;
+}
+
+/* ==================== VEDETTE CARD ==================== */
 .vedette-image {
     position: relative;
     height: 160px;
@@ -754,6 +827,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .vedette-title {
@@ -827,6 +901,7 @@
     transition: transform 0.3s, box-shadow 0.3s;
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .bien-card:hover {
@@ -927,6 +1002,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .bien-title {
@@ -1013,6 +1089,8 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 20px;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .how-num {
@@ -1053,6 +1131,8 @@
 
 .value-card {
     padding: 16px 0;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .value-ic {
@@ -1237,6 +1317,9 @@
     .banner-content p {
         font-size: 15px;
     }
+    .vedette-carousel .vedette-card {
+        flex: 0 0 calc(50% - 10px);
+    }
 }
 
 @media (max-width: 900px) {
@@ -1385,11 +1468,22 @@
         padding: 8px 0 0;
     }
     .banner-item {
-        height: 180px;
+        height: 200px;
         border-radius: 10px;
     }
     .banner-content {
         padding: 12px 16px;
+    }
+    .banner-content.gauche,
+    .banner-content.droite {
+        left: 5%;
+        right: 5%;
+        width: auto;
+        max-width: none;
+        margin-left: 0;
+    }
+    .banner-content.centre {
+        width: 90%;
     }
     .banner-content h2 {
         font-size: 17px;
@@ -1402,24 +1496,13 @@
         padding: 4px 12px;
         font-size: 11px;
     }
-
-    .vedette-card {
-        flex: 0 0 230px;
+    .vedette-carousel .vedette-card {
+        flex: 0 0 calc(100% - 0px);
     }
-    .vedette-image {
-        height: 140px;
-    }
-    .vedette-body {
-        padding: 10px 12px 12px;
-    }
-    .vedette-title {
-        font-size: 13px;
-    }
-    .vedette-price {
-        font-size: 14px;
-    }
-    .vedette-features {
-        font-size: 9px;
+    .carousel-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 12px;
     }
 }
 
@@ -1444,8 +1527,11 @@
     .h-hero {
         font-size: 20px;
     }
+    .biens-grid {
+        grid-template-columns: 1fr;
+    }
     .bien-image {
-        height: 140px;
+        height: 170px;
     }
     .badge-status,
     .badge-vedette,
@@ -1474,7 +1560,7 @@
         font-size: 11px;
     }
     .banner-item {
-        height: 150px;
+        height: 170px;
     }
     .banner-content h2 {
         font-size: 15px;
@@ -1482,32 +1568,18 @@
     .banner-content p {
         font-size: 11px;
     }
-
-    .vedette-card {
-        flex: 0 0 200px;
+    .vedette-carousel .vedette-card {
+        flex: 0 0 calc(100% - 0px);
     }
     .vedette-image {
-        height: 120px;
+        height: 140px;
     }
-    .vedette-body {
-        padding: 8px 10px 10px;
+    .carousel-dots .dot {
+        width: 8px;
+        height: 8px;
     }
-    .vedette-title {
-        font-size: 12px;
-    }
-    .vedette-price {
-        font-size: 13px;
-    }
-    .vedette-features {
-        font-size: 8px;
-        gap: 2px;
-    }
-    .vedette-features span {
-        padding: 1px 6px;
-    }
-    .vedette-body .btn {
-        font-size: 10px;
-        padding: 4px 10px;
+    .carousel-dots .dot.active {
+        width: 20px;
     }
 }
 
@@ -1532,20 +1604,13 @@
         font-size: 9px;
     }
     .banner-item {
-        height: 130px;
+        height: 150px;
     }
     .banner-content h2 {
         font-size: 13px;
     }
     .banner-content p {
         font-size: 10px;
-    }
-
-    .vedette-card {
-        flex: 0 0 170px;
-    }
-    .vedette-image {
-        height: 100px;
     }
 }
 
@@ -1557,4 +1622,121 @@
     }
 }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+// ==================== VEDETTE CARROUSEL ====================
+let vedetteCurrentSlide = 0;
+let vedetteTotalSlides = 0;
+let vedetteAutoPlayInterval = null;
+const VEDETTE_AUTOPLAY_DELAY = 4000;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const carousel = document.getElementById('vedetteCarousel');
+    if (!carousel) return;
+    
+    const cards = carousel.querySelectorAll('.vedette-card');
+    const totalCards = cards.length;
+    
+    let cardsPerSlide = getVedetteCardsPerSlide();
+    vedetteTotalSlides = Math.ceil(totalCards / cardsPerSlide);
+    
+    updateVedetteDots();
+    startVedetteAutoplay();
+    
+    const wrapper = carousel.closest('.vedette-carousel-wrapper');
+    if (wrapper) {
+        wrapper.addEventListener('mouseenter', stopVedetteAutoplay);
+        wrapper.addEventListener('mouseleave', startVedetteAutoplay);
+    }
+    
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            const newCardsPerSlide = getVedetteCardsPerSlide();
+            if (newCardsPerSlide !== cardsPerSlide) {
+                cardsPerSlide = newCardsPerSlide;
+                vedetteTotalSlides = Math.ceil(totalCards / cardsPerSlide);
+                vedetteCurrentSlide = 0;
+                updateVedetteCarousel();
+                updateVedetteDots();
+            }
+        }, 250);
+    });
+});
+
+function getVedetteCardsPerSlide() {
+    if (window.innerWidth <= 640) return 1;
+    if (window.innerWidth <= 992) return 2;
+    return 3;
+}
+
+function moveVedetteCarousel(direction) {
+    const totalSlides = vedetteTotalSlides;
+    if (totalSlides <= 1) return;
+    
+    vedetteCurrentSlide = (vedetteCurrentSlide + direction + totalSlides) % totalSlides;
+    updateVedetteCarousel();
+    updateVedetteDots();
+    
+    stopVedetteAutoplay();
+    startVedetteAutoplay();
+}
+
+function goToVedetteSlide(index) {
+    if (index === vedetteCurrentSlide) return;
+    vedetteCurrentSlide = index;
+    updateVedetteCarousel();
+    updateVedetteDots();
+    
+    stopVedetteAutoplay();
+    startVedetteAutoplay();
+}
+
+function updateVedetteCarousel() {
+    const carousel = document.getElementById('vedetteCarousel');
+    if (!carousel) return;
+    
+    const cardsPerSlide = getVedetteCardsPerSlide();
+    const cardWidth = carousel.querySelector('.vedette-card')?.offsetWidth || 0;
+    const gap = 20;
+    const offset = vedetteCurrentSlide * (cardWidth + gap) * cardsPerSlide;
+    
+    carousel.style.transform = `translateX(-${offset}px)`;
+    
+    const prevBtn = document.querySelector('.prev-btn');
+    const nextBtn = document.querySelector('.next-btn');
+    if (prevBtn) prevBtn.disabled = vedetteCurrentSlide === 0;
+    if (nextBtn) nextBtn.disabled = vedetteCurrentSlide >= vedetteTotalSlides - 1;
+}
+
+function updateVedetteDots() {
+    const dotsContainer = document.getElementById('vedetteDots');
+    if (!dotsContainer) return;
+    
+    const dots = dotsContainer.querySelectorAll('.dot');
+    dots.forEach((dot, index) => {
+        dot.classList.toggle('active', index === vedetteCurrentSlide);
+    });
+}
+
+function startVedetteAutoplay() {
+    if (vedetteAutoPlayInterval) return;
+    if (vedetteTotalSlides <= 1) return;
+    
+    vedetteAutoPlayInterval = setInterval(() => {
+        const nextSlide = (vedetteCurrentSlide + 1) % vedetteTotalSlides;
+        goToVedetteSlide(nextSlide);
+    }, VEDETTE_AUTOPLAY_DELAY);
+}
+
+function stopVedetteAutoplay() {
+    if (vedetteAutoPlayInterval) {
+        clearInterval(vedetteAutoPlayInterval);
+        vedetteAutoPlayInterval = null;
+    }
+}
+</script>
 @endpush

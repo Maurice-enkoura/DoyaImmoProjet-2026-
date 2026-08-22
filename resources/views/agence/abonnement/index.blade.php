@@ -92,6 +92,18 @@
         border-radius: 999px;
         text-transform: uppercase;
     }
+    .plan-card .badge-upgrade {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background: #E65100;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 4px 16px;
+        border-radius: 999px;
+        text-transform: uppercase;
+    }
     .plan-card .btn-block {
         width: 100%;
         justify-content: center;
@@ -140,7 +152,7 @@
         </div>
     </div>
 
-    {{-- ✅ Message d'erreur si l'agence n'est pas validée --}}
+    {{-- ✅ Message si l'agence n'est pas validée --}}
     @if(isset($estNonValidee) && $estNonValidee)
         <div style="padding:16px 20px;background:#FFF3E0;border-radius:10px;border:1px solid #FFE0B2;margin-bottom:24px;">
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -161,7 +173,7 @@
         </div>
     @endif
 
-    <!-- Message si abonnement gratuit expiré -->
+    {{-- Message si abonnement gratuit expiré --}}
     @if(isset($abonnementGratuitExpire) && $abonnementGratuitExpire && !$abonnementActuel)
         <div style="padding:16px 20px;background:#FFF8E1;border-radius:10px;border:1px solid #FFE0B2;margin-bottom:24px;">
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -179,7 +191,61 @@
         </div>
     @endif
 
-    <!-- Abonnement actuel -->
+    {{-- 🔥 Message d'erreur : Abonnement payant actif - ne peut pas changer --}}
+    @if(session('error') && str_contains(session('error'), 'Vous ne pouvez pas changer avant la fin'))
+        <div style="padding:16px 20px;background:#FFF3E0;border-radius:10px;border:1px solid #FFE0B2;margin-bottom:24px;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <i class="fa-solid fa-clock" style="color:#E65100;font-size:24px;"></i>
+                <div style="flex:1;">
+                    <h4 style="font-family:var(--display);font-size:15px;color:#E65100;margin-bottom:4px;">
+                        ⏳ Abonnement en cours
+                    </h4>
+                    <p style="font-size:13px;color:#BF360C;margin:0;">
+                        {{ session('error') }}
+                    </p>
+                    <p style="font-size:12px;color:#BF360C;margin-top:4px;">
+                        <i class="fa-regular fa-lightbulb"></i> Vous pourrez changer d'abonnement après la date d'expiration.
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- 🔥 Message d'erreur : Même abonnement déjà actif --}}
+    @if(session('error') && str_contains(session('error'), 'déjà un abonnement') && !str_contains(session('error'), 'Vous ne pouvez pas changer avant la fin'))
+        <div style="padding:16px 20px;background:#FFF8E1;border-radius:10px;border:1px solid #FFE0B2;margin-bottom:24px;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <i class="fa-solid fa-circle-info" style="color:#E65100;font-size:24px;"></i>
+                <div style="flex:1;">
+                    <h4 style="font-family:var(--display);font-size:15px;color:#E65100;margin-bottom:4px;">
+                        ℹ️ Abonnement déjà actif
+                    </h4>
+                    <p style="font-size:13px;color:#BF360C;margin:0;">
+                        {{ session('error') }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- 🔥 Message d'erreur : Gratuit déjà utilisé --}}
+    @if(session('error') && str_contains(session('error'), 'Vous avez déjà utilisé votre abonnement gratuit'))
+        <div style="padding:16px 20px;background:#FFEBEE;border-radius:10px;border:1px solid #FFCDD2;margin-bottom:24px;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <i class="fa-solid fa-circle-exclamation" style="color:#C62828;font-size:24px;"></i>
+                <div style="flex:1;">
+                    <h4 style="font-family:var(--display);font-size:15px;color:#C62828;margin-bottom:4px;">
+                        ❌ Abonnement gratuit déjà utilisé
+                    </h4>
+                    <p style="font-size:13px;color:#B71C1C;margin:0;">
+                        {{ session('error') }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Abonnement actuel --}}
     @if(isset($abonnementActuel) && $abonnementActuel)
         <div style="padding:16px 20px;background:#E8F5E9;border-radius:10px;border:1px solid #C8E6C9;margin-bottom:24px;">
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -201,9 +267,13 @@
                         <p style="font-size:12px;color:var(--muted);margin-top:4px;">
                             {{ number_format($abonnementActuel->montant, 0, ',', ' ') }} FCFA
                         </p>
+                        <p style="font-size:11px;color:#1E7A47;margin-top:2px;">
+                            <i class="fa-regular fa-clock"></i> Renouvellement automatique mensuel
+                        </p>
                     @else
-                        <p style="font-size:12px;color:var(--muted);margin-top:4px;">
-                            Gratuit
+                        <p style="font-size:12px;color:var(--muted);margin-top:4px;">Gratuit</p>
+                        <p style="font-size:11px;color:#E65100;margin-top:2px;">
+                            <i class="fa-regular fa-clock"></i> Expire dans {{ $abonnementActuel->date_fin->diffForHumans() }}
                         </p>
                     @endif
                 </div>
@@ -212,13 +282,13 @@
                         {{ $formuleLabel }}
                     </span>
                     @if($abonnementActuel->formule->value === 'basic')
-                        <a href="#plans" class="btn btn-rust btn-sm">
-                            <i class="fa-solid fa-arrow-up"></i> Passer à un plan payant
-                        </a>
+                        <span style="font-size:12px;color:#1E7A47;">
+                            <i class="fa-solid fa-arrow-up"></i> Passez à Premium ou Pro
+                        </span>
                     @else
-                        <a href="#plans" class="btn btn-ghost btn-sm">
-                            <i class="fa-solid fa-arrows-rotate"></i> Changer de plan
-                        </a>
+                        <span style="font-size:12px;color:#E65100;">
+                            <i class="fa-solid fa-lock"></i> Abonnement verrouillé
+                        </span>
                     @endif
                 </div>
             </div>
@@ -239,7 +309,7 @@
         </div>
     @endif
 
-    <!-- Paiement en attente -->
+    {{-- Paiement en attente --}}
     @if(isset($abonnementActuel) && $abonnementActuel && !$abonnementActuel->estActif() && $abonnementActuel->paydunya_token)
         <div style="margin-top:16px;padding:12px 16px;background:#FFF8E1;border-radius:8px;border:1px solid #FFE0B2;">
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -253,7 +323,7 @@
                     <a href="{{ route('paydunya.status', $abonnementActuel) }}" class="btn btn-sm btn-rust">
                         <i class="fa-solid fa-sync"></i> Vérifier le paiement
                     </a>
-                    <a href="{{ route('paydunya.force-update', $abonnementActuel) }}" class="btn btn-sm btn-success" onclick="return confirm('⚠️ Activer manuellement cet abonnement ?')">
+                    <a href="{{ route('paydunya.force-update', $abonnementActuel) }}" class="btn btn-sm btn-success" onclick="return confirm('Activer manuellement cet abonnement ?')">
                         <i class="fa-solid fa-check"></i> Activer manuellement
                     </a>
                 </div>
@@ -261,12 +331,24 @@
         </div>
     @endif
 
-    <!-- Plans -->
+    {{-- Plans --}}
     @if(!isset($estNonValidee) || !$estNonValidee)
+        @php
+            // Définir les variables globales
+            $isPayantActif = isset($abonnementActuel) && $abonnementActuel && in_array($abonnementActuel->formule->value, ['premium', 'pro']);
+            $isBasicActif = isset($abonnementActuel) && $abonnementActuel && $abonnementActuel->formule->value === 'basic';
+        @endphp
+
         <div id="plans" class="plans-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;margin-top:24px;">
             @if(isset($plans) && count($plans) > 0)
                 @foreach($plans as $key => $plan)
-                    <div class="plan-card {{ isset($abonnementActuel) && $abonnementActuel && $abonnementActuel->formule->value == $key ? 'active' : '' }}">
+                    @php
+                        $isActive = isset($abonnementActuel) && $abonnementActuel && $abonnementActuel->formule->value == $key;
+                        $estVerrouillé = $isPayantActif && !$isActive;
+                        $peutUpgrade = $isBasicActif && in_array($key, ['premium', 'pro']);
+                        $estDejaActif = $isActive;
+                    @endphp
+                    <div class="plan-card {{ $isActive ? 'active' : '' }}">
                         
                         @if($plan['badge'])
                             <span class="badge-plan" style="background:{{ $plan['color'] ?? 'var(--rust)' }};">
@@ -274,8 +356,10 @@
                             </span>
                         @endif
 
-                        @if(isset($abonnementActuel) && $abonnementActuel && $abonnementActuel->formule->value == $key)
+                        @if($isActive)
                             <span class="badge-active">Actif</span>
+                        @elseif($peutUpgrade)
+                            <span class="badge-upgrade"> Upgrade</span>
                         @endif
 
                         <span class="plan-icon" style="color:{{ $plan['color'] ?? 'var(--ink)' }}">
@@ -290,12 +374,12 @@
                             @if($plan['price'] == 0)
                                 Gratuit
                             @else
-                                {{ $plan['price_label'] }}
+                                {{ number_format($plan['price'], 0, ',', ' ') }} FCFA
                             @endif
                         </div>
                         
                         <div class="plan-period">
-                            <i class="fa-regular fa-calendar"></i> 1 mois
+                            <i class="fa-regular fa-calendar"></i> {{ $plan['period'] ?? '1 mois' }}
                             @if($plan['price'] > 0)
                                 <span style="display:block;font-size:11px;color:var(--muted);">
                                     <i class="fa-solid fa-credit-card"></i> PayDunya (Orange Money, Wave, Visa)
@@ -312,42 +396,38 @@
                                     <span class="check">✓</span> {{ $feature }}
                                 </li>
                             @endforeach
-                            @if($plan['limite'] === PHP_INT_MAX)
-                                <li>
-                                    <span class="check">✓</span> Offres illimitées
-                                </li>
-                            @else
-                                <li>
-                                    <span class="check">✓</span> {{ $plan['limite'] }} offres par mois
-                                </li>
-                            @endif
-                            @if($plan['price'] > 0)
-                                <li>
-                                    <span class="check">✓</span> Paiement mensuel
-                                </li>
-                            @endif
                         </ul>
 
-                        @if(isset($abonnementActuel) && $abonnementActuel && $abonnementActuel->formule->value == $key)
+                        @if($isActive)
                             <button class="btn btn-ghost btn-block" disabled style="opacity:0.6;cursor:not-allowed;">
                                 <i class="fa-solid fa-check"></i> Plan actif
                             </button>
+                        @elseif($estVerrouillé)
+                            <button class="btn btn-ghost btn-block" disabled style="opacity:0.5;cursor:not-allowed;background:#FFF3E0;border-color:#FFE0B2;">
+                                <i class="fa-solid fa-lock"></i> Abonnement verrouillé
+                            </button>
+                            <p style="font-size:10px;color:#E65100;margin-top:4px;">
+                                <i class="fa-regular fa-clock"></i> Attendez la fin de votre abonnement
+                            </p>
+                        @elseif($peutUpgrade)
+                            <form action="{{ route('agence.abonnement.souscrire') }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="formule" value="{{ $key }}">
+                                <button type="submit" class="btn {{ $key == 'pro' ? 'btn-rust' : 'btn-rust' }} btn-block">
+                                    <i class="fa-solid fa-arrow-up"></i> Passer à {{ $plan['label'] }}
+                                </button>
+                            </form>
                         @else
                             <form action="{{ route('agence.abonnement.souscrire') }}" method="POST">
                                 @csrf
                                 <input type="hidden" name="formule" value="{{ $key }}">
-                                @php
-                                    $isUpgrade = isset($abonnementActuel) && $abonnementActuel && $abonnementActuel->formule->value !== $key;
-                                @endphp
                                 <button type="submit" class="btn {{ $key == 'pro' || $key == 'premium' ? 'btn-rust' : 'btn-ghost' }} btn-block">
                                     @if($key == 'basic' && isset($abonnementGratuitExpire) && $abonnementGratuitExpire)
                                         <i class="fa-solid fa-rotate"></i> Réessayer
                                     @elseif($plan['price'] == 0)
-                                        <i class="fa-solid fa-play"></i> Démarrer (1 mois)
-                                    @elseif($isUpgrade)
-                                        <i class="fa-solid fa-arrow-up"></i> Passer à {{ $plan['label'] }}
+                                        <i class="fa-solid fa-play"></i> Démarrer gratuitement
                                     @else
-                                        <i class="fa-solid fa-credit-card"></i> Souscrire - {{ $plan['price_label'] }}/mois
+                                        <i class="fa-solid fa-credit-card"></i> Souscrire - {{ number_format($plan['price'], 0, ',', ' ') }} FCFA/mois
                                     @endif
                                 </button>
                             </form>
@@ -377,8 +457,26 @@
                 </div>
             @endif
         </div>
+
+        {{-- Légende des statuts --}}
+        <div style="margin-top:24px;padding:16px 20px;background:#F7F9FC;border-radius:10px;border:1px solid var(--border);">
+            <div style="display:flex;flex-wrap:wrap;gap:20px;justify-content:center;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-soft);">
+                    <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#1E7A47;"></span>
+                    <span>Actif - Votre plan actuel</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-soft);">
+                    <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#E65100;"></span>
+                    <span>Upgrade - Passez à un plan supérieur</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-soft);">
+                    <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#BDBDBD;"></span>
+                    <span> Verrouillé - Attendez la fin de votre abonnement</span>
+                </div>
+            </div>
+        </div>
     @else
-        {{-- ✅ Message pour les agences non validées --}}
+        {{-- Message pour les agences non validées --}}
         <div style="text-align:center;padding:40px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);">
             <i class="fa-solid fa-lock" style="font-size:48px;color:#E65100;display:block;margin-bottom:16px;"></i>
             <h3 style="font-family:var(--display);font-size:18px;font-weight:700;color:var(--text-soft);">
@@ -394,7 +492,7 @@
         </div>
     @endif
 
-    <!-- Historique -->
+    {{-- Historique --}}
     @if(isset($historique) && $historique && $historique->count() > 0)
         <div style="margin-top:40px;">
             <h4 style="font-family:var(--display);font-size:16px;margin-bottom:12px;">Historique des abonnements</h4>
@@ -411,12 +509,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @php
-                            $displayedAbonnements = $historique->unique(function($item) {
-                                return $item->formule->value . '_' . $item->date_debut->format('Y-m-d');
-                            });
-                        @endphp
-                        @foreach($displayedAbonnements as $item)
+                        @foreach($historique as $item)
                             <tr style="border-bottom:1px solid var(--border);">
                                 <td style="padding:12px 16px;font-weight:600;">
                                     {{ is_object($item->formule) && method_exists($item->formule, 'label') ? $item->formule->label() : ucfirst($item->formule) }}
@@ -435,10 +528,8 @@
                                         $debut = \Carbon\Carbon::parse($item->date_debut);
                                         $fin = \Carbon\Carbon::parse($item->date_fin);
                                         $diffMois = $debut->diffInMonths($fin);
-                                        $diffJours = $debut->diffInDays($fin) % 30;
-                                        $dureeMois = round($diffMois + ($diffJours / 30));
                                     @endphp
-                                    {{ $dureeMois }} mois
+                                    {{ $diffMois }} mois
                                 </td>
                                 <td style="padding:12px 16px;">
                                     <span class="status-pill {{ $item->statut && $item->date_fin > now() ? 'status-success' : 'status-danger' }}">

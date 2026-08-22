@@ -104,6 +104,7 @@ Route::prefix('paydunya')->name('paydunya.')->group(function () {
     Route::get('/pay/{abonnement}', [PayDunyaController::class, 'pay'])->name('pay');
     Route::match(['GET', 'POST'], '/callback', [PayDunyaController::class, 'callback'])->name('callback');
     Route::get('/cancel', [PayDunyaController::class, 'cancel'])->name('cancel');
+     Route::get('/return', [PayDunyaController::class, 'return'])->name('return');
     Route::get('/status/{abonnement}', [PayDunyaController::class, 'status'])->name('status');
     Route::get('/force-update/{abonnement}', [PayDunyaController::class, 'forceUpdate'])->name('force-update');
 });
@@ -256,6 +257,7 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/biens/{bien}', [BienController::class, 'destroy'])->name('biens.destroy');
             Route::post('/biens/{bien}/activer', [BienController::class, 'activer'])->name('biens.activer');
             Route::delete('/medias/{media}', [BienController::class, 'supprimerMedia'])->name('medias.destroy');
+            Route::delete('/biens/{bien}', [BienController::class, 'destroy'])->name('biens.destroy');
             Route::patch('biens/{bien}/vedette/toggle', [BienController::class, 'toggleVedette'])->name('biens.vedette.toggle');
 
             // Propositions

@@ -47,83 +47,86 @@ class PayDunyaService
     /**
      * Créer une facture pour un abonnement
      */
-    public function createInvoice(Abonnement $abonnement, Agence $agence): array
-    {
-        try {
-            $formuleLabel = is_object($abonnement->formule) && method_exists($abonnement->formule, 'label') 
-                ? $abonnement->formule->label() 
-                : ucfirst($abonnement->formule);
+    /**
+ * Créer une facture pour un abonnement
+ */
+public function createInvoice(Abonnement $abonnement, Agence $agence): array
+{
+    try {
+        $formuleLabel = is_object($abonnement->formule) && method_exists($abonnement->formule, 'label') 
+            ? $abonnement->formule->label() 
+            : ucfirst($abonnement->formule);
 
-            $montant = floatval($abonnement->montant);
+        $montant = floatval($abonnement->montant);
 
-            // Ajouter l'article
-            $this->invoice->addItem(
-                'Abonnement ' . $formuleLabel,
-                1,
-                $montant,
-                $montant,
-                'Abonnement pour l\'agence ' . $agence->nom_agence
-            );
+        // Ajouter l'article
+        $this->invoice->addItem(
+            'Abonnement ' . $formuleLabel,
+            1,
+            $montant,
+            $montant,
+            'Abonnement pour l\'agence ' . $agence->nom_agence
+        );
 
-            // Configuration de la facture
-            $this->invoice->setTotalAmount($montant);
-            $this->invoice->setDescription('Abonnement ' . $formuleLabel . ' - ' . $agence->nom_agence);
-            $this->invoice->setCallbackUrl(config('paydunya.routes.callback', route('paydunya.callback')));
-            $this->invoice->setCancelUrl(config('paydunya.routes.cancel', route('paydunya.cancel')));
-            $this->invoice->setReturnUrl(route('agence.abonnement'));
+        // Configuration de la facture
+        $this->invoice->setTotalAmount($montant);
+        $this->invoice->setDescription('Abonnement ' . $formuleLabel . ' - ' . $agence->nom_agence);
+        $this->invoice->setCallbackUrl(route('paydunya.callback'));
+        $this->invoice->setReturnUrl(route('paydunya.return'));  // ✅ CORRECT
+        $this->invoice->setCancelUrl(route('paydunya.cancel'));
 
-            // Données personnalisées
-            $this->invoice->addCustomData('abonnement_id', $abonnement->id);
-            $this->invoice->addCustomData('agence_id', $agence->id);
+        // Données personnalisées
+        $this->invoice->addCustomData('abonnement_id', $abonnement->id);
+        $this->invoice->addCustomData('agence_id', $agence->id);
 
-            // Créer la facture
-            $this->invoice->create();
+        // Créer la facture
+        $this->invoice->create();
 
-            Log::info('PayDunya createInvoice - Réponse', [
-                'response_code' => $this->invoice->response_code,
+        Log::info('PayDunya createInvoice - Réponse', [
+            'response_code' => $this->invoice->response_code,
+            'response_text' => $this->invoice->response_text,
+            'token' => $this->invoice->token,
+        ]);
+
+        // Vérifier le résultat
+        if ($this->invoice->response_code === '00') {
+            $token = $this->invoice->token;
+            
+            $abonnement->update([
+                'paydunya_token' => $token,
+                'paydunya_status' => 'pending',
+            ]);
+
+            return [
+                'success' => true,
+                'invoice_url' => $this->invoice->getInvoiceUrl(),
+                'token' => $token,
                 'response_text' => $this->invoice->response_text,
-                'token' => $this->invoice->token,
-            ]);
-
-            // Vérifier le résultat
-            if ($this->invoice->response_code === '00') {
-                $token = $this->invoice->token;
-                
-                $abonnement->update([
-                    'paydunya_token' => $token,
-                    'paydunya_status' => 'pending',
-                ]);
-
-                return [
-                    'success' => true,
-                    'invoice_url' => $this->invoice->getInvoiceUrl(),
-                    'token' => $token,
-                    'response_text' => $this->invoice->response_text,
-                ];
-            }
-
-            // Erreur
-            $errorMessage = $this->invoice->response_text ?? 'Erreur de création';
-            Log::error('PayDunya createInvoice - Erreur', [
-                'response_code' => $this->invoice->response_code,
-                'response_text' => $errorMessage,
-            ]);
-
-            return [
-                'success' => false,
-                'error' => $errorMessage,
-                'response_code' => $this->invoice->response_code,
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('PayDunya createInvoice error: ' . $e->getMessage());
-            Log::error($e->getTraceAsString());
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
             ];
         }
+
+        // Erreur
+        $errorMessage = $this->invoice->response_text ?? 'Erreur de création';
+        Log::error('PayDunya createInvoice - Erreur', [
+            'response_code' => $this->invoice->response_code,
+            'response_text' => $errorMessage,
+        ]);
+
+        return [
+            'success' => false,
+            'error' => $errorMessage,
+            'response_code' => $this->invoice->response_code,
+        ];
+
+    } catch (\Exception $e) {
+        Log::error('PayDunya createInvoice error: ' . $e->getMessage());
+        Log::error($e->getTraceAsString());
+        return [
+            'success' => false,
+            'error' => $e->getMessage(),
+        ];
     }
+}
 
     /**
      * Confirmer le paiement

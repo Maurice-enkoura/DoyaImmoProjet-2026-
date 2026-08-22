@@ -95,7 +95,9 @@ class AgenceController extends Controller
             ->whereYear('created_at', now()->year)
             ->count();
 
-        $limiteOffres = $abonnementActuel ? $abonnementActuel->formule->limiteBiens() : 0;
+        //$limiteOffres = $abonnementActuel ? $abonnementActuel->formule->limiteBiens() : 0;
+        
+$limiteOffres = $abonnementActuel ? $abonnementActuel->formule->limiteOffres() : 0;
         $offresRestantes = $abonnementActuel ? max(0, $limiteOffres - $offresUtilisees) : 0;
         $pourcentageOffres = ($abonnementActuel && $limiteOffres !== PHP_INT_MAX && $limiteOffres > 0) 
             ? round(($offresUtilisees / $limiteOffres) * 100) 
@@ -1031,10 +1033,8 @@ public function abonnement()
             ->with('error', 'Agence non trouvée.');
     }
 
-    // ✅ Déclarer la variable avec une valeur par défaut
     $estNonValidee = false;
 
-    // ✅ Vérifier si l'agence est validée
     if (!$agence->statut_validation) {
         $estNonValidee = true;
         
@@ -1071,64 +1071,28 @@ public function abonnement()
         ->limit(10)
         ->get();
 
-    $plans = [
-        'basic' => [
-            'label' => 'Basique',
-            'price' => 0,
-            'price_label' => 'Gratuit',
+    // ✅ Utilisation de l'Enum pour générer les plans
+    $plans = [];
+    $formules = ['basic', 'premium', 'pro'];
+    
+    foreach ($formules as $key) {
+        $formule = FormuleAbonnementEnum::from($key);
+        
+        $plans[$key] = [
+            'label' => $formule->label(),
+            'price' => $formule->prix(),
+            'price_label' => $formule->prixMensuel(),
             'period' => '1 mois',
-            'features' => [
-                '5 offres envoyées / mois',
-                'Accès aux besoins publics',
-                'Profil agence'
-            ],
-            'limite' => 5,
-            'badge' => null,
-            'color' => '#6A7280',
-            'icon' => 'fa-regular fa-star'
-        ],
-        'premium' => [
-            'label' => 'Premium',
-            'price' => 200,
-            'price_label' => '200 FCFA',
-            'period' => '1 mois',
-            'features' => [
-                '20 offres envoyées / mois',
-                'Mise en avant des annonces',
-                'Badge "Agence Premium"',
-                'Accès anticipé aux nouveaux besoins',
-                'Profil agence optimisé',
-                '3 biens en vedette'
-            ],
-            'limite' => 20,
-            'badge' => 'Populaire',
-            'color' => '#B5502A',
-            'icon' => 'fa-solid fa-crown'
-        ],
-        'pro' => [
-            'label' => 'Pro',
-            'price' => 500,
-            'price_label' => '500 FCFA',
-            'period' => '1 mois',
-            'features' => [
-                'Offres illimitées',
-                'Badge "Agence Pro"',
-                'Mise en avant prioritaire',
-                'Accès anticipé exclusif',
-                'Profil agence complet',
-                'Support prioritaire',
-                'Biens en vedette illimités'
-            ],
-            'limite' => PHP_INT_MAX,
-            'badge' => 'Recommandé',
-            'color' => '#D4AF37',
-            'icon' => 'fa-solid fa-gem'
-        ]
-    ];
+            'features' => $formule->fonctionnalites(),
+            'limite' => $formule->limiteOffres(),
+            'badge' => $formule->badge(),
+            'color' => $formule->couleur(),
+            'icon' => $formule->icone(),
+        ];
+    }
 
     $notifData = $this->getNotifications();
 
-    // ✅ Maintenant la variable est définie dans tous les cas
     return view('agence.abonnement.index', array_merge(compact(
         'abonnementActuel',
         'historique',
@@ -1139,10 +1103,17 @@ public function abonnement()
     ), $notifData));
 }
 
+
     /**
      * Souscrire à un abonnement
      */
     /**
+ * Souscrire à un abonnement
+ */
+/**
+ * Souscrire à un abonnement
+ */
+/**
  * Souscrire à un abonnement
  */
 public function souscrire(Request $request)
@@ -1159,30 +1130,48 @@ public function souscrire(Request $request)
                 ->with('error', 'Agence non trouvée.');
         }
 
-        // ✅ Vérifier si l'agence est validée
         if (!$agence->statut_validation) {
             return redirect()->route('agence.abonnement')
                 ->with('error', 'Votre agence doit être validée par un administrateur pour souscrire à un abonnement.');
         }
 
-        $formule = \App\Enums\FormuleAbonnementEnum::from($request->formule);
+        $formule = FormuleAbonnementEnum::from($request->formule);
         $montant = $formule->prix();
 
+        // ✅ VÉRIFIER SI UN ABONNEMENT ACTIF EXISTE
         $abonnementActuel = $agence->abonnements()
             ->where('statut', true)
             ->where('date_fin', '>', now())
             ->first();
 
-        if ($abonnementActuel && $abonnementActuel->formule->value === 'basic' && $montant > 0) {
-            $abonnementActuel->update(['statut' => false]);
-        } elseif ($abonnementActuel && $montant > 0) {
-            return redirect()->route('agence.abonnement')
-                ->with('info', 'Vous avez déjà un abonnement actif. Vous pouvez le mettre à jour.');
-        } elseif ($abonnementActuel && $montant == 0) {
-            return redirect()->route('agence.abonnement')
-                ->with('info', 'Vous avez déjà un abonnement gratuit actif.');
+        if ($abonnementActuel) {
+            $formuleActuelle = $abonnementActuel->formule->value;
+            $formuleDemandee = $request->formule;
+            
+            // 🔥 CAS 1 : Même formule → Bloquer
+            if ($formuleActuelle === $formuleDemandee) {
+                return redirect()->route('agence.abonnement')
+                    ->with('error', 'Vous avez déjà un abonnement ' . $formule->label() . ' actif jusqu\'au ' . $abonnementActuel->date_fin->format('d/m/Y') . '.');
+            }
+            
+            // 🔥 CAS 2 : Basic (gratuit) → peut passer à Premium ou Pro
+            if ($formuleActuelle === 'basic' && in_array($formuleDemandee, ['premium', 'pro'])) {
+                // ✅ AUTORISÉ - On désactive l'ancien Basic et on crée le nouveau
+                $abonnementActuel->update(['statut' => false]);
+            }
+            // 🔥 CAS 3 : Premium OU Pro actif → BLOQUER tout changement
+            elseif (in_array($formuleActuelle, ['premium', 'pro'])) {
+                return redirect()->route('agence.abonnement')
+                    ->with('error', 'Vous avez déjà un abonnement ' . $formule->label() . ' actif jusqu\'au ' . $abonnementActuel->date_fin->format('d/m/Y') . '. Vous ne pouvez pas changer avant la fin de votre abonnement.');
+            }
+            // 🔥 CAS 4 : Autres cas → Bloquer par sécurité
+            else {
+                return redirect()->route('agence.abonnement')
+                    ->with('error', 'Vous ne pouvez pas changer d\'abonnement pour le moment.');
+            }
         }
 
+        // ✅ Vérifier si l'agence a déjà eu un abonnement gratuit (Basic)
         if ($montant == 0) {
             $aDejaEuGratuit = $agence->abonnements()
                 ->where('formule', 'basic')
@@ -1195,7 +1184,8 @@ public function souscrire(Request $request)
             }
         }
 
-        $abonnement = \App\Models\Abonnement::create([
+        // ✅ Créer l'abonnement (TOUJOURS 1 MOIS)
+        $abonnement = Abonnement::create([
             'agence_id' => $agence->id,
             'formule' => $formule,
             'montant' => $montant,
@@ -1209,7 +1199,7 @@ public function souscrire(Request $request)
         }
 
         return redirect()->route('agence.abonnement')
-            ->with('success', 'Abonnement gratuit activé avec succès !');
+            ->with('success', ' Abonnement gratuit activé avec succès !');
 
     } catch (\Exception $e) {
         Log::error('Erreur souscription: ' . $e->getMessage());
@@ -1408,4 +1398,6 @@ public function souscrire(Request $request)
         
         return $map[$status] ?? 'default';
     }
+
+ 
 }

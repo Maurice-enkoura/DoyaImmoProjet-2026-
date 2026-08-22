@@ -8,7 +8,9 @@
 <div class="view active">
 
     @php
-        $limite = $abonnementActuel ? $abonnementActuel->formule->limiteBiens() : 0;
+        //$limite = $abonnementActuel ? $abonnementActuel->formule->limiteBiens() : 0;
+        $limite = $abonnementActuel ? $abonnementActuel->formule->limiteOffres() : 0;
+
         $estIllimite = $limite === PHP_INT_MAX;
         $pct = $estIllimite ? 0 : min(100, max(0, $pourcentageOffres ?? 0));
     @endphp

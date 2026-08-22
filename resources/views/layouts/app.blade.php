@@ -10,7 +10,30 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <style>
-        /* ===== RESET & BASE ===== */
+        /* ============================================
+           STYLES CRITIQUES POUR ÉVITER LE FOUC
+           ============================================ */
+        body {
+            background: #F7F9FC;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        body.loaded {
+            opacity: 1;
+        }
+        .wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 16px;
+            width: 100%;
+        }
+
+        /* ============================================
+           RESET & BASE
+           ============================================ */
         * {
             margin: 0;
             padding: 0;
@@ -55,7 +78,9 @@
             display: block;
         }
 
-        /* ===== CONTAINER ===== */
+        /* ============================================
+           CONTAINER
+           ============================================ */
         .wrap {
             max-width: 1200px;
             margin: 0 auto;
@@ -67,7 +92,9 @@
             padding: clamp(40px, 8vw, 60px) 0;
         }
 
-        /* ===== HEADER ===== */
+        /* ============================================
+           HEADER
+           ============================================ */
         .pub-header {
             background: #fff;
             border-bottom: 1px solid var(--border);
@@ -123,7 +150,9 @@
             color: var(--rust);
         }
 
-        /* ===== SEARCH ===== */
+        /* ============================================
+           SEARCH
+           ============================================ */
         .search-header {
             flex: 1;
             max-width: 450px;
@@ -196,7 +225,9 @@
             }
         }
 
-        /* ===== NAV LINKS ===== */
+        /* ============================================
+           NAV LINKS
+           ============================================ */
         .pub-links {
             display: flex;
             gap: clamp(16px, 2.5vw, 24px);
@@ -275,7 +306,9 @@
             transform: rotate(-45deg) translate(5px, -5px);
         }
 
-        /* ===== MOBILE MENU ===== */
+        /* ============================================
+           MOBILE MENU
+           ============================================ */
         .pub-mobile-menu {
             display: none;
             background: #fff;
@@ -381,7 +414,16 @@
             color: #fff;
         }
 
-        /* ===== BOUTON RECHERCHE MOBILE ===== */
+        /* ============================================
+           BOUTON RECHERCHE MOBILE
+           ============================================ */
+        .mobile-icons {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
         .search-toggle-btn {
             display: none;
             background: none;
@@ -400,7 +442,9 @@
             color: var(--rust);
         }
 
-        /* ===== OVERLAY RECHERCHE MOBILE ===== */
+        /* ============================================
+           OVERLAY RECHERCHE MOBILE
+           ============================================ */
         .search-overlay {
             display: none;
             position: fixed;
@@ -534,7 +578,9 @@
             to { transform: translateY(0); opacity: 1; }
         }
 
-        /* ===== BUTTONS ===== */
+        /* ============================================
+           BUTTONS
+           ============================================ */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -589,7 +635,9 @@
             justify-content: center;
         }
 
-        /* ===== RESPONSIVE HEADER ===== */
+        /* ============================================
+           RESPONSIVE HEADER
+           ============================================ */
         @media (max-width: 1024px) {
             .pub-links {
                 gap: 14px;
@@ -627,12 +675,7 @@
                 display: flex;
             }
 
-            .pub-actions .btn-rust {
-                padding: 6px 12px;
-                font-size: 12px;
-            }
-
-            .pub-actions .btn-rust i {
+            .pub-actions {
                 display: none;
             }
 
@@ -698,10 +741,6 @@
                 font-size: 13px;
                 border-radius: 8px;
             }
-            .pub-actions .btn-rust {
-                padding: 4px 10px;
-                font-size: 11px;
-            }
             .search-toggle-btn {
                 font-size: 16px;
                 padding: 6px;
@@ -731,8 +770,45 @@
         }
 
         /* ============================================
+           CORRECTION ZOOM SUR MOBILE
+           ============================================ */
+        @media (max-width: 768px) {
+            input,
+            select,
+            textarea {
+                font-size: 16px !important;
+            }
+
+            .field input,
+            .field select,
+            .field textarea,
+            .form-control,
+            .auth-box input,
+            .auth-box select,
+            .auth-box textarea,
+            input[type="text"],
+            input[type="email"],
+            input[type="tel"],
+            input[type="password"],
+            input[type="number"],
+            textarea,
+            select {
+                font-size: 16px !important;
+            }
+
+            .password-wrapper input {
+                font-size: 16px !important;
+            }
+
+            input::placeholder,
+            textarea::placeholder {
+                font-size: 14px !important;
+            }
+        }
+
+        /* ============================================
            HERO
-        ============================================ */
+           ============================================ */
         .hero {
             padding: clamp(40px, 8vw, 64px) 0 clamp(50px, 10vw, 90px);
             position: relative;
@@ -834,7 +910,7 @@
 
         /* ============================================
            TYPOGRAPHY
-        ============================================ */
+           ============================================ */
         .eyebrow {
             display: inline-block;
             font-size: clamp(11px, 0.9vw, 12px);
@@ -871,7 +947,7 @@
 
         /* ============================================
            SECTION HEADER
-        ============================================ */
+           ============================================ */
         .section-header {
             display: flex;
             justify-content: space-between;
@@ -883,7 +959,7 @@
 
         /* ============================================
            ZONE CHIPS
-        ============================================ */
+           ============================================ */
         .zone-row {
             display: flex;
             gap: clamp(10px, 1.5vw, 14px);
@@ -938,7 +1014,7 @@
 
         /* ============================================
            BIENS GRID
-        ============================================ */
+           ============================================ */
         .biens-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(clamp(240px, 25vw, 280px), 1fr));
@@ -1089,7 +1165,7 @@
 
         /* ============================================
            HOW GRID
-        ============================================ */
+           ============================================ */
         .how-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(clamp(240px, 30vw, 350px), 1fr));
@@ -1133,7 +1209,7 @@
 
         /* ============================================
            VALUE SECTION - POURQUOI DOYAIMMO
-        ============================================ */
+           ============================================ */
         .value-container {
             max-width: 1200px;
             margin: 0 auto;
@@ -1211,7 +1287,7 @@
 
         /* ============================================
            CTA BAND
-        ============================================ */
+           ============================================ */
         .cta-band {
             background: var(--ink);
             border-radius: clamp(16px, 2vw, 24px);
@@ -1249,7 +1325,7 @@
 
         /* ============================================
            FLASH MESSAGES
-        ============================================ */
+           ============================================ */
         .flash-message {
             padding: 12px 20px;
             border-radius: 12px;
@@ -1281,7 +1357,7 @@
 
         /* ============================================
            PAGINATION
-        ============================================ */
+           ============================================ */
         .pagination {
             display: flex;
             gap: 6px;
@@ -1327,7 +1403,7 @@
 
         /* ============================================
            AUTOCOMPLETE
-        ============================================ */
+           ============================================ */
         #headerAutocomplete {
             position: absolute;
             top: calc(100% + 6px);
@@ -1442,7 +1518,7 @@
 
         /* ============================================
            EMPTY STATE
-        ============================================ */
+           ============================================ */
         .empty-state {
             text-align: center;
             padding: 40px;
@@ -1465,7 +1541,7 @@
 
         /* ============================================
            DETAIL
-        ============================================ */
+           ============================================ */
         .detail-grid {
             display: grid;
             grid-template-columns: 1.6fr 1fr;
@@ -1516,7 +1592,7 @@
 
         /* ============================================
            FILTER BAR
-        ============================================ */
+           ============================================ */
         .filter-bar {
             display: flex;
             flex-wrap: wrap;
@@ -1546,7 +1622,7 @@
 
         /* ============================================
            RESPONSIVE GLOBAL
-        ============================================ */
+           ============================================ */
         @media (max-width: 900px) {
             .hero-grid {
                 grid-template-columns: 1fr;
@@ -1696,7 +1772,7 @@
 
         /* ============================================
            ACCESSIBILITÉ
-        ============================================ */
+           ============================================ */
         @media (prefers-reduced-motion: reduce) {
             * {
                 animation-duration: 0.01ms !important;
@@ -1707,7 +1783,7 @@
 
         /* ============================================
            UTILITAIRES
-        ============================================ */
+           ============================================ */
         .panel {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -1822,7 +1898,7 @@
 
         /* ============================================
            CACHE SUR MOBILE
-        ============================================ */
+           ============================================ */
         @media (max-width: 600px) {
             .hide-mobile {
                 display: none !important;
@@ -1831,7 +1907,7 @@
 
         /* ============================================
            FLÈCHE RETOUR EN HAUT (FLOATING)
-        ============================================ */
+           ============================================ */
         .back-to-top {
             position: fixed;
             bottom: 30px;
@@ -1873,7 +1949,7 @@
 
         /* ============================================
            FOOTER
-        ============================================ */
+           ============================================ */
         .pub-footer {
             background: var(--ink);
             color: #fff;
@@ -2053,6 +2129,20 @@
 </head>
 <body>
 
+<!-- ============================================
+     SCRIPT POUR LE CHARGEMENT
+     ============================================ -->
+<script>
+    // Ajouter la classe 'loaded' au body après le chargement
+    document.addEventListener('DOMContentLoaded', function() {
+        document.body.classList.add('loaded');
+    });
+    // Fallback si DOMContentLoaded est déjà passé
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        document.body.classList.add('loaded');
+    }
+</script>
+
 <!-- Header -->
 <header class="pub-header @if(Route::currentRouteName() == 'recherche') page-recherche @endif">
     <nav class="pub-nav">
@@ -2078,11 +2168,6 @@
             </div>
         </div>
 
-        <!-- Bouton recherche mobile - icône uniquement -->
-        <button class="search-toggle-btn" id="searchToggleBtn" onclick="openSearch()" aria-label="Rechercher">
-            <i class="fa-solid fa-magnifying-glass"></i>
-        </button>
-
         <div class="pub-links">
             <a href="{{ route('besoins.index') }}">Besoins</a>
             <a href="{{ route('biens.index') }}">Biens</a>
@@ -2107,9 +2192,16 @@
             @endauth
         </div>
 
-        <button class="pub-burger" id="pubBurger" onclick="toggleMobileMenu()" aria-label="Menu" aria-expanded="false">
-            <span></span><span></span><span></span>
-        </button>
+        <!-- Icônes recherche + menu regroupées (mobile) -->
+        <div class="mobile-icons">
+            <button class="search-toggle-btn" id="searchToggleBtn" onclick="openSearch()" aria-label="Rechercher">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+
+            <button class="pub-burger" id="pubBurger" onclick="toggleMobileMenu()" aria-label="Menu" aria-expanded="false">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
     </nav>
 
     <!-- Menu mobile -->
@@ -2270,8 +2362,6 @@
                 </ul>
             </div>
         </div>
-
-        
     </div>
 </footer>
 

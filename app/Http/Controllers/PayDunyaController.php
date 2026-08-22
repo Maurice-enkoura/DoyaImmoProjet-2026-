@@ -331,4 +331,68 @@ class PayDunyaController extends Controller
                 ->with('error', 'Erreur lors de la vérification du statut.');
         }
     }
+
+
+
+    // Dans app/Http/Controllers/PayDunyaController.php
+
+/**
+ * Retour après paiement (page de confirmation)
+ * Route: GET /paydunya/return
+ */
+public function return(Request $request)
+{
+    try {
+        $token = $request->input('token');
+        
+        Log::info(' PayDunya RETURN appelé', [
+            'token' => $token,
+            'all' => $request->all()
+        ]);
+
+        if (!$token) {
+            return redirect()->route('agence.abonnement')
+                ->with('error', 'Token de paiement manquant.');
+        }
+
+        // Récupérer l'abonnement
+        $abonnement = Abonnement::where('paydunya_token', $token)->first();
+        
+        if (!$abonnement) {
+            Log::error(' Abonnement non trouvé pour le token: ' . $token);
+            return redirect()->route('agence.abonnement')
+                ->with('error', 'Abonnement non trouvé.');
+        }
+
+        // Vérifier si déjà actif
+        if ($abonnement->estActif()) {
+            return redirect()->route('agence.abonnement')
+                ->with('info', 'Cet abonnement est déjà actif.');
+        }
+
+        // 🔥 ACTIVATION AUTOMATIQUE
+        $abonnement->statut = true;
+        $abonnement->paydunya_status = 'paid';
+        $abonnement->paydunya_paid_at = now();
+        $abonnement->save();
+
+        // Désactiver les autres abonnements de l'agence
+        Abonnement::where('agence_id', $abonnement->agence_id)
+            ->where('id', '!=', $abonnement->id)
+            ->where('statut', true)
+            ->update(['statut' => false]);
+
+        Log::info('Abonnement #' . $abonnement->id . ' activé avec succès via return');
+
+        return redirect()->route('agence.abonnement')
+            ->with('success', ' Paiement confirmé avec succès ! Votre abonnement est maintenant actif.');
+
+    } catch (\Exception $e) {
+        Log::error(' PayDunya return error: ' . $e->getMessage());
+        Log::error($e->getTraceAsString());
+        
+        return redirect()->route('agence.abonnement')
+            ->with('error', 'Erreur lors du traitement du paiement: ' . $e->getMessage());
+    }
+}
 }

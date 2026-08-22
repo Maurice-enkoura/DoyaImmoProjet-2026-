@@ -36,10 +36,10 @@ class BienController extends Controller
                 ->with('error', 'Vous devez souscrire un abonnement actif pour publier des biens.');
         }
 
-        $limiteBiens = $abonnement->formule->limiteBiens();
+        $limiteOffres = $abonnement->formule->limiteOffres();
         $biensActifs = $agence->biens()->where('statut', true)->count();
 
-        if ($biensActifs >= $limiteBiens) {
+        if ($biensActifs >= $limiteOffres) {
             return redirect()->route('agence.biens.index')
                 ->with('error', 'Vous avez atteint la limite de biens autorisés pour votre formule d\'abonnement.');
         }
@@ -119,103 +119,157 @@ class BienController extends Controller
         return view('agence.biens.edit', compact('bien'));
     }
 
+    /**
+     * Supprimer définitivement un bien
+     */
     public function destroy(BienImmobilier $bien)
     {
-        if ($bien->agence_id !== Auth::user()->agence->id) {
-            abort(403);
+        try {
+            $agence = Auth::user()->agence;
+            
+            if ($bien->agence_id !== $agence->id) {
+                return redirect()->route('agence.biens.index')
+                    ->with('error', 'Ce bien ne vous appartient pas.');
+            }
+
+            // ✅ Supprimer les médias associés
+            foreach ($bien->medias as $media) {
+                if (Storage::disk('public')->exists($media->fichier)) {
+                    Storage::disk('public')->delete($media->fichier);
+                }
+                $media->delete();
+            }
+
+            // ✅ Supprimer définitivement le bien
+            $bien->delete();
+
+            return redirect()->route('agence.biens.index')
+                ->with('success', ' Bien supprimé définitivement avec succès.');
+
+        } catch (\Exception $e) {
+            Log::error('Erreur suppression bien: ' . $e->getMessage());
+            return redirect()->route('agence.biens.index')
+                ->with('error', 'Erreur lors de la suppression du bien.');
         }
-
-        $bien->update(['statut' => false]);
-
-        return redirect()->route('agence.biens.index')
-            ->with('success', 'Bien désactivé avec succès.');
     }
 
+    /**
+     * Activer un bien
+     */
     public function activer(BienImmobilier $bien)
+    {
+        try {
+            if ($bien->agence_id !== Auth::user()->agence->id) {
+                abort(403);
+            }
+
+            $bien->update(['statut' => true]);
+
+            return redirect()->route('agence.biens.index')
+                ->with('success', ' Bien réactivé avec succès.');
+
+        } catch (\Exception $e) {
+            Log::error('Erreur activation bien: ' . $e->getMessage());
+            return redirect()->route('agence.biens.index')
+                ->with('error', 'Erreur lors de la réactivation du bien.');
+        }
+    }
+
+    /**
+     * Désactiver un bien
+     */
+    public function desactiver(BienImmobilier $bien)
+    {
+        try {
+            if ($bien->agence_id !== Auth::user()->agence->id) {
+                abort(403);
+            }
+
+            $bien->update(['statut' => false]);
+
+            return redirect()->route('agence.biens.index')
+                ->with('success', '✅ Bien désactivé avec succès.');
+
+        } catch (\Exception $e) {
+            Log::error('Erreur désactivation bien: ' . $e->getMessage());
+            return redirect()->route('agence.biens.index')
+                ->with('error', 'Erreur lors de la désactivation du bien.');
+        }
+    }
+
+    public function update(Request $request, BienImmobilier $bien)
     {
         if ($bien->agence_id !== Auth::user()->agence->id) {
             abort(403);
         }
 
-        $bien->update(['statut' => true]);
+        $validated = $request->validate([
+            'titre' => 'required|string|max:255',
+            'type_bien' => 'required|string',
+            'type_contrat' => 'required|string',
+            'prix' => 'required|numeric|min:0',
+            'quartier' => 'required|string|max:255',
+            'adresse' => 'required|string|max:255',
+            'nombre_chambres' => 'nullable|integer|min:0',
+            'nombre_salles_bain' => 'nullable|integer|min:0',
+            'surface' => 'required|numeric|min:0',
+            'parking_disponible' => 'nullable|boolean',
+            'est_meuble' => 'nullable|boolean',
+            'description' => 'required|string|min:20',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'videos.*' => 'nullable|file|mimes:mp4,mov,avi|max:20480',
+        ]);
+
+        $bien->update([
+            'titre' => $request->titre,
+            'type_bien' => $request->type_bien,
+            'type_contrat' => $request->type_contrat,
+            'prix' => $request->prix,
+            'quartier' => $request->quartier,
+            'adresse' => $request->adresse,
+            'nombre_chambres' => $request->nombre_chambres ?? 0,
+            'nombre_salles_bain' => $request->nombre_salles_bain ?? 0,
+            'surface' => $request->surface,
+            'parking_disponible' => $request->boolean('parking_disponible'),
+            'est_meuble' => $request->boolean('est_meuble'),
+            'description' => $request->description,
+        ]);
+
+        // Upload des images
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $image) {
+                if ($image->isValid()) {
+                    $path = $image->store('biens/images', 'public');
+                    Media::create([
+                        'agence_id' => Auth::user()->agence->id,
+                        'mediable_id' => $bien->id,
+                        'mediable_type' => BienImmobilier::class,
+                        'type_media' => 'image',
+                        'fichier' => $path,
+                    ]);
+                }
+            }
+        }
+
+        // Upload des vidéos
+        if ($request->hasFile('videos')) {
+            foreach ($request->file('videos') as $video) {
+                if ($video->isValid()) {
+                    $path = $video->store('biens/videos', 'public');
+                    Media::create([
+                        'agence_id' => Auth::user()->agence->id,
+                        'mediable_id' => $bien->id,
+                        'mediable_type' => BienImmobilier::class,
+                        'type_media' => 'video',
+                        'fichier' => $path,
+                    ]);
+                }
+            }
+        }
 
         return redirect()->route('agence.biens.index')
-            ->with('success', 'Bien réactivé avec succès.');
+            ->with('success', 'Bien mis à jour avec succès.');
     }
-
-  public function update(Request $request, BienImmobilier $bien)
-{
-    if ($bien->agence_id !== Auth::user()->agence->id) {
-        abort(403);
-    }
-
-    $validated = $request->validate([
-        'titre' => 'required|string|max:255',
-        'type_bien' => 'required|string',
-        'type_contrat' => 'required|string',
-        'prix' => 'required|numeric|min:0',
-        'quartier' => 'required|string|max:255',
-        'adresse' => 'required|string|max:255',
-        'nombre_chambres' => 'nullable|integer|min:0',
-        'nombre_salles_bain' => 'nullable|integer|min:0',
-        'surface' => 'required|numeric|min:0',
-        'parking_disponible' => 'nullable|boolean',
-        'est_meuble' => 'nullable|boolean',
-        'description' => 'required|string|min:20',
-        'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
-        'videos.*' => 'nullable|file|mimes:mp4,mov,avi|max:20480',
-    ]);
-
-    $bien->update([
-        'titre' => $request->titre,
-        'type_bien' => $request->type_bien,
-        'type_contrat' => $request->type_contrat,
-        'prix' => $request->prix,
-        'quartier' => $request->quartier,
-        'adresse' => $request->adresse,
-        'nombre_chambres' => $request->nombre_chambres ?? 0,
-        'nombre_salles_bain' => $request->nombre_salles_bain ?? 0,
-        'surface' => $request->surface,
-        'parking_disponible' => $request->boolean('parking_disponible'),
-        'est_meuble' => $request->boolean('est_meuble'),
-        'description' => $request->description,
-    ]);
-
-    // Upload des images
-    if ($request->hasFile('images')) {
-        foreach ($request->file('images') as $image) {
-            if ($image->isValid()) {
-                $path = $image->store('biens/images', 'public');
-                Media::create([
-                    'agence_id' => Auth::user()->agence->id,
-                    'mediable_id' => $bien->id,
-                    'mediable_type' => BienImmobilier::class,
-                    'type_media' => 'image',
-                    'fichier' => $path,
-                ]);
-            }
-        }
-    }
-
-    // Upload des vidéos
-    if ($request->hasFile('videos')) {
-        foreach ($request->file('videos') as $video) {
-            if ($video->isValid()) {
-                $path = $video->store('biens/videos', 'public');
-                Media::create([
-                    'agence_id' => Auth::user()->agence->id,
-                    'mediable_id' => $bien->id,
-                    'mediable_type' => BienImmobilier::class,
-                    'type_media' => 'video',
-                    'fichier' => $path,
-                ]);
-            }
-        }
-    }
-
-    return redirect()->route('agence.biens.index')
-        ->with('success', 'Bien mis à jour avec succès.');
-}
 
     public function supprimerMedia(Media $media)
     {
@@ -232,7 +286,4 @@ class BienController extends Controller
 
         return redirect()->back()->with('success', 'Média supprimé avec succès.');
     }
-
-    
-
 }

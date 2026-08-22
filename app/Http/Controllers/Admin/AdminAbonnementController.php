@@ -7,6 +7,7 @@ use App\Models\Abonnement;
 use App\Models\Agence;
 use App\Enums\FormuleAbonnementEnum;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class AdminAbonnementController extends Controller
 {
@@ -37,15 +38,17 @@ class AdminAbonnementController extends Controller
     public function show(Abonnement $abonnement)
     {
         $abonnement->load('agence.user');
-        return view('admin.abonnements.show', compact('abonnement'));
+        
+        // Calculer la durée en mois
+        $debut = Carbon::parse($abonnement->date_debut);
+        $fin = Carbon::parse($abonnement->date_fin);
+        $dureeMois = $debut->diffInMonths($fin);
+        
+        // Vérifier si l'abonnement est sur le point d'expirer
+        $expireBientot = $abonnement->estActif() && $abonnement->date_fin->diffInDays(now()) <= 7;
+        
+        return view('admin.abonnements.show', compact('abonnement', 'dureeMois', 'expireBientot'));
     }
-
-    /**
-     * SUPPRIMÉ : create() - Les agences souscrivent elles-mêmes
-     * SUPPRIMÉ : store() - Les agences souscrivent elles-mêmes
-     * SUPPRIMÉ : edit() - L'admin ne modifie pas les caractéristiques
-     * SUPPRIMÉ : update() - L'admin ne modifie pas les caractéristiques
-     */
 
     /**
      * Activer un abonnement (réactiver après suspension)

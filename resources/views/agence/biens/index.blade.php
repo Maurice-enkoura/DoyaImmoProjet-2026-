@@ -35,7 +35,7 @@
                     </div>
                 @endif
                 
-                <!-- ✅ Badge Vedette -->
+                <!-- Badge Vedette -->
                 @if($bien->est_vedette)
                     <div class="badge-vedette">
                         <i class="fa-solid fa-star"></i> Vedette
@@ -80,12 +80,25 @@
                     @endif
                 </div>
                 <div class="bien-actions">
+                    <!-- Modifier -->
                     <a href="{{ route('agence.biens.edit', $bien) }}" class="btn btn-ghost btn-sm">
                         <i class="fa-solid fa-pen"></i> Modifier
                     </a>
+                    
+                    <!-- Voir -->
                     <a href="{{ route('agence.biens.show', $bien) }}" class="btn btn-ghost btn-sm">
                         <i class="fa-solid fa-eye"></i> Voir
                     </a>
+                    
+                    <!-- Supprimer -->
+                    <form action="{{ route('agence.biens.destroy', $bien) }}" method="POST" style="display:inline;">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-danger btn-sm" 
+                                onclick="return confirm(' Êtes-vous sûr de vouloir supprimer ce bien ? Cette action est irréversible.')">
+                            <i class="fa-solid fa-trash-can"></i> Supprimer
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -128,7 +141,6 @@
         box-shadow: 0 8px 24px rgba(0,0,0,0.08);
     }
 
-    /* ===== CARTE VEDETTE ===== */
     .bien-card.vedette-card {
         border-color: #F5A623;
         border-width: 2px;
@@ -172,7 +184,6 @@
         opacity: 0.3;
     }
 
-    /* ===== BADGE VEDETTE ===== */
     .badge-vedette {
         position: absolute;
         top: 12px;
@@ -194,7 +205,6 @@
         font-size: 10px;
     }
 
-    /* ===== STATUS ===== */
     .bien-status {
         position: absolute;
         top: 12px;
@@ -215,7 +225,6 @@
         background: var(--muted);
     }
 
-    /* ===== TYPE DE BIEN ===== */
     .bien-type-badge {
         position: absolute;
         bottom: 12px;
@@ -229,7 +238,6 @@
         z-index: 2;
     }
 
-    /* ===== MEDIA BADGE ===== */
     .media-badge {
         position: absolute;
         bottom: 12px;
@@ -361,6 +369,17 @@
         color: #fff;
     }
 
+    .btn-danger {
+        background: #C62828;
+        color: #fff;
+        border: none;
+    }
+
+    .btn-danger:hover {
+        background: #B71C1C;
+        color: #fff;
+    }
+
     .btn-sm {
         padding: 6px 14px;
         font-size: 12.5px;
@@ -416,18 +435,32 @@
         border-color: var(--rust);
     }
 
-    /* ==================== RESPONSIVE ==================== */
-    @media (max-width: 640px) {
-        .biens-grid {
-            grid-template-columns: 1fr;
-        }
-
+    @media (max-width: 768px) {
         .bien-actions {
             flex-direction: column;
         }
 
+        .bien-actions .btn,
+        .bien-actions form {
+            width: 100%;
+        }
+
         .bien-actions .btn {
             justify-content: center;
+        }
+
+        .bien-actions form {
+            display: block !important;
+        }
+
+        .bien-actions form .btn {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .biens-grid {
+            grid-template-columns: 1fr;
         }
 
         .bien-features {
@@ -465,6 +498,10 @@
         .vedette-tag {
             font-size: 11px;
         }
+
+        .bien-price {
+            font-size: 16px;
+        }
     }
 
     @media (max-width: 480px) {
@@ -479,6 +516,20 @@
         .bien-status {
             font-size: 10px;
             padding: 3px 10px;
+        }
+
+        .bien-image {
+            height: 160px;
+        }
+
+        .btn {
+            font-size: 11px;
+            padding: 5px 12px;
+        }
+
+        .btn-sm {
+            font-size: 11px;
+            padding: 5px 12px;
         }
     }
 </style>

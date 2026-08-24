@@ -76,96 +76,138 @@ class AgenceController extends Controller
 
     // ==================== DASHBOARD ====================
 
-    /**
-     * Tableau de bord de l'agence
-     */
-    public function dashboard()
-    {
-        $agence = Auth::user()->agence;
+  /**
+ * Tableau de bord de l'agence
+ */
+public function dashboard()
+{
+    $agence = Auth::user()->agence;
 
-        // Abonnement
-        $abonnementActuel = $agence->abonnements()
-            ->where('statut', true)
-            ->where('date_fin', '>', now())
-            ->first();
+    // Abonnement
+    $abonnementActuel = $agence->abonnements()
+        ->where('statut', true)
+        ->where('date_fin', '>', now())
+        ->first();
 
-        // Calcul des offres restantes
-        $offresUtilisees = $agence->propositions()
+    // Calcul des offres restantes
+    $offresUtilisees = $agence->propositions()
+        ->whereMonth('created_at', now()->month)
+        ->whereYear('created_at', now()->year)
+        ->count();
+
+    $limiteOffres = $abonnementActuel ? $abonnementActuel->formule->limiteOffres() : 0;
+    $offresRestantes = $abonnementActuel ? max(0, $limiteOffres - $offresUtilisees) : 0;
+    $pourcentageOffres = ($abonnementActuel && $limiteOffres !== PHP_INT_MAX && $limiteOffres > 0) 
+        ? round(($offresUtilisees / $limiteOffres) * 100) 
+        : 0;
+    $peutEnvoyerOffres = $abonnementActuel && $offresRestantes > 0;
+
+    // ✅ Récupérer les IDs des besoins actifs (en_attente ou en_cours)
+    $besoinsActifsIds = DemandeImmobiliere::whereIn('statut', [
+        StatutDemandeEnum::EN_ATTENTE->value,
+        StatutDemandeEnum::EN_COURS->value
+    ])->pluck('id')->toArray();
+
+    // Statistiques
+    $stats = [
+        // ✅ Besoins disponibles : UNIQUEMENT les demandes en attente
+        'besoins_disponibles' => DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE->value)->count(),
+        
+        // ✅ Offres envoyées : UNIQUEMENT sur besoins actifs ET ce mois-ci
+        'offres_envoyees' => $agence->propositions()
+            ->whereIn('demande_id', $besoinsActifsIds)
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
-            ->count();
-
-        //$limiteOffres = $abonnementActuel ? $abonnementActuel->formule->limiteBiens() : 0;
+            ->count(),
         
-$limiteOffres = $abonnementActuel ? $abonnementActuel->formule->limiteOffres() : 0;
-        $offresRestantes = $abonnementActuel ? max(0, $limiteOffres - $offresUtilisees) : 0;
-        $pourcentageOffres = ($abonnementActuel && $limiteOffres !== PHP_INT_MAX && $limiteOffres > 0) 
-            ? round(($offresUtilisees / $limiteOffres) * 100) 
-            : 0;
-        $peutEnvoyerOffres = $abonnementActuel && $offresRestantes > 0;
-
-        // Statistiques
-        $stats = [
-            'besoins_disponibles' => DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count(),
-            'offres_envoyees' => $agence->propositions()->whereMonth('created_at', now()->month)->count(),
-            'rendezvous_a_venir' => $agence->rendezVous()
-                ->whereIn('statut', [StatutRendezVousEnum::PLANIFIE, StatutRendezVousEnum::CONFIRME])
-                ->where('date_visite', '>=', now()->toDateString())
-                ->count(),
-            'note_moyenne' => $agence->evaluations()->avg('note') ?? 0,
-        ];
-
-        // Derniers besoins
-        $derniersBesoins = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
-
-        // Prochains rendez-vous
-        $prochainsRendezVous = $agence->rendezVous()
-            ->with(['proposition.bien', 'particulier.user'])
-            ->whereIn('statut', [StatutRendezVousEnum::PLANIFIE, StatutRendezVousEnum::CONFIRME])
+        // ✅ Rendez-vous à venir : planifié ou confirmé
+        'rendezvous_a_venir' => $agence->rendezVous()
+            ->whereIn('statut', [
+                StatutRendezVousEnum::PLANIFIE->value,
+                StatutRendezVousEnum::CONFIRME->value
+            ])
             ->where('date_visite', '>=', now()->toDateString())
-            ->orderBy('date_visite', 'asc')
-            ->limit(3)
-            ->get();
+            ->count(),
+        
+        // ✅ Note moyenne
+        'note_moyenne' => $agence->evaluations()->avg('note') ?? 0,
+    ];
 
-        // Derniers avis
-        $derniersAvis = $agence->evaluations()
-            ->with('particulier.user')
-            ->orderBy('created_at', 'desc')
-            ->limit(3)
-            ->get();
+    // Derniers besoins disponibles
+    $derniersBesoins = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE->value)
+        ->orderBy('created_at', 'desc')
+        ->limit(5)
+        ->get()
+        ->map(function($besoin) {
+            if (is_string($besoin->statut)) {
+                $besoin->statut = StatutDemandeEnum::from($besoin->statut);
+            }
+            if (is_string($besoin->type_bien)) {
+                $besoin->type_bien = TypeBienEnum::from($besoin->type_bien);
+            }
+            if (is_string($besoin->type_operation)) {
+                $besoin->type_operation = TypeOperationEnum::from($besoin->type_operation);
+            }
+            return $besoin;
+        });
 
-        // Pour la sidebar
-        $besoinsDisponibles = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count();
-        $rendezvousAVenir = $agence->rendezVous()
-            ->whereIn('statut', [StatutRendezVousEnum::PLANIFIE, StatutRendezVousEnum::CONFIRME])
-            ->where('date_visite', '>=', now()->toDateString())
-            ->count();
+    // Prochains rendez-vous
+    $prochainsRendezVous = $agence->rendezVous()
+        ->with(['proposition.bien', 'particulier.user'])
+        ->whereIn('statut', [
+            StatutRendezVousEnum::PLANIFIE->value,
+            StatutRendezVousEnum::CONFIRME->value
+        ])
+        ->where('date_visite', '>=', now()->toDateString())
+        ->orderBy('date_visite', 'asc')
+        ->limit(3)
+        ->get()
+        ->map(function($rdv) {
+            if (is_string($rdv->statut)) {
+                $rdv->statut = StatutRendezVousEnum::from($rdv->statut);
+            }
+            return $rdv;
+        });
 
-        // Notifications
-        $notifData = $this->getNotifications();
+    // Derniers avis
+    $derniersAvis = $agence->evaluations()
+        ->with('particulier.user')
+        ->orderBy('created_at', 'desc')
+        ->limit(3)
+        ->get();
 
-        $messages = [];
-        $messagesCount = 0;
+    // Pour la sidebar
+    $besoinsDisponibles = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE->value)->count();
+    $rendezvousAVenir = $agence->rendezVous()
+        ->whereIn('statut', [
+            StatutRendezVousEnum::PLANIFIE->value,
+            StatutRendezVousEnum::CONFIRME->value
+        ])
+        ->where('date_visite', '>=', now()->toDateString())
+        ->count();
 
-        return view('agence.dashboard', array_merge(compact(
-            'stats',
-            'derniersBesoins',
-            'prochainsRendezVous',
-            'derniersAvis',
-            'besoinsDisponibles',
-            'rendezvousAVenir',
-            'abonnementActuel',
-            'offresUtilisees',
-            'offresRestantes',
-            'pourcentageOffres',
-            'peutEnvoyerOffres',
-            'messages',
-            'messagesCount'
-        ), $notifData));
-    }
+    // Notifications
+    $notifData = $this->getNotifications();
+
+    $messages = [];
+    $messagesCount = 0;
+
+    return view('agence.dashboard', array_merge(compact(
+        'stats',
+        'derniersBesoins',
+        'prochainsRendezVous',
+        'derniersAvis',
+        'besoinsDisponibles',
+        'rendezvousAVenir',
+        'abonnementActuel',
+        'offresUtilisees',
+        'offresRestantes',
+        'pourcentageOffres',
+        'peutEnvoyerOffres',
+        'messages',
+        'messagesCount'
+    ), $notifData));
+}
 
     // ==================== GESTION DES BIENS EN VEDETTE ====================
 
@@ -896,35 +938,49 @@ $limiteOffres = $abonnementActuel ? $abonnementActuel->formule->limiteOffres() :
     /**
      * Marquer un rendez-vous comme terminé
      */
-    public function rendezvousTermine(RendezVous $rendezVous)
-    {
-        if ($rendezVous->agence_id !== Auth::user()->agence->id) {
-            abort(403);
-        }
-
-        try {
-            $rendezVous->update(['statut' => StatutRendezVousEnum::TERMINE]);
-
-            $proposition = $rendezVous->proposition;
-            if ($proposition) {
-                $proposition->update(['statut' => StatutPropositionEnum::TERMINEE]);
-                
-                $demande = $proposition->demande;
-                if ($demande) {
-                    $demande->update(['statut' => StatutDemandeEnum::TERMINEE]);
-                }
-            }
-
-            return redirect()->route('agence.rendezvous.index')
-                ->with('success', 'Rendez-vous terminé avec succès ! La demande est maintenant clôturée.');
-
-        } catch (\Exception $e) {
-            Log::error('Erreur lors de la clôture du rendez-vous: ' . $e->getMessage());
-            return redirect()->route('agence.rendezvous.index')
-                ->with('error', 'Une erreur est survenue lors de la clôture du rendez-vous.');
-        }
+   /**
+ * Marquer un rendez-vous comme terminé
+ */
+/**
+ * Marquer un rendez-vous comme terminé
+ */
+public function rendezvousTermine(RendezVous $rendezVous)
+{
+    if ($rendezVous->agence_id !== Auth::user()->agence->id) {
+        abort(403);
     }
 
+    try {
+        // ✅ Mettre à jour le statut du rendez-vous
+        $rendezVous->update([
+            'statut' => StatutRendezVousEnum::TERMINE->value
+        ]);
+
+        // ✅ Mettre à jour la proposition
+        $proposition = $rendezVous->proposition;
+        if ($proposition) {
+            $proposition->update([
+                'statut' => StatutPropositionEnum::TERMINEE->value
+            ]);
+            
+            // ✅ Mettre à jour la demande (besoin)
+            $demande = $proposition->demande;
+            if ($demande && $demande->statut === StatutDemandeEnum::EN_COURS->value) {
+                $demande->update([
+                    'statut' => StatutDemandeEnum::TERMINEE->value
+                ]);
+            }
+        }
+
+        return redirect()->route('agence.rendezvous.index')
+            ->with('success', 'Rendez-vous terminé avec succès ! La demande est maintenant clôturée.');
+
+    } catch (\Exception $e) {
+        Log::error('Erreur lors de la clôture du rendez-vous: ' . $e->getMessage());
+        return redirect()->route('agence.rendezvous.index')
+            ->with('error', 'Une erreur est survenue lors de la clôture du rendez-vous.');
+    }
+}
     // ==================== ÉVALUATIONS ====================
 
     /**

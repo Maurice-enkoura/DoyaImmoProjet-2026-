@@ -75,21 +75,6 @@
                     <span style="font-weight:500;font-size:13px;">{{ $demande->surface_minimum }} m²</span>
                 </div>
                 @endif
-                
-                @if($demande->equipements)
-                <div style="margin-bottom:16px;">
-                    <h4 style="font-family:var(--display);font-size:14px;margin-bottom:8px;color:var(--text-soft);">
-                        <i class="fa-solid fa-cogs" style="margin-right:8px;"></i>Équipements souhaités
-                    </h4>
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                        @foreach($demande->equipements as $equipement)
-                        <span class="meta-pill" style="background:var(--teal-soft);color:var(--teal);">
-                            <i class="fa-solid fa-check-circle"></i> {{ $equipement }}
-                        </span>
-                        @endforeach
-                    </div>
-                </div>
-                @endif
                 @if($demande->date_entree_souhaitee)
                 <div style="padding:10px 14px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
                     <span style="color:var(--muted);font-size:13px;">Entrée souhaitée</span>
@@ -102,6 +87,33 @@
                 </div>
             </div>
         </div>
+
+        <!-- Équipements -->
+        @php
+            $equipements = [];
+            if ($demande->parking) $equipements[] = 'Parking';
+            if ($demande->meuble) $equipements[] = 'Meublé';
+            if ($demande->climatisation) $equipements[] = 'Climatisation';
+            if ($demande->balcon) $equipements[] = 'Balcon';
+            if ($demande->jardin) $equipements[] = 'Jardin';
+            if ($demande->piscine) $equipements[] = 'Piscine';
+            if ($demande->ascenseur) $equipements[] = 'Ascenseur';
+            if ($demande->securite) $equipements[] = 'Sécurité';
+        @endphp
+        @if(count($equipements) > 0)
+        <div style="margin-bottom:24px;">
+            <h4 style="font-family:var(--display);font-size:14px;margin-bottom:8px;color:var(--text-soft);">
+                <i class="fa-solid fa-cogs" style="margin-right:8px;"></i>Équipements souhaités
+            </h4>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                @foreach($equipements as $equipement)
+                <span class="meta-pill" style="background:var(--teal-soft);color:var(--teal);">
+                    <i class="fa-solid fa-check-circle"></i> {{ $equipement }}
+                </span>
+                @endforeach
+            </div>
+        </div>
+        @endif
 
         <!-- Critères particuliers -->
         @if($demande->criteres_particuliers)
@@ -144,7 +156,7 @@
                     <div>
                         <div style="font-weight:600;font-size:14px;">{{ $proposition->agence->nom_agence }}</div>
                         <div style="font-size:12px;color:var(--muted);">
-                            {{ $proposition->bien->titre }} · {{ $proposition->bien->surface }} m²
+                            {{ $proposition->bien->titre ?? 'Bien' }} · {{ $proposition->bien->surface ?? 'N/C' }} m²
                         </div>
                     </div>
                 </div>
@@ -170,17 +182,30 @@
         <!-- Actions -->
         <div style="display:flex;gap:12px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--border);">
             @if($demande->statut->value === 'en_attente')
-            <a href="{{ route('particulier.demandes.edit', $demande) }}" class="btn btn-ghost">
-                <i class="fa-solid fa-pen"></i> Modifier
-            </a>
-            <form action="{{ route('particulier.demandes.destroy', $demande) }}" method="POST" style="display:inline;">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="btn btn-ghost" style="color:#C62828;border-color:#FFCDD2;" onclick="return confirm('Êtes-vous sûr de vouloir annuler cette demande ?')">
-                    <i class="fa-solid fa-trash"></i> Annuler
-                </button>
-            </form>
+                <a href="{{ route('particulier.demandes.edit', $demande) }}" class="btn btn-ghost">
+                    <i class="fa-solid fa-pen"></i> Modifier
+                </a>
+                <form action="{{ route('particulier.demandes.destroy', $demande) }}" method="POST" style="display:inline;">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-ghost" style="color:#C62828;border-color:#FFCDD2;" onclick="return confirm('Êtes-vous sûr de vouloir annuler cette demande ?')">
+                        <i class="fa-solid fa-trash"></i> Annuler
+                    </button>
+                </form>
+            @elseif($demande->statut->value === 'en_cours')
+                <div style="padding:8px 16px;background:#E3F2FD;border-radius:8px;color:#0D47A1;font-size:13px;">
+                    <i class="fa-solid fa-clock"></i> Cette demande est en cours de traitement
+                </div>
+            @elseif($demande->statut->value === 'terminee')
+                <div style="padding:8px 16px;background:#E8F5E9;border-radius:8px;color:#1E7A47;font-size:13px;">
+                    <i class="fa-solid fa-check-circle"></i> Cette demande est terminée
+                </div>
+            @elseif($demande->statut->value === 'annulee')
+                <div style="padding:8px 16px;background:#FFEBEE;border-radius:8px;color:#C62828;font-size:13px;">
+                    <i class="fa-solid fa-ban"></i> Cette demande a été annulée
+                </div>
             @endif
+            
             <a href="{{ route('particulier.demandes.index') }}" class="btn btn-ghost btn-sm" style="margin-left:auto;">
                 <i class="fa-solid fa-list"></i> Toutes mes demandes
             </a>
@@ -229,6 +254,65 @@
     .status-refusee {
         background: #FFEBEE;
         color: #C62828;
+    }
+
+    .status-planifie {
+        background: #FFF8E1;
+        color: #E65100;
+    }
+    .status-confirme {
+        background: #E3F2FD;
+        color: #0D47A1;
+    }
+    .status-termine {
+        background: #E8F5E9;
+        color: #1E7A47;
+    }
+    .status-annule {
+        background: #FFEBEE;
+        color: #C62828;
+    }
+
+    .meta-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--border);
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        color: var(--text-soft);
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 12.5px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-family: inherit;
+    }
+
+    .btn-ghost {
+        background: transparent;
+        color: var(--text-soft);
+        border-color: var(--border);
+    }
+
+    .btn-ghost:hover {
+        background: var(--border);
+        color: var(--ink);
+    }
+
+    .btn-sm {
+        padding: 4px 12px;
+        font-size: 12px;
     }
 </style>
 @endpush

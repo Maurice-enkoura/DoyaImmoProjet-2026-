@@ -228,6 +228,7 @@
             width: calc(100% - 260px);
         }
 
+        /* ==================== TOPBAR ==================== */
         .topbar {
             display: flex;
             align-items: center;
@@ -244,6 +245,7 @@
             border: none;
             cursor: pointer;
             padding: 4px;
+            flex-shrink: 0;
         }
 
         .burger span {
@@ -255,26 +257,7 @@
             transition: 0.2s;
         }
 
-        .page-title {
-            font-family: var(--display);
-            font-weight: 700;
-            font-size: 20px;
-        }
-
-        .page-sub {
-            font-size: 13px;
-            color: var(--muted);
-        }
-
-        .top-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-left: auto;
-            flex-wrap: wrap;
-        }
-
-        /* ==================== RECHERCHE ==================== */
+        /* Barre de recherche à gauche */
         .search-box {
             display: flex;
             align-items: center;
@@ -285,8 +268,9 @@
             padding: 6px 14px;
             transition: all 0.2s;
             position: relative;
-            min-width: 200px;
-            max-width: 300px;
+            flex: 1;
+            min-width: 180px;
+            max-width: 400px;
         }
 
         .search-box:focus-within {
@@ -302,7 +286,7 @@
             font-size: 13px;
             font-family: inherit;
             outline: none;
-            min-width: 120px;
+            min-width: 100px;
             color: var(--ink);
             width: 100%;
         }
@@ -428,6 +412,34 @@
             display: block;
             margin-bottom: 8px;
             opacity: 0.3;
+        }
+
+        /* Titre à droite */
+        .topbar-right {
+            text-align: right;
+            flex-shrink: 0;
+            margin-left: auto;
+            padding-right: 8px;
+        }
+
+        .page-title {
+            font-family: var(--display);
+            font-weight: 700;
+            font-size: 20px;
+            line-height: 1.3;
+        }
+
+        .page-sub {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        /* Actions à droite du titre */
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
         }
 
         /* ==================== NOTIFICATIONS ==================== */
@@ -1087,25 +1099,33 @@
             }
 
             .topbar {
+                flex-wrap: wrap;
                 gap: 12px;
             }
 
-            .top-actions {
-                margin-left: 0;
-                width: 100%;
-                justify-content: flex-start;
-                gap: 10px;
-            }
-
             .search-box {
-                min-width: 150px;
-                flex: 1;
+                min-width: 120px;
                 max-width: 100%;
+                flex: 1;
+                order: 2;
             }
 
             .search-box input {
                 min-width: 80px;
                 font-size: 13px;
+            }
+
+            .topbar-right {
+                text-align: left;
+                margin-left: 0;
+                width: 100%;
+                order: 3;
+                padding-right: 0;
+            }
+
+            .top-actions {
+                margin-left: auto;
+                order: 4;
             }
 
             .dropdown {
@@ -1153,14 +1173,10 @@
                 padding-bottom: 14px;
             }
 
-            .top-actions {
-                flex-wrap: wrap;
-                gap: 8px;
-            }
-
             .search-box {
                 min-width: 100%;
                 max-width: 100%;
+                order: 2;
             }
 
             .search-box .search-shortcut {
@@ -1170,6 +1186,19 @@
             .search-box input {
                 font-size: 14px;
                 min-width: 60px;
+            }
+
+            .topbar-right {
+                text-align: left;
+                width: 100%;
+                order: 3;
+                padding-right: 0;
+            }
+
+            .top-actions {
+                width: 100%;
+                justify-content: flex-start;
+                order: 4;
             }
 
             .icon-btn {
@@ -1291,6 +1320,10 @@
         @media (max-width: 400px) {
             .main {
                 padding: 10px 10px 16px;
+            }
+
+            .topbar {
+                gap: 8px;
             }
 
             .kpi-grid {
@@ -1463,7 +1496,6 @@
                     <i class="ic fa-solid fa-clock-rotate-left"></i> Historique
                 </a>
 
-                {{-- ✅ CORRECTION : Gérer le cas où l'agence est null --}}
                 @php
                 $agence = Auth::user()->agence;
                 $biensCount = $agence ? $agence->biens()->where('statut', true)->count() : 0;
@@ -1528,7 +1560,6 @@
                     <a href="{{ route('agence.abonnement') }}">Voir les plans →</a>
                 </div>
 
-                {{-- ✅ CORRECTION : Gérer le cas où l'agence est null --}}
                 @php
                 $agence = Auth::user()->agence;
                 $agenceNom = $agence ? $agence->nom_agence : 'Agence';
@@ -1549,23 +1580,28 @@
 
         <!-- Main Content -->
         <div class="main">
+            <!-- ==================== TOPBAR MODIFIÉ ==================== -->
             <div class="topbar">
                 <button class="burger" id="burgerBtn" onclick="toggleSidebar()">
                     <span></span><span></span><span></span>
                 </button>
-                <div>
+
+                <!-- Barre de recherche à gauche -->
+                <div class="search-box" id="searchBox">
+                    <i class="fa-solid fa-magnifying-glass" style="color:#9AA1AB; font-size:13px;"></i>
+                    <input type="text" id="globalSearch" placeholder="Rechercher..." autocomplete="off">
+                    <span class="search-shortcut">⌘K</span>
+                    <div class="search-results" id="searchResults"></div>
+                </div>
+
+                <!-- Titre + Sous-titre à droite -->
+                <div class="topbar-right">
                     <div class="page-title" id="pageTitle">@yield('page_title', 'Tableau de bord')</div>
                     <div class="page-sub" id="pageSub">@yield('page_sub', 'Vue d\'ensemble de votre activité')</div>
                 </div>
-                <div class="top-actions">
-                    <!-- Recherche -->
-                    <div class="search-box" id="searchBox">
-                        <i class="fa-solid fa-magnifying-glass" style="color:#9AA1AB; font-size:13px;"></i>
-                        <input type="text" id="globalSearch" placeholder="Rechercher..." autocomplete="off">
-                        <span class="search-shortcut">⌘K</span>
-                        <div class="search-results" id="searchResults"></div>
-                    </div>
 
+                <!-- Actions (Notifications + Avatar) -->
+                <div class="top-actions">
                     <!-- Notifications -->
                     <div class="icon-btn-wrapper">
                         <button class="icon-btn" id="notificationBtn" onclick="toggleNotifications()">

@@ -1,4 +1,4 @@
-@extends($layout ?? 'layouts.dashboard')
+@extends('layouts.dashboard-agence')
 
 @section('title', 'Notifications — DoyaImmo')
 @section('page_title', 'Notifications')
@@ -44,7 +44,6 @@
                     $colors = $iconColors[$type] ?? ['bg' => '#F7F9FC', 'color' => 'var(--text-soft)'];
                     $timeAgo = $notification->created_at->diffForHumans();
                     
-                    // ✅ Déterminer la couleur de bordure pour non lu
                     $unreadClass = $isUnread ? 'unread' : '';
                 @endphp
                 
@@ -99,6 +98,22 @@
 
 @push('styles')
 <style>
+    .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .section-head h2 {
+        font-family: var(--display);
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0;
+    }
+
     .notifications-list {
         display: flex;
         flex-direction: column;
@@ -206,28 +221,15 @@
         font-size: 12px;
     }
 
-    .section-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-bottom: 24px;
-    }
-
-    .section-head h2 {
-        font-family: var(--display);
-        font-size: 22px;
-        font-weight: 700;
-        margin: 0;
-    }
-
+    /* Pagination */
     .pagination {
         display: flex;
         gap: 6px;
         justify-content: center;
         list-style: none;
         padding: 0;
+        margin-top: 24px;
+        flex-wrap: wrap;
     }
 
     .pagination li {
@@ -243,6 +245,8 @@
         text-decoration: none;
         font-size: 13px;
         transition: all 0.2s;
+        min-width: 40px;
+        text-align: center;
     }
 
     .pagination a:hover {
@@ -260,10 +264,12 @@
         cursor: not-allowed;
     }
 
+    /* ==================== RESPONSIVE ==================== */
     @media (max-width: 768px) {
         .notif-item {
             flex-wrap: wrap;
             gap: 10px;
+            padding: 14px 16px;
         }
 
         .notif-body b {
@@ -287,6 +293,12 @@
 
         .section-head .btn {
             justify-content: center;
+        }
+
+        .pagination a, .pagination span {
+            padding: 6px 10px;
+            font-size: 12px;
+            min-width: 32px;
         }
     }
 

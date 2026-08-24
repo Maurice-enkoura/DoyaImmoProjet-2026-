@@ -70,7 +70,6 @@
                 $estCompatible = $score > 0;
             @endphp
             <div class="besoin-card {{ $estCompatible ? 'compatible' : '' }}">
-                <div class="tier-bar tier-{{ $demande->statut->value === 'en_attente' ? 'prem' : 'std' }}"></div>
                 <div class="besoin-body">
                     <div class="besoin-top">
                         <div class="besoin-type">
@@ -261,13 +260,6 @@
         transform: translateY(-3px);
         box-shadow: 0 8px 24px rgba(0,0,0,0.08);
     }
-
-    .tier-bar {
-        height: 4px;
-    }
-    .tier-prem { background: #F5A623; }
-    .tier-std { background: #4A90D9; }
-    .tier-eco { background: #7ED321; }
 
     .besoin-body {
         padding: 16px;

@@ -19,21 +19,40 @@ class ParticulierDashboardController extends Controller
     {
         $particulier = Auth::user()->particulier;
 
+        // Récupérer les IDs des besoins actifs (pour filtrer les offres)
+        $besoinsActifsIds = $particulier->demandes()
+            ->whereIn('statut', [StatutDemandeEnum::EN_ATTENTE, StatutDemandeEnum::EN_COURS])
+            ->pluck('id')
+            ->toArray();
+
         // Statistiques
         $stats = [
+            // Besoins actifs (en_attente + en_cours)
             'total_demandes' => $particulier->demandes()
                 ->whereIn('statut', [StatutDemandeEnum::EN_ATTENTE, StatutDemandeEnum::EN_COURS])
                 ->count(),
+            
+            // Offres reçues (UNIQUEMENT sur besoins actifs et en attente)
             'total_offres' => $particulier->propositions()
                 ->where('statut', StatutPropositionEnum::EN_ATTENTE)
+                ->whereIn('demande_id', $besoinsActifsIds)
                 ->count(),
+            
+            // Nouvelles offres (UNIQUEMENT sur besoins actifs et en attente)
             'nouvelles_offres' => $particulier->propositions()
                 ->where('statut', StatutPropositionEnum::EN_ATTENTE)
+                ->whereIn('demande_id', $besoinsActifsIds)
                 ->count(),
+            
+            // Rendez-vous à venir (planifié + confirmé)
             'rendezvous_a_venir' => $particulier->rendezVous()
                 ->whereIn('statut', [StatutRendezVousEnum::PLANIFIE, StatutRendezVousEnum::CONFIRME])
                 ->count(),
+            
+            // Avis donnés
             'total_evaluations' => $particulier->evaluations()->count(),
+            
+            // Actifs (pour l'affichage)
             'actifs' => $particulier->demandes()
                 ->whereIn('statut', [StatutDemandeEnum::EN_ATTENTE, StatutDemandeEnum::EN_COURS])
                 ->count(),
@@ -47,7 +66,6 @@ class ParticulierDashboardController extends Controller
             ->limit(3)
             ->get()
             ->map(function($demande) {
-                // Convertir le statut en Enum si c'est une chaîne
                 if (is_string($demande->statut)) {
                     $demande->statut = StatutDemandeEnum::from($demande->statut);
                 }
@@ -63,7 +81,6 @@ class ParticulierDashboardController extends Controller
             ->limit(3)
             ->get()
             ->map(function($rdv) {
-                // Convertir le statut en Enum si c'est une chaîne
                 if (is_string($rdv->statut)) {
                     $rdv->statut = StatutRendezVousEnum::from($rdv->statut);
                 }
@@ -78,15 +95,15 @@ class ParticulierDashboardController extends Controller
             ->orderBy('date_visite', 'asc')
             ->first();
 
-        // Dernières offres en attente
+        // Dernières offres en attente (UNIQUEMENT sur besoins actifs)
         $dernieresOffres = $particulier->propositions()
             ->with(['agence', 'demande', 'bien'])
             ->where('statut', StatutPropositionEnum::EN_ATTENTE)
+            ->whereIn('demande_id', $besoinsActifsIds)
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get()
             ->map(function($offre) {
-                // Convertir le statut en Enum si c'est une chaîne
                 if (is_string($offre->statut)) {
                     $offre->statut = StatutPropositionEnum::from($offre->statut);
                 }
@@ -97,7 +114,7 @@ class ParticulierDashboardController extends Controller
         $notifications = Auth::user()->unreadNotifications()->limit(5)->get();
         $notificationsCount = Auth::user()->unreadNotifications()->count();
 
-        // Messages
+        // Messages (à remplacer par tes vrais messages)
         $messages = [
             [
                 'sender' => 'Teranga Immobilier',
@@ -118,6 +135,7 @@ class ParticulierDashboardController extends Controller
             ->count();
         $offresCount = $particulier->propositions()
             ->where('statut', StatutPropositionEnum::EN_ATTENTE)
+            ->whereIn('demande_id', $besoinsActifsIds)
             ->count();
 
         return view('particulier.dashboard', compact(

@@ -18,7 +18,6 @@ class DemandeController extends Controller
     {
         $particulier = Particulier::where('user_id', Auth::id())->first();
         
-        // ✅ Récupérer UNIQUEMENT les demandes actives (en_attente et en_cours)
         $demandes = DemandeImmobiliere::where('particulier_id', $particulier->id)
             ->with('propositions')
             ->whereIn('statut', [
@@ -78,7 +77,20 @@ class DemandeController extends Controller
             abort(403);
         }
 
+        // Convertir le statut en Enum si c'est une chaîne
+        if (is_string($demande->statut)) {
+            $demande->statut = StatutDemandeEnum::from($demande->statut);
+        }
+
         $demande->load(['propositions.agence.user', 'propositions.bien']);
+        
+        // Convertir les statuts des propositions en Enum
+        foreach ($demande->propositions as $proposition) {
+            if (is_string($proposition->statut)) {
+                $proposition->statut = \App\Enums\StatutPropositionEnum::from($proposition->statut);
+            }
+        }
+        
         return view('particulier.demandes.show', compact('demande'));
     }
 
@@ -88,13 +100,22 @@ class DemandeController extends Controller
             abort(403);
         }
 
-        if ($demande->statut !== StatutDemandeEnum::EN_ATTENTE->value) {
+        // Récupérer la valeur du statut (que ce soit un Enum ou une chaîne)
+        $statutValue = is_object($demande->statut) ? $demande->statut->value : $demande->statut;
+
+        // Vérifier si le statut est "en_attente"
+        if ($statutValue !== StatutDemandeEnum::EN_ATTENTE->value) {
             return back()->with('error', 'Cette demande ne peut plus être modifiée.');
         }
 
         $typesBien = TypeBienEnum::labels();
         $typesOperation = TypeOperationEnum::labels();
         $quartiers = Quartier::actif()->orderBy('nom')->get();
+
+        // Convertir le statut en Enum pour la vue si ce n'est pas déjà fait
+        if (is_string($demande->statut)) {
+            $demande->statut = StatutDemandeEnum::from($demande->statut);
+        }
 
         return view('particulier.demandes.edit', compact('demande', 'typesBien', 'typesOperation', 'quartiers'));
     }
@@ -105,7 +126,9 @@ class DemandeController extends Controller
             abort(403);
         }
 
-        if ($demande->statut !== StatutDemandeEnum::EN_ATTENTE->value) {
+        $statutValue = is_object($demande->statut) ? $demande->statut->value : $demande->statut;
+
+        if ($statutValue !== StatutDemandeEnum::EN_ATTENTE->value) {
             return back()->with('error', 'Cette demande ne peut plus être modifiée.');
         }
 
@@ -151,7 +174,6 @@ class DemandeController extends Controller
     {
         $particulier = Particulier::where('user_id', Auth::id())->first();
         
-        // ✅ Récupérer TOUTES les demandes pour l'historique
         $demandes = DemandeImmobiliere::where('particulier_id', $particulier->id)
             ->orderBy('created_at', 'desc')
             ->paginate(10);
@@ -159,9 +181,6 @@ class DemandeController extends Controller
         return view('particulier.demandes.mes-demandes', compact('demandes'));
     }
 
-    /**
-     * Affiche les offres reçues pour une demande
-     */
     public function offres(DemandeImmobiliere $demande)
     {
         if ($demande->particulier->user_id !== Auth::id()) {

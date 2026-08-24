@@ -21,38 +21,9 @@
         </div>
     </div>
 
-    <!-- Statistiques rapides -->
-    <div class="stats-row">
-        <div class="stat-box">
-            <span class="stat-number">{{ $demandes->total() }}</span>
-            <span class="stat-label">Total actifs</span>
-        </div>
-        <div class="stat-box">
-            @php
-                $enAttente = $demandes->filter(function($d) {
-                    return $d->statut_value === 'en_attente';
-                })->count();
-            @endphp
-            <span class="stat-number">{{ $enAttente }}</span>
-            <span class="stat-label">En attente</span>
-        </div>
-        <div class="stat-box">
-            @php
-                $enCours = $demandes->filter(function($d) {
-                    return $d->statut_value === 'en_cours';
-                })->count();
-            @endphp
-            <span class="stat-number">{{ $enCours }}</span>
-            <span class="stat-label">En cours</span>
-        </div>
-    </div>
-
     <div class="besoin-grid">
         @forelse($demandes as $demande)
             <div class="besoin-card">
-                <!-- Barre de statut -->
-                <div class="tier-bar tier-{{ $demande->statut_value === 'en_attente' ? 'prem' : ($demande->statut_value === 'en_cours' ? 'std' : 'eco') }}"></div>
-                
                 <div class="besoin-body">
                     <div class="besoin-top">
                         <div class="besoin-type">{{ $demande->type_bien->label() }}</div>
@@ -203,20 +174,6 @@
     .besoin-card:hover {
         transform: translateY(-3px);
         box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-    }
-
-    .tier-bar {
-        height: 4px;
-    }
-
-    .tier-prem {
-        background: #F5A623;
-    }
-    .tier-std {
-        background: #4A90D9;
-    }
-    .tier-eco {
-        background: #7ED321;
     }
 
     .besoin-body {

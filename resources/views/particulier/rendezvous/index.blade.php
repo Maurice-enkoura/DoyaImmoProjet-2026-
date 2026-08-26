@@ -13,6 +13,27 @@
         </div>
     </div>
 
+    @if(session('success'))
+        <div style="padding:12px 16px;background:#E8F5E9;color:#1E7A47;border:1px solid #C8E6C9;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <i class="fa-solid fa-check-circle"></i>
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div style="padding:12px 16px;background:#FFEBEE;color:#C62828;border:1px solid #FFCDD2;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>{{ session('error') }}</span>
+        </div>
+    @endif
+
+    @if(session('info'))
+        <div style="padding:12px 16px;background:#E3F2FD;color:#0D47A1;border:1px solid #BBDEFB;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <i class="fa-solid fa-info-circle"></i>
+            <span>{{ session('info') }}</span>
+        </div>
+    @endif
+
     @if($rendezVous->count() > 0)
         <!-- Liste des rendez-vous -->
         <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
@@ -92,9 +113,8 @@
                                 </button>
                             </form>
                         @elseif($rdv->statut->value === 'confirme')
-                            <!-- ✅ Bouton Appeler l'agence -->
                             @if($rdv->agence->user && $rdv->agence->user->telephone)
-                                <a href="tel:{{ $rdv->agence->user->telephone }}" class="btn btn-success btn-sm" style="background:#25D366;color:#fff;border:none;padding:6px 14px;border-radius:10px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+                                <a href="tel:{{ $rdv->agence->user->telephone }}" class="btn btn-success btn-sm">
                                     <i class="fa-solid fa-phone"></i> Appeler
                                 </a>
                             @endif
@@ -105,14 +125,29 @@
                                 </button>
                             </form>
                         @elseif($rdv->statut->value === 'termine')
-                            <a href="{{ route('particulier.evaluations.create', $rdv->agence) }}" class="btn btn-rust btn-sm">
-                                <i class="fa-solid fa-star"></i> Évaluer
-                            </a>
+                            @php
+                                $dejaEvalue = \App\Models\Evaluation::where('particulier_id', Auth::user()->particulier->id)
+                                    ->where('agence_id', $rdv->agence_id)
+                                    ->exists();
+                            @endphp
+                            @if(!$dejaEvalue)
+                                <a href="{{ route('particulier.evaluations.create', $rdv->agence) }}" class="btn btn-rust btn-sm">
+                                    <i class="fa-solid fa-star"></i> Évaluer
+                                </a>
+                            @else
+                                <span style="font-size:12px;color:var(--muted);padding:4px 10px;background:#F7F9FC;border-radius:8px;border:1px solid var(--border);">
+                                    <i class="fa-solid fa-check-circle" style="color:#1E7A47;"></i> Déjà évalué
+                                </span>
+                            @endif
                             @if($rdv->agence->user && $rdv->agence->user->telephone)
-                                <a href="tel:{{ $rdv->agence->user->telephone }}" class="btn btn-success btn-sm" style="background:#25D366;color:#fff;border:none;padding:6px 14px;border-radius:10px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+                                <a href="tel:{{ $rdv->agence->user->telephone }}" class="btn btn-success btn-sm">
                                     <i class="fa-solid fa-phone"></i> Appeler
                                 </a>
                             @endif
+                        @elseif($rdv->statut->value === 'annule')
+                            <span style="font-size:12px;color:var(--muted);padding:4px 14px;background:#F7F9FC;border-radius:8px;border:1px solid var(--border);">
+                                <i class="fa-solid fa-clock"></i> Rendez-vous annulé
+                            </span>
                         @endif
                         <a href="{{ route('particulier.rendezvous.show', $rdv) }}" class="btn btn-ghost btn-sm">
                             <i class="fa-solid fa-eye"></i> Détails
@@ -170,41 +205,44 @@
         color: #1E7A47;
     }
 
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 12.5px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-family: inherit;
+    }
+
     .btn-rust {
         background: var(--rust);
         color: #fff;
-        border: none;
-        padding: 6px 14px;
-        border-radius: 10px;
-        font-weight: 600;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        transition: background 0.2s;
+        border-color: var(--rust);
     }
+
     .btn-rust:hover {
         background: #9A4523;
+        border-color: #9A4523;
         color: #fff;
     }
+
     .btn-ghost {
         background: transparent;
         color: var(--text-soft);
-        border: 1px solid var(--border);
-        padding: 6px 14px;
-        border-radius: 10px;
-        font-weight: 600;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        transition: all 0.2s;
+        border-color: var(--border);
     }
+
     .btn-ghost:hover {
         background: var(--border);
+        color: var(--ink);
     }
+
     .btn-sm {
         padding: 6px 14px;
         font-size: 12.5px;
@@ -216,14 +254,13 @@
         border: none;
         padding: 6px 14px;
         border-radius: 10px;
-        font-weight: 600;
-        cursor: pointer;
         text-decoration: none;
         display: inline-flex;
         align-items: center;
         gap: 6px;
         transition: background 0.2s;
     }
+
     .btn-success:hover {
         background: #1DA851;
         color: #fff;
@@ -279,6 +316,10 @@
     @media (max-width: 480px) {
         [style*="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;"] {
             grid-template-columns: 1fr 1fr !important;
+        }
+        .btn-sm {
+            font-size: 11px;
+            padding: 4px 10px;
         }
     }
 </style>

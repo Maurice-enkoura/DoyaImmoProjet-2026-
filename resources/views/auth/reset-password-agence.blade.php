@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mot de passe oublié — DoyaImmo</title>
+    <title>Réinitialiser votre mot de passe — Espace Agence — DoyaImmo</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* ==================== AUTH SHELL ==================== */
+        /* Mêmes styles que les autres pages */
         * {
             margin: 0;
             padding: 0;
@@ -51,7 +51,6 @@
             border: 1px solid var(--border);
         }
 
-        /* ==================== VISUAL ==================== */
         .auth-visual {
             flex: 1;
             background: var(--ink);
@@ -112,7 +111,6 @@
             font-size: 12px;
         }
 
-        /* ==================== FORM ==================== */
         .auth-form-side {
             flex: 1;
             padding: 48px 40px;
@@ -210,24 +208,22 @@
             box-shadow: 0 4px 12px rgba(184, 92, 58, 0.3);
         }
 
-        .auth-foot-link {
-            text-align: center;
+        .alert {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 16px;
             font-size: 13px;
-            color: var(--muted);
-            margin-top: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .auth-foot-link a {
-            color: var(--rust);
-            font-weight: 600;
-            text-decoration: none;
+        .alert-danger {
+            background: #FFEBEE;
+            color: #C62828;
+            border: 1px solid #FFCDD2;
         }
 
-        .auth-foot-link a:hover {
-            text-decoration: underline;
-        }
-
-        /* ==================== RESPONSIVE ==================== */
         @media (max-width: 820px) {
             .auth-shell {
                 flex-direction: column;
@@ -285,28 +281,6 @@
                 font-size: 14px;
             }
         }
-
-        .alert {
-            padding: 12px 16px;
-            border-radius: 10px;
-            margin-bottom: 16px;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .alert-success {
-            background: var(--green-soft);
-            color: var(--green);
-            border: 1px solid #C8E6C9;
-        }
-
-        .alert-danger {
-            background: #FFEBEE;
-            color: #C62828;
-            border: 1px solid #FFCDD2;
-        }
     </style>
 </head>
 <body>
@@ -318,11 +292,11 @@
             <div class="brand-name">Doya<span style="color:var(--gold)">Immo</span></div>
         </div>
         <div>
-            <p class="quote">Pas de souci, ça arrive à tout le monde. On vous renvoie l'accès en 2 minutes.</p>
+            <p class="quote">Créez un nouveau mot de passe pour sécuriser votre compte agence.</p>
         </div>
         <div class="auth-stats">
-            <div><b>2 min</b><span>Délai moyen de réception</span></div>
-            <div><b>100%</b><span>Sécurisé</span></div>
+            <div><b>🔒</b><span>Chiffré</span></div>
+            <div><b>✅</b><span>Sécurisé</span></div>
         </div>
     </div>
 
@@ -332,15 +306,8 @@
                 <div class="brand-mark">D</div>
                 <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
             </div>
-            <h1>Mot de passe oublié</h1>
-            <p class="sub">Indiquez votre email, nous vous enverrons un lien de réinitialisation.</p>
-
-            @if(session('status'))
-                <div class="alert alert-success">
-                    <i class="fa-solid fa-check-circle"></i>
-                    {{ session('status') }}
-                </div>
-            @endif
+            <h1>Nouveau mot de passe</h1>
+            <p class="sub">Choisissez un mot de passe sécurisé pour votre compte agence.</p>
 
             @if($errors->any())
                 <div class="alert alert-danger">
@@ -349,21 +316,29 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('password.email') }}">
+            <form method="POST" action="{{ route('agence.password.update') }}">
                 @csrf
+                <input type="hidden" name="token" value="{{ $token }}">
+                
                 <div class="field">
-                    <label for="email">Adresse email</label>
-                    <input type="email" id="email" name="email" placeholder="vous@exemple.com" value="{{ old('email') }}" required autofocus>
+                    <label for="email">Email professionnel</label>
+                    <input type="email" id="email" name="email" value="{{ $email ?? old('email') }}" required readonly>
                 </div>
+
+                <div class="field">
+                    <label for="password">Nouveau mot de passe</label>
+                    <input type="password" id="password" name="password" placeholder="••••••••" required minlength="8">
+                </div>
+
+                <div class="field">
+                    <label for="password_confirmation">Confirmer le mot de passe</label>
+                    <input type="password" id="password_confirmation" name="password_confirmation" placeholder="••••••••" required>
+                </div>
+
                 <button class="btn btn-rust btn-block btn-lg" type="submit">
-                    <i class="fa-solid fa-paper-plane"></i> Envoyer le lien de réinitialisation
+                    <i class="fa-solid fa-key"></i> Réinitialiser le mot de passe
                 </button>
             </form>
-
-            <p class="auth-foot-link">
-                Vous vous souvenez de votre mot de passe ?
-                <a href="{{ route('login') }}">Retour à la connexion</a>
-            </p>
         </div>
     </div>
 </div>

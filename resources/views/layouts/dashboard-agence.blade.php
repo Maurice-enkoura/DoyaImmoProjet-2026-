@@ -246,6 +246,7 @@
             cursor: pointer;
             padding: 4px;
             flex-shrink: 0;
+            order: 1;
         }
 
         .burger span {
@@ -257,169 +258,12 @@
             transition: 0.2s;
         }
 
-        /* Barre de recherche à gauche */
-        .search-box {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: #F7F9FC;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 6px 14px;
-            transition: all 0.2s;
-            position: relative;
+        /* Titre au centre */
+        .topbar-center {
             flex: 1;
-            min-width: 180px;
-            max-width: 400px;
-        }
-
-        .search-box:focus-within {
-            border-color: var(--rust);
-            background: #fff;
-            box-shadow: 0 0 0 3px rgba(181, 80, 42, 0.08);
-        }
-
-        .search-box input {
-            border: none;
-            background: none;
-            padding: 6px 0;
-            font-size: 13px;
-            font-family: inherit;
-            outline: none;
-            min-width: 100px;
-            color: var(--ink);
-            width: 100%;
-        }
-
-        .search-box input::placeholder {
-            color: var(--muted);
-        }
-
-        .search-box .search-shortcut {
-            font-size: 10px;
-            color: var(--muted);
-            background: var(--border);
-            padding: 1px 8px;
-            border-radius: 4px;
-            font-weight: 600;
-            flex-shrink: 0;
-        }
-
-        .search-results {
-            display: none;
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            right: 0;
-            background: #fff;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-            z-index: 1000;
-            max-height: 400px;
-            overflow-y: auto;
-            padding: 8px 0;
-        }
-
-        .search-results.open {
-            display: block;
-        }
-
-        .search-result-item {
-            padding: 10px 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: background 0.2s;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .search-result-item:last-child {
-            border-bottom: none;
-        }
-
-        .search-result-item:hover {
-            background: #F7F9FC;
-        }
-
-        .search-result-item .result-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            flex-shrink: 0;
-        }
-
-        .search-result-item .result-icon.besoin {
-            background: #E3F2FD;
-            color: #0D47A1;
-        }
-
-        .search-result-item .result-icon.bien {
-            background: #E8F5E9;
-            color: #1E7A47;
-        }
-
-        .search-result-item .result-icon.agence {
-            background: #FFF8E1;
-            color: #E65100;
-        }
-
-        .search-result-item .result-content {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .search-result-item .result-title {
-            font-weight: 600;
-            font-size: 13px;
-            color: var(--ink);
-        }
-
-        .search-result-item .result-desc {
-            font-size: 12px;
-            color: var(--muted);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .search-result-item .result-tag {
-            font-size: 10px;
-            text-transform: uppercase;
-            color: var(--muted);
-            background: var(--border);
-            padding: 1px 10px;
-            border-radius: 20px;
-            font-weight: 600;
-            flex-shrink: 0;
-            letter-spacing: 0.3px;
-        }
-
-        .search-empty {
-            padding: 30px 20px;
             text-align: center;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .search-empty i {
-            font-size: 28px;
-            display: block;
-            margin-bottom: 8px;
-            opacity: 0.3;
-        }
-
-        /* Titre à droite */
-        .topbar-right {
-            text-align: right;
-            flex-shrink: 0;
-            margin-left: auto;
-            padding-right: 8px;
+            min-width: 0;
+            order: 2;
         }
 
         .page-title {
@@ -434,12 +278,14 @@
             color: var(--muted);
         }
 
-        /* Actions à droite du titre */
+        /* Actions à droite */
         .top-actions {
             display: flex;
             align-items: center;
             gap: 10px;
             flex-shrink: 0;
+            order: 3;
+            margin-left: auto;
         }
 
         /* ==================== NOTIFICATIONS ==================== */
@@ -498,12 +344,9 @@
         }
 
         @keyframes pulse-dot {
-
-            0%,
-            100% {
+            0%, 100% {
                 transform: scale(1);
             }
-
             50% {
                 transform: scale(1.2);
             }
@@ -783,7 +626,6 @@
                 transform: translateX(100%);
                 opacity: 0;
             }
-
             to {
                 transform: translateX(0);
                 opacity: 1;
@@ -795,7 +637,6 @@
                 transform: translateX(0);
                 opacity: 1;
             }
-
             to {
                 transform: translateX(100%);
                 opacity: 0;
@@ -1063,7 +904,6 @@
 
         /* ==================== RESPONSIVE ==================== */
 
-        /* Tablettes et petits écrans */
         @media (max-width: 1024px) {
             .main {
                 padding: 20px 24px 30px;
@@ -1096,36 +936,37 @@
 
             .burger {
                 display: block;
+                order: 1;
             }
 
             .topbar {
                 flex-wrap: wrap;
                 gap: 12px;
+                align-items: center;
             }
 
-            .search-box {
-                min-width: 120px;
-                max-width: 100%;
-                flex: 1;
-                order: 2;
-            }
-
-            .search-box input {
-                min-width: 80px;
-                font-size: 13px;
-            }
-
-            .topbar-right {
+            .topbar-center {
                 text-align: left;
-                margin-left: 0;
-                width: 100%;
-                order: 3;
+                width: auto;
+                order: 2;
                 padding-right: 0;
+                flex: 1;
+                min-width: 0;
+            }
+
+            .topbar-center .page-title {
+                font-size: 17px;
+            }
+
+            .topbar-center .page-sub {
+                font-size: 12px;
             }
 
             .top-actions {
                 margin-left: auto;
-                order: 4;
+                order: 3;
+                gap: 6px;
+                flex-shrink: 0;
             }
 
             .dropdown {
@@ -1159,63 +1000,72 @@
             }
         }
 
-        /* Mobiles */
         @media (max-width: 600px) {
             .main {
                 padding: 12px 14px 20px;
             }
 
             .topbar {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 10px;
-                margin-bottom: 20px;
-                padding-bottom: 14px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+                margin-bottom: 16px;
+                padding-bottom: 12px;
+                align-items: center;
             }
 
-            .search-box {
-                min-width: 100%;
-                max-width: 100%;
-                order: 2;
+            .burger {
+                order: 1;
+                display: block;
             }
 
-            .search-box .search-shortcut {
-                display: none;
+            .burger span {
+                width: 20px;
+                height: 2px;
+                margin: 3px 0;
             }
 
-            .search-box input {
-                font-size: 14px;
-                min-width: 60px;
-            }
-
-            .topbar-right {
+            .topbar-center {
                 text-align: left;
-                width: 100%;
-                order: 3;
+                width: auto;
+                order: 2;
                 padding-right: 0;
+                flex: 1;
+                min-width: 0;
+            }
+
+            .topbar-center .page-title {
+                font-size: 15px;
+            }
+
+            .topbar-center .page-sub {
+                font-size: 11px;
             }
 
             .top-actions {
-                width: 100%;
-                justify-content: flex-start;
-                order: 4;
+                order: 3;
+                margin-left: auto;
+                gap: 4px;
+                flex-shrink: 0;
             }
 
             .icon-btn {
-                width: 36px;
-                height: 36px;
+                width: 34px;
+                height: 34px;
             }
 
             .icon-btn .badge-count {
-                font-size: 9px;
-                min-width: 16px;
-                height: 16px;
+                font-size: 8px;
+                min-width: 14px;
+                height: 14px;
+                top: -3px;
+                right: -3px;
             }
 
             .topbar-avatar {
-                width: 36px;
-                height: 36px;
-                font-size: 14px;
+                width: 34px;
+                height: 34px;
+                font-size: 13px;
             }
 
             .dropdown {
@@ -1316,14 +1166,64 @@
             }
         }
 
-        /* Très petits mobiles */
         @media (max-width: 400px) {
             .main {
                 padding: 10px 10px 16px;
             }
 
             .topbar {
-                gap: 8px;
+                gap: 4px;
+                padding-bottom: 10px;
+                margin-bottom: 12px;
+            }
+
+            .burger span {
+                width: 18px;
+                height: 2px;
+                margin: 3px 0;
+            }
+
+            .topbar-center .page-title {
+                font-size: 14px;
+            }
+
+            .topbar-center .page-sub {
+                font-size: 10px;
+            }
+
+            .top-actions {
+                gap: 3px;
+            }
+
+            .icon-btn {
+                width: 30px;
+                height: 30px;
+            }
+
+            .icon-btn .badge-count {
+                font-size: 7px;
+                min-width: 12px;
+                height: 12px;
+                top: -2px;
+                right: -2px;
+                border-width: 1px;
+            }
+
+            .topbar-avatar {
+                width: 30px;
+                height: 30px;
+                font-size: 11px;
+            }
+
+            .dropdown {
+                width: 260px;
+                right: -80px;
+                max-width: 90vw;
+            }
+
+            .dropdown-item {
+                padding: 8px 12px;
+                font-size: 12px;
             }
 
             .kpi-grid {
@@ -1341,39 +1241,6 @@
 
             .kpi-label {
                 font-size: 11px;
-            }
-
-            .top-actions {
-                gap: 6px;
-            }
-
-            .icon-btn {
-                width: 32px;
-                height: 32px;
-            }
-
-            .icon-btn .badge-count {
-                font-size: 8px;
-                min-width: 14px;
-                height: 14px;
-                top: -3px;
-                right: -3px;
-            }
-
-            .topbar-avatar {
-                width: 32px;
-                height: 32px;
-                font-size: 12px;
-            }
-
-            .dropdown {
-                width: 260px;
-                right: -80px;
-            }
-
-            .dropdown-item {
-                padding: 8px 12px;
-                font-size: 12px;
             }
 
             .page-title {
@@ -1395,7 +1262,6 @@
             }
         }
 
-        /* Mode portrait pour mobiles */
         @media (max-width: 480px) and (orientation: portrait) {
             .kpi-grid {
                 grid-template-columns: 1fr 1fr;
@@ -1416,7 +1282,6 @@
             }
         }
 
-        /* Mode paysage pour mobiles */
         @media (max-width: 820px) and (orientation: landscape) {
             .sidebar {
                 width: 240px;
@@ -1426,12 +1291,28 @@
                 padding: 16px 24px;
             }
 
+            .topbar {
+                gap: 10px;
+            }
+
+            .topbar-center {
+                flex: 1;
+                text-align: left;
+            }
+
+            .topbar-center .page-title {
+                font-size: 16px;
+            }
+
+            .top-actions {
+                gap: 6px;
+            }
+
             .kpi-grid {
                 grid-template-columns: repeat(3, 1fr);
             }
         }
 
-        /* Support des écrans très larges */
         @media (min-width: 1600px) {
             .content {
                 max-width: 1400px;
@@ -1442,7 +1323,6 @@
             }
         }
 
-        /* Accessibilité - Réduction de mouvement */
         @media (prefers-reduced-motion: reduce) {
             * {
                 animation-duration: 0.01ms !important;
@@ -1580,22 +1460,14 @@
 
         <!-- Main Content -->
         <div class="main">
-            <!-- ==================== TOPBAR MODIFIÉ ==================== -->
+            <!-- ==================== TOPBAR ==================== -->
             <div class="topbar">
                 <button class="burger" id="burgerBtn" onclick="toggleSidebar()">
                     <span></span><span></span><span></span>
                 </button>
 
-                <!-- Barre de recherche à gauche -->
-                <div class="search-box" id="searchBox">
-                    <i class="fa-solid fa-magnifying-glass" style="color:#9AA1AB; font-size:13px;"></i>
-                    <input type="text" id="globalSearch" placeholder="Rechercher..." autocomplete="off">
-                    <span class="search-shortcut">⌘K</span>
-                    <div class="search-results" id="searchResults"></div>
-                </div>
-
-                <!-- Titre + Sous-titre à droite -->
-                <div class="topbar-right">
+                <!-- Titre au centre -->
+                <div class="topbar-center">
                     <div class="page-title" id="pageTitle">@yield('page_title', 'Tableau de bord')</div>
                     <div class="page-sub" id="pageSub">@yield('page_sub', 'Vue d\'ensemble de votre activité')</div>
                 </div>
@@ -1705,103 +1577,6 @@
             if (e.key === 'Escape') {
                 closeSidebar();
             }
-        });
-
-        // ===================== RECHERCHE =====================
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('globalSearch');
-            const searchResults = document.getElementById('searchResults');
-            const searchBox = document.getElementById('searchBox');
-            let debounceTimer;
-
-            document.addEventListener('keydown', function(e) {
-                if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                    e.preventDefault();
-                    searchInput.focus();
-                    searchInput.select();
-                }
-            });
-
-            searchInput.addEventListener('input', function() {
-                clearTimeout(debounceTimer);
-                const query = this.value.trim();
-
-                if (query.length < 2) {
-                    searchResults.classList.remove('open');
-                    return;
-                }
-
-                debounceTimer = setTimeout(() => {
-                    // Remplacer par votre API
-                    const mockResults = [{
-                            title: 'Appartement 3 pièces',
-                            desc: 'Almadies, Dakar',
-                            type: 'bien',
-                            icon: 'fa-regular fa-building'
-                        },
-                        {
-                            title: 'Recherche villa 4 pièces',
-                            desc: 'Ngor, Dakar',
-                            type: 'besoin',
-                            icon: 'fa-regular fa-house-circle-check'
-                        },
-                        {
-                            title: 'Teranga Immobilier',
-                            desc: 'Agence à Almadies',
-                            type: 'agence',
-                            icon: 'fa-regular fa-building-columns'
-                        },
-                    ];
-
-                    const filtered = mockResults.filter(item =>
-                        item.title.toLowerCase().includes(query.toLowerCase()) ||
-                        item.desc.toLowerCase().includes(query.toLowerCase())
-                    );
-
-                    renderSearchResults(filtered);
-                }, 300);
-            });
-
-            function renderSearchResults(results) {
-                if (results.length === 0) {
-                    searchResults.innerHTML = `
-                        <div class="search-empty">
-                            <i class="fa-regular fa-search"></i>
-                            Aucun résultat trouvé pour "<strong>${searchInput.value}</strong>"
-                        </div>
-                    `;
-                    searchResults.classList.add('open');
-                    return;
-                }
-
-                searchResults.innerHTML = results.map(item => `
-                    <div class="search-result-item" onclick="window.location.href='#'">
-                        <div class="result-icon ${item.type}">
-                            <i class="${item.icon}"></i>
-                        </div>
-                        <div class="result-content">
-                            <div class="result-title">${item.title}</div>
-                            <div class="result-desc">${item.desc}</div>
-                        </div>
-                        <span class="result-tag">${item.type}</span>
-                    </div>
-                `).join('');
-
-                searchResults.classList.add('open');
-            }
-
-            document.addEventListener('click', function(e) {
-                if (!searchBox.contains(e.target)) {
-                    searchResults.classList.remove('open');
-                }
-            });
-
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    searchResults.classList.remove('open');
-                    searchInput.blur();
-                }
-            });
         });
 
         // ===================== NOTIFICATIONS =====================

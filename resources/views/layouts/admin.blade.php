@@ -235,6 +235,12 @@
             transition: 0.2s;
         }
 
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
         .page-title {
             font-family: var(--display);
             font-weight: 700;
@@ -263,6 +269,28 @@
             font-weight: 700;
             font-size: 16px;
             flex-shrink: 0;
+        }
+
+        /* ==================== HOME BUTTON ==================== */
+        .home-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            text-decoration: none;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+            background: #fff;
+        }
+
+        .home-btn:hover {
+            border-color: var(--rust);
+            color: var(--rust);
+            background: var(--rust-soft);
         }
 
         /* ==================== CONTENT ==================== */
@@ -938,11 +966,17 @@
                 <button class="burger" id="burgerBtn" onclick="toggleSidebar()">
                     <span></span><span></span><span></span>
                 </button>
-                <div>
-                    <div class="page-title" id="pageTitle">@yield('page_title', 'Vue d\'ensemble')</div>
-                    <div class="page-sub" id="pageSub">@yield('page_sub', 'Activité globale de la plateforme DoyaImmo')</div>
+                <div class="topbar-left">
+                    <div>
+                        <div class="page-title" id="pageTitle">@yield('page_title', 'Vue d\'ensemble')</div>
+                        <div class="page-sub" id="pageSub">@yield('page_sub', 'Activité globale de la plateforme DoyaImmo')</div>
+                    </div>
                 </div>
                 <div class="top-actions">
+                    <!-- ✅ Home Button -->
+                    <a href="{{ route('home') }}" class="home-btn">
+                        <i class="fa-solid fa-house"></i> Accueil
+                    </a>
                     <div class="topbar-avatar" style="background:var(--gold); color:var(--ink);">AD</div>
                 </div>
             </div>

@@ -16,10 +16,10 @@
             <div class="filter-group">
                 <select id="filterType" onchange="filterHistorique()" style="padding:8px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:#fff;font-family:inherit;cursor:pointer;">
                     <option value="all">Toutes les activités</option>
-                    <option value="demande"> Demandes</option>
-                    <option value="proposition"> Propositions</option>
-                    <option value="rendezvous"> Rendez-vous</option>
-                    <option value="evaluation"> Évaluations</option>
+                    <option value="demande">📋 Demandes</option>
+                    <option value="proposition">📨 Propositions</option>
+                    <option value="rendezvous">📅 Rendez-vous</option>
+                    <option value="evaluation">⭐ Évaluations</option>
                 </select>
             </div>
             <button onclick="window.location.reload()" class="btn btn-ghost btn-sm" title="Actualiser">
@@ -27,8 +27,6 @@
             </button>
         </div>
     </div>
-
-    <!-- Statistiques rapides -->
 
     @if($historique->count() > 0)
         <div class="historique-timeline">
@@ -108,6 +106,51 @@
                                 </div>
                             @endif
 
+                            <!-- ✅ AFFICHAGE DE LA PROPOSITION ASSOCIÉE -->
+                            @if(isset($event['proposition']))
+                                <div class="event-sub">
+                                    <span class="sub-label">📨 Proposition :</span>
+                                    <span class="sub-value">
+                                        <a href="{{ $event['proposition']['link'] }}">
+                                            <strong>{{ $event['proposition']['agence'] }}</strong>
+                                            - {{ $event['proposition']['prix'] }}
+                                        </a>
+                                        <span class="status-pill status-{{ $event['proposition']['statut_class'] }}" style="font-size:10px;padding:1px 10px;">
+                                            {{ $event['proposition']['statut'] }}
+                                        </span>
+                                    </span>
+                                </div>
+                            @endif
+
+                            <!-- ✅ AFFICHAGE DE L'ÉVALUATION ASSOCIÉE -->
+                            @if(isset($event['evaluation']))
+                                <div class="event-sub">
+                                    <span class="sub-label">⭐ Avis :</span>
+                                    <span class="sub-value">
+                                        <a href="{{ $event['evaluation']['link'] }}">
+                                            @for($i = 1; $i <= 5; $i++)
+                                                <i class="fa-solid fa-star" style="color:{{ $i <= $event['evaluation']['note'] ? '#F5A623' : '#D4D8E0' }};font-size:13px;"></i>
+                                            @endfor
+                                            @if($event['evaluation']['commentaire'])
+                                                <span style="font-size:12px;color:var(--muted);margin-left:4px;">"{{ Str::limit($event['evaluation']['commentaire'], 50) }}"</span>
+                                            @endif
+                                        </a>
+                                    </span>
+                                </div>
+                            @endif
+
+                            <!-- ✅ DÉTAILS -->
+                            @if(isset($event['details']) && count($event['details']) > 0)
+                                <div class="event-details">
+                                    @foreach($event['details'] as $key => $value)
+                                        <div class="detail-item">
+                                            <span class="detail-label">{{ $key }}</span>
+                                            <span class="detail-value">{{ $value }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+
                             <div class="event-meta">
                                 <span class="event-date">
                                     <i class="fa-regular fa-calendar"></i>
@@ -115,29 +158,23 @@
                                 </span>
                                 <span class="event-type">
                                     <i class="fa-regular fa-tag"></i>
-                                    {{ ucfirst($event['type']) }}
+                                    @if($event['type'] === 'demande') Demande
+                                    @elseif($event['type'] === 'proposition') Proposition
+                                    @elseif($event['type'] === 'rendezvous') Rendez-vous
+                                    @elseif($event['type'] === 'evaluation') Avis
+                                    @else {{ ucfirst($event['type']) }}
+                                    @endif
                                 </span>
                             </div>
+
+                            @if(isset($event['link']))
+                                <div class="event-actions">
+                                    <a href="{{ $event['link'] }}" class="btn btn-ghost btn-sm">
+                                        <i class="fa-solid fa-eye"></i> Voir les détails
+                                    </a>
+                                </div>
+                            @endif
                         </div>
-
-                        @if(isset($event['details']) && $event['details'])
-                            <div class="event-details">
-                                @foreach($event['details'] as $key => $value)
-                                    <div class="detail-item">
-                                        <span class="detail-label">{{ $key }}</span>
-                                        <span class="detail-value">{{ $value }}</span>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-
-                        @if(isset($event['link']))
-                            <div class="event-actions">
-                                <a href="{{ $event['link'] }}" class="btn btn-ghost btn-sm">
-                                    <i class="fa-solid fa-eye"></i> Voir les détails
-                                </a>
-                            </div>
-                        @endif
                     </div>
                 </div>
             @endforeach
@@ -174,9 +211,9 @@
         
         items.forEach(item => {
             if (filter === 'all') {
-                item.style.display = 'block';
+                item.style.display = 'flex';
             } else {
-                item.style.display = item.dataset.type === filter ? 'block' : 'none';
+                item.style.display = item.dataset.type === filter ? 'flex' : 'none';
             }
         });
     }
@@ -248,35 +285,6 @@
     .filter-group select:focus {
         outline: none;
         border-color: var(--rust);
-    }
-
-    /* ===================== STATS ===================== */
-    .stats-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-        gap: 12px;
-        margin-bottom: 24px;
-    }
-
-    .stat-box {
-        background: #fff;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 12px 16px;
-        text-align: center;
-    }
-
-    .stat-number {
-        display: block;
-        font-family: var(--display);
-        font-weight: 700;
-        font-size: 22px;
-        color: var(--ink);
-    }
-
-    .stat-label {
-        font-size: 12px;
-        color: var(--muted);
     }
 
     /* ===================== TIMELINE ===================== */
@@ -424,6 +432,48 @@
         line-height: 1.6;
     }
 
+    /* ===================== EVENT SUB (PROPOSITION/EVALUATION) ===================== */
+    .event-sub {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        background: #F7F9FC;
+        border-radius: 8px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+        border: 1px solid var(--border);
+    }
+
+    .sub-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+        white-space: nowrap;
+    }
+
+    .sub-value {
+        font-size: 13px;
+        color: var(--text-soft);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .sub-value a {
+        color: var(--ink);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .sub-value a:hover {
+        color: var(--rust);
+    }
+
     /* ===================== MEDIAS ===================== */
     .event-medias {
         margin: 8px 0 12px;
@@ -538,26 +588,6 @@
         color: var(--rust);
     }
 
-    /* ===================== EVENT META ===================== */
-    .event-meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-        font-size: 12px;
-        color: var(--muted);
-        margin-top: 4px;
-    }
-
-    .event-meta span {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }
-
-    .event-meta i {
-        font-size: 12px;
-    }
-
     /* ===================== EVENT DETAILS ===================== */
     .event-details {
         display: grid;
@@ -584,6 +614,26 @@
     .detail-value {
         color: var(--text-soft);
         font-weight: 500;
+    }
+
+    /* ===================== EVENT META ===================== */
+    .event-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 4px;
+    }
+
+    .event-meta span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .event-meta i {
+        font-size: 12px;
     }
 
     /* ===================== EVENT ACTIONS ===================== */
@@ -773,10 +823,6 @@
             min-width: unset;
         }
 
-        .stats-row {
-            grid-template-columns: repeat(3, 1fr);
-        }
-
         .historique-timeline {
             padding: 12px 16px;
         }
@@ -814,17 +860,14 @@
         .media-video video {
             height: 120px;
         }
+
+        .event-sub {
+            flex-direction: column;
+            align-items: flex-start;
+        }
     }
 
     @media (max-width: 480px) {
-        .stats-row {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .stat-number {
-            font-size: 18px;
-        }
-
         .timeline-dot {
             width: 28px;
             height: 28px;
@@ -857,6 +900,10 @@
             flex-direction: column;
             gap: 4px;
             align-items: center;
+        }
+
+        .event-details {
+            grid-template-columns: 1fr;
         }
     }
 </style>

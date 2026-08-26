@@ -109,59 +109,56 @@ class AuthController extends Controller
     }
 
     /**
-     * Traite la connexion
+     * Traite la connexion - CORRIGÉ (sans Auth::attempt)
      */
     public function login(LoginRequest $request)
     {
-        $credentials = [
-            'email' => $request->email,
-            'password' => $request->mot_de_passe,
-        ];
-
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
-            $request->session()->regenerate();
-            
-            $user = Auth::user();
-            
-            $type = $request->get('type', 'particulier');
-            
-            if ($type === 'agence' && !$user->isAgence()) {
-                Auth::logout();
-                throw ValidationException::withMessages([
-                    'email' => 'Ce compte n\'est pas un compte agence.',
-                ]);
-            }
-            
-            if ($type === 'particulier' && !$user->isParticulier() && !$user->isAdmin()) {
-                if (!$user->isAdmin()) {
-                    Auth::logout();
-                    throw ValidationException::withMessages([
-                        'email' => 'Ce compte n\'est pas un compte particulier.',
-                    ]);
-                }
-            }
-
-            if ($user->isAdmin()) {
-                return redirect()->route('admin.dashboard');
-            } elseif ($user->isAgence()) {
-                $agence = $user->agence;
-                if ($agence && !$agence->statut_validation) {
-                    return redirect()->route('agence.dashboard')
-                        ->with('info', 'Votre agence est en attente de validation par un administrateur.');
-                }
-                return redirect()->route('agence.dashboard');
-            } else {
-                return redirect()->route('particulier.dashboard');
-            }
+        // ✅ Chercher l'utilisateur par email
+        $user = User::where('email', $request->email)->first();
+        
+        // ✅ Vérifier si l'utilisateur existe et si le mot de passe correspond
+        if (!$user || !Hash::check($request->mot_de_passe, $user->mot_de_passe)) {
+            throw ValidationException::withMessages([
+                'email' => 'Les identifiants fournis sont incorrects.',
+            ]);
         }
 
-        throw ValidationException::withMessages([
-            'email' => 'Les identifiants fournis sont incorrects.',
-        ]);
+        // Vérifier le type de compte
+        $type = $request->get('type', 'particulier');
+        
+        if ($type === 'agence' && !$user->isAgence()) {
+            throw ValidationException::withMessages([
+                'email' => 'Ce compte n\'est pas un compte agence.',
+            ]);
+        }
+        
+        if ($type === 'particulier' && !$user->isParticulier() && !$user->isAdmin()) {
+            throw ValidationException::withMessages([
+                'email' => 'Ce compte n\'est pas un compte particulier.',
+            ]);
+        }
+
+        // ✅ Authentifier l'utilisateur manuellement
+        Auth::login($user, $request->boolean('remember'));
+        $request->session()->regenerate();
+
+        // Redirection selon le rôle
+        if ($user->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        } elseif ($user->isAgence()) {
+            $agence = $user->agence;
+            if ($agence && !$agence->statut_validation) {
+                return redirect()->route('agence.dashboard')
+                    ->with('info', 'Votre agence est en attente de validation par un administrateur.');
+            }
+            return redirect()->route('agence.dashboard');
+        } else {
+            return redirect()->route('particulier.dashboard');
+        }
     }
 
     /**
-     * Inscription particulier - CORRIGÉ AVEC LOGS ET GESTION DES DOUBLONS
+     * Inscription particulier
      */
     public function registerParticulier(RegisterParticulierRequest $request)
     {
@@ -202,82 +199,78 @@ class AuthController extends Controller
     }
 
     /**
-     * Inscription agence - CORRIGÉ AVEC LOGS ET GESTION DES DOUBLONS
+     * Inscription agence
      */
-   /**
- * Inscription agence - CORRIGÉ AVEC LOGS ET GESTION DES DOUBLONS
- */
-public function registerAgence(RegisterAgenceRequest $request)
-{
-    try {
-        // Création de l'utilisateur
-        $user = User::create([
-            'nom' => $request->nom,
-            'prenom' => $request->prenom,
-            'email' => $request->email,
-            'telephone' => $request->telephone,
-            'mot_de_passe' => Hash::make($request->mot_de_passe),
-            'role' => RoleEnum::AGENCE->value,
-        ]);
+    public function registerAgence(RegisterAgenceRequest $request)
+    {
+        try {
+            // Création de l'utilisateur
+            $user = User::create([
+                'nom' => $request->nom,
+                'prenom' => $request->prenom,
+                'email' => $request->email,
+                'telephone' => $request->telephone,
+                'mot_de_passe' => Hash::make($request->mot_de_passe),
+                'role' => RoleEnum::AGENCE->value,
+            ]);
 
-        // Création de l'agence
-        $agence = Agence::create([
-            'user_id' => $user->id,
-            'nom_agence' => $request->nom_agence,
-            'adresse' => $request->adresse,
-            'quartier' => $request->quartier,
-            'description' => $request->description,
-            'statut_validation' => false,
-        ]);
+            // Création de l'agence
+            $agence = Agence::create([
+                'user_id' => $user->id,
+                'nom_agence' => $request->nom_agence,
+                'adresse' => $request->adresse,
+                'quartier' => $request->quartier,
+                'description' => $request->description,
+                'statut_validation' => false,
+            ]);
 
-        Log::info('✅ Agence créée avec succès : ' . $user->email);
+            Log::info('✅ Agence créée avec succès : ' . $user->email);
 
-        // ✅ Upload des documents (noms corrects des champs)
-        $documentMapping = [
-            'rccm' => TypeDocumentEnum::RCCM,
-            'ninea' => TypeDocumentEnum::NINEA,
-            'piece_identite' => TypeDocumentEnum::PIECE_IDENTITE,
-            'logo' => TypeDocumentEnum::LOGO,
-        ];
+            // Upload des documents
+            $documentMapping = [
+                'rccm' => TypeDocumentEnum::RCCM,
+                'ninea' => TypeDocumentEnum::NINEA,
+                'piece_identite' => TypeDocumentEnum::PIECE_IDENTITE,
+                'logo' => TypeDocumentEnum::LOGO,
+            ];
 
-        foreach ($documentMapping as $fieldName => $enumType) {
-            if ($request->hasFile($fieldName)) {
-                $file = $request->file($fieldName);
-                
-                // Vérifier que le fichier est valide
-                if ($file && $file->isValid()) {
-                    $extension = $file->getClientOriginalExtension();
-                    $fileName = time() . '_' . $fieldName . '_' . uniqid() . '.' . $extension;
-                    $path = $file->storeAs('documents/agences/' . $agence->id, $fileName, 'public');
+            foreach ($documentMapping as $fieldName => $enumType) {
+                if ($request->hasFile($fieldName)) {
+                    $file = $request->file($fieldName);
                     
-                    DocumentAgence::create([
-                        'agence_id' => $agence->id,
-                        'type_document' => $enumType->value,
-                        'nom_fichier' => $path,
-                        'statut_validation' => StatutDocumentEnum::EN_ATTENTE,
-                    ]);
+                    if ($file && $file->isValid()) {
+                        $extension = $file->getClientOriginalExtension();
+                        $fileName = time() . '_' . $fieldName . '_' . uniqid() . '.' . $extension;
+                        $path = $file->storeAs('documents/agences/' . $agence->id, $fileName, 'public');
+                        
+                        DocumentAgence::create([
+                            'agence_id' => $agence->id,
+                            'type_document' => $enumType->value,
+                            'nom_fichier' => $path,
+                            'statut_validation' => StatutDocumentEnum::EN_ATTENTE,
+                        ]);
+                    }
                 }
             }
+
+            // Envoyer la notification de bienvenue
+            $this->sendWelcomeNotification($user, RoleEnum::AGENCE->value);
+
+            // Connexion automatique
+            Auth::login($user);
+
+            return redirect()->route('agence.dashboard')
+                ->with('info', 'Votre compte a été créé. En attente de validation par un administrateur.');
+                
+        } catch (\Exception $e) {
+            Log::error('❌ Erreur inscription agence : ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+            return back()->withErrors(['error' => 'Une erreur est survenue lors de l\'inscription.'])->withInput();
         }
-
-        // Envoyer la notification de bienvenue
-        $this->sendWelcomeNotification($user, RoleEnum::AGENCE->value);
-
-        // Connexion automatique
-        Auth::login($user);
-
-        return redirect()->route('agence.dashboard')
-            ->with('info', 'Votre compte a été créé. En attente de validation par un administrateur.');
-            
-    } catch (\Exception $e) {
-        Log::error('❌ Erreur inscription agence : ' . $e->getMessage());
-        Log::error($e->getTraceAsString());
-        return back()->withErrors(['error' => 'Une erreur est survenue lors de l\'inscription.'])->withInput();
     }
-}
 
     /**
-     * Envoyer une notification de bienvenue avec gestion des doublons
+     * Envoyer une notification de bienvenue
      */
     protected function sendWelcomeNotification(User $user, string $role): void
     {
@@ -293,7 +286,6 @@ public function registerAgence(RegisterAgenceRequest $request)
             Log::info('✅ Notification de bienvenue envoyée à ' . $user->email . ' (rôle: ' . $role . ')');
         } catch (\Exception $e) {
             Log::error('❌ Erreur envoi notification de bienvenue : ' . $e->getMessage());
-            // On continue même si la notification échoue - ne pas bloquer l'inscription
         }
     }
 

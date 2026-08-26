@@ -5,6 +5,9 @@
 @section('page_sub', 'Vos informations visibles par les clients')
 
 @section('content')
+@php
+    $ongletActif = request()->get('onglet', 'infos');
+@endphp
 <div class="view active">
     <!-- En-tête de la section -->
     <div class="section-head">
@@ -16,20 +19,19 @@
 
     <!-- Onglets -->
     <div class="tabs">
-        <button class="tab-btn active" data-tab="infos" onclick="switchTab('infos')">
+        <button class="tab-btn {{ $ongletActif === 'infos' ? 'active' : '' }}" data-tab="infos" onclick="switchTab('infos')">
             <i class="fa-solid fa-user"></i> Informations
         </button>
-        <button class="tab-btn" data-tab="creneaux" onclick="switchTab('creneaux')">
+        <button class="tab-btn {{ $ongletActif === 'creneaux' ? 'active' : '' }}" data-tab="creneaux" onclick="switchTab('creneaux')">
             <i class="fa-solid fa-calendar-clock"></i> Disponibilités
         </button>
     </div>
 
     <!-- ==================== ONGLET INFORMATIONS ==================== -->
-    <div id="tab-infos" class="tab-content active">
+    <div id="tab-infos" class="tab-content {{ $ongletActif === 'infos' ? 'active' : '' }}" style="{{ $ongletActif === 'infos' ? 'display:block;' : 'display:none;' }}">
         <div class="profile-grid">
             <!-- Carte de gauche - Profil -->
             <div class="profile-card profile-left">
-                <!-- ✅ Affichage du logo ou avatar -->
                 @if($agence->logo)
                     <div class="profile-logo">
                         <img src="{{ asset('storage/' . $agence->logo) }}" alt="{{ $agence->nom_agence }}">
@@ -103,7 +105,6 @@
                         @error('description') <span class="error">{{ $message }}</span> @enderror
                     </div>
 
-                    <!-- ✅ Upload Logo amélioré -->
                     <div class="field logo-field">
                         <label>Logo de l'agence</label>
                         <div class="logo-upload-wrapper">
@@ -153,8 +154,7 @@
     </div>
 
     <!-- ==================== ONGLET DISPONIBILITÉS ==================== -->
-    <div id="tab-creneaux" class="tab-content">
-        <!-- Légende -->
+    <div id="tab-creneaux" class="tab-content {{ $ongletActif === 'creneaux' ? 'active' : '' }}" style="{{ $ongletActif === 'creneaux' ? 'display:block;' : 'display:none;' }}">
         <div class="legend-bar">
             <div class="legend-item">
                 <span class="legend-dot disponible"></span> Disponible
@@ -170,7 +170,6 @@
             </div>
         </div>
 
-        <!-- Bouton Générer -->
         <div class="creneaux-header">
             <div class="creneaux-info">
                 <i class="fa-regular fa-clock"></i>
@@ -181,7 +180,6 @@
             </button>
         </div>
 
-        <!-- Grille des créneaux -->
         <div class="slots-grid">
             @php
                 $joursMap = [
@@ -266,11 +264,10 @@
                             {{ $creneauxDuJour->count() }} créneau(x)
                         </span>
                         @if($creneauxDuJour->count() > 0 && !$estPasse)
-                            <form action="{{ route('agence.creneaux.supprimerDate') }}" method="POST" class="slot-form">
+                            <form action="{{ route('agence.creneaux.supprimerDatePost') }}" method="POST" class="slot-form" onsubmit="return confirm('Supprimer tous les créneaux de cette date ?')">
                                 @csrf
-                                @method('DELETE')
                                 <input type="hidden" name="date" value="{{ $date }}">
-                                <button type="submit" class="btn btn-ghost btn-sm" style="color:#C62828;border-color:#FFCDD2;" onclick="return confirm('Supprimer tous les créneaux de cette date ?')">
+                                <button type="submit" class="btn btn-ghost btn-sm" style="color:#C62828;border-color:#FFCDD2;">
                                     <i class="fa-solid fa-trash-can"></i> Supprimer tout
                                 </button>
                             </form>
@@ -344,23 +341,46 @@
 
 @push('scripts')
 <script>
+    // ===================== RESTER SUR L'ONGLET APRÈS RECHARGEMENT =====================
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const onglet = urlParams.get('onglet');
+        
+        if (onglet && (onglet === 'infos' || onglet === 'creneaux')) {
+            switchTab(onglet);
+        }
+    });
+
     // ===================== SWITCH ONGLETS =====================
     function switchTab(tab) {
+        // Cacher tous les onglets
         document.querySelectorAll('.tab-content').forEach(el => {
             el.classList.remove('active');
             el.style.display = 'none';
         });
         
+        // Désactiver tous les boutons
         document.querySelectorAll('.tab-btn').forEach(el => {
             el.classList.remove('active');
         });
         
+        // Afficher l'onglet sélectionné
         const content = document.getElementById('tab-' + tab);
-        content.classList.add('active');
-        content.style.display = 'block';
+        if (content) {
+            content.classList.add('active');
+            content.style.display = 'block';
+        }
         
+        // Activer le bouton correspondant
         const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
-        btn.classList.add('active');
+        if (btn) {
+            btn.classList.add('active');
+        }
+        
+        // Mettre à jour l'URL sans recharger la page
+        const url = new URL(window.location);
+        url.searchParams.set('onglet', tab);
+        window.history.pushState({}, '', url);
     }
 
     // ===================== MODAL =====================
@@ -374,15 +394,13 @@
         document.getElementById('modalCreneaux').style.display = 'none';
     }
 
-    // Fermer le modal avec Escape
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeModal();
         }
     });
 
-    // Fermer le modal en cliquant sur l'overlay
-    document.querySelector('.modal-overlay').addEventListener('click', closeModal);
+    document.querySelector('.modal-overlay')?.addEventListener('click', closeModal);
 
     // ===================== APERÇU DU LOGO =====================
     document.addEventListener('DOMContentLoaded', function() {
@@ -391,12 +409,10 @@
         const previewContainer = document.getElementById('logoPreview');
 
         if (logoInput && logoUploadArea) {
-            // ✅ Cliquer sur la zone (image, texte, hint...) ouvre le sélecteur de fichier
             logoUploadArea.addEventListener('click', function() {
                 logoInput.click();
             });
 
-            // ✅ Accessibilité clavier (Enter / Espace)
             logoUploadArea.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
@@ -404,7 +420,6 @@
                 }
             });
 
-            // Aperçu de l'image choisie
             logoInput.addEventListener('change', function(e) {
                 const file = this.files[0];
                 if (file) {
@@ -424,7 +439,6 @@
 
 @push('styles')
 <style>
-    /* ===================== ONGLETS ===================== */
     .tabs {
         display: flex;
         gap: 8px;
@@ -467,7 +481,6 @@
         display: block;
     }
 
-    /* ===================== PROFIL ===================== */
     .profile-grid {
         display: grid;
         grid-template-columns: 1fr 2fr;
@@ -491,7 +504,6 @@
         text-align: center;
     }
 
-    /* ✅ LOGO */
     .profile-logo {
         width: 100px;
         height: 100px;
@@ -600,7 +612,6 @@
         color: var(--muted);
     }
 
-    /* ===================== FORMULAIRE ===================== */
     .form-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -668,7 +679,6 @@
         margin-top: 8px;
     }
 
-    /* ===================== LOGO UPLOAD ===================== */
     .logo-field {
         margin-top: 8px;
     }
@@ -775,7 +785,6 @@
         pointer-events: none;
     }
 
-    /* ===================== CRÉNEAUX ===================== */
     .legend-bar {
         display: flex;
         gap: 20px;
@@ -1041,7 +1050,6 @@
         gap: 4px;
     }
 
-    /* ===================== MODAL ===================== */
     .modal {
         display: none;
         position: fixed;
@@ -1212,7 +1220,6 @@
         margin-top: 8px;
     }
 
-    /* ===================== BOUTONS ===================== */
     .btn {
         display: inline-flex;
         align-items: center;
@@ -1256,7 +1263,6 @@
         font-size: 12.5px;
     }
 
-    /* ===================== RESPONSIVE ===================== */
     @media (max-width: 480px) {
         .logo-upload-area {
             flex-direction: column;
@@ -1275,4 +1281,4 @@
         }
     }
 </style>
-@endpush
+@endpush 

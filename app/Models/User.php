@@ -37,35 +37,22 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
+    // ✅ IMPORTANT : Indiquer à Laravel la colonne utilisée pour le mot de passe
     public function getAuthPassword()
     {
         return $this->mot_de_passe;
     }
 
-    // Méthode pour obtenir le rôle en string (utile pour le middleware)
-    public function getRoleAttribute($value)
+    // ✅ Méthode pour définir le mot de passe (utile pour les mutations)
+    public function setMotDePasseAttribute($value)
     {
-        if (is_string($value)) {
-            return $value;
-        }
-        return $value instanceof RoleEnum ? $value->value : $value;
+        $this->attributes['mot_de_passe'] = $value;
     }
 
-    // ==================== RELATIONS ====================
-    
-    public function administrateur(): HasOne
+    // ✅ Méthode pour Laravel (alias)
+    public function getPasswordAttribute()
     {
-        return $this->hasOne(Administrateur::class);
-    }
-
-    public function particulier(): HasOne
-    {
-        return $this->hasOne(Particulier::class);
-    }
-
-    public function agence(): HasOne
-    {
-        return $this->hasOne(Agence::class);
+        return $this->mot_de_passe;
     }
 
     // ==================== RÔLES ====================
@@ -85,6 +72,23 @@ class User extends Authenticatable
         return $this->role === RoleEnum::AGENCE || $this->role === 'agence';
     }
 
+    // ==================== RELATIONS ====================
+    
+    public function administrateur(): HasOne
+    {
+        return $this->hasOne(Administrateur::class);
+    }
+
+    public function particulier(): HasOne
+    {
+        return $this->hasOne(Particulier::class);
+    }
+
+    public function agence(): HasOne
+    {
+        return $this->hasOne(Agence::class);
+    }
+
     // ==================== ACCESSORS ====================
     
     public function getFullNameAttribute(): string
@@ -92,24 +96,25 @@ class User extends Authenticatable
         return $this->prenom . ' ' . $this->nom;
     }
 
-    // ==================== NOTIFICATIONS PERSONNALISÉES ====================
+    public function getRoleAttribute($value)
+    {
+        if (is_string($value)) {
+            return $value;
+        }
+        return $value instanceof RoleEnum ? $value->value : $value;
+    }
+
+    // ==================== NOTIFICATIONS ====================
     
-    /**
-     * Envoie une notification en base de données
-     * Surcharge la méthode native de Laravel pour garantir l'enregistrement
-     */
     public function notify($notification)
     {
-        // Si c'est une string, on instancie la classe
         if (is_string($notification)) {
             $notification = app($notification);
         }
         
-        // Vérifier si la notification a une méthode toDatabase
         if (method_exists($notification, 'toDatabase')) {
             $data = $notification->toDatabase($this);
             
-            // Créer la notification en base de données
             DatabaseNotification::create([
                 'id' => (string) Str::uuid(),
                 'type' => get_class($notification),
@@ -123,9 +128,6 @@ class User extends Authenticatable
         }
     }
 
-    /**
-     * Envoie une notification à plusieurs utilisateurs
-     */
     public static function notifyMany($users, $notification)
     {
         foreach ($users as $user) {
@@ -133,9 +135,6 @@ class User extends Authenticatable
         }
     }
 
-    /**
-     * Récupère les notifications non lues avec leurs données formatées
-     */
     public function getUnreadNotificationsFormatted()
     {
         return $this->unreadNotifications()->get()->map(function ($notification) {
@@ -152,15 +151,13 @@ class User extends Authenticatable
         });
     }
 
-    /**
-     * Récupère le nombre de notifications non lues
-     */
     public function getUnreadNotificationsCount(): int
     {
         return $this->unreadNotifications()->count();
     }
+    
     public function creneaux(): HasMany
-{
-    return $this->hasMany(CreneauRendezVous::class);
-}
+    {
+        return $this->hasMany(CreneauRendezVous::class);
+    }
 }

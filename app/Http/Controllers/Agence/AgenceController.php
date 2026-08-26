@@ -16,6 +16,8 @@ use App\Enums\FormuleAbonnementEnum;
 use App\Enums\StatutDemandeEnum;
 use App\Enums\StatutRendezVousEnum;
 use App\Enums\StatutPropositionEnum;
+use App\Enums\TypeBienEnum;
+use App\Enums\TypeOperationEnum;
 use App\Services\MatchingService;
 use App\Services\PayDunyaService;
 use Carbon\Carbon;
@@ -683,37 +685,39 @@ public function dashboard()
             ->with('success', 'Créneau mis à jour.');
     }
 
-    /**
-     * Supprime un créneau
-     */
-    public function supprimerCreneau(CreneauRendezVous $creneau)
-    {
-        if ($creneau->agence_id !== Auth::user()->agence->id) {
-            abort(403);
-        }
-
-        $creneau->delete();
-
-        return redirect()->route('agence.profil')
-            ->with('success', 'Créneau supprimé.');
+ /**
+ * Supprime un créneau
+ */
+public function supprimerCreneau(CreneauRendezVous $creneau)
+{
+    if ($creneau->agence_id !== Auth::user()->agence->id) {
+        abort(403);
     }
 
-    /**
-     * Supprime tous les créneaux d'une date
-     */
-    public function supprimerCreneauxDate(Request $request)
-    {
-        $agence = Auth::user()->agence;
+    $creneau->delete();
 
-        $request->validate(['date' => 'required|date']);
+    // ✅ Rediriger vers le profil avec l'onglet "creneaux" actif
+    return redirect()->route('agence.profil', ['onglet' => 'creneaux'])
+        ->with('success', 'Créneau supprimé.');
+}
 
-        CreneauRendezVous::where('agence_id', $agence->id)
-            ->where('date', $request->date)
-            ->delete();
+/**
+ * Supprime tous les créneaux d'une date
+ */
+public function supprimerCreneauxDate(Request $request)
+{
+    $agence = Auth::user()->agence;
 
-        return redirect()->route('agence.profil')
-            ->with('success', 'Créneaux supprimés pour cette date.');
-    }
+    $request->validate(['date' => 'required|date']);
+
+    $deleted = CreneauRendezVous::where('agence_id', $agence->id)
+        ->where('date', $request->date)
+        ->delete();
+
+    // ✅ Rediriger vers le profil avec l'onglet "creneaux" actif
+    return redirect()->route('agence.profil', ['onglet' => 'creneaux'])
+        ->with('success', $deleted . ' créneau(x) supprimé(s) pour cette date.');
+}
 
     /**
      * Récupère les créneaux disponibles (API)
@@ -1344,116 +1348,169 @@ public function souscrire(Request $request)
     /**
      * Historique des activités de l'agence
      */
-    public function historique()
-    {
-        $agence = Auth::user()->agence;
-        
-        $activites = collect();
-        
-        $propositions = $agence->propositions()
-            ->with('demande')
-            ->orderBy('created_at', 'desc')
-            ->limit(20)
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'type' => 'proposition',
-                    'titre' => 'Offre envoyée',
-                    'description' => ($item->demande->type_bien->label() ?? 'Bien') . ' — ' . number_format($item->prix_propose, 0, ',', ' ') . ' FCFA',
-                    'date' => $item->created_at,
-                    'statut' => $item->statut->label(),
-                    'statut_class' => $this->getStatusClass($item->statut->value),
-                ];
-            });
-        
-        $rendezVous = $agence->rendezVous()
-            ->with(['proposition.bien', 'particulier.user'])
-            ->orderBy('created_at', 'desc')
-            ->limit(20)
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'type' => 'rendezvous',
-                    'titre' => 'Rendez-vous',
-                    'description' => ($item->proposition->bien->titre ?? 'Bien') . ' — ' . ($item->particulier->user->prenom ?? 'Client'),
-                    'date' => $item->created_at,
-                    'statut' => $item->statut->label(),
-                    'statut_class' => $this->getStatusClass($item->statut->value),
-                ];
-            });
-        
-        $evaluations = $agence->evaluations()
-            ->with('particulier.user')
-            ->orderBy('created_at', 'desc')
-            ->limit(20)
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'type' => 'evaluation',
-                    'titre' => 'Avis reçu',
-                    'description' => ($item->particulier->user->prenom ?? 'Client') . ' ' . ($item->particulier->user->nom ?? '') . ' — ' . $item->note . '/5',
-                    'date' => $item->created_at,
-                    'statut' => $item->note . '★',
-                    'statut_class' => $item->note >= 4 ? 'success' : 'default',
-                ];
-            });
-        
-        $activites = $propositions->concat($rendezVous)->concat($evaluations)
-            ->sortByDesc('date')
-            ->values();
-        
-        $perPage = 15;
-        $currentPage = request()->get('page', 1);
-        $offset = ($currentPage - 1) * $perPage;
-        $items = $activites->slice($offset, $perPage)->values();
-        $total = $activites->count();
-        
-        $activites = new \Illuminate\Pagination\LengthAwarePaginator(
-            $items,
-            $total,
-            $perPage,
-            $currentPage,
-            ['path' => request()->url(), 'query' => request()->query()]
-        );
-        
-        $abonnementActuel = $agence->abonnements()
-            ->where('statut', true)
-            ->where('date_fin', '>', now())
-            ->first();
-        $besoinsDisponibles = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count();
-        $rendezvousAVenir = $agence->rendezVous()
-            ->whereIn('statut', [StatutRendezVousEnum::PLANIFIE, StatutRendezVousEnum::CONFIRME])
-            ->where('date_visite', '>=', now()->toDateString())
-            ->count();
+   /**
+ * Historique des activités de l'agence
+ */
+/**
+ * Historique des activités de l'agence
+ */
+/**
+ * Historique des activités de l'agence
+ */
+/**
+ * Historique des activités de l'agence
+ * Affiche uniquement les activités terminées ou annulées
+ */
+public function historique()
+{
+    $agence = Auth::user()->agence;
+    
+    $activites = collect();
+    
+    // ✅ Propositions (offres envoyées) - UNIQUEMENT terminées ou annulées
+    $propositions = $agence->propositions()
+        ->with(['demande', 'bien.medias'])
+        ->whereIn('statut', [
+            StatutPropositionEnum::TERMINEE->value,
+            StatutPropositionEnum::REFUSEE->value
+        ])
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function ($item) {
+            return [
+                'type' => 'proposition',
+                'titre' => 'Offre envoyée',
+                'description' => ($item->demande->type_bien->label() ?? 'Bien') . ' — ' . number_format($item->prix_propose, 0, ',', ' ') . ' FCFA',
+                'date' => $item->created_at,
+                'statut' => $item->statut->label(),
+                'statut_class' => $this->getStatusClass($item->statut->value),
+                'medias' => $item->bien ? $item->bien->medias : collect(),
+                'details' => [
+                    'Bien' => $item->bien->titre ?? 'N/A',
+                    'Surface' => ($item->bien->surface ?? 0) . ' m²',
+                    'Prix proposé' => number_format($item->prix_propose, 0, ',', ' ') . ' FCFA',
+                    'Demande ID' => '#' . $item->demande_id,
+                    'Type de demande' => $item->demande->type_bien->label() ?? 'N/A',
+                    'Zone recherchée' => $item->demande->zone_recherchee ?? 'N/A',
+                    'Budget client' => number_format($item->demande->budget_maximum, 0, ',', ' ') . ' FCFA',
+                ],
+                'link' => route('agence.propositions.show', $item),
+                'demande_link' => route('agence.demandes.show', $item->demande_id),
+            ];
+        });
+    
+    // ✅ Rendez-vous - UNIQUEMENT terminés ou annulés
+    $rendezVous = $agence->rendezVous()
+        ->with(['proposition.bien.medias', 'particulier.user', 'proposition.demande'])
+        ->whereIn('statut', [
+            StatutRendezVousEnum::TERMINE->value,
+            StatutRendezVousEnum::ANNULE->value
+        ])
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function ($item) {
+            return [
+                'type' => 'rendezvous',
+                'titre' => 'Rendez-vous',
+                'description' => ($item->proposition->bien->titre ?? 'Bien') . ' — ' . ($item->particulier->user->prenom ?? 'Client'),
+                'date' => $item->created_at,
+                'statut' => $item->statut->label(),
+                'statut_class' => $this->getStatusClass($item->statut->value),
+                'medias' => $item->proposition->bien ? $item->proposition->bien->medias : collect(),
+                'details' => [
+                    'Bien' => $item->proposition->bien->titre ?? 'N/A',
+                    'Date visite' => $item->date_visite->format('d/m/Y'),
+                    'Heure' => $item->heure_visite,
+                    'Client' => $item->particulier->user->prenom ?? 'N/A',
+                ],
+                'link' => route('agence.rendezvous.show', $item),
+            ];
+        });
+    
+    // ✅ Évaluations (avis reçus) - UNIQUEMENT terminées (toutes les évaluations sont considérées comme terminées)
+    $evaluations = $agence->evaluations()
+        ->with(['particulier.user', 'proposition.bien.medias', 'proposition.demande'])
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function ($item) {
+            return [
+                'type' => 'evaluation',
+                'titre' => 'Avis reçu',
+                'description' => ($item->particulier->user->prenom ?? 'Client') . ' ' . ($item->particulier->user->nom ?? '') . ' — ' . $item->note . '/5',
+                'date' => $item->created_at,
+                'statut' => $item->note . '★',
+                'statut_class' => $item->note >= 4 ? 'success' : 'default',
+                'medias' => $item->proposition && $item->proposition->bien ? $item->proposition->bien->medias : collect(),
+                'details' => [
+                    'Note' => $item->note . '/5',
+                    'Client' => $item->particulier->user->prenom ?? 'N/A',
+                    'Commentaire' => $item->commentaire ?? 'Aucun commentaire',
+                ],
+            ];
+        });
+    
+    // Fusionner toutes les activités
+    $activites = $propositions->concat($rendezVous)->concat($evaluations)
+        ->sortByDesc('date')
+        ->values();
+    
+    // Pagination
+    $perPage = request()->get('per_page', 15);
+    $currentPage = request()->get('page', 1);
+    $offset = ($currentPage - 1) * $perPage;
+    $items = $activites->slice($offset, $perPage)->values();
+    $total = $activites->count();
+    
+    $activites = new \Illuminate\Pagination\LengthAwarePaginator(
+        $items,
+        $total,
+        $perPage,
+        $currentPage,
+        ['path' => request()->url(), 'query' => request()->query()]
+    );
+    
+    $abonnementActuel = $agence->abonnements()
+        ->where('statut', true)
+        ->where('date_fin', '>', now())
+        ->first();
+    $besoinsDisponibles = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count();
+    $rendezvousAVenir = $agence->rendezVous()
+        ->whereIn('statut', [StatutRendezVousEnum::PLANIFIE, StatutRendezVousEnum::CONFIRME])
+        ->where('date_visite', '>=', now()->toDateString())
+        ->count();
 
-        $notifData = $this->getNotifications();
+    $notifData = $this->getNotifications();
 
-        return view('agence.historique', array_merge(compact(
-            'activites', 
-            'abonnementActuel', 
-            'besoinsDisponibles', 
-            'rendezvousAVenir'
-        ), $notifData));
-    }
+    return view('agence.historique', array_merge(compact(
+        'activites', 
+        'abonnementActuel', 
+        'besoinsDisponibles', 
+        'rendezvousAVenir'
+    ), $notifData));
+}
+
+/**
+ * Retourne la classe CSS selon le statut
+ */
+private function getStatusClass($status)
+{
+    $map = [
+        'en_attente' => 'warning',
+        'acceptee' => 'success',
+        'refusee' => 'danger',
+        'terminee' => 'success',
+        'annulee' => 'danger',
+        'planifie' => 'warning',
+        'confirme' => 'info',
+        'annule' => 'danger',
+        'termine' => 'success',
+    ];
+    
+    return $map[$status] ?? 'default';
+}
 
     // ==================== UTILITAIRES ====================
 
-    private function getStatusClass($status)
-    {
-        $map = [
-            'en_attente' => 'warning',
-            'acceptee' => 'success',
-            'refusee' => 'danger',
-            'terminee' => 'success',
-            'annulee' => 'danger',
-            'planifie' => 'warning',
-            'confirme' => 'info',
-            'annule' => 'danger',
-            'termine' => 'success',
-        ];
-        
-        return $map[$status] ?? 'default';
-    }
 
  
 }

@@ -102,7 +102,7 @@
                 <div class="field">
                     <label style="display:flex; justify-content:space-between;">
                         Mot de passe 
-                        <a href="#" style="color:var(--rust); font-weight:600;font-size:12px;">Oublié ?</a>
+                        <a href="{{ route('password.request') }}" style="color:var(--rust); font-weight:600;font-size:12px;">Oublié ?</a>
                     </label>
                     <div class="password-wrapper">
                         <input type="password" 

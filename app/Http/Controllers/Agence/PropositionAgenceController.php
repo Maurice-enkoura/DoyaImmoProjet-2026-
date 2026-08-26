@@ -15,14 +15,21 @@ use App\Enums\StatutPropositionEnum;
 use App\Enums\TypeMediaEnum;
 use App\Notifications\NouvellePropositionNotification;
 use Illuminate\Http\Request;
+use App\Notifications\RendezVousTermineNotification;
 
 class PropositionAgenceController extends Controller
 {
     public function index()
     {
         $agence = Auth::user()->agence;
+        
+        // ✅ Afficher UNIQUEMENT les propositions en attente ou acceptées
         $propositions = Proposition::with(['demande.particulier.user', 'bien'])
             ->where('agence_id', $agence->id)
+            ->whereIn('statut', [
+                StatutPropositionEnum::EN_ATTENTE->value,
+                StatutPropositionEnum::ACCEPTEE->value
+            ])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
             

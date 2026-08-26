@@ -11,10 +11,35 @@
             <h2>Mes avis donnés</h2>
             <p>Vos évaluations des agences avec lesquelles vous avez travaillé</p>
         </div>
+        <div style="display:flex;gap:10px;">
+            <a href="{{ route('particulier.rendezvous.index') }}" class="btn btn-ghost btn-sm">
+                <i class="fa-solid fa-calendar"></i> Voir mes rendez-vous
+            </a>
+        </div>
     </div>
+
+    @if(session('error'))
+        <div style="padding:12px 16px;background:#FFEBEE;color:#C62828;border:1px solid #FFCDD2;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>{{ session('error') }}</span>
+        </div>
+    @endif
+
+    @if(session('info'))
+        <div style="padding:12px 16px;background:#E3F2FD;color:#0D47A1;border:1px solid #BBDEFB;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <i class="fa-solid fa-info-circle"></i>
+            <span>{{ session('info') }}</span>
+        </div>
+    @endif
 
     @if($evaluations->count() > 0)
         <!-- Statistiques rapides -->
+        @php
+            $total = $evaluations->total();
+            $moyenne = $evaluations->avg('note') ?? 0;
+            $count5 = $evaluations->where('note', 5)->count();
+            $count4 = $evaluations->where('note', 4)->count();
+        @endphp
         
 
         <!-- Liste des avis -->
@@ -36,13 +61,13 @@
                                         <i class="fa-solid fa-star {{ $i <= $evaluation->note ? 'active' : '' }}"></i>
                                     @endfor
                                 </div>
-                            </div>
-                            <div style="font-size:12px;color:var(--muted);">
-                                <i class="fa-regular fa-calendar"></i> {{ $evaluation->created_at->format('d/m/Y') }}
+                                <span style="font-size:11px;color:var(--muted);background:var(--border);padding:0 10px;border-radius:20px;">
+                                    {{ $evaluation->created_at->format('d/m/Y') }}
+                                </span>
                             </div>
                             @if($evaluation->commentaire)
                                 <p style="font-size:13.5px;color:var(--text-soft);margin-top:8px;line-height:1.6;">
-                                    {{ $evaluation->commentaire }}
+                                    "{{ $evaluation->commentaire }}"
                                 </p>
                             @endif
                             @if($evaluation->reponse_agence)
@@ -58,10 +83,22 @@
                         </div>
                         
                         <!-- Actions -->
-                        <div style="flex-shrink:0;">
+                        <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
                             <a href="{{ route('particulier.evaluations.show', $evaluation) }}" class="btn btn-ghost btn-sm">
                                 <i class="fa-solid fa-eye"></i> Détails
                             </a>
+                            @if($evaluation->particulier_id === Auth::user()->particulier->id)
+                                <a href="{{ route('particulier.evaluations.edit', $evaluation) }}" class="btn btn-ghost btn-sm">
+                                    <i class="fa-solid fa-pen"></i> Modifier
+                                </a>
+                                <form action="{{ route('particulier.evaluations.destroy', $evaluation) }}" method="POST" style="display:inline;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-ghost btn-sm" style="color:#C62828;border-color:#FFCDD2;" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet avis ?')">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </form>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -123,6 +160,80 @@
         background: var(--rust);
         color: #fff;
         border-color: var(--rust);
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 12.5px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-family: inherit;
+    }
+
+    .btn-rust {
+        background: var(--rust);
+        color: #fff;
+        border-color: var(--rust);
+    }
+
+    .btn-rust:hover {
+        background: #9A4523;
+        border-color: #9A4523;
+        color: #fff;
+    }
+
+    .btn-ghost {
+        background: transparent;
+        color: var(--text-soft);
+        border-color: var(--border);
+    }
+
+    .btn-ghost:hover {
+        background: var(--border);
+        color: var(--ink);
+    }
+
+    .btn-sm {
+        padding: 4px 12px;
+        font-size: 12px;
+    }
+
+    @media (max-width: 768px) {
+        .section-head {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 12px;
+        }
+        .section-head .btn {
+            justify-content: center;
+        }
+        [style*="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;"] {
+            flex-direction: column;
+        }
+        [style*="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;"] {
+            width: 100%;
+            justify-content: stretch;
+        }
+        [style*="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;"] .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        .stats-row {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .stats-row {
+            grid-template-columns: 1fr !important;
+        }
     }
 </style>
 @endpush

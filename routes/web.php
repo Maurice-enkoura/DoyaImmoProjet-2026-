@@ -3,8 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\PayDunyaController;
-use App\Http\Controllers\NotificationController; // ✅ Ajouter cette ligne
+use App\Http\Controllers\NotificationController;
 
 // Contrôleurs Particulier
 use App\Http\Controllers\Particulier\ParticulierDashboardController;
@@ -97,6 +99,52 @@ Route::post('/register/agence', [AuthController::class, 'registerAgence']);
 
 /*
 |--------------------------------------------------------------------------
+| ROUTES MOT DE PASSE OUBLIÉ - PARTICULIERS
+|--------------------------------------------------------------------------
+*/
+Route::middleware('guest')->group(function () {
+    // Formulaire de demande
+    Route::get('/mot-de-passe-oublie', [ForgotPasswordController::class, 'showLinkRequestForm'])
+        ->name('password.request');
+
+    // Envoi du lien
+    Route::post('/mot-de-passe-oublie', [ForgotPasswordController::class, 'sendResetLinkEmail'])
+        ->name('password.email');
+
+    // Formulaire de réinitialisation
+    Route::get('/reinitialiser-mot-de-passe/{token}', [ResetPasswordController::class, 'showResetForm'])
+        ->name('password.reset');
+
+    // Réinitialisation
+    Route::post('/reinitialiser-mot-de-passe', [ResetPasswordController::class, 'reset'])
+        ->name('password.update');
+});
+
+/*
+|--------------------------------------------------------------------------
+| ROUTES MOT DE PASSE OUBLIÉ - AGENCES
+|--------------------------------------------------------------------------
+*/
+Route::prefix('agence')->name('agence.')->middleware('guest')->group(function () {
+    // Formulaire de demande
+    Route::get('/mot-de-passe-oublie', [ForgotPasswordController::class, 'showLinkRequestFormAgence'])
+        ->name('password.request');
+
+    // Envoi du lien
+    Route::post('/mot-de-passe-oublie', [ForgotPasswordController::class, 'sendResetLinkEmailAgence'])
+        ->name('password.email');
+
+    // Formulaire de réinitialisation
+    Route::get('/reinitialiser-mot-de-passe/{token}', [ResetPasswordController::class, 'showResetFormAgence'])
+        ->name('password.reset');
+
+    // Réinitialisation
+    Route::post('/reinitialiser-mot-de-passe', [ResetPasswordController::class, 'resetAgence'])
+        ->name('password.update');
+});
+
+/*
+|--------------------------------------------------------------------------
 | ROUTES PAYDUNYA (Paiement en ligne)
 |--------------------------------------------------------------------------
 */
@@ -104,7 +152,7 @@ Route::prefix('paydunya')->name('paydunya.')->group(function () {
     Route::get('/pay/{abonnement}', [PayDunyaController::class, 'pay'])->name('pay');
     Route::match(['GET', 'POST'], '/callback', [PayDunyaController::class, 'callback'])->name('callback');
     Route::get('/cancel', [PayDunyaController::class, 'cancel'])->name('cancel');
-     Route::get('/return', [PayDunyaController::class, 'return'])->name('return');
+    Route::get('/return', [PayDunyaController::class, 'return'])->name('return');
     Route::get('/status/{abonnement}', [PayDunyaController::class, 'status'])->name('status');
     Route::get('/force-update/{abonnement}', [PayDunyaController::class, 'forceUpdate'])->name('force-update');
 });
@@ -182,6 +230,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/evaluations/create/{agence}', [ParticulierEvaluationController::class, 'create'])->name('evaluations.create');
         Route::post('/evaluations', [ParticulierEvaluationController::class, 'store'])->name('evaluations.store');
         Route::get('/evaluations/{evaluation}', [ParticulierEvaluationController::class, 'show'])->name('evaluations.show');
+        Route::get('/evaluations/{evaluation}/edit', [ParticulierEvaluationController::class, 'edit'])->name('evaluations.edit');
+        Route::put('/evaluations/{evaluation}', [ParticulierEvaluationController::class, 'update'])->name('evaluations.update');
+        Route::delete('/evaluations/{evaluation}', [ParticulierEvaluationController::class, 'destroy'])->name('evaluations.destroy');
 
         // Profil
         Route::get('/profil', [ProfilController::class, 'index'])->name('profil');
@@ -223,7 +274,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/creneaux/{creneau}/toggle', [AgenceController::class, 'toggleCreneau'])->name('creneaux.toggle');
         Route::delete('/creneaux/{creneau}', [AgenceController::class, 'supprimerCreneau'])->name('creneaux.supprimer');
         Route::delete('/creneaux/date', [AgenceController::class, 'supprimerCreneauxDate'])->name('creneaux.supprimerDate');
-
+        // ✅ AJOUTER CETTE ROUTE POST
+        Route::post('/creneaux/date/supprimer', [AgenceController::class, 'supprimerCreneauxDate'])->name('creneaux.supprimerDatePost');
         // ============ RENDEZ-VOUS ============
         Route::get('/rendezvous', [AgenceController::class, 'rendezvous'])->name('rendezvous.index');
         Route::get('/rendezvous/{rendezVous}', [AgenceController::class, 'rendezvousShow'])->name('rendezvous.show');
@@ -340,7 +392,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/biens/{bien}/vedette', [AdminBienController::class, 'mettreEnVedette'])->name('biens.vedette.mettre');
         Route::delete('/biens/{bien}/vedette', [AdminBienController::class, 'retirerVedette'])->name('biens.vedette.retirer');
         Route::post('/biens/{bien}/vedette/prolonger', [AdminBienController::class, 'prolongerVedette'])->name('biens.vedette.prolonger');
-        
+
         // Demandes
         Route::get('/demandes', [AdminDemandeController::class, 'index'])->name('demandes.index');
         Route::get('/demandes/{demande}', [AdminDemandeController::class, 'show'])->name('demandes.show');

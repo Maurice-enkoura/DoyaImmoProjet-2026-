@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mot de passe oublié — DoyaImmo</title>
+    <title>Mot de passe oublié — Espace Agence — DoyaImmo</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -333,7 +333,7 @@
                 <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
             </div>
             <h1>Mot de passe oublié</h1>
-            <p class="sub">Indiquez votre email, nous vous enverrons un lien de réinitialisation.</p>
+            <p class="sub">Indiquez l'email professionnel de votre agence, nous vous enverrons un lien de réinitialisation.</p>
 
             @if(session('status'))
                 <div class="alert alert-success">
@@ -349,11 +349,11 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('password.email') }}">
+            <form method="POST" action="{{ route('agence.password.email') }}">
                 @csrf
                 <div class="field">
-                    <label for="email">Adresse email</label>
-                    <input type="email" id="email" name="email" placeholder="vous@exemple.com" value="{{ old('email') }}" required autofocus>
+                    <label for="email">Email professionnel</label>
+                    <input type="email" id="email" name="email" placeholder="contact@votreagence.sn" value="{{ old('email') }}" required autofocus>
                 </div>
                 <button class="btn btn-rust btn-block btn-lg" type="submit">
                     <i class="fa-solid fa-paper-plane"></i> Envoyer le lien de réinitialisation
@@ -362,7 +362,7 @@
 
             <p class="auth-foot-link">
                 Vous vous souvenez de votre mot de passe ?
-                <a href="{{ route('login') }}">Retour à la connexion</a>
+                <a href="{{ route('login.agence') }}">Retour à la connexion</a>
             </p>
         </div>
     </div>

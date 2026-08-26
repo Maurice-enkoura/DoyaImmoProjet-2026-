@@ -9,6 +9,9 @@ use App\Models\Proposition;
 use App\Models\RendezVous;
 use App\Models\Evaluation;
 use App\Models\Signalement;
+use App\Enums\StatutDemandeEnum;
+use App\Enums\StatutPropositionEnum;
+use App\Enums\StatutRendezVousEnum;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -19,15 +22,42 @@ class HistoriqueController extends Controller
         $particulier = Auth::user()->particulier;
         $events = [];
 
-        // Demandes
+        // ✅ Demandes - UNIQUEMENT terminées ou annulées
         $demandes = DemandeImmobiliere::where('particulier_id', $particulier->id)
+            ->whereIn('statut', [
+                StatutDemandeEnum::TERMINEE->value,
+                StatutDemandeEnum::ANNULEE->value
+            ])
+            ->with(['propositions.agence', 'propositions.bien.medias'])
             ->orderBy('created_at', 'desc')
             ->get();
 
         foreach ($demandes as $demande) {
+            // ✅ Récupérer la proposition acceptée ou terminée
+            $proposition = $demande->propositions
+                ->whereIn('statut', [
+                    StatutPropositionEnum::ACCEPTEE->value,
+                    StatutPropositionEnum::TERMINEE->value
+                ])
+                ->first();
+
+            // ✅ Si aucune proposition acceptée/terminée, prendre la première (pour l'affichage)
+            if (!$proposition) {
+                $proposition = $demande->propositions->first();
+            }
+
+            $evaluation = null;
+
+            // ✅ Si une proposition existe, récupérer l'évaluation associée
+            if ($proposition) {
+                $evaluation = Evaluation::where('proposition_id', $proposition->id)
+                    ->where('particulier_id', $particulier->id)
+                    ->first();
+            }
+
             $events[] = [
                 'type' => 'demande',
-                'title' => 'Demande publiée',
+                'title' => 'Demande ' . $demande->statut->label(),
                 'description' => $demande->type_bien->label() . ' — ' . $demande->zone_recherchee,
                 'date' => $demande->created_at->format('d/m/Y à H:i'),
                 'icon' => 'fa-regular fa-house-circle-check',
@@ -35,70 +65,26 @@ class HistoriqueController extends Controller
                 'status' => $demande->statut->label(),
                 'status_class' => $this->getStatusClass($demande->statut->value),
                 'link' => route('particulier.demandes.show', $demande),
-                'medias' => collect(), // Pas de médias pour les demandes
-            ];
-        }
-
-        // Propositions (avec médias du bien)
-        $propositions = Proposition::where('particulier_id', $particulier->id)
-            ->with(['agence', 'bien.medias']) // Charger les médias du bien
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        foreach ($propositions as $proposition) {
-            $events[] = [
-                'type' => 'proposition',
-                'title' => 'Proposition reçue',
-                'description' => $proposition->agence->nom_agence . ' — ' . number_format($proposition->prix_propose, 0, ',', ' ') . ' FCFA',
-                'date' => $proposition->created_at->format('d/m/Y à H:i'),
-                'icon' => 'fa-regular fa-file-invoice',
-                'color' => '#F5A623',
-                'status' => $proposition->statut->label(),
-                'status_class' => $this->getStatusClass($proposition->statut->value),
-                'link' => route('particulier.propositions.show', $proposition),
-                'medias' => $proposition->bien ? $proposition->bien->medias : collect(), // ✅ Médias du bien
-            ];
-        }
-
-        // Rendez-vous (avec médias du bien)
-        $rendezVous = RendezVous::where('particulier_id', $particulier->id)
-            ->with(['agence', 'proposition.bien.medias']) // Charger les médias du bien
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        foreach ($rendezVous as $rdv) {
-            $events[] = [
-                'type' => 'rendezvous',
-                'title' => 'Rendez-vous ' . $rdv->statut->label(),
-                'description' => $rdv->agence->nom_agence . ' — ' . ($rdv->proposition->bien->titre ?? 'Visite'),
-                'date' => $rdv->created_at->format('d/m/Y à H:i'),
-                'icon' => 'fa-regular fa-calendar-days',
-                'color' => '#0D47A1',
-                'status' => $rdv->statut->label(),
-                'status_class' => $this->getStatusClass($rdv->statut->value),
-                'link' => route('particulier.rendezvous.show', $rdv),
-                'medias' => $rdv->proposition->bien ? $rdv->proposition->bien->medias : collect(), // ✅ Médias du bien
-            ];
-        }
-
-        // Évaluations (sans médias)
-        $evaluations = Evaluation::where('particulier_id', $particulier->id)
-            ->with('agence')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        foreach ($evaluations as $evaluation) {
-            $events[] = [
-                'type' => 'evaluation',
-                'title' => 'Avis donné',
-                'description' => $evaluation->agence->nom_agence . ' — ' . $evaluation->note . '/5',
-                'date' => $evaluation->created_at->format('d/m/Y à H:i'),
-                'icon' => 'fa-regular fa-star',
-                'color' => '#1E7A47',
-                'status' => $evaluation->note . '★',
-                'status_class' => $evaluation->note >= 4 ? 'success' : 'default',
-                'link' => route('particulier.evaluations.show', $evaluation),
-                'medias' => collect(), // Pas de médias pour les évaluations
+                'medias' => $proposition && $proposition->bien ? $proposition->bien->medias : collect(),
+                'details' => [
+                    'Demande' => '#' . $demande->id,
+                    'Type de bien' => $demande->type_bien->label(),
+                    'Zone' => $demande->zone_recherchee,
+                    'Budget' => number_format($demande->budget_maximum, 0, ',', ' ') . ' FCFA',
+                ],
+                'proposition' => $proposition ? [
+                    'id' => $proposition->id,
+                    'agence' => $proposition->agence->nom_agence ?? 'N/A',
+                    'prix' => number_format($proposition->prix_propose, 0, ',', ' ') . ' FCFA',
+                    'statut' => $proposition->statut->label(),
+                    'statut_class' => $this->getStatusClass($proposition->statut->value),
+                    'link' => route('particulier.propositions.show', $proposition),
+                ] : null,
+                'evaluation' => $evaluation ? [
+                    'note' => $evaluation->note,
+                    'commentaire' => $evaluation->commentaire,
+                    'link' => route('particulier.evaluations.show', $evaluation),
+                ] : null,
             ];
         }
 

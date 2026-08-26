@@ -12,6 +12,9 @@ use App\Enums\StatutDemandeEnum;
 
 class PropositionController extends Controller
 {
+    /**
+     * Affiche la liste des propositions du particulier
+     */
     public function index()
     {
         // ✅ Récupérer les propositions en attente des demandes actives
@@ -40,12 +43,22 @@ class PropositionController extends Controller
         return view('particulier.propositions.index', compact('propositions'));
     }
 
+    /**
+     * Affiche les détails d'une proposition
+     */
     public function show(Proposition $proposition)
     {
+        if ($proposition->particulier_id !== Auth::user()->particulier->id) {
+            abort(403);
+        }
+
         $proposition->load(['demande.particulier.user', 'agence.user', 'bien.medias', 'medias']);
         return view('particulier.propositions.show', compact('proposition'));
     }
 
+    /**
+     * Compare les propositions pour une demande
+     */
     public function comparer(Request $request)
     {
         $demandeId = $request->demande_id;
@@ -63,6 +76,9 @@ class PropositionController extends Controller
         return view('particulier.propositions.comparer', compact('propositions', 'demande'));
     }
 
+    /**
+     * Sélectionne une proposition (le client l'accepte)
+     */
     public function selectionner(Proposition $proposition)
     {
         if ($proposition->particulier_id !== Auth::user()->particulier->id) {
@@ -76,7 +92,7 @@ class PropositionController extends Controller
         // ✅ Vérifier que la demande est encore active
         $demande = $proposition->demande;
         
-        // ✅ Récupérer la valeur du statut de la demande (UNIQUEMENT avec value)
+        // ✅ Récupérer la valeur du statut de la demande
         $statutDemande = $demande->statut->value;
         
         if (!in_array($statutDemande, [

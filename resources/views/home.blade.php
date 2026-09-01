@@ -93,17 +93,11 @@
                     </div>
                 </div>
                 @empty
-                <div class="mini-card">
-                    <div class="t">Maison — Thiaroye</div>
-                    <div class="s"><i class="fa-regular fa-message"></i> 0 proposition(s) · 53 997 F</div>
-                </div>
-                <div class="mini-card">
-                    <div class="t">Appartement — Almadies</div>
-                    <div class="s"><i class="fa-regular fa-message"></i> 1 proposition(s) · 253 901 F</div>
-                </div>
-                <div class="mini-card" style="margin-bottom:0;">
-                    <div class="t">Appartement — Diamniadio</div>
-                    <div class="s"><i class="fa-regular fa-message"></i> 0 proposition(s) · 403 550 F</div>
+                <div class="mini-card" style="padding:20px;text-align:center;color:#9AA1AB;">
+                    <div class="t" style="font-size:13px;font-weight:400;color:#9AA1AB;">
+                        <i class="fa-regular fa-inbox" style="font-size:20px;display:block;margin-bottom:8px;"></i>
+                        Aucune demande récente
+                    </div>
                 </div>
                 @endforelse
             </div>
@@ -117,7 +111,7 @@
     <div class="biens-container">
         <div class="section-header">
             <div>
-                <span class="eyebrow">⭐ À la une</span>
+                <span class="eyebrow"> À la une</span>
                 <h2 class="h-section">Biens en vedette</h2>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
@@ -152,6 +146,7 @@
                             <span class="badge-status {{ $bien->statut ? 'disponible' : 'indisponible' }}">
                                 {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
                             </span>
+                            <span class="badge-type">{{ is_object($bien->type_bien) && method_exists($bien->type_bien, 'label') ? $bien->type_bien->label() : $bien->type_bien }}</span>
                         </div>
                         <div class="vedette-body">
                             <h3 class="vedette-title">{{ $bien->titre }}</h3>
@@ -159,10 +154,18 @@
                             <div class="vedette-location">
                                 <i class="fa-solid fa-location-dot"></i> {{ $bien->quartier->nom ?? $bien->quartier }}
                             </div>
+                            <div class="vedette-date">
+                                <i class="fa-regular fa-clock"></i>
+                                Publié {{ $bien->created_at->diffForHumans() }}
+                            </div>
                             <div class="vedette-features">
-                                <span><i class="fa-regular fa-vector-square"></i> {{ $bien->surface }} m²</span>
-                                <span><i class="fa-regular fa-bed"></i> {{ $bien->nombre_chambres }} ch.</span>
-                                <span><i class="fa-regular fa-bath"></i> {{ $bien->nombre_salles_bain }} sdb</span>
+                                <span class="feature-pill"><i class="fa-regular fa-vector-square"></i> {{ $bien->surface }} m²</span>
+                                <span class="feature-pill"><i class="fa-regular fa-bed"></i> {{ $bien->nombre_chambres }} ch.</span>
+                                <span class="feature-pill"><i class="fa-regular fa-bath"></i> {{ $bien->nombre_salles_bain }} sdb</span>
+                            </div>
+                            <div class="vedette-agency">
+                                <i class="fa-regular fa-building-columns"></i>
+                                {{ $bien->agence->nom_agence ?? 'Agence' }}
                             </div>
                             <a href="{{ route('biens.show', $bien) }}" class="btn btn-rust btn-sm btn-block">
                                 <i class="fa-regular fa-eye"></i> Voir le bien
@@ -207,25 +210,8 @@
                 <span>{{ $quartier->demandes_count }} besoins</span>
             </div>
             @empty
-            <div class="zone-chip">
-                <b>Almadies</b>
-                <span>24 besoins</span>
-            </div>
-            <div class="zone-chip">
-                <b>Pikine</b>
-                <span>18 besoins</span>
-            </div>
-            <div class="zone-chip">
-                <b>Thiaroye</b>
-                <span>15 besoins</span>
-            </div>
-            <div class="zone-chip">
-                <b>Diamniadio</b>
-                <span>11 besoins</span>
-            </div>
-            <div class="zone-chip">
-                <b>Sacré-Cœur</b>
-                <span>9 besoins</span>
+            <div style="width:100%;padding:20px;text-align:center;color:var(--muted);">
+                Aucun quartier populaire pour le moment
             </div>
             @endforelse
         </div>
@@ -275,6 +261,10 @@
                             <div class="bien-price">{{ number_format($bien->prix, 0, ',', ' ') }} FCFA</div>
                             <div class="bien-location">
                                 <i class="fa-solid fa-location-dot"></i> {{ $bien->quartier->nom ?? $bien->quartier }}
+                            </div>
+                            <div class="bien-date">
+                                <i class="fa-regular fa-clock"></i>
+                                Publié {{ $bien->created_at->diffForHumans() }}
                             </div>
                             <div class="bien-features">
                                 <span class="feature-pill"><i class="fa-regular fa-vector-square"></i> {{ $bien->surface }} m²</span>
@@ -385,11 +375,174 @@
         </div>
     </div>
 </section>
+
+<!-- ==================== CTA FLOTTANT AU SCROLL ==================== -->
+<a href="{{ route('register') }}" class="floating-cta" id="floatingCta" style="text-decoration:none;">
+    <div class="avatar-group">
+        <div class="avatar" style="background-color:#F5A623;">F</div>
+        <div class="avatar" style="background-color:#2A9D8F;">A</div>
+        <div class="avatar" style="background-color:#B85C3A;">M</div>
+        <div class="avatar" style="background-color:#4A90D9;">S</div>
+    </div>
+    <span class="cta-text">Trouvez votre logement en 2 minutes</span>
+    <i class="fa-solid fa-arrow-right"></i>
+</a>
 @endsection
 
 @push('styles')
 <style>
-/* ==================== CONTENEURS CENTRÉS ==================== */
+/* ==================== CTA FLOTTANT AU SCROLL ==================== */
+.floating-cta {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2A9D8F;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 50px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(42, 157, 143, 0.35);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.4s ease;
+    cursor: pointer;
+    white-space: nowrap;
+    border: none;
+}
+
+.floating-cta.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+.floating-cta:hover {
+    background: #1B7A6F;
+    transform: translateX(-50%) translateY(-3px);
+    box-shadow: 0 12px 32px rgba(42, 157, 143, 0.45);
+}
+
+.avatar-group {
+    display: flex;
+    align-items: center;
+}
+
+.avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    border: 2px solid #fff;
+    margin-left: -8px;
+}
+
+.avatar:first-child {
+    margin-left: 0;
+}
+
+.cta-text {
+    white-space: nowrap;
+}
+
+.floating-cta i {
+    font-size: 13px;
+    transition: transform 0.3s;
+}
+
+.floating-cta:hover i {
+    transform: translateX(4px);
+}
+
+/* ==================== CORRECTIONS MOBILE ==================== */
+body {
+    padding-bottom: 60px;
+}
+
+@media (max-width: 640px) {
+    .floating-cta {
+        font-size: 11px;
+        padding: 8px 14px;
+        bottom: 12px;
+        gap: 6px;
+    }
+    
+    .avatar {
+        width: 20px;
+        height: 20px;
+        font-size: 8px;
+        border-width: 1.5px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding-bottom: 70px;
+    }
+    
+    .floating-cta {
+        font-size: 10px;
+        padding: 6px 12px;
+        bottom: 10px;
+        gap: 4px;
+    }
+    
+    .avatar {
+        width: 16px;
+        height: 16px;
+        font-size: 7px;
+        border-width: 1px;
+    }
+    
+    .cta-text {
+        font-size: 10px;
+    }
+    
+    .floating-cta i {
+        font-size: 10px;
+    }
+}
+
+/* ==================== DATE DE PUBLICATION ==================== */
+.bien-date {
+    font-size: clamp(11px, 0.8vw, 12px);
+    color: var(--muted);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.bien-date i {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.vedette-date {
+    font-size: clamp(11px, 0.8vw, 12px);
+    color: var(--muted);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.vedette-date i {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+/* ==================== RESTE DU CSS ==================== */
 .hero-container,
 .banner-container,
 .quartiers-container,
@@ -427,7 +580,6 @@
     }
 }
 
-/* ==================== BANNIÈRES ==================== */
 .banner-section {
     padding: 20px 0 0;
 }
@@ -518,7 +670,6 @@
     right: 16px;
 }
 
-/* ==================== WRAP ==================== */
 .wrap {
     width: 100%;
     box-sizing: border-box;
@@ -533,7 +684,6 @@
     padding-top: 10px;
 }
 
-/* ==================== HERO ==================== */
 .hero {
     padding: 30px 0 20px;
     background: #F7F9FC;
@@ -562,14 +712,14 @@
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
-    margin-bottom: 32px;
+    margin-bottom: 12px;
 }
 
 .hero-stats {
     display: flex;
     gap: 32px;
     flex-wrap: wrap;
-    padding-top: 4px;
+    padding-top: 24px;
 }
 
 .hero-stats .stat-item {
@@ -589,7 +739,6 @@
     color: var(--muted);
 }
 
-/* ==================== HERO ILLUSTRATION ==================== */
 .hero-illustration {
     min-width: 0;
     width: 100%;
@@ -657,7 +806,6 @@
     color: #6A7280;
 }
 
-/* ==================== SECTION HEADER ==================== */
 .section-header {
     display: flex;
     justify-content: space-between;
@@ -671,7 +819,6 @@
     text-align: center;
 }
 
-/* ==================== ZONE ROW ==================== */
 .zone-row {
     display: flex;
     gap: 12px;
@@ -718,9 +865,7 @@
     color: var(--muted);
 }
 
-/* ============================================
-   VEDETTE CARROUSEL
-============================================ */
+/* ==================== VEDETTE CARROUSEL ==================== */
 .vedette-carousel-wrapper {
     overflow: hidden;
     position: relative;
@@ -729,17 +874,17 @@
 
 .vedette-carousel {
     display: flex;
-    gap: 20px;
+    gap: 16px;
     transition: transform 0.5s ease-in-out;
     will-change: transform;
 }
 
 .vedette-carousel .vedette-card {
-    flex: 0 0 calc(33.333% - 14px);
+    flex: 0 0 calc(33.333% - 12px);
     min-width: 0;
     background: #fff;
+    border: 1px solid var(--border);
     border-radius: var(--radius);
-    border: 2px solid #F5A623;
     overflow: hidden;
     transition: transform 0.3s, box-shadow 0.3s;
     display: flex;
@@ -747,66 +892,16 @@
 }
 
 .vedette-carousel .vedette-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(245, 166, 35, 0.15);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
 }
 
-/* ==================== BOUTONS CARROUSEL ==================== */
-.carousel-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 1px solid var(--border);
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-soft);
-    cursor: pointer;
-    transition: all 0.2s;
-    flex-shrink: 0;
+.vedette-carousel .vedette-card.vedette-card {
+    border-color: #F5A623;
+    border-width: 2px;
 }
 
-.carousel-btn:hover {
-    border-color: var(--rust);
-    color: var(--rust);
-    background: var(--rust-soft);
-}
-
-.carousel-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-
-/* ==================== DOTS INDICATEURS ==================== */
-.carousel-dots {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 16px;
-}
-
-.carousel-dots .dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--border);
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.carousel-dots .dot.active {
-    background: var(--rust);
-    width: 28px;
-    border-radius: 6px;
-}
-
-.carousel-dots .dot:hover {
-    background: var(--rust);
-    opacity: 0.7;
-}
-
-/* ==================== VEDETTE CARD ==================== */
+/* ✅ MÊME STYLE QUE LES CARTES BIENS */
 .vedette-image {
     position: relative;
     height: 160px;
@@ -820,6 +915,63 @@
     height: 100%;
     object-fit: cover;
     display: block;
+}
+
+.vedette-image .badge-vedette {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 600;
+    color: #fff;
+    background: #D4AF37;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    z-index: 2;
+}
+
+.vedette-image .badge-vedette i {
+    font-size: 8px;
+}
+
+.vedette-image .badge-status {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 600;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.vedette-image .badge-status.disponible {
+    background: #2A9D8F;
+}
+
+.vedette-image .badge-status.indisponible {
+    background: #8A91A0;
+}
+
+.vedette-image .badge-type {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 600;
+    color: #fff;
+    background: #B85C3A;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
 .vedette-body {
@@ -862,22 +1014,37 @@
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    margin-bottom: 8px;
-    font-size: 10px;
-    color: var(--text-soft);
+    margin-bottom: 6px;
 }
 
-.vedette-features span {
-    display: flex;
+.feature-pill {
+    display: inline-flex;
     align-items: center;
     gap: 3px;
     background: var(--border);
     padding: 1px 8px;
     border-radius: 999px;
+    font-size: 9px;
+    color: var(--text-soft);
+    white-space: nowrap;
 }
 
-.vedette-features i {
-    font-size: 9px;
+.feature-pill i {
+    font-size: 8px;
+}
+
+.vedette-agency {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    word-break: break-word;
+}
+
+.vedette-agency i {
+    font-size: 11px;
 }
 
 .vedette-body .btn {
@@ -954,11 +1121,11 @@
 }
 
 .badge-status.disponible {
-    background: #1E7A47;
+    background: #2A9D8F;
 }
 
 .badge-status.indisponible {
-    background: var(--muted);
+    background: #8A91A0;
 }
 
 .badge-vedette {
@@ -970,7 +1137,7 @@
     font-size: 9px;
     font-weight: 600;
     color: #fff;
-    background: #F5A623;
+    background: #D4AF37;
     text-transform: uppercase;
     letter-spacing: 0.3px;
     display: flex;
@@ -992,7 +1159,7 @@
     font-size: 9px;
     font-weight: 600;
     color: #fff;
-    background: rgba(0,0,0,0.6);
+    background: #B85C3A;
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
@@ -1076,7 +1243,6 @@
     padding: 6px 12px;
 }
 
-/* ==================== HOW GRID ==================== */
 .how-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -1121,7 +1287,6 @@
     line-height: 1.6;
 }
 
-/* ==================== VALUE GRID ==================== */
 .value-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -1159,7 +1324,6 @@
     line-height: 1.6;
 }
 
-/* ==================== CTA BAND ==================== */
 .cta-band {
     background: var(--ink);
     border-radius: 16px;
@@ -1195,7 +1359,6 @@
     justify-content: center;
 }
 
-/* ==================== BUTTONS ==================== */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -1250,7 +1413,6 @@
     justify-content: center;
 }
 
-/* ==================== EMPTY STATE ==================== */
 .empty-state {
     text-align: center;
     padding: 28px;
@@ -1271,7 +1433,6 @@
     font-size: 12px;
 }
 
-/* ==================== TYPOGRAPHY ==================== */
 .eyebrow {
     display: inline-block;
     font-size: 11px;
@@ -1302,7 +1463,65 @@
     line-height: 1.7;
 }
 
+.carousel-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-soft);
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.carousel-btn:hover {
+    border-color: var(--rust);
+    color: var(--rust);
+    background: var(--rust-soft);
+}
+
+.carousel-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.carousel-dots .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.carousel-dots .dot.active {
+    background: var(--rust);
+    width: 28px;
+    border-radius: 6px;
+}
+
+.carousel-dots .dot:hover {
+    background: var(--rust);
+    opacity: 0.7;
+}
+
 /* ==================== RESPONSIVE ==================== */
+@media (max-width: 1200px) {
+    .vedette-carousel .vedette-card {
+        flex: 0 0 calc(33.333% - 12px);
+    }
+}
 
 @media (max-width: 992px) {
     .hero-grid {
@@ -1318,7 +1537,7 @@
         font-size: 15px;
     }
     .vedette-carousel .vedette-card {
-        flex: 0 0 calc(50% - 10px);
+        flex: 0 0 calc(50% - 8px);
     }
 }
 
@@ -1363,6 +1582,12 @@
     .carousel-control-prev,
     .carousel-control-next {
         display: none !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .vedette-carousel .vedette-card {
+        flex: 0 0 calc(50% - 8px);
     }
 }
 
@@ -1571,9 +1796,6 @@
     .vedette-carousel .vedette-card {
         flex: 0 0 calc(100% - 0px);
     }
-    .vedette-image {
-        height: 140px;
-    }
     .carousel-dots .dot {
         width: 8px;
         height: 8px;
@@ -1626,6 +1848,23 @@
 
 @push('scripts')
 <script>
+// ==================== CTA FLOTTANT AU SCROLL ====================
+document.addEventListener('DOMContentLoaded', function() {
+    const floatingCta = document.getElementById('floatingCta');
+    if (!floatingCta) return;
+    
+    function checkScroll() {
+        if (window.scrollY > 300) {
+            floatingCta.classList.add('visible');
+        } else {
+            floatingCta.classList.remove('visible');
+        }
+    }
+    
+    window.addEventListener('scroll', checkScroll);
+    checkScroll();
+});
+
 // ==================== VEDETTE CARROUSEL ====================
 let vedetteCurrentSlide = 0;
 let vedetteTotalSlides = 0;
@@ -1701,7 +1940,7 @@ function updateVedetteCarousel() {
     
     const cardsPerSlide = getVedetteCardsPerSlide();
     const cardWidth = carousel.querySelector('.vedette-card')?.offsetWidth || 0;
-    const gap = 20;
+    const gap = 16;
     const offset = vedetteCurrentSlide * (cardWidth + gap) * cardsPerSlide;
     
     carousel.style.transform = `translateX(-${offset}px)`;

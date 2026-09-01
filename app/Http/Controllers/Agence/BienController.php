@@ -7,6 +7,7 @@ use App\Http\Requests\BienImmobilierRequest;
 use App\Models\BienImmobilier;
 use App\Models\Agence;
 use App\Models\Media;
+use App\Enums\FormuleAbonnementEnum;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -15,33 +16,53 @@ use Illuminate\Support\Facades\Log;
 
 class BienController extends Controller
 {
+    /**
+     * Vérifier si l'agence peut publier des biens (abonnement Pro)
+     */
+    private function peutPublierBiens($agence): bool
+    {
+        $abonnement = $agence->abonnements()
+            ->where('statut', true)
+            ->where('date_fin', '>', now())
+            ->first();
+
+        return $abonnement && $abonnement->formule->value === 'pro';
+    }
+
+    /**
+     * Vérifier si l'agence a un abonnement actif
+     */
+    private function getAbonnementActif($agence)
+    {
+        return $agence->abonnements()
+            ->where('statut', true)
+            ->where('date_fin', '>', now())
+            ->first();
+    }
+
     public function index()
     {
         $agence = Auth::user()->agence;
+        
+        // ✅ Vérifier si l'agence peut publier des biens
+        $peutPublier = $this->peutPublierBiens($agence);
+        
         $biens = BienImmobilier::where('agence_id', $agence->id)
             ->with('medias')
             ->orderBy('created_at', 'desc')
             ->paginate(10);
-        return view('agence.biens.index', compact('biens'));
+            
+        return view('agence.biens.index', compact('biens', 'peutPublier'));
     }
 
     public function create()
     {
-        // Vérifier si l'agence peut encore publier des biens
         $agence = Auth::user()->agence;
-        $abonnement = $agence->abonnementActif()->first();
-
-        if (!$abonnement) {
+        
+        // ✅ Vérifier l'abonnement Pro
+        if (!$this->peutPublierBiens($agence)) {
             return redirect()->route('agence.abonnement')
-                ->with('error', 'Vous devez souscrire un abonnement actif pour publier des biens.');
-        }
-
-        $limiteOffres = $abonnement->formule->limiteOffres();
-        $biensActifs = $agence->biens()->where('statut', true)->count();
-
-        if ($biensActifs >= $limiteOffres) {
-            return redirect()->route('agence.biens.index')
-                ->with('error', 'Vous avez atteint la limite de biens autorisés pour votre formule d\'abonnement.');
+                ->with('error', 'Seules les agences avec un abonnement Pro peuvent publier des biens.');
         }
 
         return view('agence.biens.create');
@@ -50,6 +71,12 @@ class BienController extends Controller
     public function store(BienImmobilierRequest $request)
     {
         $agence = Auth::user()->agence;
+
+        // ✅ Vérifier l'abonnement Pro
+        if (!$this->peutPublierBiens($agence)) {
+            return redirect()->route('agence.abonnement')
+                ->with('error', 'Seules les agences avec un abonnement Pro peuvent publier des biens.');
+        }
 
         $bien = BienImmobilier::create([
             'agence_id' => $agence->id,
@@ -97,7 +124,7 @@ class BienController extends Controller
         }
 
         return redirect()->route('agence.biens.index')
-            ->with('success', 'Bien ajouté avec succès.');
+            ->with('success', ' Bien ajouté avec succès.');
     }
 
     public function show(BienImmobilier $bien)
@@ -144,7 +171,7 @@ class BienController extends Controller
             $bien->delete();
 
             return redirect()->route('agence.biens.index')
-                ->with('success', ' Bien supprimé définitivement avec succès.');
+                ->with('success', 'Bien supprimé définitivement avec succès.');
 
         } catch (\Exception $e) {
             Log::error('Erreur suppression bien: ' . $e->getMessage());
@@ -164,6 +191,9 @@ class BienController extends Controller
             }
 
             $bien->update(['statut' => true]);
+
+            session()->forget('success');
+            session()->forget('error');
 
             return redirect()->route('agence.biens.index')
                 ->with('success', ' Bien réactivé avec succès.');
@@ -187,11 +217,18 @@ class BienController extends Controller
 
             $bien->update(['statut' => false]);
 
+            session()->forget('success');
+            session()->forget('error');
+
             return redirect()->route('agence.biens.index')
-                ->with('success', '✅ Bien désactivé avec succès.');
+                ->with('success', ' Bien désactivé avec succès.');
 
         } catch (\Exception $e) {
             Log::error('Erreur désactivation bien: ' . $e->getMessage());
+            
+            session()->forget('success');
+            session()->forget('error');
+
             return redirect()->route('agence.biens.index')
                 ->with('error', 'Erreur lors de la désactivation du bien.');
         }
@@ -268,7 +305,7 @@ class BienController extends Controller
         }
 
         return redirect()->route('agence.biens.index')
-            ->with('success', 'Bien mis à jour avec succès.');
+            ->with('success', ' Bien mis à jour avec succès.');
     }
 
     public function supprimerMedia(Media $media)
@@ -284,6 +321,6 @@ class BienController extends Controller
 
         $media->delete();
 
-        return redirect()->back()->with('success', 'Média supprimé avec succès.');
+        return redirect()->back()->with('success', ' Média supprimé avec succès.');
     }
 }

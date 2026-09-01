@@ -18,157 +18,175 @@ use Illuminate\Http\Request;
 use App\Enums\StatutDocumentEnum;
 use App\Enums\StatutSignalementEnum;
 use Illuminate\Support\Facades\Schema;
+use App\Models\MiseEnVedette;
 
 class AdminDashboardController extends Controller
 {
-    public function index()
-    {
-        // Statistiques globales
-        $stats = [
-            'total_users' => User::count(),
-            'users_par_role' => User::selectRaw('role, count(*) as total')->groupBy('role')->get(),
-            'users_evolution' => $this->calculateEvolution(User::class),
-            
-            'agences' => [
-                'total' => Agence::count(),
-                'en_attente' => Agence::where('statut_validation', false)->where('est_refusee', false)->count(),
-                'refusees' => Agence::where('est_refusee', true)->count(),
-                'validees' => Agence::where('statut_validation', true)->count(),
-            ],
-            'agences_evolution' => $this->calculateEvolution(Agence::class),
-            
-            'documents' => [
-                'total' => DocumentAgence::count(),
-                'en_attente' => DocumentAgence::where('statut_validation', StatutDocumentEnum::EN_ATTENTE)->count(),
-                'valides' => DocumentAgence::where('statut_validation', StatutDocumentEnum::VALIDE)->count(),
-                'rejetes' => DocumentAgence::where('statut_validation', StatutDocumentEnum::REJETE)->count(),
-            ],
-            
-            'demandes' => [
-                'total' => DemandeImmobiliere::count(),
-                'en_attente' => DemandeImmobiliere::where('statut', 'en_attente')->count(),
-                'en_cours' => DemandeImmobiliere::where('statut', 'en_cours')->count(),
-                'terminees' => DemandeImmobiliere::where('statut', 'terminee')->count(),
-                'annulees' => DemandeImmobiliere::where('statut', 'annulee')->count(),
-            ],
-            
-            'propositions' => [
-                'total' => Proposition::count(),
-                'en_attente' => Proposition::where('statut', 'en_attente')->count(),
-                'acceptees' => Proposition::where('statut', 'acceptee')->count(),
-                'refusees' => Proposition::where('statut', 'refusee')->count(),
-            ],
-            
-            'rendezvous' => [
-                'total' => RendezVous::count(),
-                'planifies' => RendezVous::where('statut', 'planifie')->count(),
-                'confirmes' => RendezVous::where('statut', 'confirme')->count(),
-                'termines' => RendezVous::where('statut', 'termine')->count(),
-                'annules' => RendezVous::where('statut', 'annule')->count(),
-            ],
-            
-            'signalements' => [
-                'total' => Signalement::count(),
-                'en_attente' => Signalement::where('statut', StatutSignalementEnum::EN_ATTENTE)->count(),
-                'traites' => Signalement::where('statut', StatutSignalementEnum::TRAITE)->count(),
-                'rejetes' => Signalement::where('statut', StatutSignalementEnum::REJETE)->count(),
-            ],
-            
-            'abonnements' => [
-                'total' => Abonnement::count(),
-                'actifs' => Abonnement::where('statut', true)->where('date_fin', '>', now())->count(),
-                'expires' => Abonnement::where('statut', false)->orWhere('date_fin', '<=', now())->count(),
-                'par_formule' => Abonnement::where('statut', true)
-                    ->selectRaw('formule, count(*) as total')
-                    ->groupBy('formule')
-                    ->get(),
-            ],
-            
-            'evaluations' => [
-                'total' => Evaluation::count(),
-                'note_moyenne' => Evaluation::avg('note') ?? 0,
-                'top_agences' => Agence::withAvg('evaluations', 'note')
-                    ->having('evaluations_avg_note', '>', 0)
-                    ->orderBy('evaluations_avg_note', 'desc')
-                    ->limit(5)
-                    ->get(),
-            ],
-            
-            'biens' => [
-                'total' => BienImmobilier::count(),
-                'disponibles' => BienImmobilier::where('statut', true)->count(),
-                'par_type' => BienImmobilier::selectRaw('type_bien, count(*) as total')
-                    ->groupBy('type_bien')
-                    ->get(),
-            ],
-            
-            'quartiers' => [
-                'total' => Quartier::count(),
-                'actifs' => Quartier::where('est_actif', true)->count(),
-            ],
-            
-            'inscriptions' => User::selectRaw('DATE(created_at) as date, count(*) as total')
-                ->where('created_at', '>=', now()->subDays(30))
-                ->groupBy('date')
-                ->orderBy('date')
+   public function index()
+{
+    // Statistiques globales
+    $stats = [
+        'total_users' => User::count(),
+        'users_par_role' => User::selectRaw('role, count(*) as total')->groupBy('role')->get(),
+        'users_evolution' => $this->calculateEvolution(User::class),
+        
+        'agences' => [
+            'total' => Agence::count(),
+            'en_attente' => Agence::where('statut_validation', false)->where('est_refusee', false)->count(),
+            'refusees' => Agence::where('est_refusee', true)->count(),
+            'validees' => Agence::where('statut_validation', true)->count(),
+        ],
+        'agences_evolution' => $this->calculateEvolution(Agence::class),
+        
+        'documents' => [
+            'total' => DocumentAgence::count(),
+            'en_attente' => DocumentAgence::where('statut_validation', StatutDocumentEnum::EN_ATTENTE)->count(),
+            'valides' => DocumentAgence::where('statut_validation', StatutDocumentEnum::VALIDE)->count(),
+            'rejetes' => DocumentAgence::where('statut_validation', StatutDocumentEnum::REJETE)->count(),
+        ],
+        
+        'demandes' => [
+            'total' => DemandeImmobiliere::count(),
+            'en_attente' => DemandeImmobiliere::where('statut', 'en_attente')->count(),
+            'en_cours' => DemandeImmobiliere::where('statut', 'en_cours')->count(),
+            'terminees' => DemandeImmobiliere::where('statut', 'terminee')->count(),
+            'annulees' => DemandeImmobiliere::where('statut', 'annulee')->count(),
+        ],
+        
+        'propositions' => [
+            'total' => Proposition::count(),
+            'en_attente' => Proposition::where('statut', 'en_attente')->count(),
+            'acceptees' => Proposition::where('statut', 'acceptee')->count(),
+            'refusees' => Proposition::where('statut', 'refusee')->count(),
+        ],
+        
+        'rendezvous' => [
+            'total' => RendezVous::count(),
+            'planifies' => RendezVous::where('statut', 'planifie')->count(),
+            'confirmes' => RendezVous::where('statut', 'confirme')->count(),
+            'termines' => RendezVous::where('statut', 'termine')->count(),
+            'annules' => RendezVous::where('statut', 'annule')->count(),
+        ],
+        
+        'signalements' => [
+            'total' => Signalement::count(),
+            'en_attente' => Signalement::where('statut', StatutSignalementEnum::EN_ATTENTE)->count(),
+            'traites' => Signalement::where('statut', StatutSignalementEnum::TRAITE)->count(),
+            'rejetes' => Signalement::where('statut', StatutSignalementEnum::REJETE)->count(),
+        ],
+        
+        'abonnements' => [
+            'total' => Abonnement::count(),
+            'actifs' => Abonnement::where('statut', true)->where('date_fin', '>', now())->count(),
+            'expires' => Abonnement::where('statut', false)->orWhere('date_fin', '<=', now())->count(),
+            'par_formule' => Abonnement::where('statut', true)
+                ->selectRaw('formule, count(*) as total')
+                ->groupBy('formule')
                 ->get(),
-        ];
-
-        // Variables pour le layout (badges et listes récentes)
-        $agencesEnAttente = Agence::where('statut_validation', false)->where('est_refusee', false)->count();
-        $signalementsEnAttente = Signalement::where('statut', StatutSignalementEnum::EN_ATTENTE)->count();
+        ],
         
-        // Derniers utilisateurs inscrits
-        $derniersUtilisateurs = User::with(['particulier', 'agence', 'administrateur'])
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
+        'evaluations' => [
+            'total' => Evaluation::count(),
+            'note_moyenne' => Evaluation::avg('note') ?? 0,
+            'top_agences' => Agence::withAvg('evaluations', 'note')
+                ->having('evaluations_avg_note', '>', 0)
+                ->orderBy('evaluations_avg_note', 'desc')
+                ->limit(5)
+                ->get(),
+        ],
         
-        // Derniers signalements
-        $derniersSignalements = Signalement::with(['particulier.user'])
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
+        'biens' => [
+            'total' => BienImmobilier::count(),
+            'disponibles' => BienImmobilier::where('statut', true)->count(),
+            'par_type' => BienImmobilier::selectRaw('type_bien, count(*) as total')
+                ->groupBy('type_bien')
+                ->get(),
+        ],
         
-        // ✅ Agences en attente de validation (exclure les refusées)
-        $agencesEnAttenteList = Agence::with(['user', 'quartier'])
-            ->where('statut_validation', false)
-            ->where('est_refusee', false)
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
+        'quartiers' => [
+            'total' => Quartier::count(),
+            'actifs' => Quartier::where('est_actif', true)->count(),
+        ],
+        
+        'inscriptions' => User::selectRaw('DATE(created_at) as date, count(*) as total')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get(),
 
-        // ✅ Agences refusées
-        $agencesRefuseesList = Agence::with(['user', 'quartier'])
-            ->where('est_refusee', true)
-            ->orderBy('date_refus', 'desc')
-            ->limit(5)
-            ->get();
+        // ✅ AJOUT : STATISTIQUES DES MISES EN VEDETTE
+        'mises_vedette' => [
+            'total' => MiseEnVedette::count(),
+            'en_attente' => MiseEnVedette::where('statut', 'en_attente')->count(),
+            'actives' => MiseEnVedette::where('statut', 'actif')->count(),
+            'expirees' => MiseEnVedette::where('statut', 'expire')->count(),
+            'annulees' => MiseEnVedette::where('statut', 'annule')->count(),
+            'revenus_total' => MiseEnVedette::whereIn('statut', ['actif', 'expire'])->sum('montant'),
+            'revenus_mois' => MiseEnVedette::whereIn('statut', ['actif', 'expire'])
+                ->whereMonth('created_at', now()->month)
+                ->sum('montant'),
+        ],
+    ];
 
-        // Derniers biens publiés
-        $derniersBiens = BienImmobilier::with(['agence.user', 'quartier'])
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
+    // Variables pour le layout (badges et listes récentes)
+    $agencesEnAttente = Agence::where('statut_validation', false)->where('est_refusee', false)->count();
+    $signalementsEnAttente = Signalement::where('statut', StatutSignalementEnum::EN_ATTENTE)->count();
+    
+    // ✅ AJOUT : Nombre de mises en vedette en attente pour le badge du menu
+    $misesEnAttente = MiseEnVedette::where('statut', 'en_attente')->count();
+    
+    // Derniers utilisateurs inscrits
+    $derniersUtilisateurs = User::with(['particulier', 'agence', 'administrateur'])
+        ->orderBy('created_at', 'desc')
+        ->limit(5)
+        ->get();
+    
+    // Derniers signalements
+    $derniersSignalements = Signalement::with(['particulier.user'])
+        ->orderBy('created_at', 'desc')
+        ->limit(5)
+        ->get();
+    
+    // Agences en attente de validation (exclure les refusées)
+    $agencesEnAttenteList = Agence::with(['user', 'quartier'])
+        ->where('statut_validation', false)
+        ->where('est_refusee', false)
+        ->orderBy('created_at', 'desc')
+        ->limit(5)
+        ->get();
 
-        // Dernières demandes
-        $dernieresDemandes = DemandeImmobiliere::with(['particulier.user', 'quartier'])
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
+    // Agences refusées
+    $agencesRefuseesList = Agence::with(['user', 'quartier'])
+        ->where('est_refusee', true)
+        ->orderBy('date_refus', 'desc')
+        ->limit(5)
+        ->get();
 
-        return view('admin.dashboard', compact(
-            'stats',
-            'agencesEnAttente',
-            'signalementsEnAttente',
-            'derniersUtilisateurs',
-            'derniersSignalements',
-            'agencesEnAttenteList',
-            'agencesRefuseesList',
-            'derniersBiens',
-            'dernieresDemandes'
-        ));
-    }
+    // Derniers biens publiés
+    $derniersBiens = BienImmobilier::with(['agence.user', 'quartier'])
+        ->orderBy('created_at', 'desc')
+        ->limit(5)
+        ->get();
+
+    // Dernières demandes
+    $dernieresDemandes = DemandeImmobiliere::with(['particulier.user', 'quartier'])
+        ->orderBy('created_at', 'desc')
+        ->limit(5)
+        ->get();
+
+    return view('admin.dashboard', compact(
+        'stats',
+        'agencesEnAttente',
+        'signalementsEnAttente',
+        'misesEnAttente', // ✅ AJOUT
+        'derniersUtilisateurs',
+        'derniersSignalements',
+        'agencesEnAttenteList',
+        'agencesRefuseesList',
+        'derniersBiens',
+        'dernieresDemandes'
+    ));
+}
 
     /**
      * Calcule l'évolution en pourcentage sur les 30 derniers jours

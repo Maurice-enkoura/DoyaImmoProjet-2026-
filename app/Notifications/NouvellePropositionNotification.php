@@ -26,17 +26,12 @@ class NouvellePropositionNotification extends Notification implements ShouldQueu
 
     public function toMail($notifiable): MailMessage
     {
-        $agence = $this->proposition->agence;
-
         return (new MailMessage)
-            ->subject('💼 Nouvelle proposition pour votre demande')
-            ->greeting('Bonjour ' . $notifiable->prenom . ' !')
-            ->line('L\'agence **' . $agence->nom_agence . '** a fait une proposition pour votre demande :')
-            ->line('**Prix proposé :** ' . number_format($this->proposition->prix_propose, 0, ',', ' ') . ' FCFA')
-            ->line('**Bien :** ' . ($this->proposition->bien->titre ?? 'N/A'))
-            ->action('Voir la proposition', url('/particulier/propositions/' . $this->proposition->id))
-            ->line('Vous pouvez accepter ou refuser cette proposition.')
-            ->salutation('L\'équipe DoyaImmo');
+            ->subject(' Nouvelle proposition pour votre demande')
+            ->markdown('emails.nouvelle-proposition', [
+                'proposition' => $this->proposition,
+                'notifiable' => $notifiable,
+            ]);
     }
 
     public function toDatabase($notifiable): array

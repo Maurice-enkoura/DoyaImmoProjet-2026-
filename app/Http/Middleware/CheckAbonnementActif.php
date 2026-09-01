@@ -19,8 +19,9 @@ class CheckAbonnementActif
         $agence = $user->agence;
 
         if (!$agence || !$agence->aAbonnementActif()) {
-            return redirect()->route('agence.abonnement')
-                ->with('error', 'Vous devez souscrire un abonnement actif pour accéder à cette fonctionnalité.');
+            // ✅ SUPPRIMER LE 'error' POUR ÉVITER LE DOUBLE MESSAGE
+            // La vue gère déjà l'affichage "Aucun abonnement actif"
+            return redirect()->route('agence.abonnement');
         }
 
         return $next($request);

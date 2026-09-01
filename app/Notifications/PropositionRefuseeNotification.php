@@ -58,7 +58,7 @@ class PropositionRefuseeNotification extends Notification implements ShouldQueue
         $proposition = $this->proposition;
 
         return [
-            'title' => '❌ Proposition refusée',
+            'title' => ' Proposition refusée',
             'message' => 'Votre proposition pour ' . ($proposition->bien->titre ?? 'un bien') . ' a été refusée.',
             'type' => 'danger',
             'icon' => 'fa-circle-xmark',

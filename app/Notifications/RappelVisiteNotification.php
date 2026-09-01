@@ -61,7 +61,7 @@ class RappelVisiteNotification extends Notification implements ShouldQueue
         $rdv = $this->rendezVous;
 
         return [
-            'title' => '🔔 Rappel de rendez-vous',
+            'title' => ' Rappel de rendez-vous',
             'message' => 'Rappel : Vous avez un rendez-vous le ' . $rdv->date_visite->format('d/m/Y') . ' à ' . ($rdv->heure_visite ?? 'N/A') . ' avec ' . ($rdv->agence->nom_agence ?? 'l\'agence'),
             'type' => 'info',
             'icon' => 'fa-bell',

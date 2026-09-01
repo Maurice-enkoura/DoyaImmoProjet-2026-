@@ -7,6 +7,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Espace Agence — DoyaImmo')</title>
 
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <style>
@@ -1530,11 +1532,7 @@
             </div>
 
             <!-- Flash Messages -->
-            @if(session('success'))
-            <div class="flash-message flash-success">
-                <i class="fa-solid fa-check-circle"></i> {{ session('success') }}
-            </div>
-            @endif
+           
 
             @if(session('error'))
             <div class="flash-message flash-error">

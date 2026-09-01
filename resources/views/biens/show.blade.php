@@ -165,11 +165,11 @@
                             <span class="info-value">{{ $bien->vues ?? 0 }}</span>
                         </div>
                         @if($bien->est_vedette && $bien->vedette_fin > now())
-                        <div class="info-item full" style="border: 2px solid #F5A623; background: #FFF8E1;">
-                            <span class="info-label" style="color:#F5A623; font-weight:700;">
+                        <div class="info-item full" style="border: 2px solid #D4AF37; background: #FDF5E6;">
+                            <span class="info-label" style="color:#D4AF37; font-weight:700;">
                                 <i class="fa-solid fa-star"></i> Vedette
                             </span>
-                            <span class="info-value" style="color:#E65100; font-weight:600;">
+                            <span class="info-value" style="color:#B85C3A; font-weight:600;">
                                 Jusqu'au {{ $bien->vedette_fin->format('d/m/Y') }}
                                 ({{ $bien->vedette_jours_restants }} jour(s) restant(s))
                             </span>
@@ -193,7 +193,7 @@
                             <div>
                                 <div class="agency-name">{{ $bien->agence->nom_agence }}</div>
                                 <div class="agency-rating">
-                                    <i class="fa-solid fa-star" style="color:#F5A623;"></i> 
+                                    <i class="fa-solid fa-star" style="color:#D4AF37;"></i> 
                                     {{ number_format($bien->agence->note_moyenne, 1) }} / 5
                                     ({{ $bien->agence->evaluations->count() }} avis)
                                 </div>
@@ -530,7 +530,7 @@
     }
 
     /* ============================================
-       RESTE DU CSS
+       RESTE DU CSS AVEC LES COULEURS DOYAIMMO
     ============================================ */
     .badge-vedette-detail {
         position: absolute;
@@ -541,8 +541,8 @@
         font-size: clamp(12px, 1vw, 14px);
         font-weight: 700;
         color: #fff;
-        background: linear-gradient(135deg, #F5A623 0%, #E8951A 100%);
-        box-shadow: 0 4px 16px rgba(245, 166, 35, 0.4);
+        background: linear-gradient(135deg, #D4AF37 0%, #E8951A 100%);
+        box-shadow: 0 4px 16px rgba(212, 175, 55, 0.4);
         z-index: 5;
         display: flex;
         align-items: center;
@@ -563,7 +563,7 @@
         font-size: clamp(8px, 0.6vw, 9px);
         font-weight: 700;
         color: #fff;
-        background: #F5A623;
+        background: #D4AF37;
         display: flex;
         align-items: center;
         gap: 3px;
@@ -583,7 +583,7 @@
         font-size: 11px;
         font-weight: 700;
         color: #fff;
-        background: #F5A623;
+        background: #D4AF37;
         margin-left: 8px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -638,7 +638,7 @@
     }
 
     .bien-nav-back:hover {
-        color: var(--rust);
+        color: #B85C3A;
     }
 
     .bien-nav-share {
@@ -757,8 +757,8 @@
         z-index: 2;
     }
 
-    .bien-status.disponible { background: #1E7A47; }
-    .bien-status.indisponible { background: var(--muted); }
+    .bien-status.disponible { background: #2A9D8F; } /* TEAL DOYAIMMO */
+    .bien-status.indisponible { background: #8A91A0; }
 
     .bien-views {
         position: absolute;
@@ -782,7 +782,7 @@
         font-size: clamp(10px, 0.8vw, 11px);
         font-weight: 600;
         color: #fff;
-        background: rgba(0,0,0,0.7);
+        background: #B85C3A; /* RUST DOYAIMMO */
         z-index: 2;
     }
 
@@ -818,8 +818,8 @@
         position: relative;
     }
 
-    .thumbnail:hover { border-color: var(--rust); }
-    .thumbnail.active { border-color: var(--rust); }
+    .thumbnail:hover { border-color: #B85C3A; }
+    .thumbnail.active { border-color: #B85C3A; }
 
     .thumbnail img {
         width: 100%;
@@ -881,8 +881,8 @@
         display: inline-flex;
         align-items: center;
         gap: 12px;
-        background: var(--rust-soft);
-        color: var(--rust);
+        background: #F5E6DF;
+        color: #B85C3A;
         padding: clamp(6px, 0.6vw, 8px) clamp(14px, 1.5vw, 16px);
         border-radius: 12px;
         font-weight: 700;
@@ -967,13 +967,13 @@
         width: clamp(40px, 4vw, 48px);
         height: clamp(40px, 4vw, 48px);
         border-radius: 50%;
-        background: var(--rust-soft);
+        background: #F5E6DF;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: clamp(18px, 1.8vw, 20px);
         font-weight: 700;
-        color: var(--rust);
+        color: #B85C3A;
         flex-shrink: 0;
     }
 
@@ -1011,7 +1011,7 @@
     }
 
     .agency-contact i {
-        color: var(--rust);
+        color: #B85C3A;
         width: 16px;
         flex-shrink: 0;
     }
@@ -1024,13 +1024,13 @@
     }
 
     .agency-contact a:hover {
-        color: var(--rust);
+        color: #B85C3A;
     }
 
     /* ===== CTA ===== */
     .cta-card {
-        background: var(--rust-soft);
-        border-color: rgba(181, 80, 42, 0.2);
+        background: #F5E6DF;
+        border-color: rgba(184, 92, 58, 0.2);
     }
 
     .cta-content {
@@ -1157,7 +1157,7 @@
         font-size: clamp(9px, 0.7vw, 10px);
         font-weight: 600;
         color: #fff;
-        background: rgba(0,0,0,0.7);
+        background: #B85C3A;
     }
 
     .similar-status {
@@ -1171,8 +1171,8 @@
         color: #fff;
     }
 
-    .similar-status.disponible { background: #1E7A47; }
-    .similar-status.indisponible { background: var(--muted); }
+    .similar-status.disponible { background: #2A9D8F; }
+    .similar-status.indisponible { background: #8A91A0; }
 
     .bien-body {
         padding: 12px 14px 14px;
@@ -1190,7 +1190,7 @@
 
     .bien-price {
         font-weight: 700;
-        color: var(--rust);
+        color: #B85C3A;
         font-size: clamp(13px, 0.9vw, 14px);
     }
 
@@ -1246,9 +1246,9 @@
     }
 
     .btn-rust {
-        background: var(--rust);
+        background: #B85C3A;
         color: #fff;
-        border-color: var(--rust);
+        border-color: #B85C3A;
     }
 
     .btn-rust:hover {

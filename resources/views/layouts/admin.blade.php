@@ -7,6 +7,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Administration — DoyaImmo')</title>
 
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <style>
@@ -916,6 +918,11 @@
                 <a class="navlink {{ request()->routeIs('admin.abonnements.*') ? 'active' : '' }}"
                     href="{{ route('admin.abonnements.index') }}">
                     <i class="ic fa-solid fa-award"></i> Abonnements
+                </a>
+                <a class="navlink {{ request()->routeIs('admin.mises-vedette.*') ? 'active' : '' }}"
+                    href="{{ route('admin.mises-vedette.index') }}">
+                    <i class="ic fa-solid fa-star" style="color:#F5A623;"></i> Mises en vedette
+                    <span class="badge red">{{ $misesEnAttente ?? 0 }}</span>
                 </a>
                 <a class="navlink {{ request()->routeIs('admin.quartiers.*') ? 'active' : '' }}"
                     href="{{ route('admin.quartiers.index') }}">

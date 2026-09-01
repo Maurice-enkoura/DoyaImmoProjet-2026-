@@ -1,4 +1,3 @@
-{{-- resources/views/agence/public-index.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Agences immobilières — DoyaImmo')
@@ -33,7 +32,7 @@
         display: inline-block;
         font-size: clamp(10px, 0.7vw, 11px);
         font-weight: 600;
-        color: var(--rust);
+        color: #B85C3A;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-bottom: 8px;
@@ -114,8 +113,8 @@
     .filter-section .filter-group select:focus,
     .filter-section .filter-group input:focus {
         outline: none;
-        border-color: var(--rust);
-        box-shadow: 0 0 0 3px rgba(181, 80, 42, 0.1);
+        border-color: #B85C3A;
+        box-shadow: 0 0 0 3px rgba(184, 92, 58, 0.1);
     }
 
     .filter-section .filter-group.filter-actions-group {
@@ -163,7 +162,7 @@
 
     /* ✅ Carte agence avec biens en vedette */
     .agency-card.has-vedette {
-        border-color: #F5A623;
+        border-color: #D4AF37;
         border-width: 2px;
     }
 
@@ -175,7 +174,7 @@
         right: 0;
         bottom: 0;
         border-radius: var(--radius);
-        background: linear-gradient(135deg, rgba(245, 166, 35, 0.04), transparent);
+        background: linear-gradient(135deg, rgba(212, 175, 55, 0.04), transparent);
         pointer-events: none;
         z-index: 0;
     }
@@ -191,14 +190,14 @@
         border-radius: 50%;
         object-fit: cover;
         margin: 0 auto 12px;
-        border: 2px solid var(--border);
-        background: #F0F2F5;
+        border: 2px solid #D4AF37;
+        background: #FDF5E6;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: clamp(20px, 2.5vw, 28px);
         font-weight: 700;
-        color: var(--muted);
+        color: #B85C3A;
         flex-shrink: 0;
         overflow: hidden;
         position: relative;
@@ -255,7 +254,7 @@
     }
 
     .agency-rating {
-        color: #F5A623;
+        color: #D4AF37;
         font-weight: 700;
         font-size: clamp(14px, 1vw, 16px);
         margin-bottom: 10px;
@@ -293,11 +292,11 @@
         justify-content: center;
     }
 
-    /* ===== BADGES ===== */
+    /* ===== BADGES AVEC COULEURS DOYAIMMO ===== */
     .badge-verified {
         display: inline-block;
-        background: #E8F5E9;
-        color: #1E7A47;
+        background: #E6F4F2;
+        color: #2A9D8F;
         padding: 2px 12px;
         border-radius: 999px;
         font-size: clamp(10px, 0.7vw, 11px);
@@ -307,8 +306,8 @@
 
     .badge-pending {
         display: inline-block;
-        background: #FFF8E1;
-        color: #E65100;
+        background: #FDF5E6;
+        color: #B85C3A;
         padding: 2px 12px;
         border-radius: 999px;
         font-size: clamp(10px, 0.7vw, 11px);
@@ -326,8 +325,8 @@
         font-size: 10px;
         font-weight: 600;
         color: #fff;
-        background: #F5A623;
-        box-shadow: 0 2px 8px rgba(245, 166, 35, 0.3);
+        background: #D4AF37;
+        box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
         margin-left: 4px;
         animation: pulseVedette 2s ease-in-out infinite;
         position: relative;
@@ -348,12 +347,12 @@
         font-size: 10px;
         font-weight: 600;
         color: #fff;
-        background: #F5A623;
+        background: #D4AF37;
         display: flex;
         align-items: center;
         gap: 4px;
         z-index: 10;
-        box-shadow: 0 2px 8px rgba(245, 166, 35, 0.3);
+        box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
         animation: pulseVedette 2s ease-in-out infinite;
     }
 
@@ -423,9 +422,9 @@
     }
 
     .pagination .active span {
-        background: var(--rust);
+        background: #B85C3A;
         color: #fff;
-        border-color: var(--rust);
+        border-color: #B85C3A;
     }
 
     .pagination .disabled span {
@@ -477,9 +476,9 @@
     }
 
     .btn-rust {
-        background: var(--rust);
+        background: #B85C3A;
         color: #fff;
-        border-color: var(--rust);
+        border-color: #B85C3A;
     }
 
     .btn-rust:hover {
@@ -798,10 +797,16 @@
                     <span><i class="fa-solid fa-house"></i> {{ $agence->biens->count() }} biens</span>
                     <span><i class="fa-solid fa-handshake"></i> {{ $agence->propositions->count() }} offres</span>
                     @if($hasVedette)
-                        <span style="color:#F5A623;">
+                        <span style="color:#D4AF37;">
                             <i class="fa-solid fa-star"></i> En vedette
                         </span>
                     @endif
+                </div>
+
+                <!-- ✅ DATE DE PUBLICATION DE L'AGENCE -->
+                <div class="agency-date">
+                    <i class="fa-regular fa-clock"></i>
+                    Membre depuis {{ $agence->created_at->format('d/m/Y') }}
                 </div>
 
                 @if($agence->description)

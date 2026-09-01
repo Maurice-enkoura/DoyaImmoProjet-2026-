@@ -29,10 +29,10 @@
                     </div>
                     <div class="agency-meta">
                         <span><i class="fa-solid fa-location-dot"></i> {{ $agence->adresse }}</span>
-                        <span><i class="fa-solid fa-star" style="color:#F5A623;"></i> {{ number_format($stats['note_moyenne'] ?? 0, 1) }} / 5 ({{ $stats['total_evaluations'] ?? 0 }} avis)</span>
+                        <span><i class="fa-solid fa-star" style="color:#D4AF37;"></i> {{ number_format($stats['note_moyenne'] ?? 0, 1) }} / 5 ({{ $stats['total_evaluations'] ?? 0 }} avis)</span>
                         <span><i class="fa-solid fa-building"></i> {{ $stats['biens_disponibles'] ?? 0 }} biens disponibles</span>
                         @if($hasVedette)
-                            <span style="color:#F5A623;"><i class="fa-solid fa-star"></i> Biens en vedette</span>
+                            <span style="color:#D4AF37;"><i class="fa-solid fa-star"></i> Biens en vedette</span>
                         @endif
                     </div>
                 </div>
@@ -72,7 +72,7 @@
         <!-- Coordonnées de contact -->
         <div class="contact-card">
             <h3 class="contact-title">
-                <i class="fa-solid fa-phone" style="color:var(--rust);"></i> Contact
+                <i class="fa-solid fa-phone" style="color:#B85C3A;"></i> Contact
             </h3>
             <div class="contact-grid">
                 @if($agence->user->telephone)
@@ -117,12 +117,23 @@
                                         <i class="fa-solid fa-image"></i>
                                     </div>
                                 @endif
+                                
                                 <!-- ✅ Badge Vedette -->
                                 @if($bien->est_vedette)
                                     <span class="badge-vedette">
                                         <i class="fa-solid fa-star"></i> Vedette
                                     </span>
                                 @endif
+
+                                <!-- ✅ Badge Type de bien -->
+                                <span class="badge-type">
+                                    {{ is_object($bien->type_bien) && method_exists($bien->type_bien, 'label') ? $bien->type_bien->label() : $bien->type_bien }}
+                                </span>
+
+                                <!-- ✅ Badge Statut -->
+                                <span class="badge-statut {{ $bien->statut ? 'disponible' : 'indisponible' }}">
+                                    {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
+                                </span>
                             </div>
                             <div class="bien-body">
                                 <div class="bien-title">
@@ -135,9 +146,14 @@
                                 <div class="bien-location">
                                     <i class="fa-solid fa-location-dot"></i> {{ $bien->quartier }}
                                 </div>
+                                <!-- ✅ DATE DE PUBLICATION DU BIEN -->
+                                <div class="bien-date">
+                                    <i class="fa-regular fa-clock"></i>
+                                    Publié {{ $bien->created_at->diffForHumans() }}
+                                </div>
                                 <div class="bien-tags">
-                                    <span class="meta-pill">{{ $bien->type_bien->label() }}</span>
-                                    <span class="meta-pill">{{ $bien->type_contrat->label() }}</span>
+                                    <span class="meta-pill">{{ is_object($bien->type_bien) && method_exists($bien->type_bien, 'label') ? $bien->type_bien->label() : $bien->type_bien }}</span>
+                                    <span class="meta-pill">{{ is_object($bien->type_contrat) && method_exists($bien->type_contrat, 'label') ? $bien->type_contrat->label() : $bien->type_contrat }}</span>
                                     <span class="meta-pill">{{ $bien->surface }} m²</span>
                                     @if($bien->est_vedette)
                                         <span class="meta-pill vedette-pill"><i class="fa-solid fa-star"></i> Vedette</span>
@@ -232,7 +248,7 @@
     }
 
     .back-link:hover {
-        color: var(--rust);
+        color: #B85C3A;
     }
 
     .back-link i {
@@ -249,8 +265,8 @@
         font-size: 13px;
         font-weight: 600;
         color: #fff;
-        background: #F5A623;
-        box-shadow: 0 2px 8px rgba(245, 166, 35, 0.3);
+        background: #D4AF37;
+        box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
         animation: pulseVedette 2s ease-in-out infinite;
     }
 
@@ -287,13 +303,13 @@
         width: clamp(60px, 8vw, 80px);
         height: clamp(60px, 8vw, 80px);
         border-radius: 50%;
-        background: var(--rust-soft);
+        background: #F5E6DF;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: clamp(24px, 3vw, 32px);
         font-weight: 700;
-        color: var(--rust);
+        color: #B85C3A;
         flex-shrink: 0;
     }
 
@@ -359,7 +375,7 @@
     .stat-number {
         font-size: clamp(20px, 2.5vw, 24px);
         font-weight: 700;
-        color: var(--rust);
+        color: #B85C3A;
     }
 
     .stat-label {
@@ -417,7 +433,7 @@
     }
 
     .contact-value a:hover {
-        color: var(--rust);
+        color: #B85C3A;
     }
 
     /* ===== BIENS SECTION ===== */
@@ -463,7 +479,7 @@
     }
 
     .bien-card.vedette-card {
-        border-color: #F5A623;
+        border-color: #D4AF37;
         border-width: 2px;
         position: relative;
     }
@@ -476,14 +492,14 @@
         right: 0;
         bottom: 0;
         border-radius: var(--radius);
-        background: linear-gradient(135deg, rgba(245, 166, 35, 0.05), transparent);
+        background: linear-gradient(135deg, rgba(212, 175, 55, 0.05), transparent);
         pointer-events: none;
         z-index: 0;
     }
 
     .bien-image {
         height: clamp(150px, 20vw, 180px);
-        background: #E8ECF0;
+        background: #F0F2F5;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -513,6 +529,7 @@
         font-size: 32px;
     }
 
+    /* ✅ BADGES SUR LES IMAGES */
     .badge-vedette {
         position: absolute;
         top: 10px;
@@ -522,17 +539,50 @@
         font-size: 10px;
         font-weight: 600;
         color: #fff;
-        background: #F5A623;
+        background: #D4AF37;
         z-index: 2;
         display: flex;
         align-items: center;
         gap: 4px;
-        box-shadow: 0 2px 8px rgba(245, 166, 35, 0.3);
+        box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
         animation: pulseVedette 2s ease-in-out infinite;
     }
 
     .badge-vedette i {
         font-size: 9px;
+    }
+
+    .badge-type {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        padding: 3px 12px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #fff;
+        background: #B85C3A;
+        z-index: 2;
+    }
+
+    .badge-statut {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        padding: 3px 12px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #fff;
+        z-index: 2;
+    }
+
+    .badge-statut.disponible {
+        background: #2A9D8F;
+    }
+
+    .badge-statut.indisponible {
+        background: #8A91A0;
     }
 
     .bien-body {
@@ -556,7 +606,7 @@
     }
 
     .vedette-tag {
-        color: #F5A623;
+        color: #D4AF37;
         font-size: 12px;
         display: inline-flex;
         align-items: center;
@@ -564,7 +614,7 @@
 
     .bien-price {
         font-weight: 700;
-        color: var(--rust);
+        color: #B85C3A;
         font-size: clamp(15px, 1.1vw, 16px);
     }
 
@@ -578,6 +628,21 @@
     .bien-location i {
         font-size: 11px;
         margin-right: 3px;
+    }
+
+    /* ✅ DATE DE PUBLICATION */
+    .bien-date {
+        font-size: clamp(11px, 0.7vw, 12px);
+        color: var(--muted);
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .bien-date i {
+        font-size: 11px;
+        color: var(--muted);
     }
 
     .bien-tags {
@@ -599,13 +664,13 @@
     }
 
     .vedette-pill {
-        background: #FFF8E1;
-        color: #E65100;
+        background: #FDF5E6;
+        color: #B85C3A;
         font-weight: 600;
     }
 
     .vedette-pill i {
-        color: #F5A623;
+        color: #D4AF37;
     }
 
     .bien-action {
@@ -655,13 +720,13 @@
         width: clamp(28px, 3vw, 32px);
         height: clamp(28px, 3vw, 32px);
         border-radius: 50%;
-        background: var(--rust-soft);
+        background: #F5E6DF;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 600;
         font-size: clamp(11px, 0.8vw, 12px);
-        color: var(--rust);
+        color: #B85C3A;
         flex-shrink: 0;
     }
 
@@ -676,7 +741,7 @@
     }
 
     .evaluation-stars {
-        color: #F5A623;
+        color: #D4AF37;
         font-size: clamp(13px, 0.9vw, 16px);
     }
 
@@ -750,9 +815,9 @@
     }
 
     .pagination .active span {
-        background: var(--rust);
+        background: #B85C3A;
         color: #fff;
-        border-color: var(--rust);
+        border-color: #B85C3A;
     }
 
     .pagination .disabled span {
@@ -778,9 +843,9 @@
     }
 
     .btn-rust {
-        background: var(--rust);
+        background: #B85C3A;
         color: #fff;
-        border-color: var(--rust);
+        border-color: #B85C3A;
     }
 
     .btn-rust:hover {
@@ -890,9 +955,33 @@
             font-size: 11px;
         }
 
+        .bien-date {
+            font-size: 10px;
+        }
+
         .meta-pill {
             font-size: 9px;
             padding: 1px 8px;
+        }
+
+        .badge-vedette,
+        .badge-type,
+        .badge-statut {
+            font-size: 9px;
+            padding: 2px 10px;
+        }
+
+        .badge-vedette i {
+            font-size: 8px;
+        }
+
+        .badge-vedette-agency {
+            font-size: 11px;
+            padding: 3px 10px;
+        }
+
+        .badge-vedette-agency i {
+            font-size: 10px;
         }
 
         .pagination a,
@@ -909,24 +998,6 @@
 
         .evaluation-stars {
             font-size: 13px;
-        }
-
-        .badge-vedette {
-            font-size: 9px;
-            padding: 2px 10px;
-        }
-
-        .badge-vedette i {
-            font-size: 8px;
-        }
-
-        .badge-vedette-agency {
-            font-size: 11px;
-            padding: 3px 10px;
-        }
-
-        .badge-vedette-agency i {
-            font-size: 10px;
         }
     }
 
@@ -954,6 +1025,10 @@
 
         .bien-price {
             font-size: 16px;
+        }
+
+        .bien-date {
+            font-size: 11px;
         }
 
         .stats-grid {

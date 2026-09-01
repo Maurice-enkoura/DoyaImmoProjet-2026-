@@ -31,7 +31,7 @@ class RendezVousTermineNotification extends Notification implements ShouldQueue
         $heureVisite = $this->rendezVous->heure_visite ?? $this->rendezVous->creneau->heure_debut ?? 'N/A';
 
         $message = (new MailMessage)
-            ->subject('✅ Rendez-vous terminé - DoyaImmo')
+            ->subject(' Rendez-vous terminé - DoyaImmo')
             ->greeting('Bonjour ' . $notifiable->prenom . ' !')
             ->line('Votre rendez-vous a été marqué comme terminé :')
             ->line('')

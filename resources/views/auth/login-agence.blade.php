@@ -5,9 +5,16 @@
 @section('content')
 <div class="auth-shell">
     <div class="auth-visual">
-        <div class="brand">
-            <div class="brand-mark">D</div>
-            <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--gold)">Immo</span></div>
+        <div class="brand" style="display:flex; justify-content:space-between; align-items:center;">
+            <a href="{{ route('home') }}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
+                <div class="brand-mark">D</div>
+                <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--gold)">Immo</span></div>
+            </a>
+            
+            <!-- Bouton Accueil -->
+            <a href="{{ route('home') }}" class="btn btn-ghost btn-sm" style="color:#fff; border-color:rgba(255,255,255,0.3);">
+                <i class="fa-solid fa-house"></i> Accueil
+            </a>
         </div>
         
         <!-- Statistiques -->
@@ -46,9 +53,16 @@
 
     <div class="auth-form-side">
         <div class="auth-box">
-            <div class="brand">
-                <div class="brand-mark">D</div>
-                <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
+            <div class="brand" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+                <a href="{{ route('home') }}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
+                    <div class="brand-mark">D</div>
+                    <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
+                </a>
+                
+                <!-- Bouton Accueil -->
+                <a href="{{ route('home') }}" class="btn btn-ghost btn-sm" style="display:inline-flex; align-items:center; gap:6px;">
+                    <i class="fa-solid fa-house"></i> Accueil
+                </a>
             </div>
 
             <div class="role-toggle">
@@ -166,96 +180,4 @@
     }
 </script>
 @endpush
-
-@push('styles')
-<style>
-    .flash-message {
-        padding: 12px 16px;
-        border-radius: 10px;
-        font-size: 13px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .flash-error {
-        background: #FFEBEE;
-        color: #C62828;
-        border: 1px solid #FFCDD2;
-    }
-    .flash-info {
-        background: #E3F2FD;
-        color: #0D47A1;
-        border: 1px solid #BBDEFB;
-    }
-    .flash-success {
-        background: #E8F5E9;
-        color: #1E7A47;
-        border: 1px solid #C8E6C9;
-    }
-    .field {
-        margin-bottom: 16px;
-    }
-    .field label {
-        display: block;
-        font-size: 12.5px;
-        font-weight: 600;
-        color: var(--text-soft);
-        margin-bottom: 4px;
-    }
-    .field input {
-        width: 100%;
-        padding: 10px 14px;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        font-size: 13px;
-        font-family: inherit;
-        transition: border 0.2s;
-    }
-    .field input:focus {
-        outline: none;
-        border-color: var(--rust);
-        box-shadow: 0 0 0 3px rgba(181, 80, 42, 0.08);
-    }
-    .field input.is-invalid {
-        border-color: #C62828;
-    }
-    .check-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 13px;
-        color: var(--text-soft);
-        cursor: pointer;
-    }
-    .check-row input[type="checkbox"] {
-        width: 16px;
-        height: 16px;
-        cursor: pointer;
-        accent-color: var(--rust);
-    }
-
-    /* Password toggle */
-    .password-wrapper {
-        position: relative;
-    }
-    .password-wrapper input {
-        padding-right: 44px;
-    }
-    .toggle-password {
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        color: var(--muted);
-        cursor: pointer;
-        padding: 4px;
-        font-size: 16px;
-        transition: color 0.2s;
-    }
-    .toggle-password:hover {
-        color: var(--text);
-    }
-</style>
-@endpush
+

@@ -7,6 +7,16 @@
 @section('content')
 @php
     $ongletActif = request()->get('onglet', 'infos');
+    $planningType = session()->get('planning_type_' . $agence->id, []);
+    $joursFr = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+    $planningParJour = [];
+    foreach ($planningType as $p) {
+        $jour = $p['jour'];
+        if (!isset($planningParJour[$jour])) {
+            $planningParJour[$jour] = [];
+        }
+        $planningParJour[$jour][] = $p;
+    }
 @endphp
 <div class="view active">
     <!-- En-tête de la section -->
@@ -16,6 +26,28 @@
             <p>Ces informations sont visibles par les clients de DoyaImmo</p>
         </div>
     </div>
+
+    <!-- Messages flash -->
+    @if(session('success'))
+        <div class="alert alert-success">
+            <i class="fa-solid fa-check-circle"></i>
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-error">
+            <i class="fa-solid fa-exclamation-circle"></i>
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if(session('warning'))
+        <div class="alert alert-warning">
+            <i class="fa-solid fa-exclamation-triangle"></i>
+            {{ session('warning') }}
+        </div>
+    @endif
 
     <!-- Onglets -->
     <div class="tabs">
@@ -169,6 +201,40 @@
                 <span class="legend-dot past"></span> Passé
             </div>
         </div>
+
+        <!-- ✅ PLANNING TYPE ACTUEL -->
+        @if(!empty($planningParJour))
+        <div style="margin-bottom:16px;padding:12px 16px;background:#E8F5E9;border-radius:8px;border-left:4px solid #1E7A47;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                <div>
+                    <strong style="font-size:13px;color:#1E7A47;">
+                        <i class="fa-solid fa-arrows-rotate"></i> Planning type actif
+                    </strong>
+                    <span style="font-size:12px;color:var(--muted);margin-left:8px;">
+                        Les créneaux sont générés automatiquement
+                    </span>
+                </div>
+                <form action="{{ route('agence.creneaux.generer-auto') }}" method="POST" style="display:inline;">
+                    @csrf
+                    <button type="submit" class="btn btn-sm" style="background:#1E7A47;color:#fff;border:none;padding:4px 12px;border-radius:6px;font-size:11px;cursor:pointer;">
+                        <i class="fa-solid fa-rotate"></i> Régénérer
+                    </button>
+                </form>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+                @foreach($joursFr as $index => $jour)
+                    @if(isset($planningParJour[$index]))
+                        <span style="font-size:12px;background:#fff;padding:2px 10px;border-radius:4px;border:1px solid #C8E6C9;">
+                            <strong>{{ $jour }}</strong> 
+                            @foreach($planningParJour[$index] as $p)
+                                {{ substr($p['heure_debut'], 0, 5) }}-{{ substr($p['heure_fin'], 0, 5) }}
+                            @endforeach
+                        </span>
+                    @endif
+                @endforeach
+            </div>
+        </div>
+        @endif
 
         <div class="creneaux-header">
             <div class="creneaux-info">
@@ -324,6 +390,19 @@
                         </label>
                     @endforeach
                 </div>
+            </div>
+
+            <!-- ✅ OPTION PLANNING TYPE -->
+            <div class="form-group" style="margin-top:16px;padding:12px;background:#E8F5E9;border-radius:8px;border-left:4px solid #1E7A47;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
+                    <input type="checkbox" name="est_recurrent" value="1" checked>
+                    <span>
+                        <strong>Sauvegarder comme planning type</strong>
+                        <span style="display:block;font-weight:normal;color:var(--muted);font-size:12px;margin-top:2px;">
+                            Les créneaux seront générés automatiquement chaque semaine
+                        </span>
+                    </span>
+                </label>
             </div>
 
             <div class="modal-actions">
@@ -1263,6 +1342,34 @@
         font-size: 12.5px;
     }
 
+    .alert {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 20px;
+        border-radius: var(--radius);
+        margin-bottom: 20px;
+        border-left: 4px solid;
+    }
+
+    .alert-success {
+        background: #E8F5E9;
+        color: #1E7A47;
+        border-left-color: #1E7A47;
+    }
+
+    .alert-error {
+        background: #FFEBEE;
+        color: #C62828;
+        border-left-color: #C62828;
+    }
+
+    .alert-warning {
+        background: #FFF8E1;
+        color: #E65100;
+        border-left-color: #F5A623;
+    }
+
     @media (max-width: 480px) {
         .logo-upload-area {
             flex-direction: column;
@@ -1281,4 +1388,4 @@
         }
     }
 </style>
-@endpush 
+@endpush

@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\PayDunyaController;
 use App\Http\Controllers\NotificationController;
 
+
 // Contrôleurs Particulier
 use App\Http\Controllers\Particulier\ParticulierDashboardController;
 use App\Http\Controllers\Particulier\DemandeController;
@@ -40,7 +41,7 @@ use App\Http\Controllers\Admin\AdminEvaluationController;
 use App\Http\Controllers\Admin\AdminRendezVousController;
 use App\Http\Controllers\Admin\AdminProfilController;
 use App\Http\Controllers\Admin\AdminBanniereController;
-
+use App\Http\Controllers\Admin\AdminMiseEnVedetteController;
 /*
 |--------------------------------------------------------------------------
 | ROUTES PUBLIQUES
@@ -51,6 +52,15 @@ use App\Http\Controllers\Admin\AdminBanniereController;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/about', [HomeController::class, 'about'])->name('about');
 Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
+
+// Pages légales
+Route::get('/cgu', function () {
+    return view('pages.cgu');
+})->name('cgu');
+
+Route::get('/mentions-legales', function () {
+    return view('pages.mentions-legales');
+})->name('mentions-legales');
 
 // Recherche
 Route::get('/recherche', [HomeController::class, 'recherche'])->name('recherche');
@@ -268,6 +278,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/profil', [AgenceController::class, 'profil'])->name('profil');
         Route::put('/profil', [AgenceController::class, 'update'])->name('profil.update');
 
+        // ============ PLANNING TYPE ET CRÉNEAUX RÉCURRENTS ============
+        Route::post('/planning/sauvegarder', [AgenceController::class, 'sauvegarderPlanning'])->name('planning.sauvegarder');
+        Route::post('/creneaux/generer-auto', [AgenceController::class, 'genererCreneauxAuto'])->name('creneaux.generer-auto');
+        Route::get('/planning/get', [AgenceController::class, 'getPlanningType'])->name('planning.get');
+
         // ============ CRÉNEAUX RENDEZ-VOUS ============
         Route::get('/creneaux', [AgenceController::class, 'creneauxIndex'])->name('creneaux.index');
         Route::post('/creneaux/generer', [AgenceController::class, 'genererCreneaux'])->name('creneaux.generer');
@@ -295,6 +310,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/abonnement/upgrade', [AgenceController::class, 'upgrade'])->name('abonnement.upgrade');
         Route::post('/abonnement/{abonnement}/annuler', [AgenceController::class, 'annuler'])->name('abonnement.annuler');
 
+        // ============ MISES EN VEDETTE ============
+Route::get('/biens/{bien}/vedette/demander', [AgenceController::class, 'demandeVedette'])->name('biens.vedette.demander');
+Route::post('/biens/{bien}/vedette', [AgenceController::class, 'demanderVedette'])->name('biens.vedette.store');
+Route::get('/vedette/contact/{mise}', [AgenceController::class, 'contactVedette'])->name('biens.vedette.contact');
+
         // Historique
         Route::get('/historique', [AgenceController::class, 'historique'])->name('historique');
 
@@ -308,6 +328,7 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/biens/{bien}', [BienController::class, 'update'])->name('biens.update');
             Route::delete('/biens/{bien}', [BienController::class, 'destroy'])->name('biens.destroy');
             Route::post('/biens/{bien}/activer', [BienController::class, 'activer'])->name('biens.activer');
+            Route::post('/biens/{bien}/desactiver', [BienController::class, 'desactiver'])->name('biens.desactiver');
             Route::delete('/medias/{media}', [BienController::class, 'supprimerMedia'])->name('medias.destroy');
             Route::delete('/biens/{bien}', [BienController::class, 'destroy'])->name('biens.destroy');
             Route::patch('biens/{bien}/vedette/toggle', [BienController::class, 'toggleVedette'])->name('biens.vedette.toggle');
@@ -392,6 +413,13 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/biens/{bien}/vedette', [AdminBienController::class, 'mettreEnVedette'])->name('biens.vedette.mettre');
         Route::delete('/biens/{bien}/vedette', [AdminBienController::class, 'retirerVedette'])->name('biens.vedette.retirer');
         Route::post('/biens/{bien}/vedette/prolonger', [AdminBienController::class, 'prolongerVedette'])->name('biens.vedette.prolonger');
+
+
+        Route::get('/mises-vedette', [AdminMiseEnVedetteController::class, 'index'])->name('mises-vedette.index');
+        Route::get('/mises-vedette/{mise}', [AdminMiseEnVedetteController::class, 'show'])->name('mises-vedette.show');
+        Route::post('/mises-vedette/{mise}/valider', [AdminMiseEnVedetteController::class, 'valider'])->name('mises-vedette.valider');
+        Route::post('/mises-vedette/{mise}/annuler', [AdminMiseEnVedetteController::class, 'annuler'])->name('mises-vedette.annuler');
+
 
         // Demandes
         Route::get('/demandes', [AdminDemandeController::class, 'index'])->name('demandes.index');

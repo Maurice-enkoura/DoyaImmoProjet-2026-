@@ -1,3 +1,61 @@
+/* ============================================
+   TAILWIND
+   ============================================ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ============================================
+   DESIGN TOKENS UNIFIÉS DOYAIMMO
+   ============================================ */
+:root {
+    --rust: #B85C3A;
+    --rust-dark: #9A4523;
+    --rust-soft: rgba(184, 92, 58, 0.12);
+    --ink: #1A1D26;
+    --surface: #FFFFFF;
+    --border: #E8ECF0;
+    --text-soft: #4A5260;
+    --muted: #8A91A0;
+    --gold: #D4AF37;
+    --gold-soft: rgba(212, 175, 55, 0.12);
+    --teal: #0E7A7A;
+    --teal-soft: rgba(14, 122, 122, 0.12);
+    --green: #1E7A47;
+    --green-soft: rgba(30, 122, 71, 0.12);
+    --bg-soft: #F7F9FC;
+    --radius: 16px;
+    --display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ============================================
+   BASE HTML / BODY (évite le flash blanc)
+   ============================================ */
+html {
+    scroll-behavior: smooth;
+    background: #F7F9FC;
+}
+
+body {
+    background: #F7F9FC;
+    color: #1A1D26;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+/* ============================================
+   ANTI-ZOOM AUTOMATIQUE SUR MOBILE
+   ============================================ */
+@media (max-width: 1024px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):not([type="range"]),
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* ============================================
+   AUTRES STYLES (ajoute tes styles ici)
+   ============================================ */

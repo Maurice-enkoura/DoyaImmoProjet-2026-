@@ -24,20 +24,12 @@ class AgenceValideeNotification extends Notification implements ShouldQueue
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('✅ Votre agence DoyaImmo a été validée')
-            ->greeting('Bonjour ' . $notifiable->prenom . ' ' . $notifiable->nom . ' !')
-            ->line('Nous avons le plaisir de vous informer que votre agence **' . $this->agence->nom_agence . '** a été validée avec succès sur la plateforme DoyaImmo.')
-            ->line('')
-            ->line('Vous pouvez dès maintenant :')
-            ->line('• 📝 Publier des biens immobiliers')
-            ->line('• 💬 Répondre aux demandes des clients')
-            ->line('• 📅 Gérer vos rendez-vous')
-            ->line('• 📊 Suivre vos statistiques')
-            ->line('')
-            ->action('Accéder à votre espace agence', url('/agence/dashboard'))
-            ->line('')
-            ->line('Bienvenue dans la communauté DoyaImmo !')
-            ->salutation('L\'équipe DoyaImmo');
+            ->subject(' Votre agence DoyaImmo a été validée')
+            ->markdown('emails.agence-validee', [
+                'agence' => $this->agence,
+                'user' => $notifiable, // ✅ Passer l'utilisateur
+                'notifiable' => $notifiable,
+            ]);
     }
 
     public function toDatabase($notifiable): array

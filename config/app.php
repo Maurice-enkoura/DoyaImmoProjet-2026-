@@ -175,6 +175,7 @@ return [
          * Application Service Providers...
          */
         App\Providers\AppServiceProvider::class,
+        //App\Providers\AdminViewServiceProvider::class,
         // App\Providers\AuthServiceProvider::class, // Commenté s'il n'existe pas
         // App\Providers\BroadcastServiceProvider::class,
         // App\Providers\EventServiceProvider::class, // Commenté s'il n'existe pas

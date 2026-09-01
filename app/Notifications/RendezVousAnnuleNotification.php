@@ -28,7 +28,7 @@ class RendezVousAnnuleNotification extends Notification implements ShouldQueue
         $heureVisite = $this->rendezVous->heure_visite ?? $this->rendezVous->creneau->heure_debut ?? 'N/A';
 
         $message = (new MailMessage)
-            ->subject('❌ Rendez-vous annulé - DoyaImmo')
+            ->subject('Rendez-vous annulé - DoyaImmo')
             ->greeting('Bonjour ' . $notifiable->prenom . ' !')
             ->line('Votre rendez-vous a été annulé :')
             ->line('')
@@ -56,7 +56,7 @@ class RendezVousAnnuleNotification extends Notification implements ShouldQueue
             'message' => 'Votre rendez-vous du ' . ($this->rendezVous->date_visite ? $this->rendezVous->date_visite->format('d/m/Y') : 'N/A') . ' a été annulé.',
             'type' => 'error',
             'icon' => 'fa-calendar-xmark',
-            'link' => route('particulier.rendezvous.create'),
+            'link' => url('/particulier/rendezvous/create'),
             'rendezvous_id' => $this->rendezVous->id,
             'agence_nom' => $this->rendezVous->agence->nom_agence ?? 'N/A',
         ];

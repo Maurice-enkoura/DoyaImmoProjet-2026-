@@ -26,22 +26,13 @@ class NouvelleDemandeNotification extends Notification implements ShouldQueue
 
     public function toMail($notifiable): MailMessage
     {
-        $demande = $this->demande;
-
         return (new MailMessage)
-            ->subject('🏠 Nouvelle demande de logement - DoyaImmo')
-            ->greeting('Bonjour ' . $notifiable->prenom . ' !')
-            ->line('Un nouveau besoin de logement vient d\'être publié par un particulier :')
-            ->line('')
-            ->line('**Type de bien :** ' . ($demande->type_bien->label() ?? $demande->type_bien))
-            ->line('**Type d\'opération :** ' . ($demande->type_operation->label() ?? $demande->type_operation))
-            ->line('**Budget :** ' . number_format($demande->budget_maximum, 0, ',', ' ') . ' FCFA')
-            ->line('**Zone recherchée :** ' . $demande->zone_recherchee)
-            ->line('')
-            ->line('Cette demande correspond peut-être à l\'un de vos biens.')
-            ->action('Voir la demande', route('agence.demandes.show', $demande))
-            ->line('')
-            ->salutation('L\'équipe DoyaImmo');
+            ->subject(' Nouvelle demande de logement - DoyaImmo')
+            ->markdown('emails.nouvelle-demande', [
+                'demande' => $this->demande,
+                'user' => $notifiable, // ✅ Passer l'utilisateur
+                'notifiable' => $notifiable,
+            ]);
     }
 
     public function toDatabase($notifiable): array
@@ -49,7 +40,7 @@ class NouvelleDemandeNotification extends Notification implements ShouldQueue
         $demande = $this->demande;
 
         return [
-            'title' => '🏠 Nouvelle demande de logement',
+            'title' => ' Nouvelle demande de logement',
             'message' => 'Un nouveau besoin de ' . ($demande->type_bien->label() ?? $demande->type_bien) . ' à ' . $demande->zone_recherchee . ' vient d\'être publié.',
             'type' => 'info',
             'icon' => 'fa-house-circle-check',

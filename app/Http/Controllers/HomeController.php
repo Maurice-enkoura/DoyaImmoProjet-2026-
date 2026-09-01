@@ -98,21 +98,22 @@ class HomeController extends Controller
      */
     public function recherche(Request $request)
     {
-        $query = $request->get('q', '');
+        $query = $request->get('q', $request->get('search', ''));
         $type = $request->get('type', 'tous');
         $typeBien = $request->get('type_bien');
-        $typeContrat = $request->get('type_contrat');
-        $quartierId = $request->get('quartier');
+        $typeContrat = $request->get('type_contrat') ?? $request->get('type_operation') ?? $request->get('contrat') ?? $request->get('transaction');
+        $quartierParam = $request->get('quartier') ?? $request->get('quartier_id');
 
         // ==================== BIENS ====================
         $biensQuery = BienImmobilier::with(['agence.user', 'medias', 'quartier'])
             ->where('statut', true);
 
-        if ($query) {
+        if (!empty($query)) {
             $biensQuery->where(function ($q) use ($query) {
                 $q->where('titre', 'like', "%{$query}%")
                   ->orWhere('description', 'like', "%{$query}%")
                   ->orWhere('adresse', 'like', "%{$query}%")
+                  ->orWhere('quartier', 'like', "%{$query}%")
                   ->orWhereHas('agence', function ($sub) use ($query) {
                       $sub->where('nom_agence', 'like', "%{$query}%");
                   })
@@ -122,16 +123,30 @@ class HomeController extends Controller
             });
         }
 
-        if ($typeBien) {
-            $biensQuery->where('type_bien', $typeBien);
+        if (!empty($typeBien)) {
+            $biensQuery->where('type_bien', strtolower($typeBien));
         }
 
-        if ($typeContrat) {
-            $biensQuery->where('type_contrat', $typeContrat);
+        if (!empty($typeContrat)) {
+            $biensQuery->where('type_contrat', strtolower($typeContrat));
         }
 
-        if ($quartierId) {
-            $biensQuery->where('quartier_id', $quartierId);
+        if (!empty($quartierParam)) {
+            if (is_numeric($quartierParam)) {
+                $biensQuery->where(function ($q) use ($quartierParam) {
+                    $q->where('quartier_id', $quartierParam)
+                      ->orWhereHas('quartier', function ($sub) use ($quartierParam) {
+                          $sub->where('id', $quartierParam);
+                      });
+                });
+            } else {
+                $biensQuery->where(function ($q) use ($quartierParam) {
+                    $q->where('quartier', 'like', "%{$quartierParam}%")
+                      ->orWhereHas('quartier', function ($sub) use ($quartierParam) {
+                          $sub->where('nom', 'like', "%{$quartierParam}%");
+                      });
+                });
+            }
         }
 
         // Ajouter les biens en vedette en premier
@@ -143,31 +158,38 @@ class HomeController extends Controller
         $agencesQuery = Agence::with(['user', 'quartier', 'evaluations'])
             ->where('statut_validation', true);
 
-        if ($query) {
+        if (!empty($query)) {
             $agencesQuery->where(function ($q) use ($query) {
                 $q->where('nom_agence', 'like', "%{$query}%")
                   ->orWhere('description', 'like', "%{$query}%")
                   ->orWhere('adresse', 'like', "%{$query}%")
+                  ->orWhere('quartier', 'like', "%{$query}%")
                   ->orWhereHas('quartier', function ($sub) use ($query) {
                       $sub->where('nom', 'like', "%{$query}%");
                   });
             });
         }
 
-        if ($quartierId) {
-            $agencesQuery->where('quartier_id', $quartierId);
+        if (!empty($quartierParam)) {
+            if (is_numeric($quartierParam)) {
+                $agencesQuery->where('quartier_id', $quartierParam);
+            } else {
+                $agencesQuery->where(function ($q) use ($quartierParam) {
+                    $q->where('quartier', 'like', "%{$quartierParam}%")
+                      ->orWhereHas('quartier', function ($sub) use ($quartierParam) {
+                          $sub->where('nom', 'like', "%{$quartierParam}%");
+                      });
+                });
+            }
         }
 
         $agences = $agencesQuery->orderBy('created_at', 'desc')->limit(6)->get();
 
-        // ==================== QUARTIERS ====================
+        // ==================== QUARTIERS & ENUMS ====================
         $quartiers = Quartier::actif()->orderBy('nom')->get();
-
-        // Types pour les filtres
         $typesBien = TypeBienEnum::labels();
         $typesContrat = TypeContratEnum::labels();
 
-        // Compter les résultats par type
         $counts = [
             'total' => $biens->total() + $agences->count(),
             'biens' => $biens->total(),
@@ -195,29 +217,48 @@ class HomeController extends Controller
             ->where('statut', true);
 
         // Recherche par mot-clé
-        if ($request->filled('search')) {
-            $search = $request->search;
+        $search = $request->get('search', $request->get('q'));
+        if (!empty($search)) {
             $query->where(function ($q) use ($search) {
                 $q->where('titre', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%")
                   ->orWhere('adresse', 'like', "%{$search}%")
-                  ->orWhere('quartier', 'like', "%{$search}%");
+                  ->orWhere('quartier', 'like', "%{$search}%")
+                  ->orWhereHas('quartier', function ($sub) use ($search) {
+                      $sub->where('nom', 'like', "%{$search}%");
+                  });
             });
         }
 
-        // Filtre par quartier
+        // Filtre par quartier (ID ou Nom)
         if ($request->filled('quartier')) {
-            $query->where('quartier_id', $request->quartier);
+            $quartierParam = $request->quartier;
+            if (is_numeric($quartierParam)) {
+                $query->where(function ($q) use ($quartierParam) {
+                    $q->where('quartier_id', $quartierParam)
+                      ->orWhereHas('quartier', function ($sub) use ($quartierParam) {
+                          $sub->where('id', $quartierParam);
+                      });
+                });
+            } else {
+                $query->where(function ($q) use ($quartierParam) {
+                    $q->where('quartier', 'like', "%{$quartierParam}%")
+                      ->orWhereHas('quartier', function ($sub) use ($quartierParam) {
+                          $sub->where('nom', 'like', "%{$quartierParam}%");
+                      });
+                });
+            }
         }
 
         // Filtre par type de bien
         if ($request->filled('type_bien')) {
-            $query->where('type_bien', $request->type_bien);
+            $query->where('type_bien', strtolower($request->type_bien));
         }
 
-        // Filtre par type de contrat
-        if ($request->filled('type_contrat')) {
-            $query->where('type_contrat', $request->type_contrat);
+        // Filtre par type de contrat (Vente / Location)
+        $typeContrat = $request->get('type_contrat') ?? $request->get('type_operation') ?? $request->get('contrat') ?? $request->get('transaction');
+        if (!empty($typeContrat)) {
+            $query->where('type_contrat', strtolower($typeContrat));
         }
 
         // Filtre par prix
@@ -317,28 +358,47 @@ class HomeController extends Controller
             ->where('statut', StatutDemandeEnum::EN_ATTENTE);
 
         // Recherche par mot-clé
-        if ($request->filled('search')) {
-            $search = $request->search;
+        $search = $request->get('search', $request->get('q'));
+        if (!empty($search)) {
             $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', "%{$search}%")
                   ->orWhere('zone_recherchee', 'like', "%{$search}%")
-                  ->orWhere('criteres_particuliers', 'like', "%{$search}%");
+                  ->orWhere('criteres_particuliers', 'like', "%{$search}%")
+                  ->orWhereHas('quartier', function ($sub) use ($search) {
+                      $sub->where('nom', 'like', "%{$search}%");
+                  });
             });
         }
 
-        // Filtre par quartier
+        // Filtre par quartier (ID ou Nom)
         if ($request->filled('quartier')) {
-            $query->where('quartier_id', $request->quartier);
+            $quartierParam = $request->quartier;
+            if (is_numeric($quartierParam)) {
+                $query->where(function ($q) use ($quartierParam) {
+                    $q->where('quartier_id', $quartierParam)
+                      ->orWhereHas('quartier', function ($sub) use ($quartierParam) {
+                          $sub->where('id', $quartierParam);
+                      });
+                });
+            } else {
+                $query->where(function ($q) use ($quartierParam) {
+                    $q->where('zone_recherchee', 'like', "%{$quartierParam}%")
+                      ->orWhereHas('quartier', function ($sub) use ($quartierParam) {
+                          $sub->where('nom', 'like', "%{$quartierParam}%");
+                      });
+                });
+            }
         }
 
         // Filtre par type de bien
         if ($request->filled('type_bien')) {
-            $query->where('type_bien', $request->type_bien);
+            $query->where('type_bien', strtolower($request->type_bien));
         }
 
-        // Filtre par type d'opération
-        if ($request->filled('type_operation')) {
-            $query->where('type_operation', $request->type_operation);
+        // Filtre par type d'opération (Vente / Location)
+        $typeOperation = $request->get('type_operation') ?? $request->get('type_contrat') ?? $request->get('contrat') ?? $request->get('transaction');
+        if (!empty($typeOperation)) {
+            $query->where('type_operation', strtolower($typeOperation));
         }
 
         // Filtre par budget

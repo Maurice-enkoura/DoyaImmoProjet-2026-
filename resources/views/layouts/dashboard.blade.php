@@ -7,6 +7,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Mon espace — DoyaImmo')</title>
 
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <style>
@@ -299,162 +301,6 @@
             align-items: center;
             gap: 12px;
             flex-shrink: 0;
-        }
-
-        /* ==================== RECHERCHE ==================== */
-        .search-box {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: #F7F9FC;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 6px 14px;
-            transition: all 0.2s;
-            position: relative;
-            min-width: 200px;
-            max-width: 280px;
-        }
-
-        .search-box:focus-within {
-            border-color: var(--rust);
-            background: #fff;
-            box-shadow: 0 0 0 3px rgba(181, 80, 42, 0.08);
-        }
-
-        .search-box input {
-            border: none;
-            background: none;
-            padding: 6px 0;
-            font-size: 13px;
-            font-family: inherit;
-            outline: none;
-            min-width: 120px;
-            color: var(--ink);
-            width: 100%;
-        }
-
-        .search-box input::placeholder {
-            color: var(--muted);
-        }
-
-        .search-box .search-shortcut {
-            font-size: 10px;
-            color: var(--muted);
-            background: var(--border);
-            padding: 1px 8px;
-            border-radius: 4px;
-            font-weight: 600;
-            flex-shrink: 0;
-        }
-
-        .search-results {
-            display: none;
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            right: 0;
-            background: #fff;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-            z-index: 1000;
-            max-height: 400px;
-            overflow-y: auto;
-            padding: 8px 0;
-        }
-
-        .search-results.open {
-            display: block;
-        }
-
-        .search-result-item {
-            padding: 10px 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: background 0.2s;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .search-result-item:last-child {
-            border-bottom: none;
-        }
-
-        .search-result-item:hover {
-            background: #F7F9FC;
-        }
-
-        .search-result-item .result-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            flex-shrink: 0;
-        }
-
-        .search-result-item .result-icon.besoin {
-            background: #E3F2FD;
-            color: #0D47A1;
-        }
-
-        .search-result-item .result-icon.bien {
-            background: #E8F5E9;
-            color: #1E7A47;
-        }
-
-        .search-result-item .result-icon.agence {
-            background: #FFF8E1;
-            color: #E65100;
-        }
-
-        .search-result-item .result-content {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .search-result-item .result-title {
-            font-weight: 600;
-            font-size: 13px;
-            color: var(--ink);
-        }
-
-        .search-result-item .result-desc {
-            font-size: 12px;
-            color: var(--muted);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .search-result-item .result-tag {
-            font-size: 10px;
-            text-transform: uppercase;
-            color: var(--muted);
-            background: var(--border);
-            padding: 1px 10px;
-            border-radius: 20px;
-            font-weight: 600;
-            flex-shrink: 0;
-            letter-spacing: 0.3px;
-        }
-
-        .search-empty {
-            padding: 30px 20px;
-            text-align: center;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .search-empty i {
-            font-size: 28px;
-            display: block;
-            margin-bottom: 8px;
-            opacity: 0.3;
         }
 
         /* ==================== NOTIFICATIONS ==================== */
@@ -1157,16 +1003,6 @@
                 min-width: auto;
             }
 
-            .search-box {
-                min-width: 150px;
-                max-width: 200px;
-            }
-
-            .search-box input {
-                min-width: 80px;
-                font-size: 13px;
-            }
-
             .dropdown {
                 width: 340px;
                 right: -40px;
@@ -1209,38 +1045,23 @@
             }
 
             .topbar {
-                flex-direction: column;
-                align-items: stretch;
+                flex-direction: row;
+                align-items: center;
                 gap: 10px;
                 margin-bottom: 20px;
                 padding-bottom: 14px;
             }
 
             .topbar-left {
-                width: 100%;
-                justify-content: flex-start;
-            }
-
-            .top-actions {
-                width: 100%;
-                justify-content: flex-start;
-                flex-wrap: wrap;
-                gap: 8px;
-            }
-
-            .search-box {
-                min-width: 100%;
-                max-width: 100%;
+                width: auto;
                 flex: 1;
             }
 
-            .search-box .search-shortcut {
-                display: none;
-            }
-
-            .search-box input {
-                font-size: 14px;
-                min-width: 60px;
+            .top-actions {
+                width: auto;
+                justify-content: flex-end;
+                flex-wrap: nowrap;
+                gap: 6px;
             }
 
             .icon-btn {
@@ -1252,6 +1073,8 @@
                 font-size: 9px;
                 min-width: 16px;
                 height: 16px;
+                top: -3px;
+                right: -3px;
             }
 
             .topbar-avatar {
@@ -1390,7 +1213,7 @@
             }
 
             .top-actions {
-                gap: 6px;
+                gap: 4px;
             }
 
             .icon-btn {
@@ -1564,6 +1387,9 @@
 
         <!-- Main Content -->
         <div class="main">
+            <!-- ============================================
+                 TOPBAR - Version épurée (sans barre de recherche)
+                 ============================================ -->
             <div class="topbar">
                 <div class="topbar-left">
                     <button class="burger" id="burgerBtn" onclick="toggleSidebar()">
@@ -1575,14 +1401,8 @@
                     </div>
                 </div>
 
+                <!-- ===== ACTIONS EN HAUT À DROITE ===== -->
                 <div class="top-actions">
-                    <!-- ===== RECHERCHE ===== -->
-                    <div class="search-box" id="searchBox">
-                        <i class="fa-solid fa-magnifying-glass" style="color:#9AA1AB; font-size:13px;"></i>
-                        <input type="text" id="globalSearch" placeholder="Rechercher..." autocomplete="off">
-                        <span class="search-shortcut">⌘K</span>
-                        <div class="search-results" id="searchResults"></div>
-                    </div>
 
                     <!-- ===== NOTIFICATIONS ===== -->
                     <div class="icon-btn-wrapper">
@@ -1719,118 +1539,11 @@
             }
         });
 
-        // ===================== RECHERCHE =====================
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('globalSearch');
-            const searchResults = document.getElementById('searchResults');
-            const searchBox = document.getElementById('searchBox');
-            let debounceTimer;
-
-            document.addEventListener('keydown', function(e) {
-                if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                    e.preventDefault();
-                    searchInput.focus();
-                    searchInput.select();
-                }
-            });
-
-            searchInput.addEventListener('input', function() {
-                clearTimeout(debounceTimer);
-                const query = this.value.trim();
-
-                if (query.length < 2) {
-                    searchResults.classList.remove('open');
-                    return;
-                }
-
-                debounceTimer = setTimeout(() => {
-                    fetch(`/api/search/autocomplete?q=${encodeURIComponent(query)}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.length === 0) {
-                                searchResults.innerHTML = `
-                                    <div class="search-empty">
-                                        <i class="fa-regular fa-search"></i>
-                                        Aucun résultat trouvé pour "<strong>${searchInput.value}</strong>"
-                                    </div>
-                                `;
-                                searchResults.classList.add('open');
-                                return;
-                            }
-                            renderSearchResults(data);
-                        })
-                        .catch(() => {
-                            searchResults.innerHTML = `
-                                <div class="search-empty">
-                                    <i class="fa-regular fa-circle-xmark"></i>
-                                    Erreur lors de la recherche
-                                </div>
-                            `;
-                            searchResults.classList.add('open');
-                        });
-                }, 300);
-            });
-
-            function renderSearchResults(results) {
-                if (results.length === 0) {
-                    searchResults.innerHTML = `
-                        <div class="search-empty">
-                            <i class="fa-regular fa-search"></i>
-                            Aucun résultat trouvé pour "<strong>${searchInput.value}</strong>"
-                        </div>
-                    `;
-                    searchResults.classList.add('open');
-                    return;
-                }
-
-                const typeIcons = {
-                    'besoin': 'fa-regular fa-house-circle-check',
-                    'bien': 'fa-regular fa-building',
-                    'agence': 'fa-regular fa-building-columns',
-                    'quartier': 'fa-regular fa-location-dot'
-                };
-
-                const typeLabels = {
-                    'besoin': 'Besoin',
-                    'bien': 'Bien',
-                    'agence': 'Agence',
-                    'quartier': 'Quartier'
-                };
-
-                searchResults.innerHTML = results.map(item => `
-                    <div class="search-result-item" onclick="window.location.href='${item.url || '#'}'">
-                        <div class="result-icon ${item.type}">
-                            <i class="${typeIcons[item.type] || 'fa-regular fa-bell'}"></i>
-                        </div>
-                        <div class="result-content">
-                            <div class="result-title">${item.label}</div>
-                            <div class="result-desc">${item.description || ''}</div>
-                        </div>
-                        <span class="result-tag">${typeLabels[item.type] || item.type}</span>
-                    </div>
-                `).join('');
-
-                searchResults.classList.add('open');
-            }
-
-            document.addEventListener('click', function(e) {
-                if (!searchBox.contains(e.target)) {
-                    searchResults.classList.remove('open');
-                }
-            });
-
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    searchResults.classList.remove('open');
-                    searchInput.blur();
-                }
-            });
-        });
-
         // ===================== NOTIFICATIONS =====================
         function toggleNotifications() {
             const dropdown = document.getElementById('notificationDropdown');
             dropdown.classList.toggle('open');
+            document.getElementById('userDropdown')?.classList.remove('open');
         }
 
         function toggleUserMenu() {
@@ -1944,7 +1657,7 @@
         setInterval(checkNewNotifications, 30000);
 
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DoyaImmo - Particulier - Notifications prêtes');
+            console.log('DoyaImmo - Particulier - Dashboard chargé');
         });
     </script>
 

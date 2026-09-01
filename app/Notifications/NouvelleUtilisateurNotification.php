@@ -28,36 +28,13 @@ class NouvelleUtilisateurNotification extends Notification implements ShouldQueu
 
     public function toMail($notifiable): MailMessage
     {
-        $roleLabels = [
-            'admin' => 'Administrateur',
-            'agence' => 'Agence immobilière',
-            'particulier' => 'Particulier',
-        ];
-
-        $roleLabel = $roleLabels[$this->role] ?? $this->role;
-
-        $mail = (new MailMessage)
+        return (new MailMessage)
             ->subject('Bienvenue sur DoyaImmo - ' . $this->user->prenom . ' !')
-            ->greeting('Bonjour ' . $this->user->prenom . ' ' . $this->user->nom . ' !')
-            ->line('Nous sommes ravis de vous accueillir sur **DoyaImmo** !')
-            ->line('')
-            ->line('Votre compte **' . $roleLabel . '** a été créé avec succès.')
-            ->line('');
-
-        if ($this->role === 'agence') {
-            $mail->line('📌 Votre agence est en cours de validation par nos équipes.');
-            $mail->line('Vous serez notifié dès que votre compte sera activé.');
-        } elseif ($this->role === 'particulier') {
-            $mail->line('🏠 Vous pouvez dès maintenant publier vos besoins et trouver le logement idéal.');
-            $mail->line('Créez votre première demande de logement en quelques minutes.');
-        }
-
-        return $mail
-            ->line('')
-            ->action('Accéder à mon tableau de bord', route('dashboard'))
-            ->line('')
-            ->line('🔐 Pour toute question, n\'hésitez pas à contacter notre support.')
-            ->salutation('L\'équipe DoyaImmo');
+            ->markdown('emails.nouvelle-utilisateur', [
+                'user' => $this->user,
+                'role' => $this->role,
+                'notifiable' => $notifiable,
+            ]);
     }
 
     public function toDatabase($notifiable): array
@@ -69,9 +46,9 @@ class NouvelleUtilisateurNotification extends Notification implements ShouldQueu
         ];
 
         $titles = [
-            'particulier' => 'Bienvenue ! 🏠',
-            'agence' => 'Votre agence est en cours de validation 📌',
-            'admin' => 'Bienvenue administrateur ! 👋',
+            'particulier' => 'Bienvenue ! ',
+            'agence' => 'Votre agence est en cours de validation ',
+            'admin' => 'Bienvenue administrateur ! ',
         ];
 
         return [

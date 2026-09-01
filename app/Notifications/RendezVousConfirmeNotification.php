@@ -28,7 +28,7 @@ class RendezVousConfirmeNotification extends Notification implements ShouldQueue
         $heureVisite = $this->rendezVous->heure_visite ?? $this->rendezVous->creneau->heure_debut ?? 'N/A';
 
         $message = (new MailMessage)
-            ->subject('✅ Rendez-vous confirmé - DoyaImmo')
+            ->subject('Rendez-vous confirmé - DoyaImmo')
             ->greeting('Bonjour ' . $notifiable->prenom . ' !')
             ->line('Votre rendez-vous a été confirmé :')
             ->line('')

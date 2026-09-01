@@ -4,74 +4,81 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
+use App\Models\User;
 
 class ForgotPasswordController extends Controller
 {
-    /**
-     * Afficher le formulaire de réinitialisation pour les particuliers
-     */
+    // ==================== PARTICULIER ====================
+    
     public function showLinkRequestForm()
     {
         return view('auth.forgot-password');
     }
 
-    /**
-     * Afficher le formulaire de réinitialisation pour les agences
-     */
+    public function sendResetLinkEmail(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return back()->withErrors(['email' => 'Aucun utilisateur trouvé avec cette adresse email.']);
+        }
+
+        DB::table('password_resets')->where('email', $request->email)->delete();
+
+        $token = Str::random(64);
+
+        DB::table('password_resets')->insert([
+            'email' => $request->email,
+            'token' => $token,
+            'created_at' => Carbon::now(),
+        ]);
+
+        Mail::send('emails.reset-password', ['user' => $user, 'token' => $token], function ($message) use ($user) {
+            $message->to($user->email)
+                    ->subject('Réinitialisation de votre mot de passe - DoyaImmo');
+        });
+
+        return back()->with('status', 'Nous vous avons envoyé par email le lien de réinitialisation de votre mot de passe !');
+    }
+
+    // ==================== AGENCE ====================
+    
     public function showLinkRequestFormAgence()
     {
         return view('auth.forgot-password-agence');
     }
 
-    /**
-     * Envoyer le lien de réinitialisation pour les particuliers
-     */
-    public function sendResetLinkEmail(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email|exists:users,email',
-        ], [
-            'email.exists' => 'Aucun compte trouvé avec cette adresse email.',
-        ]);
-
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
-
-        if ($status === Password::RESET_LINK_SENT) {
-            return back()->with('status', __($status));
-        }
-
-        return back()->withErrors(['email' => __($status)]);
-    }
-
-    /**
-     * Envoyer le lien de réinitialisation pour les agences
-     */
     public function sendResetLinkEmailAgence(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email|exists:users,email',
-        ], [
-            'email.exists' => 'Aucun compte agence trouvé avec cette adresse email.',
+        $request->validate(['email' => 'required|email']);
+
+        $user = User::where('email', $request->email)->where('role', 'agence')->first();
+
+        if (!$user) {
+            return back()->withErrors(['email' => 'Aucune agence trouvée avec cette adresse email.']);
+        }
+
+        DB::table('password_resets')->where('email', $request->email)->delete();
+
+        $token = Str::random(64);
+
+        DB::table('password_resets')->insert([
+            'email' => $request->email,
+            'token' => $token,
+            'created_at' => Carbon::now(),
         ]);
 
-        // Vérifier que l'utilisateur est bien une agence
-        $user = \App\Models\User::where('email', $request->email)->first();
-        if ($user && $user->role !== 'agence') {
-            return back()->withErrors(['email' => 'Ce compte n\'est pas une agence.']);
-        }
+        Mail::send('emails.reset-password-agence', ['user' => $user, 'token' => $token], function ($message) use ($user) {
+            $message->to($user->email)
+                    ->subject('Réinitialisation de votre mot de passe - Espace Agence DoyaImmo');
+        });
 
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
-
-        if ($status === Password::RESET_LINK_SENT) {
-            return back()->with('status', __($status));
-        }
-
-        return back()->withErrors(['email' => __($status)]);
+        return back()->with('status', 'Nous vous avons envoyé par email le lien de réinitialisation de votre mot de passe !');
     }
 }

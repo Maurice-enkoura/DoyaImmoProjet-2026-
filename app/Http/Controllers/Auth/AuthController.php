@@ -46,6 +46,7 @@ class AuthController extends Controller
      */
     public function showRegisterParticulier()
     {
+          //dd('showRegisterParticulier appelée');
         $stats = [
             'besoins' => DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count(),
             'agences' => Agence::where('statut_validation', true)->count(),
@@ -180,7 +181,7 @@ class AuthController extends Controller
                 'adresse' => $request->adresse,
             ]);
 
-            Log::info('✅ Utilisateur créé avec succès : ' . $user->email);
+            Log::info(' Utilisateur créé avec succès : ' . $user->email);
 
             // Envoyer la notification de bienvenue
             $this->sendWelcomeNotification($user, RoleEnum::PARTICULIER->value);
@@ -192,7 +193,7 @@ class AuthController extends Controller
                 ->with('success', 'Bienvenue sur DoyaImmo ! Votre compte a été créé avec succès.');
                 
         } catch (\Exception $e) {
-            Log::error('❌ Erreur inscription particulier : ' . $e->getMessage());
+            Log::error(' Erreur inscription particulier : ' . $e->getMessage());
             Log::error($e->getTraceAsString());
             return back()->withErrors(['error' => 'Une erreur est survenue lors de l\'inscription.'])->withInput();
         }
@@ -263,7 +264,7 @@ class AuthController extends Controller
                 ->with('info', 'Votre compte a été créé. En attente de validation par un administrateur.');
                 
         } catch (\Exception $e) {
-            Log::error('❌ Erreur inscription agence : ' . $e->getMessage());
+            Log::error(' Erreur inscription agence : ' . $e->getMessage());
             Log::error($e->getTraceAsString());
             return back()->withErrors(['error' => 'Une erreur est survenue lors de l\'inscription.'])->withInput();
         }
@@ -283,9 +284,9 @@ class AuthController extends Controller
             // Envoyer la nouvelle notification
             $user->notify(new NouvelleUtilisateurNotification($user, $role));
             
-            Log::info('✅ Notification de bienvenue envoyée à ' . $user->email . ' (rôle: ' . $role . ')');
+            Log::info(' Notification de bienvenue envoyée à ' . $user->email . ' (rôle: ' . $role . ')');
         } catch (\Exception $e) {
-            Log::error('❌ Erreur envoi notification de bienvenue : ' . $e->getMessage());
+            Log::error(' Erreur envoi notification de bienvenue : ' . $e->getMessage());
         }
     }
 

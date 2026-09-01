@@ -6,9 +6,16 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'DoyaImmo')</title>
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
+
     <style>
+        /* Empêche le flash blanc pendant le tout premier rendu */
+        html {
+            background: #F7F9FC;
+        }
+
         :root {
             --rust: #B5502A;
             --rust-soft: rgba(181, 80, 42, 0.12);
@@ -42,6 +49,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             min-height: 100vh;
+            transition: opacity 0.1s ease;
         }
 
         @media (max-width: 860px) {
@@ -777,6 +785,61 @@
 <body>
 
 @yield('content')
+
+<!-- ==================== TOGGLE CLIENT / AGENCE SANS RECHARGEMENT ==================== -->
+<script>
+(function () {
+    function initRoleToggle() {
+        document.querySelectorAll('.role-toggle a').forEach(function (link) {
+            link.removeEventListener('click', handleToggleClick);
+            link.addEventListener('click', handleToggleClick);
+        });
+    }
+
+    function handleToggleClick(e) {
+        // Laisse passer les clics avec touche modificatrice (nouvel onglet, etc.)
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        e.preventDefault();
+        loadAuthPage(this.getAttribute('href'), true);
+    }
+
+    function loadAuthPage(url, pushState) {
+        const shell = document.querySelector('.auth-shell');
+        if (!shell || shell.dataset.loading === '1') return;
+
+        shell.dataset.loading = '1';
+        shell.style.opacity = '0.92';
+
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (res) { return res.text(); })
+            .then(function (html) {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const newShell = doc.querySelector('.auth-shell');
+                const newTitle = doc.querySelector('title');
+
+                if (newShell) {
+                    newShell.style.opacity = '';
+                    newShell.dataset.loading = '';
+                    shell.replaceWith(newShell);
+                    if (newTitle) document.title = newTitle.textContent;
+                    if (pushState) history.pushState({ authUrl: url }, '', url);
+                    initRoleToggle();
+                } else {
+                    window.location.href = url;
+                }
+            })
+            .catch(function () {
+                window.location.href = url;
+            });
+    }
+
+    window.addEventListener('popstate', function () {
+        loadAuthPage(window.location.href, false);
+    });
+
+    document.addEventListener('DOMContentLoaded', initRoleToggle);
+})();
+</script>
 
 @stack('scripts')
 </body>

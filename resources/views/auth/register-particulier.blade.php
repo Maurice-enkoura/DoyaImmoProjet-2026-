@@ -165,7 +165,7 @@
                 <div class="field conditions-field">
                     <label class="check-row">
                         <input type="checkbox" name="conditions" required>
-                        <span>J'accepte les <a href="#" class="link">Conditions d'utilisation</a> et la <a href="#" class="link">Politique de confidentialité</a></span>
+                        <span>J'accepte les <a href="{{route('cgu')}}" class="link">Conditions d'utilisation</a> et la <a href="{{route('mentions-legales')}}" class="link">Mentions-Legales</a></span>
                         <span class="required">*</span>
                     </label>
                 </div>

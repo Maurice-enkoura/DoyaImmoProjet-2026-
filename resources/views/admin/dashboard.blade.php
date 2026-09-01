@@ -279,6 +279,12 @@
     }
 
     /* ==================== RESPONSIVE ==================== */
+    @media (max-width: 1200px) {
+        .kpi-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
     @media (max-width: 1024px) {
         .kpi-grid {
             grid-template-columns: repeat(3, 1fr);
@@ -481,6 +487,26 @@
         </div>
     </div>
 
+    <!-- ✅ KPI Mise en vedette -->
+    <div class="kpi-card">
+        <div class="kpi-top">
+            <div class="kpi-ic" style="background:#FFF8E1;color:#F5A623;">
+                <i class="fa-solid fa-star"></i>
+            </div>
+        </div>
+        <div class="kpi-value">{{ $stats['mises_vedette']['en_attente'] ?? 0 }}</div>
+        <div class="kpi-label">Mises en vedette en attente</div>
+        <div class="kpi-sub">
+            <span style="color:#1E7A47;">{{ $stats['mises_vedette']['actives'] ?? 0 }} actives</span>
+            <span style="color:#C62828;margin-left:8px;">{{ $stats['mises_vedette']['expirees'] ?? 0 }} expirées</span>
+            <br>
+            <span style="color:var(--rust);font-weight:600;">
+                <i class="fa-solid fa-coins"></i>
+                {{ number_format($stats['mises_vedette']['revenus_total'] ?? 0, 0, ',', ' ') }} FCFA
+            </span>
+        </div>
+    </div>
+
     <div class="kpi-card">
         <div class="kpi-top">
             <div class="kpi-ic" style="background:#FFEBEE;color:#C62828;">
@@ -666,7 +692,6 @@
 </div>
 
 <!-- Agences refusées -->
-<!-- Agences refusées -->
 @if(isset($agencesRefuseesList) && $agencesRefuseesList->count() > 0)
 <div class="panel" style="margin-top:16px;">
     <div class="panel-head">
@@ -704,7 +729,6 @@
                                 {{ Str::limit($agence->motif_refus ?? 'Motif non spécifié', 50) }}
                             </div>
                         </td>
-                        {{-- ✅ Utilisation de l'accesseur --}}
                         <td>{{ $agence->date_refus_formatee }}</td>
                         <td style="text-align:center;">
                             <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;">
@@ -726,4 +750,50 @@
     </div>
 </div>
 @endif
+
+<!-- Derniers biens publiés -->
+<div class="panel" style="margin-top:16px;">
+    <div class="panel-head">
+        <h3><i class="fa-solid fa-house"></i> Derniers biens publiés</h3>
+        <a href="{{ route('admin.biens.index') }}" class="see-all">Voir tous →</a>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Bien</th>
+                    <th>Agence</th>
+                    <th>Prix</th>
+                    <th>Statut</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($derniersBiens ?? [] as $bien)
+                    <tr>
+                        <td>
+                            <div class="cell-main">{{ $bien->titre ?? 'N/A' }}</div>
+                            <div class="cell-sub">{{ $bien->quartier ?? '' }}</div>
+                        </td>
+                        <td>{{ $bien->agence->nom_agence ?? 'N/A' }}</td>
+                        <td>{{ number_format($bien->prix ?? 0, 0, ',', ' ') }} FCFA</td>
+                        <td>
+                            <span class="status-pill {{ $bien->statut ? 'status-active' : 'status-rejete' }}">
+                                {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
+                            </span>
+                            @if($bien->est_vedette)
+                                <span class="status-pill" style="background:#FFF8E1;color:#F5A623;">
+                                    <i class="fa-solid fa-star"></i> Vedette
+                                </span>
+                            @endif
+                        </td>
+                        <td>{{ $bien->created_at ? $bien->created_at->format('d/m/Y') : '-' }}</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Aucun bien publié récemment</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
 @endsection

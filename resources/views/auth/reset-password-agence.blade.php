@@ -7,7 +7,6 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* Mêmes styles que les autres pages */
         * {
             margin: 0;
             padding: 0;
@@ -16,17 +15,11 @@
 
         :root {
             --rust: #B85C3A;
-            --rust-soft: #F5E6DF;
             --gold: #D4AF37;
-            --gold-soft: #FDF5E6;
-            --teal: #2A9D8F;
-            --teal-soft: #E6F4F2;
             --ink: #1A1A2E;
             --text-soft: #4A4A6A;
             --muted: #8A8AA0;
             --border: #E8E8F0;
-            --green: #2E7D32;
-            --green-soft: #E8F5E9;
             --radius: 16px;
             --display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
@@ -64,51 +57,60 @@
         .brand {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             font-weight: 700;
-            font-size: 18px;
+            font-size: 20px;
+            letter-spacing: -0.5px;
         }
 
         .brand-mark {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            background: var(--gold);
-            color: var(--ink);
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--rust);
+            color: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
-            font-size: 16px;
+            font-size: 22px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
 
         .brand-name {
             color: #fff;
         }
 
+        .brand-name span {
+            color: var(--gold);
+        }
+
         .quote {
-            color: rgba(255,255,255,0.7);
+            color: rgba(255,255,255,0.85);
             font-size: 18px;
-            line-height: 1.6;
-            max-width: 300px;
+            line-height: 1.7;
+            max-width: 320px;
             margin: 0;
+            font-weight: 400;
         }
 
         .auth-stats {
             display: flex;
             gap: 40px;
-            color: rgba(255,255,255,0.6);
+            color: rgba(255,255,255,0.7);
         }
 
         .auth-stats b {
             display: block;
-            font-size: 24px;
+            font-size: 26px;
             color: #fff;
-            font-weight: 700;
+            font-weight: 800;
         }
 
         .auth-stats span {
             font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .auth-form-side {
@@ -128,12 +130,24 @@
             margin-bottom: 24px;
         }
 
+        .auth-box .brand-mark {
+            background: var(--rust);
+            box-shadow: none;
+        }
+
+        .auth-box .brand-name {
+            color: var(--ink);
+        }
+
+        .auth-box .brand-name span {
+            color: var(--rust);
+        }
+
         .auth-box h1 {
-            font-family: var(--display);
-            font-size: 24px;
+            font-size: 26px;
             font-weight: 700;
             color: var(--ink);
-            margin: 0 0 6px;
+            margin: 0 0 8px;
         }
 
         .auth-box .sub {
@@ -152,17 +166,17 @@
             font-size: 13px;
             font-weight: 600;
             color: var(--text-soft);
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
 
         .field input {
             width: 100%;
-            padding: 12px 16px;
+            padding: 14px 16px;
             border: 1.5px solid var(--border);
             border-radius: 10px;
             font-size: 14px;
             font-family: inherit;
-            transition: border 0.2s;
+            transition: all 0.2s;
             background: #FAFBFC;
         }
 
@@ -170,6 +184,7 @@
             outline: none;
             border-color: var(--rust);
             background: #fff;
+            box-shadow: 0 0 0 3px rgba(184, 92, 58, 0.15);
         }
 
         .btn {
@@ -177,9 +192,9 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            padding: 12px 24px;
+            padding: 14px 24px;
             border-radius: 10px;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
             border: none;
             cursor: pointer;
@@ -192,11 +207,6 @@
             width: 100%;
         }
 
-        .btn-lg {
-            padding: 14px 28px;
-            font-size: 15px;
-        }
-
         .btn-rust {
             background: var(--rust);
             color: #fff;
@@ -204,15 +214,15 @@
 
         .btn-rust:hover {
             background: #9A4523;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(184, 92, 58, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(184, 92, 58, 0.35);
         }
 
         .alert {
-            padding: 12px 16px;
+            padding: 14px 16px;
             border-radius: 10px;
-            margin-bottom: 16px;
-            font-size: 13px;
+            margin-bottom: 18px;
+            font-size: 14px;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -232,7 +242,7 @@
             }
 
             .auth-visual {
-                min-height: 200px;
+                min-height: 220px;
                 padding: 28px 24px;
             }
 
@@ -244,6 +254,10 @@
                 gap: 24px;
             }
 
+            .auth-stats b {
+                font-size: 22px;
+            }
+
             .auth-form-side {
                 padding: 32px 24px;
             }
@@ -251,7 +265,7 @@
 
         @media (max-width: 480px) {
             .auth-visual {
-                min-height: 160px;
+                min-height: 180px;
                 padding: 20px;
             }
 
@@ -268,17 +282,13 @@
             }
 
             .auth-box h1 {
-                font-size: 20px;
+                font-size: 22px;
             }
 
-            .field input {
-                padding: 10px 14px;
-                font-size: 13px;
-            }
-
-            .btn-lg {
-                padding: 12px 20px;
-                font-size: 14px;
+            .brand-mark {
+                width: 34px;
+                height: 34px;
+                font-size: 18px;
             }
         }
     </style>
@@ -286,25 +296,33 @@
 <body>
 
 <div class="auth-shell">
+    <!-- Panneau visuel -->
     <div class="auth-visual">
         <div class="brand">
             <div class="brand-mark">D</div>
-            <div class="brand-name">Doya<span style="color:var(--gold)">Immo</span></div>
+            <div class="brand-name">Doya<span>Immo</span></div>
         </div>
         <div>
-            <p class="quote">Créez un nouveau mot de passe pour sécuriser votre compte agence.</p>
+            <p class="quote">Créez un nouveau mot de passe pour sécuriser votre espace agence.</p>
         </div>
         <div class="auth-stats">
-            <div><b>🔒</b><span>Chiffré</span></div>
-            <div><b>✅</b><span>Sécurisé</span></div>
+            <div>
+                <b></b>
+                <span>Chiffré</span>
+            </div>
+            <div>
+                <b></b>
+                <span>Sécurisé</span>
+            </div>
         </div>
     </div>
 
+    <!-- Panneau formulaire -->
     <div class="auth-form-side">
         <div class="auth-box">
             <div class="brand">
                 <div class="brand-mark">D</div>
-                <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
+                <div class="brand-name">Doya<span>Immo</span></div>
             </div>
             <h1>Nouveau mot de passe</h1>
             <p class="sub">Choisissez un mot de passe sécurisé pour votre compte agence.</p>
@@ -322,7 +340,7 @@
                 
                 <div class="field">
                     <label for="email">Email professionnel</label>
-                    <input type="email" id="email" name="email" value="{{ $email ?? old('email') }}" required readonly>
+                    <input type="email" id="email" name="email" value="{{ $email ?? old('email') }}" required readonly style="background-color: #f0f0f0; color: #888; cursor: not-allowed;">
                 </div>
 
                 <div class="field">
@@ -335,7 +353,7 @@
                     <input type="password" id="password_confirmation" name="password_confirmation" placeholder="••••••••" required>
                 </div>
 
-                <button class="btn btn-rust btn-block btn-lg" type="submit">
+                <button class="btn btn-rust btn-block" type="submit">
                     <i class="fa-solid fa-key"></i> Réinitialiser le mot de passe
                 </button>
             </form>

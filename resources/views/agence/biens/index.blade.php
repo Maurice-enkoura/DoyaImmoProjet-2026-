@@ -11,10 +11,51 @@
             <h2>Mes biens</h2>
             <p>Gérez vos biens immobiliers</p>
         </div>
-        <a href="{{ route('agence.biens.create') }}" class="btn btn-rust btn-sm">
-            <i class="fa-solid fa-plus"></i> Nouveau bien
-        </a>
+        @if($peutPublier ?? false)
+            <a href="{{ route('agence.biens.create') }}" class="btn btn-rust btn-sm">
+                <i class="fa-solid fa-plus"></i> Nouveau bien
+            </a>
+        @else
+            <a href="{{ route('agence.abonnement') }}" class="btn btn-ghost btn-sm" style="border-color:#D4AF37;color:#D4AF37;">
+                <i class="fa-solid fa-crown"></i> Passer à Pro
+            </a>
+        @endif
     </div>
+
+    <!-- ✅ Message si l'agence n'a pas l'abonnement Pro -->
+    @if(!($peutPublier ?? false))
+        <div class="alert alert-warning" style="background:#FFF8E1;color:#E65100;border-left-color:#F5A623;display:flex;align-items:center;gap:12px;padding:12px 20px;border-radius:var(--radius);margin-bottom:20px;border-left:4px solid;">
+            <i class="fa-solid fa-crown" style="font-size:20px;"></i>
+            <div style="flex:1;">
+                <strong style="display:block;">Abonnement Pro requis</strong>
+                <span style="font-size:13px;">Seules les agences avec un abonnement Pro peuvent publier et gérer des biens.</span>
+            </div>
+            <a href="{{ route('agence.abonnement') }}" style="color:var(--rust);font-weight:600;text-decoration:none;white-space:nowrap;padding:4px 12px;border:1px solid var(--rust);border-radius:6px;">
+                Passer à Pro →
+            </a>
+        </div>
+    @endif
+
+    @if(session('success'))
+        <div class="alert alert-success">
+            <i class="fa-solid fa-check-circle"></i>
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-error">
+            <i class="fa-solid fa-exclamation-circle"></i>
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if(session('warning'))
+        <div class="alert alert-warning">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            {{ session('warning') }}
+        </div>
+    @endif
 
     @if($biens->count() > 0)
     <div class="biens-grid">
@@ -81,24 +122,76 @@
                 </div>
                 <div class="bien-actions">
                     <!-- Modifier -->
-                    <a href="{{ route('agence.biens.edit', $bien) }}" class="btn btn-ghost btn-sm">
-                        <i class="fa-solid fa-pen"></i> Modifier
-                    </a>
+                    @if($peutPublier ?? false)
+                        <a href="{{ route('agence.biens.edit', $bien) }}" class="btn btn-ghost btn-sm">
+                            <i class="fa-solid fa-pen"></i> Modifier
+                        </a>
+                    @else
+                        <a href="#" class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed;" title="Abonnement Pro requis">
+                            <i class="fa-solid fa-pen"></i> Modifier
+                        </a>
+                    @endif
                     
                     <!-- Voir -->
                     <a href="{{ route('agence.biens.show', $bien) }}" class="btn btn-ghost btn-sm">
                         <i class="fa-solid fa-eye"></i> Voir
                     </a>
+
+                    <!-- ✅ ACTIVER / DÉSACTIVER -->
+                    @if($peutPublier ?? false)
+                        @if($bien->statut)
+                            <form action="{{ route('agence.biens.desactiver', $bien) }}" method="POST" style="display:inline;">
+                                @csrf
+                                @method('POST')
+                                <button type="submit" class="btn btn-warning btn-sm" 
+                                        onclick="return confirm('Désactiver ce bien ? Il ne sera plus visible par les particuliers.')">
+                                    <i class="fa-solid fa-eye-slash"></i> Désactiver
+                                </button>
+                            </form>
+                        @else
+                            <form action="{{ route('agence.biens.activer', $bien) }}" method="POST" style="display:inline;">
+                                @csrf
+                                @method('POST')
+                                <button type="submit" class="btn btn-success btn-sm" 
+                                        onclick="return confirm('Activer ce bien ? Il sera visible par les particuliers.')">
+                                    <i class="fa-solid fa-eye"></i> Activer
+                                </button>
+                            </form>
+                        @endif
+                    @else
+                        <button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed;" title="Abonnement Pro requis">
+                            <i class="fa-solid fa-eye-slash"></i> Gérer
+                        </button>
+                    @endif
                     
                     <!-- Supprimer -->
-                    <form action="{{ route('agence.biens.destroy', $bien) }}" method="POST" style="display:inline;">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-danger btn-sm" 
-                                onclick="return confirm(' Êtes-vous sûr de vouloir supprimer ce bien ? Cette action est irréversible.')">
+                    @if($peutPublier ?? false)
+                        <form action="{{ route('agence.biens.destroy', $bien) }}" method="POST" style="display:inline;">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger btn-sm" 
+                                    onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce bien ? Cette action est irréversible.')">
+                                <i class="fa-solid fa-trash-can"></i> Supprimer
+                            </button>
+                        </form>
+                    @else
+                        <button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed;" title="Abonnement Pro requis">
                             <i class="fa-solid fa-trash-can"></i> Supprimer
                         </button>
-                    </form>
+                    @endif
+
+                    <!-- Mise en vedette (uniquement si Pro) -->
+                    @if($peutPublier ?? false)
+                        @if(!$bien->est_vedette)
+                            <a href="{{ route('agence.biens.vedette.demander', $bien) }}" class="btn btn-ghost btn-sm" style="border-color:#D4AF37;color:#D4AF37;">
+                                <i class="fa-solid fa-star"></i> Vedette
+                            </a>
+                        @else
+                            <span class="btn btn-sm" style="background:#FFF8E1;color:#E65100;border:none;cursor:default;">
+                                <i class="fa-solid fa-star" style="color:#F5A623;"></i> En vedette
+                            </span>
+                        @endif
+                    @endif
                 </div>
             </div>
         </div>
@@ -112,9 +205,18 @@
     <div class="empty-state">
         <i class="fa-solid fa-building"></i>
         <p>Aucun bien publié.</p>
-        <a href="{{ route('agence.biens.create') }}" class="btn btn-rust">
-            Publier un bien
-        </a>
+        @if($peutPublier ?? false)
+            <a href="{{ route('agence.biens.create') }}" class="btn btn-rust">
+                Publier un bien
+            </a>
+        @else
+            <div style="margin-top:12px;">
+                <p style="font-size:14px;color:var(--muted);">Publiez des biens avec l'abonnement Pro</p>
+                <a href="{{ route('agence.abonnement') }}" class="btn btn-gold" style="background:#D4AF37;color:#fff;border:none;padding:8px 24px;border-radius:10px;font-weight:600;text-decoration:none;display:inline-block;">
+                    <i class="fa-solid fa-crown"></i> Passer à Pro
+                </a>
+            </div>
+        @endif
     </div>
     @endif
 </div>
@@ -222,7 +324,7 @@
     }
 
     .bien-status.indisponible {
-        background: var(--muted);
+        background: #757575;
     }
 
     .bien-type-badge {
@@ -369,6 +471,28 @@
         color: #fff;
     }
 
+    .btn-success {
+        background: #1E7A47;
+        color: #fff;
+        border: none;
+    }
+
+    .btn-success:hover {
+        background: #156A3B;
+        color: #fff;
+    }
+
+    .btn-warning {
+        background: #F5A623;
+        color: #fff;
+        border: none;
+    }
+
+    .btn-warning:hover {
+        background: #E0951A;
+        color: #fff;
+    }
+
     .btn-danger {
         background: #C62828;
         color: #fff;
@@ -380,9 +504,25 @@
         color: #fff;
     }
 
+    .btn-gold {
+        background: #D4AF37;
+        color: #fff;
+        border: none;
+    }
+
+    .btn-gold:hover {
+        background: #C5A030;
+        color: #fff;
+    }
+
     .btn-sm {
         padding: 6px 14px;
         font-size: 12.5px;
+    }
+
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 
     .empty-state {
@@ -435,6 +575,34 @@
         border-color: var(--rust);
     }
 
+    .alert {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 20px;
+        border-radius: var(--radius);
+        margin-bottom: 20px;
+        border-left: 4px solid;
+    }
+
+    .alert-success {
+        background: #E8F5E9;
+        color: #1E7A47;
+        border-left-color: #1E7A47;
+    }
+
+    .alert-error {
+        background: #FFEBEE;
+        color: #C62828;
+        border-left-color: #C62828;
+    }
+
+    .alert-warning {
+        background: #FFF8E1;
+        color: #E65100;
+        border-left-color: #F5A623;
+    }
+
     @media (max-width: 768px) {
         .bien-actions {
             flex-direction: column;
@@ -455,6 +623,16 @@
 
         .bien-actions form .btn {
             width: 100%;
+        }
+
+        .alert {
+            flex-wrap: wrap;
+        }
+
+        .alert a {
+            margin-left: 0 !important;
+            width: 100%;
+            text-align: center;
         }
     }
 
@@ -530,6 +708,17 @@
         .btn-sm {
             font-size: 11px;
             padding: 5px 12px;
+        }
+
+        .section-head {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+
+        .section-head .btn {
+            width: 100%;
+            justify-content: center;
         }
     }
 </style>

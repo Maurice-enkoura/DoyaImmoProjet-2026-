@@ -4,26 +4,23 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use Carbon\Carbon;
+use App\Models\User;
 
 class ResetPasswordController extends Controller
 {
-    public function showResetForm(Request $request, $token = null)
+    // ==================== PARTICULIER ====================
+    
+    public function showResetForm($token = null, Request $request)
     {
+        $email = $request->query('email');
+
         return view('auth.reset-password', [
             'token' => $token,
-            'email' => $request->email
-        ]);
-    }
-
-    public function showResetFormAgence(Request $request, $token = null)
-    {
-        return view('auth.reset-password-agence', [
-            'token' => $token,
-            'email' => $request->email
+            'email' => $email,
         ]);
     }
 
@@ -32,24 +29,46 @@ class ResetPasswordController extends Controller
         $request->validate([
             'token' => 'required',
             'email' => 'required|email',
-            'password' => 'required|min:8|confirmed',
+            'password' => 'required|confirmed|min:8',
         ]);
 
-        $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user, $password) {
-                // ✅ Utiliser la bonne colonne 'mot_de_passe'
-                $user->mot_de_passe = Hash::make($password);
-                $user->remember_token = Str::random(60);
-                $user->save();
-            }
-        );
+        $reset = DB::table('password_resets')
+            ->where('email', $request->email)
+            ->where('token', $request->token)
+            ->first();
 
-        if ($status === Password::PASSWORD_RESET) {
-            return redirect()->route('login')->with('status', 'Votre mot de passe a été réinitialisé avec succès.');
+        if (!$reset) {
+            return back()->withErrors(['email' => 'Ce lien de réinitialisation n\'est pas valide ou a expiré.']);
         }
 
-        return back()->withErrors(['email' => __($status)]);
+        if (Carbon::parse($reset->created_at)->addMinutes(60)->isPast()) {
+            return back()->withErrors(['email' => 'Ce lien de réinitialisation a expiré.']);
+        }
+
+        $user = User::where('email', $request->email)->first();
+        $user->mot_de_passe = Hash::make($request->password);
+        $user->save();
+
+        DB::table('password_resets')->where('email', $request->email)->delete();
+
+        Mail::send('emails.password-reset-confirmation', ['user' => $user], function ($message) use ($user) {
+            $message->to($user->email)
+                    ->subject(' Mot de passe réinitialisé avec succès - DoyaImmo');
+        });
+
+        return redirect()->route('login')->with('status', 'Votre mot de passe a été réinitialisé avec succès ! Vérifiez votre email pour la confirmation.');
+    }
+
+    // ==================== AGENCE ====================
+    
+    public function showResetFormAgence($token = null, Request $request)
+    {
+        $email = $request->query('email');
+
+        return view('auth.reset-password-agence', [
+            'token' => $token,
+            'email' => $email,
+        ]);
     }
 
     public function resetAgence(Request $request)
@@ -57,23 +76,33 @@ class ResetPasswordController extends Controller
         $request->validate([
             'token' => 'required',
             'email' => 'required|email',
-            'password' => 'required|min:8|confirmed',
+            'password' => 'required|confirmed|min:8',
         ]);
 
-        $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user, $password) {
-                // ✅ Utiliser la bonne colonne 'mot_de_passe'
-                $user->mot_de_passe = Hash::make($password);
-                $user->remember_token = Str::random(60);
-                $user->save();
-            }
-        );
+        $reset = DB::table('password_resets')
+            ->where('email', $request->email)
+            ->where('token', $request->token)
+            ->first();
 
-        if ($status === Password::PASSWORD_RESET) {
-            return redirect()->route('login.agence')->with('status', 'Votre mot de passe a été réinitialisé avec succès.');
+        if (!$reset) {
+            return back()->withErrors(['email' => 'Ce lien de réinitialisation n\'est pas valide ou a expiré.']);
         }
 
-        return back()->withErrors(['email' => __($status)]);
+        if (Carbon::parse($reset->created_at)->addMinutes(60)->isPast()) {
+            return back()->withErrors(['email' => 'Ce lien de réinitialisation a expiré.']);
+        }
+
+        $user = User::where('email', $request->email)->first();
+        $user->mot_de_passe = Hash::make($request->password);
+        $user->save();
+
+        DB::table('password_resets')->where('email', $request->email)->delete();
+
+        Mail::send('emails.password-reset-confirmation-agence', ['user' => $user], function ($message) use ($user) {
+            $message->to($user->email)
+                    ->subject(' Mot de passe réinitialisé avec succès - Espace Agence DoyaImmo');
+        });
+
+        return redirect()->route('login.agence')->with('status', 'Votre mot de passe a été réinitialisé avec succès ! Vérifiez votre email pour la confirmation.');
     }
 }

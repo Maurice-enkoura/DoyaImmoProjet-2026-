@@ -28,30 +28,13 @@ class AbonnementExpireNotification extends Notification implements ShouldQueue
 
     public function toMail($notifiable): MailMessage
     {
-        $abonnement = $this->abonnement;
-        $jours = $this->joursRestants;
-
-        $message = (new MailMessage)
-            ->subject('⚠️ Votre abonnement expire bientôt - DoyaImmo')
-            ->greeting('Bonjour ' . $notifiable->prenom . ' !')
-            ->line('Votre abonnement ' . ($abonnement->formule->label() ?? $abonnement->formule) . ' expire dans ' . $jours . ' jour' . ($jours > 1 ? 's' : '') . '.');
-
-        if ($jours <= 1) {
-            $message->line('⚠️ **Dernier jour pour renouveler votre abonnement !**');
-        } elseif ($jours <= 3) {
-            $message->line('⚠️ **Plus que ' . $jours . ' jours avant l\'expiration !**');
-        }
-
-        $message->line('')
-            ->line('**Date d\'expiration :** ' . $abonnement->date_fin->format('d/m/Y'))
-            ->line('**Formule actuelle :** ' . ($abonnement->formule->label() ?? $abonnement->formule))
-            ->line('')
-            ->line('Pour continuer à bénéficier de tous les avantages, renouvelez votre abonnement dès maintenant.')
-            ->action('Renouveler mon abonnement', route('agence.abonnement'))
-            ->line('')
-            ->salutation('L\'équipe DoyaImmo');
-
-        return $message;
+        return (new MailMessage)
+            ->subject(' Votre abonnement expire bientôt - DoyaImmo')
+            ->markdown('emails.abonnement-expire', [
+                'abonnement' => $this->abonnement,
+                'joursRestants' => $this->joursRestants,
+                'notifiable' => $notifiable,
+            ]);
     }
 
     public function toDatabase($notifiable): array
@@ -62,7 +45,7 @@ class AbonnementExpireNotification extends Notification implements ShouldQueue
         $type = $jours <= 1 ? 'danger' : ($jours <= 3 ? 'warning' : 'info');
 
         return [
-            'title' => '⚠️ Abonnement expire dans ' . $jours . ' jour' . ($jours > 1 ? 's' : ''),
+            'title' => ' Abonnement expire dans ' . $jours . ' jour' . ($jours > 1 ? 's' : ''),
             'message' => 'Votre abonnement ' . ($abonnement->formule->label() ?? $abonnement->formule) . ' expire le ' . $abonnement->date_fin->format('d/m/Y') . '. Renouvelez-le dès maintenant.',
             'type' => $type,
             'icon' => 'fa-clock',

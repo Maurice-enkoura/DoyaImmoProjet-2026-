@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Notifications;
-
 use App\Models\Agence;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,18 +23,12 @@ class AgenceRefuseeNotification extends Notification implements ShouldQueue
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('❌ Demande de validation agence - DoyaImmo')
-            ->greeting('Bonjour ' . $notifiable->prenom . ' ' . $notifiable->nom . ' !')
-            ->line('Nous avons examiné votre demande de validation pour l\'agence **' . $this->agence->nom_agence . '**.')
-            ->line('')
-            ->line('**Motif du refus :**')
-            ->line($this->motif)
-            ->line('')
-            ->line('Veuillez corriger les points mentionnés et soumettre à nouveau votre demande.')
-            ->action('Soumettre à nouveau', url('/agence/profil'))
-            ->line('')
-            ->line('Si vous avez des questions, n\'hésitez pas à nous contacter.')
-            ->salutation('L\'équipe DoyaImmo');
+            ->subject(' Demande de validation agence - DoyaImmo')
+            ->markdown('emails.agence-refusee', [
+                'agence' => $this->agence,
+                'motif' => $this->motif,
+                'notifiable' => $notifiable,
+            ]);
     }
 
     public function toDatabase($notifiable): array

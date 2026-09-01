@@ -5,14 +5,12 @@ namespace App\Enums;
 enum FormuleAbonnementEnum: string
 {
     case BASIC = 'basic';
-    case PREMIUM = 'premium';
-    case PRO = 'pro';
+    case PRO = 'pro'; // ✅ Supprimé PREMIUM
 
     public function label(): string
     {
         return match($this) {
-            self::BASIC => 'Basique',
-            self::PREMIUM => 'Premium',
+            self::BASIC => 'Gratuit',
             self::PRO => 'Pro',
         };
     }
@@ -21,17 +19,15 @@ enum FormuleAbonnementEnum: string
     {
         return match($this) {
             self::BASIC => 0,
-            self::PREMIUM => 200,
-            self::PRO => 500,
+            self::PRO => 5000, // ✅ 5 000 FCFA
         };
     }
 
     public function prixMensuel(): string
     {
         return match($this) {
-            self::BASIC => 'Gratuit',
-            self::PREMIUM => '200 FCFA',
-            self::PRO => '500 FCFA',
+            self::BASIC => '0 FCFA/mois',
+            self::PRO => '5 000 FCFA/mois',
         };
     }
 
@@ -39,25 +35,24 @@ enum FormuleAbonnementEnum: string
     {
         return match($this) {
             self::BASIC => 5,
-            self::PREMIUM => 20,
             self::PRO => PHP_INT_MAX,
         };
     }
 
+    /**
+     * ⚠️ IMPORTANT : La mise en vedette n'est PAS incluse dans l'abonnement.
+     * Retourne 0 pour TOUS les abonnements.
+     * Les vedettes sont payantes et gérées manuellement par l'admin.
+     */
     public function limiteVedettes(): int
     {
-        return match($this) {
-            self::BASIC => 0,
-            self::PREMIUM => 3,
-            self::PRO => PHP_INT_MAX,
-        };
+        return 0;
     }
 
     public function badge(): ?string
     {
         return match($this) {
             self::BASIC => null,
-            self::PREMIUM => 'Populaire',
             self::PRO => 'Recommandé',
         };
     }
@@ -66,7 +61,6 @@ enum FormuleAbonnementEnum: string
     {
         return match($this) {
             self::BASIC => '#6A7280',
-            self::PREMIUM => '#B5502A',
             self::PRO => '#D4AF37',
         };
     }
@@ -75,7 +69,6 @@ enum FormuleAbonnementEnum: string
     {
         return match($this) {
             self::BASIC => 'fa-regular fa-star',
-            self::PREMIUM => 'fa-solid fa-crown',
             self::PRO => 'fa-solid fa-gem',
         };
     }
@@ -83,20 +76,29 @@ enum FormuleAbonnementEnum: string
     public function fonctionnalites(): array
     {
         $offres = $this->limiteOffres() === PHP_INT_MAX ? 'Illimité' : $this->limiteOffres();
-        $vedettes = $this->limiteVedettes() === PHP_INT_MAX ? 'Illimité' : $this->limiteVedettes();
 
-        $features = [
-            "{$offres} offres envoyées / mois",
-            "{$vedettes} biens en vedette",
-        ];
-
-        if ($this !== self::BASIC) {
-            $features[] = 'Badge "Agence ' . $this->label() . '"';
-            $features[] = 'Accès anticipé aux nouveaux besoins';
-            $features[] = 'Paiement mensuel automatique';
-        }
-
-        return $features;
+        return match($this) {
+            self::BASIC => [
+                'Création du compte agence',
+                'Profil agence',
+                'Consultation des demandes',
+                'Accès aux demandes pertinentes',
+                "{$offres} propositions par mois",
+                'Gestion des rendez-vous',
+            ],
+            self::PRO => [
+                ' Tout ce qui est inclus dans Gratuit',
+                ' Propositions illimitées',
+                ' Publication de biens immobiliers',
+                ' Gestion du portefeuille de biens',
+                ' Accès complet aux demandes pertinentes',
+                ' Réception des demandes',
+                ' Gestion des rendez-vous',
+                ' Profil agence professionnel',
+                ' Statistiques de base',
+                'Possibilité de demander une mise en vedette (payant)',
+            ],
+        };
     }
 
     public function getDuree(): string
@@ -109,18 +111,11 @@ enum FormuleAbonnementEnum: string
         return array_column(self::cases(), 'value');
     }
 
-
-/**
- * Accès anticipé aux nouveaux besoins (en minutes)
- * Premium : voit 5 min avant Basic
- * Pro : voit 10 min avant Basic
- */
-public function accesAnticipe(): ?int
-{
-    return match($this) {
-        self::BASIC => null,
-        self::PREMIUM => 5,
-        self::PRO => 10,
-    };
-}
+    public function accesAnticipe(): ?int
+    {
+        return match($this) {
+            self::BASIC => null,
+            self::PRO => 10,
+        };
+    }
 }

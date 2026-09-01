@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use App\Enums\RoleEnum;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\CreneauRendezVous;
+use Illuminate\Support\Facades\Mail;
 
 class User extends Authenticatable
 {
@@ -106,27 +107,117 @@ class User extends Authenticatable
 
     // ==================== NOTIFICATIONS ====================
     
-    public function notify($notification)
-    {
-        if (is_string($notification)) {
-            $notification = app($notification);
-        }
-        
-        if (method_exists($notification, 'toDatabase')) {
-            $data = $notification->toDatabase($this);
+public function notify($notification)
+{
+    if (is_string($notification)) {
+        $notification = app($notification);
+    }
+
+    // 1️⃣ Envoyer l'email si la notification a une méthode toMail
+    if (method_exists($notification, 'toMail')) {
+        try {
+            $mail = $notification->toMail($this);
             
-            DatabaseNotification::create([
-                'id' => (string) Str::uuid(),
-                'type' => get_class($notification),
-                'notifiable_type' => get_class($this),
-                'notifiable_id' => $this->id,
-                'data' => $data,
-                'read_at' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            // Récupérer les variables AVANT la closure
+            $userEmail = $this->email;
+            $subject = $mail->subject;
+            
+            // ✅ Récupérer la vue depuis le MailMessage en inspectant la notification
+            $view = $this->getViewFromNotification($notification);
+            
+            // ✅ Récupérer les données via réflexion
+            $viewData = $this->extractNotificationData($notification);
+            
+            // ✅ Ajouter le notifiable (l'utilisateur courant)
+            $viewData['notifiable'] = $this;
+            
+            // Envoyer l'email
+            Mail::send($view, $viewData, function ($message) use ($userEmail, $subject) {
+                $message->to($userEmail)
+                        ->subject($subject);
+            });
+        } catch (\Exception $e) {
+            \Log::error('Erreur envoi email: ' . $e->getMessage());
         }
     }
+
+    // 2️⃣ Enregistrer en base de données si la notification a une méthode toDatabase
+    if (method_exists($notification, 'toDatabase')) {
+        $data = $notification->toDatabase($this);
+        
+        DatabaseNotification::create([
+            'id' => (string) Str::uuid(),
+            'type' => get_class($notification),
+            'notifiable_type' => get_class($this),
+            'notifiable_id' => $this->id,
+            'data' => $data,
+            'read_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+}
+
+/**
+ * Récupère la vue depuis la notification
+ */
+protected function getViewFromNotification($notification): string
+{
+    // Utiliser la réflexion pour inspecter la notification
+    $reflection = new \ReflectionObject($notification);
+    
+    // Vérifier si la notification a une méthode toMail qui utilise markdown
+    if (method_exists($notification, 'toMail')) {
+        // Récupérer la vue depuis le MailMessage généré
+        $mail = $notification->toMail($this);
+        
+        // Le MailMessage a une propriété view
+        if (isset($mail->view) && $mail->view) {
+            return $mail->view;
+        }
+    }
+    
+    // Mapping des notifications vers leurs vues
+    $views = [
+        'App\Notifications\NouvelleUtilisateurNotification' => 'emails.nouvelle-utilisateur',
+        'App\Notifications\AgenceValideeNotification' => 'emails.agence-validee',
+        'App\Notifications\AgenceRefuseeNotification' => 'emails.agence-refusee',
+        'App\Notifications\AbonnementExpireNotification' => 'emails.abonnement-expire',
+        'App\Notifications\NouvelleDemandeNotification' => 'emails.nouvelle-demande',
+        'App\Notifications\NouvelleDemandeCompatibleNotification' => 'emails.nouvelle-demande-compatible',
+        'App\Notifications\NouvellePropositionNotification' => 'emails.nouvelle-proposition',
+        'App\Notifications\PropositionAccepteeNotification' => 'emails.proposition-acceptee',
+        'App\Notifications\PropositionRefuseeNotification' => 'emails.proposition-refusee',
+        'App\Notifications\RendezVousConfirmeNotification' => 'emails.rendez-vous-confirme',
+        'App\Notifications\RendezVousAnnuleNotification' => 'emails.rendez-vous-annule',
+        'App\Notifications\RendezVousTermineNotification' => 'emails.rendez-vous-termine',
+        'App\Notifications\RappelVisiteNotification' => 'emails.rappel-visite',
+        'App\Notifications\DemandeAnnuleeNotification' => 'emails.demande-annulee',
+    ];
+
+    return $views[get_class($notification)] ?? 'emails.nouvelle-utilisateur';
+}
+
+/**
+ * Extrait les données d'une notification en accédant aux propriétés protégées
+ */
+protected function extractNotificationData($notification): array
+{
+    $data = [];
+    $reflection = new \ReflectionObject($notification);
+    
+    foreach ($reflection->getProperties() as $property) {
+        $property->setAccessible(true);
+        $data[$property->getName()] = $property->getValue($notification);
+    }
+    
+    return $data;
+}
+
+/**
+ * Extrait les données d'une notification en accédant aux propriétés protégées
+ */
+
 
     public static function notifyMany($users, $notification)
     {
@@ -159,5 +250,18 @@ class User extends Authenticatable
     public function creneaux(): HasMany
     {
         return $this->hasMany(CreneauRendezVous::class);
+    }
+
+    // ✅ Envoyer automatiquement la notification à la création d'un utilisateur
+    protected static function booted()
+    {
+        static::created(function ($user) {
+            // Envoyer la notification automatiquement (email + base de données)
+            try {
+                $user->notify(new \App\Notifications\NouvelleUtilisateurNotification($user, $user->role));
+            } catch (\Exception $e) {
+                \Log::error('Erreur lors de l\'envoi de la notification: ' . $e->getMessage());
+            }
+        });
     }
 }

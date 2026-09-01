@@ -62,54 +62,66 @@
             min-height: 480px;
         }
 
+        /* --- Logo & Marque --- */
         .brand {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             font-weight: 700;
-            font-size: 18px;
+            font-size: 20px;
+            letter-spacing: -0.5px;
         }
 
         .brand-mark {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            background: var(--gold);
-            color: var(--ink);
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--rust); /* Marron comme votre logo */
+            color: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
-            font-size: 16px;
+            font-size: 22px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
 
         .brand-name {
             color: #fff;
         }
 
-        .quote {
-            color: rgba(255,255,255,0.7);
-            font-size: 18px;
-            line-height: 1.6;
-            max-width: 300px;
-            margin: 0;
+        .brand-name span {
+            color: var(--gold); /* Doya en blanc, Immo en doré */
         }
 
+        /* --- Texte / Citation --- */
+        .quote {
+            color: rgba(255,255,255,0.85);
+            font-size: 18px;
+            line-height: 1.7;
+            max-width: 320px;
+            margin: 0;
+            font-weight: 400;
+        }
+
+        /* --- Statistiques --- */
         .auth-stats {
             display: flex;
             gap: 40px;
-            color: rgba(255,255,255,0.6);
+            color: rgba(255,255,255,0.7);
         }
 
         .auth-stats b {
             display: block;
-            font-size: 24px;
+            font-size: 26px;
             color: #fff;
-            font-weight: 700;
+            font-weight: 800;
         }
 
         .auth-stats span {
             font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         /* ==================== FORM ==================== */
@@ -126,16 +138,30 @@
             max-width: 360px;
         }
 
+        /* Version claire du logo dans le formulaire */
         .auth-box .brand {
             margin-bottom: 24px;
         }
 
+        .auth-box .brand-mark {
+            background: var(--rust);
+            box-shadow: none;
+        }
+
+        .auth-box .brand-name {
+            color: var(--ink);
+        }
+
+        .auth-box .brand-name span {
+            color: var(--rust);
+        }
+
         .auth-box h1 {
             font-family: var(--display);
-            font-size: 24px;
+            font-size: 26px;
             font-weight: 700;
             color: var(--ink);
-            margin: 0 0 6px;
+            margin: 0 0 8px;
         }
 
         .auth-box .sub {
@@ -145,6 +171,7 @@
             line-height: 1.6;
         }
 
+        /* --- Champs --- */
         .field {
             margin-bottom: 20px;
         }
@@ -154,17 +181,17 @@
             font-size: 13px;
             font-weight: 600;
             color: var(--text-soft);
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
 
         .field input {
             width: 100%;
-            padding: 12px 16px;
+            padding: 14px 16px;
             border: 1.5px solid var(--border);
             border-radius: 10px;
             font-size: 14px;
             font-family: inherit;
-            transition: border 0.2s;
+            transition: all 0.2s;
             background: #FAFBFC;
         }
 
@@ -172,16 +199,18 @@
             outline: none;
             border-color: var(--rust);
             background: #fff;
+            box-shadow: 0 0 0 3px rgba(184, 92, 58, 0.15);
         }
 
+        /* --- Boutons --- */
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            padding: 12px 24px;
+            padding: 14px 24px;
             border-radius: 10px;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
             border: none;
             cursor: pointer;
@@ -194,11 +223,6 @@
             width: 100%;
         }
 
-        .btn-lg {
-            padding: 14px 28px;
-            font-size: 15px;
-        }
-
         .btn-rust {
             background: var(--rust);
             color: #fff;
@@ -206,91 +230,36 @@
 
         .btn-rust:hover {
             background: #9A4523;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(184, 92, 58, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(184, 92, 58, 0.35);
         }
 
+        /* --- Lien pied de page --- */
         .auth-foot-link {
             text-align: center;
             font-size: 13px;
             color: var(--muted);
-            margin-top: 24px;
+            margin-top: 28px;
         }
 
         .auth-foot-link a {
             color: var(--rust);
-            font-weight: 600;
+            font-weight: 700;
             text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
         }
 
         .auth-foot-link a:hover {
-            text-decoration: underline;
+            border-bottom-color: var(--rust);
         }
 
-        /* ==================== RESPONSIVE ==================== */
-        @media (max-width: 820px) {
-            .auth-shell {
-                flex-direction: column;
-                max-width: 420px;
-                margin: 20px;
-            }
-
-            .auth-visual {
-                min-height: 200px;
-                padding: 28px 24px;
-            }
-
-            .quote {
-                font-size: 15px;
-            }
-
-            .auth-stats {
-                gap: 24px;
-            }
-
-            .auth-form-side {
-                padding: 32px 24px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .auth-visual {
-                min-height: 160px;
-                padding: 20px;
-            }
-
-            .quote {
-                font-size: 13px;
-            }
-
-            .auth-stats b {
-                font-size: 18px;
-            }
-
-            .auth-form-side {
-                padding: 24px 16px;
-            }
-
-            .auth-box h1 {
-                font-size: 20px;
-            }
-
-            .field input {
-                padding: 10px 14px;
-                font-size: 13px;
-            }
-
-            .btn-lg {
-                padding: 12px 20px;
-                font-size: 14px;
-            }
-        }
-
+        /* --- Alertes --- */
         .alert {
-            padding: 12px 16px;
+            padding: 14px 16px;
             border-radius: 10px;
-            margin-bottom: 16px;
-            font-size: 13px;
+            margin-bottom: 18px;
+            font-size: 14px;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -307,30 +276,98 @@
             color: #C62828;
             border: 1px solid #FFCDD2;
         }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 820px) {
+            .auth-shell {
+                flex-direction: column;
+                max-width: 420px;
+                margin: 20px;
+            }
+
+            .auth-visual {
+                min-height: 220px;
+                padding: 28px 24px;
+            }
+
+            .quote {
+                font-size: 15px;
+            }
+
+            .auth-stats {
+                gap: 24px;
+            }
+
+            .auth-stats b {
+                font-size: 22px;
+            }
+
+            .auth-form-side {
+                padding: 32px 24px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .auth-visual {
+                min-height: 180px;
+                padding: 20px;
+            }
+
+            .quote {
+                font-size: 13px;
+            }
+
+            .auth-stats b {
+                font-size: 18px;
+            }
+
+            .auth-form-side {
+                padding: 24px 16px;
+            }
+
+            .auth-box h1 {
+                font-size: 22px;
+            }
+
+            .brand-mark {
+                width: 34px;
+                height: 34px;
+                font-size: 18px;
+            }
+        }
     </style>
 </head>
 <body>
 
 <div class="auth-shell">
+    <!-- Panneau visuel (fond sombre) -->
     <div class="auth-visual">
         <div class="brand">
             <div class="brand-mark">D</div>
-            <div class="brand-name">Doya<span style="color:var(--gold)">Immo</span></div>
+            <div class="brand-name">Doya<span>Immo</span></div>
         </div>
         <div>
             <p class="quote">Pas de souci, ça arrive à tout le monde. On vous renvoie l'accès en 2 minutes.</p>
         </div>
         <div class="auth-stats">
-            <div><b>2 min</b><span>Délai moyen de réception</span></div>
-            <div><b>100%</b><span>Sécurisé</span></div>
+            <div>
+                <b>2 min</b>
+                <span>Délai moyen</span>
+            </div>
+            <div>
+                <b>100%</b>
+                <span>Sécurisé</span>
+            </div>
         </div>
     </div>
 
+    <!-- Panneau formulaire (fond clair) -->
     <div class="auth-form-side">
         <div class="auth-box">
+            <!-- Logo en version claire -->
             <div class="brand">
                 <div class="brand-mark">D</div>
-                <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
+                <div class="brand-name">Doya<span>Immo</span></div>
             </div>
             <h1>Mot de passe oublié</h1>
             <p class="sub">Indiquez votre email, nous vous enverrons un lien de réinitialisation.</p>
@@ -355,8 +392,8 @@
                     <label for="email">Adresse email</label>
                     <input type="email" id="email" name="email" placeholder="vous@exemple.com" value="{{ old('email') }}" required autofocus>
                 </div>
-                <button class="btn btn-rust btn-block btn-lg" type="submit">
-                    <i class="fa-solid fa-paper-plane"></i> Envoyer le lien de réinitialisation
+                <button class="btn btn-rust btn-block" type="submit">
+                    <i class="fa-solid fa-paper-plane"></i> Envoyer le lien
                 </button>
             </form>
 

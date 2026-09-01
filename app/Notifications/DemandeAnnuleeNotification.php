@@ -26,22 +26,12 @@ class DemandeAnnuleeNotification extends Notification implements ShouldQueue
 
     public function toMail($notifiable): MailMessage
     {
-        $demande = $this->demande;
-
         return (new MailMessage)
-            ->subject('🚫 Demande annulée - DoyaImmo')
-            ->greeting('Bonjour ' . $notifiable->prenom . ' !')
-            ->line('Le particulier a annulé sa demande de logement :')
-            ->line('')
-            ->line('**Type de bien :** ' . ($demande->type_bien->label() ?? $demande->type_bien))
-            ->line('**Zone recherchée :** ' . $demande->zone_recherchee)
-            ->line('**Budget :** ' . number_format($demande->budget_maximum, 0, ',', ' ') . ' FCFA')
-            ->line('')
-            ->line('Les offres que vous avez envoyées pour cette demande ne sont plus valables.')
-            ->line('N\'hésitez pas à consulter d\'autres demandes disponibles.')
-            ->action('Voir les demandes', route('agence.demandes.index'))
-            ->line('')
-            ->salutation('L\'équipe DoyaImmo');
+            ->subject(' Demande annulée - DoyaImmo')
+            ->markdown('emails.demande-annulee', [
+                'demande' => $this->demande,
+                'notifiable' => $notifiable,
+            ]);
     }
 
     public function toDatabase($notifiable): array
@@ -49,7 +39,7 @@ class DemandeAnnuleeNotification extends Notification implements ShouldQueue
         $demande = $this->demande;
 
         return [
-            'title' => '🚫 Demande annulée',
+            'title' => ' Demande annulée',
             'message' => 'La demande de ' . ($demande->type_bien->label() ?? 'bien') . ' à ' . $demande->zone_recherchee . ' a été annulée par le particulier.',
             'type' => 'warning',
             'icon' => 'fa-circle-exclamation',

@@ -31,7 +31,7 @@ class PropositionAccepteeNotification extends Notification implements ShouldQueu
         $agence = $this->proposition->agence;
 
         return (new MailMessage)
-            ->subject('✅ Proposition acceptée - DoyaImmo')
+            ->subject(' Proposition acceptée - DoyaImmo')
             ->greeting('Bonjour ' . $agence->user->prenom . ' ' . $agence->user->nom . ' !')
             ->line('Nous avons le plaisir de vous informer que votre proposition a été **acceptée** par le client !')
             ->line('')
@@ -42,7 +42,7 @@ class PropositionAccepteeNotification extends Notification implements ShouldQueu
             ->line('• **Prix proposé :** ' . number_format($this->proposition->prix_propose, 0, ',', ' ') . ' FCFA')
             ->line('• **Bien :** ' . ($this->proposition->bien->titre ?? 'N/A'))
             ->line('')
-            ->line('📞 Vous pouvez contacter le client pour organiser la suite.')
+            ->line(' Vous pouvez contacter le client pour organiser la suite.')
             ->action('Voir la proposition', url('/agence/propositions/' . $this->proposition->id))
             ->line('')
             ->line('Félicitations pour cette nouvelle collaboration !')

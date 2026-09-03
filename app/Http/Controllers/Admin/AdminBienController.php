@@ -54,6 +54,9 @@ class AdminBienController extends Controller
         return view('admin.biens.index', compact('biens', 'stats'));
     }
 
+    /**
+     * Affiche le détail d'un bien - UTILISE LE SLUG
+     */
     public function show(BienImmobilier $bien)
     {
         $bien->load([
@@ -67,7 +70,7 @@ class AdminBienController extends Controller
     }
 
     /**
-     * Mettre un bien en vedette
+     * Mettre un bien en vedette - UTILISE LE SLUG
      */
     public function mettreEnVedette(Request $request, BienImmobilier $bien)
     {
@@ -95,7 +98,7 @@ class AdminBienController extends Controller
     }
 
     /**
-     * Retirer un bien de la vedette
+     * Retirer un bien de la vedette - UTILISE LE SLUG
      */
     public function retirerVedette(BienImmobilier $bien)
     {
@@ -105,11 +108,11 @@ class AdminBienController extends Controller
         ]);
 
         return redirect()->route('admin.biens.index')
-            ->with('success', ' Bien retiré de la vedette.');
+            ->with('success', '✅ Bien retiré de la vedette.');
     }
 
     /**
-     * Prolonger la vedette d'un bien
+     * Prolonger la vedette d'un bien - UTILISE LE SLUG
      */
     public function prolongerVedette(Request $request, BienImmobilier $bien)
     {
@@ -134,7 +137,7 @@ class AdminBienController extends Controller
         ]);
 
         return redirect()->route('admin.biens.index')
-            ->with('success', ' Vedette prolongée de ' . $duree . ' jours.');
+            ->with('success', '✅ Vedette prolongée de ' . $duree . ' jours.');
     }
 
     /**
@@ -156,6 +159,9 @@ class AdminBienController extends Controller
         return view('admin.biens.vedette', compact('biens', 'stats'));
     }
 
+    /**
+     * Désactive un bien - UTILISE LE SLUG
+     */
     public function desactiver(BienImmobilier $bien)
     {
         $bien->update(['statut' => false]);
@@ -163,6 +169,9 @@ class AdminBienController extends Controller
             ->with('success', 'Bien désactivé avec succès.');
     }
 
+    /**
+     * Active un bien - UTILISE LE SLUG
+     */
     public function activer(BienImmobilier $bien)
     {
         $bien->update(['statut' => true]);
@@ -170,6 +179,9 @@ class AdminBienController extends Controller
             ->with('success', 'Bien activé avec succès.');
     }
 
+    /**
+     * Supprime un bien - UTILISE LE SLUG
+     */
     public function destroy(BienImmobilier $bien)
     {
         // Supprimer les médias associés

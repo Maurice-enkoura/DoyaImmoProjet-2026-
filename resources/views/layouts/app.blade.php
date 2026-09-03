@@ -6,6 +6,42 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'DoyaImmo — Trouvez votre logement à Dakar, simplement')</title>
     
+    <!-- ===== STYLES CRITIQUES ANTI-FLASH ===== -->
+    <style>
+        /* ✅ Anti-flash : cacher tout le contenu au chargement */
+        #app {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        #app.ready {
+            opacity: 1;
+        }
+        
+        /* ✅ Empêcher le flash de la bottom nav */
+        .bottom-nav {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .bottom-nav.visible {
+            opacity: 1;
+        }
+        
+        /* ✅ Fond de la page */
+        html, body {
+            background: #F7F9FC;
+            min-height: 100vh;
+        }
+        
+        /* ✅ Contenu principal masqué tant que les styles ne sont pas chargés */
+        main {
+            visibility: hidden;
+        }
+        main.visible {
+            visibility: visible;
+        }
+    </style>
+    
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,11 +64,6 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }
-
-        /* ✅ Empêche tout flash blanc pendant le tout premier rendu */
-        html {
-            background: #F7F9FC;
         }
 
         :root {
@@ -217,7 +248,7 @@
         }
 
         /* ============================================
-           NAV LINKS
+           NAV LINKS - UNIQUEMENT SUR DESKTOP
            ============================================ */
         .pub-links {
             display: flex;
@@ -298,7 +329,7 @@
         }
 
         /* ============================================
-           MOBILE MENU
+           MOBILE MENU (hamburger)
            ============================================ */
         .pub-mobile-menu {
             display: none;
@@ -1155,11 +1186,210 @@
                 display: none !important;
             }
         }
+
+        /* ============================================
+           BOTTOM NAVIGATION (MENU MOBILE)
+           ============================================ */
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-top: 1px solid var(--border);
+            z-index: 1000;
+            padding: 6px 0 env(safe-area-inset-bottom, 8px) 0;
+            box-shadow: 0 -2px 16px rgba(0,0,0,0.06);
+            height: 68px;
+        }
+
+        .bottom-nav .nav-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 8px;
+            height: 100%;
+        }
+
+        .bottom-nav .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 500;
+            transition: color 0.2s;
+            padding: 4px 12px;
+            border-radius: 8px;
+            min-width: 56px;
+            position: relative;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: var(--display);
+        }
+
+        .bottom-nav .nav-item i {
+            font-size: 22px;
+            transition: all 0.2s;
+        }
+
+        .bottom-nav .nav-item span {
+            font-size: 9px;
+            line-height: 1.2;
+        }
+
+        .bottom-nav .nav-item.active {
+            color: var(--rust);
+        }
+
+        .bottom-nav .nav-item.active i {
+            transform: scale(1.05);
+        }
+
+        .bottom-nav .nav-item .badge-dot {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 8px;
+            height: 8px;
+            background: #C62828;
+            border-radius: 50%;
+            border: 2px solid #fff;
+        }
+
+        .bottom-nav .nav-item .badge-count {
+            position: absolute;
+            top: 0;
+            right: -4px;
+            background: #C62828;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 20px;
+            min-width: 18px;
+            text-align: center;
+            border: 2px solid #fff;
+            line-height: 1.4;
+        }
+
+        /* Bouton Publier (style différent - au centre) */
+        .bottom-nav .nav-item.publier {
+            background: var(--rust);
+            color: #fff;
+            border-radius: 50px;
+            padding: 6px 16px;
+            min-width: 70px;
+            box-shadow: 0 4px 12px rgba(181, 80, 42, 0.35);
+            transition: all 0.2s;
+            margin-top: -10px;
+        }
+
+        .bottom-nav .nav-item.publier i {
+            font-size: 18px;
+        }
+
+        .bottom-nav .nav-item.publier span {
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .bottom-nav .nav-item.publier:hover {
+            background: #9A4523;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(181, 80, 42, 0.45);
+        }
+
+        .bottom-nav .nav-item.publier:active {
+            transform: scale(0.95);
+        }
+
+        /* Afficher sur mobile seulement */
+        @media (max-width: 820px) {
+            .bottom-nav {
+                display: block;
+                opacity: 1;
+            }
+
+            /* Ajouter un padding en bas sur le body pour ne pas cacher le contenu */
+            body {
+                padding-bottom: 76px;
+            }
+
+            /* Ajuster le footer pour qu'il ne soit pas caché */
+            .pub-footer {
+                margin-bottom: 0;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .bottom-nav .nav-item {
+                min-width: 44px;
+                padding: 2px 8px;
+            }
+            .bottom-nav .nav-item i {
+                font-size: 20px;
+            }
+            .bottom-nav .nav-item span {
+                font-size: 8px;
+            }
+            .bottom-nav .nav-item.publier {
+                padding: 4px 12px;
+                min-width: 56px;
+                margin-top: -8px;
+            }
+            .bottom-nav .nav-item.publier i {
+                font-size: 16px;
+            }
+            .bottom-nav .nav-item.publier span {
+                font-size: 9px;
+            }
+            body {
+                padding-bottom: 68px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .bottom-nav .nav-item {
+                min-width: 36px;
+                padding: 2px 4px;
+            }
+            .bottom-nav .nav-item i {
+                font-size: 17px;
+            }
+            .bottom-nav .nav-item span {
+                font-size: 7px;
+            }
+            .bottom-nav .nav-item.publier {
+                padding: 4px 8px;
+                min-width: 44px;
+                margin-top: -6px;
+            }
+            .bottom-nav .nav-item.publier i {
+                font-size: 14px;
+            }
+            .bottom-nav .nav-item.publier span {
+                font-size: 8px;
+            }
+            body {
+                padding-bottom: 60px;
+            }
+        }
     </style>
 
     @stack('styles')
 </head>
 <body>
+
+<!-- ===== CONTENU PRINCIPAL AVEC ANTI-FLASH ===== -->
+<div id="app">
 
 <!-- Header -->
 <header class="pub-header @if(Route::currentRouteName() == 'recherche') page-recherche @endif">
@@ -1186,6 +1416,7 @@
             </div>
         </div>
 
+        <!-- Liens - UNIQUEMENT SUR DESKTOP -->
         <div class="pub-links">
             <a href="{{ route('besoins.index') }}">Besoins</a>
             <a href="{{ route('biens.index') }}">Biens</a>
@@ -1222,7 +1453,7 @@
         </div>
     </nav>
 
-    <!-- Menu mobile -->
+    <!-- Menu mobile (hamburger) -->
     <div class="pub-mobile-menu" id="pubMobileMenu" role="navigation">
         <a href="{{ route('besoins.index') }}" class="menu-item">
             <span class="menu-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
@@ -1385,13 +1616,117 @@
     </div>
 </footer>
 
+<!-- ============================================
+     BOTTOM NAVIGATION (MENU MOBILE)
+     ============================================ -->
+<nav class="bottom-nav" role="navigation" aria-label="Navigation principale">
+    <div class="nav-inner">
+        <!-- Accueil -->
+        <a href="{{ route('home') }}" class="nav-item {{ request()->routeIs('home') ? 'active' : '' }}">
+            <i class="fa-solid fa-house"></i>
+            <span>Accueil</span>
+        </a>
+
+        <!-- Biens -->
+        <a href="{{ route('biens.index') }}" class="nav-item {{ request()->routeIs('biens.*') ? 'active' : '' }}">
+            <i class="fa-solid fa-building"></i>
+            <span>Bien</span>
+            @if(isset($nbBiens) && $nbBiens > 0)
+                <span class="badge-count">{{ $nbBiens }}</span>
+            @endif
+        </a>
+
+        <!-- PUBLIER (au milieu) -->
+        @auth
+            @if(Auth::user()->isAgence())
+                <a href="{{ route('agence.biens.create') }}" class="nav-item publier">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Publier</span>
+                </a>
+            @elseif(Auth::user()->isParticulier())
+                <a href="{{ route('particulier.demandes.create') }}" class="nav-item publier">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Publier</span>
+                </a>
+            @else
+                <a href="{{ route('register') }}" class="nav-item publier">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Publier</span>
+                </a>
+            @endif
+        @else
+            <a href="{{ route('register') }}" class="nav-item publier">
+                <i class="fa-solid fa-plus"></i>
+                <span>Publier</span>
+            </a>
+        @endauth
+
+        <!-- Besoins -->
+        <a href="{{ route('besoins.index') }}" class="nav-item {{ request()->routeIs('besoins.*') ? 'active' : '' }}">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Besoins</span>
+            @if(isset($nbBesoins) && $nbBesoins > 0)
+                <span class="badge-count">{{ $nbBesoins }}</span>
+            @endif
+        </a>
+
+        <!-- Agences -->
+        <a href="{{ route('agences.public.index') }}" class="nav-item {{ request()->routeIs('agences.*') ? 'active' : '' }}">
+            <i class="fa-solid fa-building-columns"></i>
+            <span>Agence</span>
+        </a>
+    </div>
+</nav>
+
 <!-- Flèche Retour en Haut (Floating) -->
 <button class="back-to-top" id="backToTop" onclick="scrollToTop()" aria-label="Retour en haut">
     <i class="fa-solid fa-chevron-up"></i>
 </button>
 
+</div><!-- Fin #app -->
+
 <!-- Scripts -->
 <script>
+    // ============================================
+    // ANTI-FLASH : AFFICHER LE CONTENU
+    // ============================================
+    (function() {
+        // Fonction pour afficher le contenu
+        function showContent() {
+            var app = document.getElementById('app');
+            if (app) {
+                app.classList.add('ready');
+            }
+            // Afficher le main
+            var main = document.querySelector('main');
+            if (main) {
+                main.classList.add('visible');
+            }
+            // Afficher la bottom nav
+            var bottomNav = document.querySelector('.bottom-nav');
+            if (bottomNav) {
+                bottomNav.classList.add('visible');
+            }
+        }
+
+        // Essayer d'afficher immédiatement si le DOM est déjà chargé
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            setTimeout(showContent, 50);
+        } else {
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(showContent, 50);
+            });
+        }
+
+        // Fallback: afficher après le chargement complet
+        window.addEventListener('load', function() {
+            setTimeout(showContent, 100);
+        });
+
+        // Fallback: afficher après un délai maximum (sécurité)
+        setTimeout(showContent, 500);
+    })();
+
     // ==================== TOGGLE MOBILE MENU ====================
     function toggleMobileMenu() {
         const menu = document.getElementById('pubMobileMenu');

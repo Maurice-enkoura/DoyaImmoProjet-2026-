@@ -101,16 +101,20 @@
             </div>
             
             <div class="bien-body">
-                <div class="bien-title">
-                    {{ $bien->titre }}
-                    @if($bien->est_vedette)
-                        <span class="vedette-tag"><i class="fa-solid fa-star"></i></span>
-                    @endif
+                <div class="bien-header">
+                    <div class="bien-title">
+                        {{ $bien->titre }}
+                        @if($bien->est_vedette)
+                            <span class="vedette-tag"><i class="fa-solid fa-star"></i></span>
+                        @endif
+                    </div>
+                    <div class="bien-price">{{ number_format($bien->prix, 0, ',', ' ') }} FCFA</div>
                 </div>
-                <div class="bien-price">{{ number_format($bien->prix, 0, ',', ' ') }} FCFA</div>
+                
                 <div class="bien-location">
                     <i class="fa-solid fa-location-dot"></i> {{ $bien->quartier }}
                 </div>
+                
                 <div class="bien-features">
                     <span class="meta-pill"><i class="fa-solid fa-home"></i> {{ $bien->type_bien->label() }}</span>
                     <span class="meta-pill">{{ $bien->type_contrat->label() }}</span>
@@ -120,78 +124,85 @@
                         <span class="meta-pill vedette-pill"><i class="fa-solid fa-star"></i> Vedette</span>
                     @endif
                 </div>
+                
+                <!-- Groupe d'actions -->
                 <div class="bien-actions">
-                    <!-- Modifier -->
-                    @if($peutPublier ?? false)
-                        <a href="{{ route('agence.biens.edit', $bien) }}" class="btn btn-ghost btn-sm">
-                            <i class="fa-solid fa-pen"></i> Modifier
-                        </a>
-                    @else
-                        <a href="#" class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed;" title="Abonnement Pro requis">
-                            <i class="fa-solid fa-pen"></i> Modifier
-                        </a>
-                    @endif
-                    
-                    <!-- Voir -->
-                    <a href="{{ route('agence.biens.show', $bien) }}" class="btn btn-ghost btn-sm">
-                        <i class="fa-solid fa-eye"></i> Voir
-                    </a>
-
-                    <!-- ✅ ACTIVER / DÉSACTIVER -->
-                    @if($peutPublier ?? false)
-                        @if($bien->statut)
-                            <form action="{{ route('agence.biens.desactiver', $bien) }}" method="POST" style="display:inline;">
-                                @csrf
-                                @method('POST')
-                                <button type="submit" class="btn btn-warning btn-sm" 
-                                        onclick="return confirm('Désactiver ce bien ? Il ne sera plus visible par les particuliers.')">
-                                    <i class="fa-solid fa-eye-slash"></i> Désactiver
-                                </button>
-                            </form>
-                        @else
-                            <form action="{{ route('agence.biens.activer', $bien) }}" method="POST" style="display:inline;">
-                                @csrf
-                                @method('POST')
-                                <button type="submit" class="btn btn-success btn-sm" 
-                                        onclick="return confirm('Activer ce bien ? Il sera visible par les particuliers.')">
-                                    <i class="fa-solid fa-eye"></i> Activer
-                                </button>
-                            </form>
-                        @endif
-                    @else
-                        <button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed;" title="Abonnement Pro requis">
-                            <i class="fa-solid fa-eye-slash"></i> Gérer
-                        </button>
-                    @endif
-                    
-                    <!-- Supprimer -->
-                    @if($peutPublier ?? false)
-                        <form action="{{ route('agence.biens.destroy', $bien) }}" method="POST" style="display:inline;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger btn-sm" 
-                                    onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce bien ? Cette action est irréversible.')">
-                                <i class="fa-solid fa-trash-can"></i> Supprimer
-                            </button>
-                        </form>
-                    @else
-                        <button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed;" title="Abonnement Pro requis">
-                            <i class="fa-solid fa-trash-can"></i> Supprimer
-                        </button>
-                    @endif
-
-                    <!-- Mise en vedette (uniquement si Pro) -->
-                    @if($peutPublier ?? false)
-                        @if(!$bien->est_vedette)
-                            <a href="{{ route('agence.biens.vedette.demander', $bien) }}" class="btn btn-ghost btn-sm" style="border-color:#D4AF37;color:#D4AF37;">
-                                <i class="fa-solid fa-star"></i> Vedette
+                    <!-- Actions principales -->
+                    <div class="actions-primary">
+                        @if($peutPublier ?? false)
+                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                            <a href="{{ route('agence.biens.edit', $bien->slug) }}" class="btn btn-ghost btn-sm">
+                                <i class="fa-solid fa-pen"></i> Modifier
+                            </a>
+                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                            <a href="{{ route('agence.biens.show', $bien->slug) }}" class="btn btn-ghost btn-sm">
+                                <i class="fa-solid fa-eye"></i> Voir
                             </a>
                         @else
-                            <span class="btn btn-sm" style="background:#FFF8E1;color:#E65100;border:none;cursor:default;">
-                                <i class="fa-solid fa-star" style="color:#F5A623;"></i> En vedette
-                            </span>
+                            <a href="#" class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed;" title="Abonnement Pro requis">
+                                <i class="fa-solid fa-pen"></i> Modifier
+                            </a>
+                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                            <a href="{{ route('agence.biens.show', $bien->slug) }}" class="btn btn-ghost btn-sm">
+                                <i class="fa-solid fa-eye"></i> Voir
+                            </a>
                         @endif
-                    @endif
+                    </div>
+
+                    <!-- Actions de gestion -->
+                    <div class="actions-management">
+                        @if($peutPublier ?? false)
+                            @if($bien->statut)
+                                <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                                <form action="{{ route('agence.biens.desactiver', $bien->slug) }}" method="POST" style="display:inline;">
+                                    @csrf
+                                    @method('POST')
+                                    <button type="submit" class="btn btn-warning btn-sm" 
+                                            onclick="return confirm('Désactiver ce bien ? Il ne sera plus visible par les particuliers.')">
+                                        <i class="fa-solid fa-eye-slash"></i> Désactiver
+                                    </button>
+                                </form>
+                            @else
+                                <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                                <form action="{{ route('agence.biens.activer', $bien->slug) }}" method="POST" style="display:inline;">
+                                    @csrf
+                                    @method('POST')
+                                    <button type="submit" class="btn btn-success btn-sm" 
+                                            onclick="return confirm('Activer ce bien ? Il sera visible par les particuliers.')">
+                                        <i class="fa-solid fa-eye"></i> Activer
+                                    </button>
+                                </form>
+                            @endif
+
+                            @if(!$bien->est_vedette)
+                                <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                                <a href="{{ route('agence.biens.vedette.demander', $bien->slug) }}" class="btn btn-ghost btn-sm" style="border-color:#D4AF37;color:#D4AF37;">
+                                    <i class="fa-solid fa-star"></i> Vedette
+                                </a>
+                            @else
+                                <span class="btn btn-sm" style="background:#FFF8E1;color:#E65100;border:none;cursor:default;">
+                                    <i class="fa-solid fa-star" style="color:#F5A623;"></i> En vedette
+                                </span>
+                            @endif
+
+                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                            <form action="{{ route('agence.biens.destroy', $bien->slug) }}" method="POST" style="display:inline;">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger btn-sm" 
+                                        onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce bien ? Cette action est irréversible.')">
+                                    <i class="fa-solid fa-trash-can"></i> Supprimer
+                                </button>
+                            </form>
+                        @else
+                            <button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed;" title="Abonnement Pro requis">
+                                <i class="fa-solid fa-eye-slash"></i> Gérer
+                            </button>
+                            <button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed;" title="Abonnement Pro requis">
+                                <i class="fa-solid fa-trash-can"></i> Supprimer
+                            </button>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
@@ -366,15 +377,23 @@
         z-index: 1;
     }
 
+    .bien-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 2px;
+    }
+
     .bien-title {
         font-weight: 600;
         font-size: 16px;
-        margin-bottom: 2px;
         color: var(--ink);
         display: flex;
         align-items: center;
         gap: 6px;
         flex-wrap: wrap;
+        flex: 1;
     }
 
     .vedette-tag {
@@ -388,7 +407,7 @@
         font-weight: 700;
         color: var(--rust);
         font-size: 17px;
-        margin-bottom: 4px;
+        white-space: nowrap;
     }
 
     .bien-location {
@@ -431,8 +450,24 @@
 
     .bien-actions {
         display: flex;
+        flex-direction: column;
         gap: 8px;
+    }
+
+    .actions-primary,
+    .actions-management {
+        display: flex;
         flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .actions-primary {
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 8px;
+    }
+
+    .actions-management {
+        padding-top: 2px;
     }
 
     .btn {
@@ -604,8 +639,29 @@
     }
 
     @media (max-width: 768px) {
+        .bien-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .bien-price {
+            font-size: 16px;
+        }
+
         .bien-actions {
             flex-direction: column;
+        }
+
+        .actions-primary,
+        .actions-management {
+            flex-wrap: wrap;
+        }
+
+        .actions-primary .btn,
+        .actions-primary form,
+        .actions-management .btn,
+        .actions-management form {
+            flex: 1 1 auto;
         }
 
         .bien-actions .btn,

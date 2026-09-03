@@ -504,6 +504,23 @@
         border-radius: 6px;
     }
 
+    /* ===== AGENCY DATE ===== */
+    .agency-date {
+        font-size: clamp(11px, 0.7vw, 12px);
+        color: var(--muted);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .agency-date i {
+        font-size: 10px;
+    }
+
     /* ============================================
        RESPONSIVE
     ============================================ */
@@ -635,6 +652,10 @@
             font-size: 9px;
             padding: 1px 8px;
         }
+
+        .agency-date {
+            font-size: 10px;
+        }
     }
 
     @media (max-width: 460px) {
@@ -680,6 +701,10 @@
 
         .filter-section .filter-group select {
             padding-right: 26px;
+        }
+
+        .agency-date {
+            font-size: 11px;
         }
     }
 
@@ -816,10 +841,12 @@
                 @endif
 
                 <div class="agency-actions">
-                    <a href="{{ route('agences.public.show', $agence) }}" class="btn btn-rust btn-sm">
+                    <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                    <a href="{{ route('agences.public.show', $agence->slug) }}" class="btn btn-rust btn-sm">
                         <i class="fa-solid fa-eye"></i> Voir l'agence
                     </a>
-                    <a href="{{ route('agences.public.show', $agence) }}#contact" class="btn btn-ghost btn-sm">
+                    <!-- ✅ CORRIGÉ : Utilisation du slug avec ancre -->
+                    <a href="{{ route('agences.public.show', $agence->slug) }}#contact" class="btn btn-ghost btn-sm">
                         <i class="fa-solid fa-envelope"></i> Contacter
                     </a>
                 </div>

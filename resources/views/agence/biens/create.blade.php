@@ -12,13 +12,23 @@
         </a>
     </div>
 
-    <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:24px;">
+    <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:clamp(16px, 2vw, 24px);">
+        @if($errors->any())
+            <div style="padding:12px 16px;background:#FFEBEE;border-radius:10px;border:1px solid #FFCDD2;margin-bottom:16px;">
+                <ul style="margin:0;padding:0 0 0 16px;color:#C62828;font-size:13px;">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <form method="POST" action="{{ route('agence.biens.store') }}" enctype="multipart/form-data" id="bienForm">
             @csrf
 
             <!-- Informations principales -->
             <div style="margin-bottom:20px;">
-                <h4 style="font-family:var(--display);font-size:15px;margin-bottom:12px;color:var(--text-soft);">
+                <h4 style="font-family:var(--display);font-size:clamp(14px, 1vw, 15px);margin-bottom:12px;color:var(--text-soft);">
                     <i class="fa-solid fa-info-circle" style="color:var(--rust);"></i> Informations principales
                 </h4>
 
@@ -83,7 +93,7 @@
 
             <!-- Localisation -->
             <div style="margin-bottom:20px;padding-top:16px;border-top:1px solid var(--border);">
-                <h4 style="font-family:var(--display);font-size:15px;margin-bottom:12px;color:var(--text-soft);">
+                <h4 style="font-family:var(--display);font-size:clamp(14px, 1vw, 15px);margin-bottom:12px;color:var(--text-soft);">
                     <i class="fa-solid fa-location-dot" style="color:var(--rust);"></i> Localisation
                 </h4>
 
@@ -113,7 +123,7 @@
 
             <!-- Caractéristiques -->
             <div style="margin-bottom:20px;padding-top:16px;border-top:1px solid var(--border);">
-                <h4 style="font-family:var(--display);font-size:15px;margin-bottom:12px;color:var(--text-soft);">
+                <h4 style="font-family:var(--display);font-size:clamp(14px, 1vw, 15px);margin-bottom:12px;color:var(--text-soft);">
                     <i class="fa-solid fa-sliders-h" style="color:var(--rust);"></i> Caractéristiques
                 </h4>
 
@@ -140,20 +150,21 @@
                     </div>
                     <div>
                         <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
-                            Surface (m²) <span style="color:#C62828;">*</span>
+                            Surface (m²)
                         </label>
-                        <input type="number" step="0.01" name="surface" value="{{ old('surface') }}" placeholder="Ex: 150"
-                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;" required>
+                        <input type="number" step="0.01" name="surface" id="surface" value="{{ old('surface') }}" placeholder="Ex: 150"
+                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;">
                         @error('surface')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
+                        <small style="font-size:11px;color:var(--muted);">Optionnel</small>
                     </div>
                 </div>
             </div>
 
             <!-- Équipements -->
             <div style="margin-bottom:20px;padding-top:16px;border-top:1px solid var(--border);">
-                <h4 style="font-family:var(--display);font-size:15px;margin-bottom:12px;color:var(--text-soft);">
+                <h4 style="font-family:var(--display);font-size:clamp(14px, 1vw, 15px);margin-bottom:12px;color:var(--text-soft);">
                     <i class="fa-solid fa-cogs" style="color:var(--rust);"></i> Équipements
                 </h4>
                 <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
@@ -171,7 +182,6 @@
                     </label>
                 </div>
 
-                <!-- Note pour les terrains -->
                 <div id="terrainNote" style="display:none;margin-top:8px;padding:8px 12px;background:#FFF8E1;border-radius:8px;font-size:12px;color:#E65100;">
                     <i class="fa-solid fa-info-circle"></i> Les équipements ne sont pas applicables pour un terrain.
                 </div>
@@ -179,7 +189,7 @@
 
             <!-- Description -->
             <div style="margin-bottom:20px;padding-top:16px;border-top:1px solid var(--border);">
-                <h4 style="font-family:var(--display);font-size:15px;margin-bottom:8px;color:var(--text-soft);">
+                <h4 style="font-family:var(--display);font-size:clamp(14px, 1vw, 15px);margin-bottom:8px;color:var(--text-soft);">
                     <i class="fa-solid fa-align-left" style="color:var(--rust);"></i> Description <span style="color:#C62828;">*</span>
                 </h4>
                 <textarea name="description" rows="4" placeholder="Décrivez votre bien en détail..."
@@ -192,68 +202,62 @@
                 </div>
             </div>
 
-            <!-- Photos -->
-            <div style="margin-top:20px;padding:16px;background:#F7F9FC;border-radius:10px;border:1px dashed var(--border);">
-                <h4 style="font-family:var(--display);font-size:14px;margin-bottom:8px;">
+            <!-- Photos - Sélection multiple -->
+            <div style="margin-top:20px;padding:clamp(14px, 1.5vw, 20px);background:#F7F9FC;border-radius:10px;border:2px dashed var(--border);">
+                <h4 style="font-family:var(--display);font-size:clamp(13px, 0.9vw, 14px);margin-bottom:8px;">
                     <i class="fa-regular fa-image" style="color:var(--rust);"></i> Photos du bien
                 </h4>
                 <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
-                    Ajoutez jusqu'à 10 photos (format JPG, PNG, JPEG - max 5 Mo chacune)
+                    Ajoutez jusqu'à <strong>10 photos</strong> (format JPG, PNG, JPEG, WebP - max 5 Mo chacune)
                 </p>
-                <div id="photoContainer">
-                    <div class="photo-upload-item" style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-                        <input type="file" name="images[]" accept="image/*" 
-                               style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;">
-                        <button type="button" class="btn btn-ghost btn-sm remove-photo" style="color:#C62828;display:none;" onclick="removePhoto(this)">
-                            <i class="fa-solid fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="addPhoto()" style="margin-top:8px;">
-                    <i class="fa-solid fa-plus"></i> Ajouter une photo
-                </button>
+                <input type="file" name="images[]" accept="image/*" multiple 
+                       id="imageInput"
+                       style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;">
+                
+                <!-- Prévisualisation des photos -->
+                <div id="imagePreviewContainer" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-top:12px;display:none;"></div>
                 <div style="font-size:11px;color:var(--muted);margin-top:8px;">
-                    <span id="photoCount">1</span>/10 photos ajoutées
+                    <span id="imageCount">0</span>/10 photos sélectionnées
                 </div>
                 @error('images.*')
                     <small style="color:#C62828;font-size:12px;display:block;margin-top:4px;">{{ $message }}</small>
                 @enderror
+                @error('images')
+                    <small style="color:#C62828;font-size:12px;display:block;margin-top:4px;">{{ $message }}</small>
+                @enderror
             </div>
 
-            <!-- Vidéos -->
-            <div style="margin-top:16px;padding:16px;background:#F7F9FC;border-radius:10px;border:1px dashed var(--border);">
-                <h4 style="font-family:var(--display);font-size:14px;margin-bottom:8px;">
+            <!-- Vidéos - Sélection multiple -->
+            <div style="margin-top:16px;padding:clamp(14px, 1.5vw, 20px);background:#F7F9FC;border-radius:10px;border:2px dashed var(--border);">
+                <h4 style="font-family:var(--display);font-size:clamp(13px, 0.9vw, 14px);margin-bottom:8px;">
                     <i class="fa-regular fa-circle-play" style="color:var(--rust);"></i> Vidéos du bien
                 </h4>
                 <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
-                    Ajoutez jusqu'à 3 vidéos (format MP4, MOV, AVI - max 20 Mo chacune)
+                    Ajoutez jusqu'à <strong>1 vidéo</strong> (format MP4, MOV, AVI - max 20 Mo)
                 </p>
-                <div id="videoContainer">
-                    <div class="video-upload-item" style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-                        <input type="file" name="videos[]" accept="video/*" 
-                               style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;">
-                        <button type="button" class="btn btn-ghost btn-sm remove-video" style="color:#C62828;display:none;" onclick="removeVideo(this)">
-                            <i class="fa-solid fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="addVideo()" style="margin-top:8px;">
-                    <i class="fa-solid fa-plus"></i> Ajouter une vidéo
-                </button>
+                <input type="file" name="videos[]" accept="video/*" multiple 
+                       id="videoInput"
+                       style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;">
+                
+                <!-- Prévisualisation des vidéos -->
+                <div id="videoPreviewContainer" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:12px;display:none;"></div>
                 <div style="font-size:11px;color:var(--muted);margin-top:8px;">
-                    <span id="videoCount">1</span>/3 vidéos ajoutées
+                    <span id="videoCount">0</span>/1 vidéo sélectionnée
                 </div>
                 @error('videos.*')
+                    <small style="color:#C62828;font-size:12px;display:block;margin-top:4px;">{{ $message }}</small>
+                @enderror
+                @error('videos')
                     <small style="color:#C62828;font-size:12px;display:block;margin-top:4px;">{{ $message }}</small>
                 @enderror
             </div>
 
             <!-- Boutons -->
-            <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:12px;">
-                <button type="submit" class="btn btn-rust" id="submitBtn">
+            <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:12px;flex-wrap:wrap;">
+                <button type="submit" class="btn btn-rust" id="submitBtn" style="padding:10px 24px;border:none;border-radius:10px;background:var(--rust);color:#fff;font-weight:600;cursor:pointer;transition:background 0.2s;display:inline-flex;align-items:center;gap:8px;font-size:14px;">
                     <i class="fa-solid fa-plus"></i> Publier le bien
                 </button>
-                <a href="{{ route('agence.biens.index') }}" class="btn btn-ghost">
+                <a href="{{ route('agence.biens.index') }}" class="btn btn-ghost" style="padding:10px 24px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text-soft);font-weight:600;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:8px;font-size:14px;text-decoration:none;">
                     <i class="fa-solid fa-times"></i> Annuler
                 </a>
             </div>
@@ -262,125 +266,128 @@
 </div>
 
 <script>
-    // Gestion des champs conditionnels selon le type de bien
+    // ==================== GESTION DES CHAMPS CONDITIONNELS ====================
     document.getElementById('type_bien')?.addEventListener('change', function() {
         const type = this.value;
         const equipementsContainer = document.getElementById('equipementsContainer');
         const terrainNote = document.getElementById('terrainNote');
         const chambres = document.getElementById('nombre_chambres');
         const sdb = document.getElementById('nombre_salles_bain');
+        const surface = document.getElementById('surface');
         
         if (type === 'terrain') {
-            // Cacher les équipements pour un terrain
             equipementsContainer.style.display = 'none';
             terrainNote.style.display = 'block';
             chambres.value = 0;
             chambres.disabled = true;
             sdb.value = 0;
             sdb.disabled = true;
+            surface.placeholder = 'Optionnel (ex: 500)';
         } else {
             equipementsContainer.style.display = 'grid';
             terrainNote.style.display = 'none';
             chambres.disabled = false;
             sdb.disabled = false;
+            surface.placeholder = 'Ex: 150';
         }
     });
 
-    // Gestion des photos
-    let photoCount = 1;
-    const maxPhotos = 10;
-
-    function addPhoto() {
-        if (photoCount >= maxPhotos) {
-            alert('Vous ne pouvez pas ajouter plus de ' + maxPhotos + ' photos.');
+    // ==================== PRÉVISUALISATION DES IMAGES ====================
+    document.getElementById('imageInput')?.addEventListener('change', function(e) {
+        const container = document.getElementById('imagePreviewContainer');
+        container.innerHTML = '';
+        container.style.display = 'grid';
+        
+        const files = Array.from(this.files);
+        
+        if (files.length === 0) {
+            container.style.display = 'none';
+            document.getElementById('imageCount').textContent = '0';
             return;
         }
         
-        const container = document.getElementById('photoContainer');
-        const newItem = document.createElement('div');
-        newItem.className = 'photo-upload-item';
-        newItem.style.cssText = 'display:flex;align-items:center;gap:12px;margin-bottom:8px;';
-        newItem.innerHTML = `
-            <input type="file" name="images[]" accept="image/*" 
-                   style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;">
-            <button type="button" class="btn btn-ghost btn-sm remove-photo" style="color:#C62828;" onclick="removePhoto(this)">
-                <i class="fa-solid fa-times"></i>
-            </button>
-        `;
-        container.appendChild(newItem);
-        photoCount++;
-        document.getElementById('photoCount').textContent = photoCount;
-        updateButtons();
-    }
-
-    function removePhoto(button) {
-        if (photoCount <= 1) {
-            alert('Vous devez garder au moins un champ pour les photos.');
-            return;
-        }
-        button.closest('.photo-upload-item').remove();
-        photoCount--;
-        document.getElementById('photoCount').textContent = photoCount;
-        updateButtons();
-    }
-
-    // Gestion des vidéos
-    let videoCount = 1;
-    const maxVideos = 3;
-
-    function addVideo() {
-        if (videoCount >= maxVideos) {
-            alert('Vous ne pouvez pas ajouter plus de ' + maxVideos + ' vidéos.');
+        // ✅ Limiter à 10 photos
+        if (files.length > 10) {
+            alert('⚠️ Vous ne pouvez sélectionner que 10 photos maximum.');
+            this.value = '';
+            container.style.display = 'none';
+            document.getElementById('imageCount').textContent = '0';
             return;
         }
         
-        const container = document.getElementById('videoContainer');
-        const newItem = document.createElement('div');
-        newItem.className = 'video-upload-item';
-        newItem.style.cssText = 'display:flex;align-items:center;gap:12px;margin-bottom:8px;';
-        newItem.innerHTML = `
-            <input type="file" name="videos[]" accept="video/*" 
-                   style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;">
-            <button type="button" class="btn btn-ghost btn-sm remove-video" style="color:#C62828;" onclick="removeVideo(this)">
-                <i class="fa-solid fa-times"></i>
-            </button>
-        `;
-        container.appendChild(newItem);
-        videoCount++;
-        document.getElementById('videoCount').textContent = videoCount;
-        updateButtons();
-    }
+        document.getElementById('imageCount').textContent = files.length;
+        
+        files.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const div = document.createElement('div');
+                div.style.cssText = 'position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border);aspect-ratio:1/1;background:#F0F2F5;';
+                div.innerHTML = `
+                    <img src="${event.target.result}" alt="Aperçu ${index + 1}" style="width:100%;height:100%;object-fit:cover;">
+                    <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.6);color:#fff;font-size:10px;padding:2px 6px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        ${file.name.length > 15 ? file.name.substring(0, 15) + '...' : file.name}
+                    </div>
+                `;
+                container.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+    });
 
-    function removeVideo(button) {
-        if (videoCount <= 1) {
-            alert('Vous devez garder au moins un champ pour les vidéos.');
+    // ==================== PRÉVISUALISATION DES VIDÉOS ====================
+    document.getElementById('videoInput')?.addEventListener('change', function(e) {
+        const container = document.getElementById('videoPreviewContainer');
+        container.innerHTML = '';
+        container.style.display = 'grid';
+        
+        const files = Array.from(this.files);
+        
+        if (files.length === 0) {
+            container.style.display = 'none';
+            document.getElementById('videoCount').textContent = '0';
             return;
         }
-        button.closest('.video-upload-item').remove();
-        videoCount--;
-        document.getElementById('videoCount').textContent = videoCount;
-        updateButtons();
-    }
-
-    function updateButtons() {
-        document.querySelectorAll('.remove-photo').forEach(btn => {
-            btn.style.display = photoCount <= 1 ? 'none' : 'inline-flex';
+        
+        // ✅ Limiter à 1 vidéo
+        if (files.length > 1) {
+            alert('⚠️ Vous ne pouvez sélectionner qu\'1 vidéo maximum.');
+            this.value = '';
+            container.style.display = 'none';
+            document.getElementById('videoCount').textContent = '0';
+            return;
+        }
+        
+        document.getElementById('videoCount').textContent = files.length;
+        
+        files.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const div = document.createElement('div');
+                div.style.cssText = 'position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:#000;aspect-ratio:16/9;';
+                div.innerHTML = `
+                    <video src="${event.target.result}" style="width:100%;height:100%;object-fit:cover;" muted></video>
+                    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:32px;opacity:0.5;pointer-events:none;">
+                        <i class="fa-solid fa-play"></i>
+                    </div>
+                    <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.6);color:#fff;font-size:10px;padding:2px 6px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        ${file.name.length > 15 ? file.name.substring(0, 15) + '...' : file.name}
+                    </div>
+                `;
+                container.appendChild(div);
+            };
+            reader.readAsDataURL(file);
         });
-        document.querySelectorAll('.remove-video').forEach(btn => {
-            btn.style.display = videoCount <= 1 ? 'none' : 'inline-flex';
-        });
-    }
+    });
 
-    // Soumission du formulaire
+    // ==================== SOUMISSION DU FORMULAIRE ====================
     document.getElementById('bienForm')?.addEventListener('submit', function(e) {
         const btn = document.getElementById('submitBtn');
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publication en cours...';
         btn.disabled = true;
     });
 
-    // Initialisation
+    // ==================== INITIALISATION ====================
     document.addEventListener('DOMContentLoaded', function() {
-        updateButtons();
         document.getElementById('type_bien')?.dispatchEvent(new Event('change'));
     });
 </script>
@@ -388,16 +395,6 @@
 
 @push('styles')
 <style>
-    .photo-upload-item input[type="file"],
-    .video-upload-item input[type="file"] {
-        background: #fff;
-        cursor: pointer;
-    }
-    .photo-upload-item input[type="file"]:hover,
-    .video-upload-item input[type="file"]:hover {
-        border-color: var(--rust);
-    }
-
     label:has(input[type="checkbox"]) {
         transition: all 0.2s;
         cursor: pointer;
@@ -412,12 +409,56 @@
         color: var(--rust) !important;
     }
 
+    .btn-rust:hover {
+        background: #9A4523;
+        color: #fff;
+    }
+    .btn-ghost:hover {
+        background: var(--border);
+    }
+    .btn-rust:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* ✅ RESPONSIVE */
     @media (max-width: 768px) {
         [style*="display:grid;grid-template-columns:1fr 1fr;gap:16px;"] {
             grid-template-columns: 1fr !important;
         }
         [style*="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;"] {
             grid-template-columns: 1fr !important;
+        }
+        [style*="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr))"] {
+            grid-template-columns: repeat(auto-fill,minmax(80px,1fr)) !important;
+        }
+        [style*="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))"] {
+            grid-template-columns: repeat(auto-fill,minmax(140px,1fr)) !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .btn-rust, .btn-ghost {
+            width: 100% !important;
+            justify-content: center !important;
+        }
+        [style*="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr))"] {
+            grid-template-columns: repeat(auto-fill,minmax(70px,1fr)) !important;
+            gap: 8px !important;
+        }
+        [style*="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))"] {
+            grid-template-columns: 1fr !important;
+        }
+        [style*="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:12px;flex-wrap:wrap;"] {
+            flex-direction: column !important;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
         }
     }
 </style>

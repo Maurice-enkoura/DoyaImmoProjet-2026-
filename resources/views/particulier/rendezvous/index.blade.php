@@ -13,13 +13,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div style="padding:12px 16px;background:#E8F5E9;color:#1E7A47;border:1px solid #C8E6C9;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
-            <i class="fa-solid fa-check-circle"></i>
-            <span>{{ session('success') }}</span>
-        </div>
-    @endif
-
     @if(session('error'))
         <div style="padding:12px 16px;background:#FFEBEE;color:#C62828;border:1px solid #FFCDD2;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
             <i class="fa-solid fa-circle-exclamation"></i>

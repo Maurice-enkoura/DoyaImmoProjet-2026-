@@ -13,6 +13,7 @@ use App\Enums\StatutDemandeEnum;
 class DemandeImmobiliere extends Model
 {
     use HasFactory;
+    use \App\Traits\Sluggable;
 
     protected $table = 'demande_immobilieres';
 
@@ -39,7 +40,9 @@ class DemandeImmobiliere extends Model
         'description',
         'statut',
         'date_publication',
+        'slug',
     ];
+     protected $slugSource = 'titre';
 
     protected $casts = [
         'type_operation' => TypeOperationEnum::class,
@@ -58,6 +61,7 @@ class DemandeImmobiliere extends Model
         'securite' => 'boolean',
         'date_entree_souhaitee' => 'date',
         'date_publication' => 'datetime',
+        'slug' => 'string',
     ];
 
     // ==================== RELATIONS ====================
@@ -165,14 +169,14 @@ class DemandeImmobiliere extends Model
     public function getEquipementsWithStatusAttribute(): array
     {
         return [
-            'parking' => ['label' => '🚗 Parking', 'value' => $this->parking ?? false],
-            'meuble' => ['label' => '🛋️ Meublé', 'value' => $this->meuble ?? false],
-            'climatisation' => ['label' => '❄️ Climatisation', 'value' => $this->climatisation ?? false],
-            'balcon' => ['label' => '🌅 Balcon', 'value' => $this->balcon ?? false],
-            'jardin' => ['label' => '🌿 Jardin', 'value' => $this->jardin ?? false],
-            'piscine' => ['label' => '🏊 Piscine', 'value' => $this->piscine ?? false],
-            'ascenseur' => ['label' => '🛗 Ascenseur', 'value' => $this->ascenseur ?? false],
-            'securite' => ['label' => '🔒 Sécurité 24h/24', 'value' => $this->securite ?? false],
+            'parking' => ['label' => ' Parking', 'value' => $this->parking ?? false],
+            'meuble' => ['label' => ' Meublé', 'value' => $this->meuble ?? false],
+            'climatisation' => ['label' => ' Climatisation', 'value' => $this->climatisation ?? false],
+            'balcon' => ['label' => ' Balcon', 'value' => $this->balcon ?? false],
+            'jardin' => ['label' => ' Jardin', 'value' => $this->jardin ?? false],
+            'piscine' => ['label' => ' Piscine', 'value' => $this->piscine ?? false],
+            'ascenseur' => ['label' => ' Ascenseur', 'value' => $this->ascenseur ?? false],
+            'securite' => ['label' => ' Sécurité 24h/24', 'value' => $this->securite ?? false],
         ];
     }
 
@@ -196,7 +200,7 @@ class DemandeImmobiliere extends Model
         if ($typeOperation === $typeContrat) {
             $score += 18;
             $criteres['type_operation'] = true;
-            $details['type_operation'] = '✅ Type d\'opération: ' . $typeOperation;
+            $details['type_operation'] = ' Type d\'opération: ' . $typeOperation;
         } else {
             return ['score' => 0, 'niveau' => 'Incompatible', 'details' => ['Type d\'opération ne correspond pas']];
         }
@@ -208,7 +212,7 @@ class DemandeImmobiliere extends Model
         if ($typeBien === $typeBienBien) {
             $score += 18;
             $criteres['type_bien'] = true;
-            $details['type_bien'] = '✅ Type de bien: ' . $typeBien;
+            $details['type_bien'] = ' Type de bien: ' . $typeBien;
         } else {
             return ['score' => 0, 'niveau' => 'Incompatible', 'details' => ['Type de bien ne correspond pas']];
         }
@@ -217,7 +221,7 @@ class DemandeImmobiliere extends Model
         if (strtolower(trim($this->zone_recherchee)) === strtolower(trim($bien->quartier))) {
             $score += 18;
             $criteres['zone'] = true;
-            $details['zone'] = '✅ Zone: ' . $this->zone_recherchee;
+            $details['zone'] = ' Zone: ' . $this->zone_recherchee;
         } else {
             return ['score' => 0, 'niveau' => 'Incompatible', 'details' => ['Zone géographique ne correspond pas']];
         }
@@ -233,15 +237,15 @@ class DemandeImmobiliere extends Model
         if ($prixBien <= $budgetMax) {
             $score += 12;
             $criteres['budget'] = true;
-            $details['budget'] = '✅ Budget: ' . number_format($prixBien, 0, ',', ' ') . ' F ≤ ' . number_format($budgetMax, 0, ',', ' ') . ' F';
+            $details['budget'] = ' Budget: ' . number_format($prixBien, 0, ',', ' ') . ' F ≤ ' . number_format($budgetMax, 0, ',', ' ') . ' F';
         } elseif ($prixBien <= $seuilMax) {
             $score += 7;
             $criteres['budget'] = 'partiel';
-            $details['budget'] = '⚠️ Budget: ' . number_format($prixBien, 0, ',', ' ') . ' F (tolérance +20%)';
+            $details['budget'] = ' Budget: ' . number_format($prixBien, 0, ',', ' ') . ' F (tolérance +20%)';
         } else {
             $score += 0;
             $criteres['budget'] = false;
-            $details['budget'] = '❌ Budget: ' . number_format($prixBien, 0, ',', ' ') . ' F > ' . number_format($budgetMax, 0, ',', ' ') . ' F';
+            $details['budget'] = ' Budget: ' . number_format($prixBien, 0, ',', ' ') . ' F > ' . number_format($budgetMax, 0, ',', ' ') . ' F';
         }
 
         // 5. Surface (8 points avec tolérance ±20%)
@@ -253,15 +257,15 @@ class DemandeImmobiliere extends Model
             if ($surfaceMin <= $surfaceBien) {
                 $score += 8;
                 $criteres['surface'] = true;
-                $details['surface'] = '✅ Surface: ' . $surfaceMin . ' m² ≤ ' . $surfaceBien . ' m²';
+                $details['surface'] = ' Surface: ' . $surfaceMin . ' m² ≤ ' . $surfaceBien . ' m²';
             } elseif ($surfaceMinTolere <= $surfaceBien) {
                 $score += 5;
                 $criteres['surface'] = 'partiel';
-                $details['surface'] = '⚠️ Surface: ' . $surfaceMin . ' m² (tolérance -20%)';
+                $details['surface'] = ' Surface: ' . $surfaceMin . ' m² (tolérance -20%)';
             } else {
                 $score += 0;
                 $criteres['surface'] = false;
-                $details['surface'] = '❌ Surface: ' . $surfaceMin . ' m² > ' . $surfaceBien . ' m²';
+                $details['surface'] = ' Surface: ' . $surfaceMin . ' m² > ' . $surfaceBien . ' m²';
             }
         }
 
@@ -273,15 +277,15 @@ class DemandeImmobiliere extends Model
             if ($chambresDemande <= $chambresBien) {
                 $score += 8;
                 $criteres['chambres'] = true;
-                $details['chambres'] = '✅ Chambres: ' . $chambresDemande . ' ≤ ' . $chambresBien;
+                $details['chambres'] = ' Chambres: ' . $chambresDemande . ' ≤ ' . $chambresBien;
             } elseif ($chambresDemande - 1 <= $chambresBien) {
                 $score += 5;
                 $criteres['chambres'] = 'partiel';
-                $details['chambres'] = '⚠️ Chambres: ' . $chambresDemande . ' (tolérance -1)';
+                $details['chambres'] = ' Chambres: ' . $chambresDemande . ' (tolérance -1)';
             } else {
                 $score += 0;
                 $criteres['chambres'] = false;
-                $details['chambres'] = '❌ Chambres: ' . $chambresDemande . ' > ' . $chambresBien;
+                $details['chambres'] = ' Chambres: ' . $chambresDemande . ' > ' . $chambresBien;
             }
         }
 
@@ -293,15 +297,15 @@ class DemandeImmobiliere extends Model
             if ($sdbDemande <= $sdbBien) {
                 $score += 8;
                 $criteres['sdb'] = true;
-                $details['sdb'] = '✅ Salles de bain: ' . $sdbDemande . ' ≤ ' . $sdbBien;
+                $details['sdb'] = ' Salles de bain: ' . $sdbDemande . ' ≤ ' . $sdbBien;
             } elseif ($sdbDemande - 1 <= $sdbBien) {
                 $score += 5;
                 $criteres['sdb'] = 'partiel';
-                $details['sdb'] = '⚠️ Salles de bain: ' . $sdbDemande . ' (tolérance -1)';
+                $details['sdb'] = ' Salles de bain: ' . $sdbDemande . ' (tolérance -1)';
             } else {
                 $score += 0;
                 $criteres['sdb'] = false;
-                $details['sdb'] = '❌ Salles de bain: ' . $sdbDemande . ' > ' . $sdbBien;
+                $details['sdb'] = ' Salles de bain: ' . $sdbDemande . ' > ' . $sdbBien;
             }
         }
 
@@ -312,7 +316,7 @@ class DemandeImmobiliere extends Model
         $equipementsScore = count($equipementsCommuns) > 0 ? min(8, count($equipementsCommuns) * 2) : 0;
         $score += $equipementsScore;
         $criteres['equipements'] = $equipementsScore > 0 ? true : false;
-        $details['equipements'] = $equipementsScore > 0 ? '✅ ' . count($equipementsCommuns) . ' équipement(s) correspondant(s)' : '❌ Aucun équipement correspondant';
+        $details['equipements'] = $equipementsScore > 0 ? ' ' . count($equipementsCommuns) . ' équipement(s) correspondant(s)' : '❌ Aucun équipement correspondant';
 
         // Score maximum 100
         $scoreTotal = min(100, $score);
@@ -344,4 +348,11 @@ class DemandeImmobiliere extends Model
         if ($score >= 20) return 'Faible';
         return 'Minimal';
     }
+    /**
+ * Get the route key for the model.
+ */
+public function getRouteKeyName(): string
+{
+    return 'slug';
+}
 }

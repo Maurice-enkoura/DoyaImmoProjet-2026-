@@ -167,10 +167,12 @@
 
             <!-- Actions -->
             <div style="display:flex;gap:10px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--border);">
-                <a href="{{ route('agence.biens.edit', $bien) }}" class="btn btn-ghost btn-sm">
+                <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                <a href="{{ route('agence.biens.edit', $bien->slug) }}" class="btn btn-ghost btn-sm">
                     <i class="fa-solid fa-pen"></i> Modifier
                 </a>
-                <form action="{{ route('agence.biens.activer', $bien) }}" method="POST" style="display:inline;">
+                <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                <form action="{{ route('agence.biens.activer', $bien->slug) }}" method="POST" style="display:inline;">
                     @csrf
                     <button type="submit" class="btn btn-sm {{ $bien->statut ? 'btn-ghost' : 'btn-rust' }}">
                         <i class="fa-solid {{ $bien->statut ? 'fa-eye-slash' : 'fa-eye' }}"></i>

@@ -77,11 +77,13 @@
                             Reçue le {{ $offre->created_at->format('d/m/Y') }}
                         </span>
                         <div class="offre-actions">
-                            <a href="{{ route('particulier.propositions.show', $offre) }}" class="btn btn-ghost btn-sm">
+                            <!-- ✅ CORRIGÉ : Utilisation de l'ID (selon les routes) -->
+                            <a href="{{ route('particulier.propositions.show', $offre->id) }}" class="btn btn-ghost btn-sm">
                                 <i class="fa-solid fa-eye"></i> Détails
                             </a>
                             @if($offre->statut->value === 'en_attente')
-                                <form action="{{ route('particulier.propositions.selectionner', $offre) }}" method="POST" style="display:inline;">
+                                <!-- ✅ CORRIGÉ : Utilisation de l'ID (selon les routes) -->
+                                <form action="{{ route('particulier.propositions.selectionner', $offre->id) }}" method="POST" style="display:inline;">
                                     @csrf
                                     <button type="submit" class="btn btn-rust btn-sm">
                                         <i class="fa-solid fa-check"></i> Sélectionner

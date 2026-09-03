@@ -54,6 +54,9 @@ class AdminAgenceController extends Controller
         return view('admin.agences.index', compact('agences'));
     }
 
+    /**
+     * Affiche le détail d'une agence - UTILISE LE SLUG
+     */
     public function show(Agence $agence)
     {
         $agence->load([
@@ -65,12 +68,18 @@ class AdminAgenceController extends Controller
         return view('admin.agences.show', compact('agence'));
     }
 
+    /**
+     * Affiche les documents d'une agence - UTILISE LE SLUG
+     */
     public function documents(Agence $agence)
     {
         $documents = $agence->documents()->with('validePar.user')->get();
         return view('admin.agences.documents', compact('agence', 'documents'));
     }
 
+    /**
+     * Valide les documents d'une agence - UTILISE LE SLUG
+     */
     public function validerDocuments(Request $request, Agence $agence)
     {
         $request->validate([
@@ -124,16 +133,19 @@ class AdminAgenceController extends Controller
                 ? 'Documents validés avec succès.' 
                 : 'Documents rejetés avec succès. Un email a été envoyé à l\'agence.';
 
-            return redirect()->route('admin.agences.documents', $agence)
+            return redirect()->route('admin.agences.documents', ['agence' => $agence->slug])
                 ->with('success', $message);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->route('admin.agences.documents', $agence)
+            return redirect()->route('admin.agences.documents', ['agence' => $agence->slug])
                 ->with('error', 'Une erreur est survenue: ' . $e->getMessage());
         }
     }
 
+    /**
+     * Valide une agence - UTILISE LE SLUG
+     */
     public function valider(Agence $agence)
     {
         try {
@@ -157,6 +169,9 @@ class AdminAgenceController extends Controller
         }
     }
 
+    /**
+     * Refuse une agence - UTILISE LE SLUG
+     */
     public function refuser(Request $request, Agence $agence)
     {
         $request->validate([
@@ -183,7 +198,7 @@ class AdminAgenceController extends Controller
     }
 
     /**
-     * ✅ Réactiver une agence refusée
+     * ✅ Réactiver une agence refusée - UTILISE LE SLUG
      */
     public function reactiver(Agence $agence)
     {
@@ -203,6 +218,9 @@ class AdminAgenceController extends Controller
         }
     }
 
+    /**
+     * Bloque une agence - UTILISE LE SLUG
+     */
     public function bloquer(Agence $agence)
     {
         if (Schema::hasColumn('agences', 'bloque')) {
@@ -215,6 +233,9 @@ class AdminAgenceController extends Controller
             ->with('error', 'La fonction de blocage n\'est pas disponible.');
     }
 
+    /**
+     * Débloque une agence - UTILISE LE SLUG
+     */
     public function debloquer(Agence $agence)
     {
         if (Schema::hasColumn('agences', 'bloque')) {
@@ -227,6 +248,9 @@ class AdminAgenceController extends Controller
             ->with('error', 'La fonction de déblocage n\'est pas disponible.');
     }
 
+    /**
+     * Supprime une agence - UTILISE LE SLUG
+     */
     public function destroy(Agence $agence)
     {
         $user = $agence->user;

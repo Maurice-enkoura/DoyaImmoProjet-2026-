@@ -41,6 +41,7 @@
             background: #F7F9FC;
             color: var(--ink);
             line-height: 1.6;
+            padding-bottom: 0;
         }
 
         .app {
@@ -951,6 +952,185 @@
             border-color: var(--rust);
         }
 
+        /* ============================================
+           BOTTOM NAVIGATION (MENU MOBILE) - UNIQUEMENT SUR MOBILE
+           ============================================ */
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-top: 1px solid var(--border);
+            z-index: 1000;
+            padding: 6px 0 env(safe-area-inset-bottom, 8px) 0;
+            box-shadow: 0 -2px 16px rgba(0,0,0,0.06);
+            height: 68px;
+        }
+
+        .bottom-nav .nav-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 8px;
+            height: 100%;
+        }
+
+        .bottom-nav .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 500;
+            transition: color 0.2s;
+            padding: 4px 12px;
+            border-radius: 8px;
+            min-width: 56px;
+            position: relative;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: var(--display);
+        }
+
+        .bottom-nav .nav-item i {
+            font-size: 22px;
+            transition: all 0.2s;
+        }
+
+        .bottom-nav .nav-item span {
+            font-size: 9px;
+            line-height: 1.2;
+        }
+
+        .bottom-nav .nav-item.active {
+            color: var(--rust);
+        }
+
+        .bottom-nav .nav-item.active i {
+            transform: scale(1.05);
+        }
+
+        .bottom-nav .nav-item .badge-count {
+            position: absolute;
+            top: 0;
+            right: -4px;
+            background: #C62828;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 20px;
+            min-width: 18px;
+            text-align: center;
+            border: 2px solid #fff;
+            line-height: 1.4;
+        }
+
+        /* Bouton Publier (style différent - au centre) */
+        .bottom-nav .nav-item.publier {
+            background: var(--rust);
+            color: #fff;
+            border-radius: 50px;
+            padding: 6px 16px;
+            min-width: 70px;
+            box-shadow: 0 4px 12px rgba(181, 80, 42, 0.35);
+            transition: all 0.2s;
+            margin-top: -10px;
+        }
+
+        .bottom-nav .nav-item.publier i {
+            font-size: 18px;
+        }
+
+        .bottom-nav .nav-item.publier span {
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .bottom-nav .nav-item.publier:hover {
+            background: #9A4523;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(181, 80, 42, 0.45);
+        }
+
+        .bottom-nav .nav-item.publier:active {
+            transform: scale(0.95);
+        }
+
+        /* ✅ BOTTOM NAV - UNIQUEMENT SUR MOBILE */
+        @media (max-width: 820px) {
+            .bottom-nav {
+                display: block;
+            }
+
+            /* Ajouter un padding en bas sur le body pour ne pas cacher le contenu */
+            body {
+                padding-bottom: 76px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .bottom-nav .nav-item {
+                min-width: 44px;
+                padding: 2px 8px;
+            }
+            .bottom-nav .nav-item i {
+                font-size: 20px;
+            }
+            .bottom-nav .nav-item span {
+                font-size: 8px;
+            }
+            .bottom-nav .nav-item.publier {
+                padding: 4px 12px;
+                min-width: 56px;
+                margin-top: -8px;
+            }
+            .bottom-nav .nav-item.publier i {
+                font-size: 16px;
+            }
+            .bottom-nav .nav-item.publier span {
+                font-size: 9px;
+            }
+            body {
+                padding-bottom: 68px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .bottom-nav .nav-item {
+                min-width: 36px;
+                padding: 2px 4px;
+            }
+            .bottom-nav .nav-item i {
+                font-size: 17px;
+            }
+            .bottom-nav .nav-item span {
+                font-size: 7px;
+            }
+            .bottom-nav .nav-item.publier {
+                padding: 4px 8px;
+                min-width: 44px;
+                margin-top: -6px;
+            }
+            .bottom-nav .nav-item.publier i {
+                font-size: 14px;
+            }
+            .bottom-nav .nav-item.publier span {
+                font-size: 8px;
+            }
+            body {
+                padding-bottom: 60px;
+            }
+        }
+
         /* ==================== RESPONSIVE ==================== */
 
         @media (max-width: 1024px) {
@@ -1516,6 +1696,46 @@
             </div>
         </div>
     </div>
+
+    <!-- ============================================
+         BOTTOM NAVIGATION (MENU MOBILE) - UNIQUEMENT SUR MOBILE
+         ============================================ -->
+    <nav class="bottom-nav" role="navigation" aria-label="Navigation principale">
+        <div class="nav-inner">
+            <!-- Accueil -->
+            <a href="{{ route('home') }}" class="nav-item {{ request()->routeIs('home') ? 'active' : '' }}">
+                <i class="fa-solid fa-house"></i>
+                <span>Accueil</span>
+            </a>
+
+            <!-- Dashboard -->
+            <a href="{{ route('particulier.dashboard') }}" class="nav-item {{ request()->routeIs('particulier.dashboard') ? 'active' : '' }}">
+                <i class="fa-solid fa-gauge"></i>
+                <span>Dashboard</span>
+            </a>
+
+            <!-- PUBLIER (au milieu) -->
+            <a href="{{ route('particulier.demandes.create') }}" class="nav-item publier">
+                <i class="fa-solid fa-plus"></i>
+                <span>Publier</span>
+            </a>
+
+            <!-- Mes besoins -->
+            <a href="{{ route('particulier.demandes.index') }}" class="nav-item {{ request()->routeIs('particulier.demandes.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-house-circle-check"></i>
+                <span>Besoins</span>
+                @if(($besoinsCount ?? 0) > 0)
+                    <span class="badge-count">{{ $besoinsCount }}</span>
+                @endif
+            </a>
+
+            <!-- Profil -->
+            <a href="{{ route('particulier.profil') }}" class="nav-item {{ request()->routeIs('particulier.profil') ? 'active' : '' }}">
+                <i class="fa-solid fa-user"></i>
+                <span>Profil</span>
+            </a>
+        </div>
+    </nav>
 
     <script>
         // ===================== SIDEBAR =====================

@@ -28,7 +28,8 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('particulier.demandes.update', $demande) }}">
+        <!-- ✅ CORRIGÉ : Utilisation du slug -->
+        <form method="POST" action="{{ route('particulier.demandes.update', $demande->slug) }}">
             @csrf
             @method('PUT')
 
@@ -303,14 +304,16 @@
                     <button type="submit" class="btn btn-rust" id="submitBtn">
                         <i class="fa-solid fa-save"></i> Mettre à jour
                     </button>
-                    <a href="{{ route('particulier.demandes.show', $demande) }}" class="btn btn-ghost">
+                    <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                    <a href="{{ route('particulier.demandes.show', $demande->slug) }}" class="btn btn-ghost">
                         <i class="fa-solid fa-eye"></i> Voir la demande
                     </a>
                     <a href="{{ route('particulier.demandes.index') }}" class="btn btn-ghost" style="margin-left:auto;">
                         <i class="fa-solid fa-times"></i> Annuler
                     </a>
                 @else
-                    <a href="{{ route('particulier.demandes.show', $demande) }}" class="btn btn-ghost">
+                    <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                    <a href="{{ route('particulier.demandes.show', $demande->slug) }}" class="btn btn-ghost">
                         <i class="fa-solid fa-eye"></i> Voir la demande
                     </a>
                     <a href="{{ route('particulier.demandes.index') }}" class="btn btn-ghost" style="margin-left:auto;">

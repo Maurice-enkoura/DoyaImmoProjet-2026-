@@ -70,11 +70,13 @@
                             <i class="fa-regular fa-clock"></i> {{ $demande->created_at->diffForHumans() }}
                         </span>
                         <div class="besoin-actions">
-                            <a href="{{ route('particulier.demandes.show', $demande) }}" class="btn btn-ghost btn-sm">
+                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                            <a href="{{ route('particulier.demandes.show', $demande->slug) }}" class="btn btn-ghost btn-sm">
                                 <i class="fa-solid fa-eye"></i> Voir
                             </a>
                             @if($demande->propositions->count() > 0)
-                                <a href="{{ route('particulier.demandes.offres', $demande) }}" class="btn btn-rust btn-sm">
+                                <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                                <a href="{{ route('particulier.demandes.offres', $demande->slug) }}" class="btn btn-rust btn-sm">
                                     <i class="fa-solid fa-file-invoice"></i> Voir offres
                                 </a>
                             @endif

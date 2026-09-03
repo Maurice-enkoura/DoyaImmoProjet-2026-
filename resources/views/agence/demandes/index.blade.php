@@ -122,10 +122,12 @@
                             {{ $demande->propositions->count() }} offre(s) reçue(s)
                         </span>
                         <div style="display:flex;gap:8px;">
-                            <a href="{{ route('agence.demandes.show', $demande) }}" class="btn btn-ghost btn-sm">
+                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                            <a href="{{ route('agence.demandes.show', $demande->slug) }}" class="btn btn-ghost btn-sm">
                                 <i class="fa-solid fa-eye"></i> Voir
                             </a>
-                            <a href="{{ route('agence.propositions.create', $demande) }}" class="btn btn-rust btn-sm">
+                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                            <a href="{{ route('agence.propositions.create', $demande->slug) }}" class="btn btn-rust btn-sm">
                                 <i class="fa-solid fa-paper-plane"></i> Faire une offre
                             </a>
                         </div>

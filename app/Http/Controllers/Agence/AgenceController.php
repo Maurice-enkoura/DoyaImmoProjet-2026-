@@ -82,9 +82,6 @@ class AgenceController extends Controller
     /**
      * Tableau de bord de l'agence
      */
-    /**
-     * Tableau de bord de l'agence
-     */
     public function dashboard()
     {
         $agence = Auth::user()->agence;
@@ -231,11 +228,11 @@ class AgenceController extends Controller
             'messagesCount'
         ), $notifData));
     }
+    
     // ==================== GESTION DES BIENS EN VEDETTE ====================
-// ==================== GESTION DES BIENS EN VEDETTE ====================
 
     /**
-     * Désactive la mise en vedette d'un bien
+     * Désactive la mise en vedette d'un bien - UTILISE LE SLUG
      */
     public function desactiverVedette(BienImmobilier $bien)
     {
@@ -283,7 +280,7 @@ class AgenceController extends Controller
     }
 
     /**
-     * Affiche la page de demande de mise en vedette
+     * Affiche la page de demande de mise en vedette - UTILISE LE SLUG
      */
     public function demandeVedette(BienImmobilier $bien)
     {
@@ -305,7 +302,7 @@ class AgenceController extends Controller
         }
 
         if ($bien->est_vedette) {
-            return redirect()->route('agence.biens.show', $bien)
+            return redirect()->route('agence.biens.show', ['bien' => $bien->slug])
                 ->with('warning', 'Ce bien est déjà en vedette.');
         }
 
@@ -321,33 +318,28 @@ class AgenceController extends Controller
         return view('agence.biens.demande-vedette', compact('bien', 'tarifs'));
     }
 
-   
-
     /**
      * Afficher les coordonnées pour contacter DoyaImmo
      */
-    /**
- * Afficher les coordonnées pour contacter DoyaImmo
- */
-public function contactVedette(MiseEnVedette $mise)
-{
-    $agence = Auth::user()->agence;
+    public function contactVedette(MiseEnVedette $mise)
+    {
+        $agence = Auth::user()->agence;
 
-    if ($mise->agence_id !== $agence->id) {
-        abort(403);
+        if ($mise->agence_id !== $agence->id) {
+            abort(403);
+        }
+
+        if ($mise->statut !== 'en_attente') {
+            return redirect()->route('agence.biens.show', ['bien' => $mise->bien->slug])
+                ->with('info', 'Cette demande a déjà été traitée.');
+        }
+
+        $bien = $mise->bien;
+        $duree = $mise->duree;
+        $montant = $mise->montant;
+
+        return view('agence.biens.vedette-contact', compact('mise', 'bien', 'duree', 'montant'));
     }
-
-    if ($mise->statut !== 'en_attente') {
-        return redirect()->route('agence.biens.show', $mise->bien)
-            ->with('info', 'Cette demande a déjà été traitée.');
-    }
-
-    $bien = $mise->bien;
-    $duree = $mise->duree;
-    $montant = $mise->montant;
-
-    return view('agence.biens.vedette-contact', compact('mise', 'bien', 'duree', 'montant'));
-}
 
     /**
      * Vérifier si l'agence peut publier des biens (abonnement Pro)
@@ -362,82 +354,75 @@ public function contactVedette(MiseEnVedette $mise)
         return $abonnement && $abonnement->formule->value === 'pro';
     }
 
-
     /**
- * Enregistrer une demande de mise en vedette
- */
-/**
- * Enregistrer une demande de mise en vedette
- */
-/**
- * Enregistrer une demande de mise en vedette
- */
-public function demanderVedette(Request $request, BienImmobilier $bien)
-{
-    $agence = Auth::user()->agence;
+     * Enregistrer une demande de mise en vedette - UTILISE LE SLUG
+     */
+    public function demanderVedette(Request $request, BienImmobilier $bien)
+    {
+        $agence = Auth::user()->agence;
 
-    if ($bien->agence_id !== $agence->id) {
-        abort(403);
-    }
-
-    $request->validate([
-        'duree' => 'required|in:1,3,7,14,30',
-    ]);
-
-    // Vérifier l'abonnement Pro
-    $abonnementActuel = $agence->abonnements()
-        ->where('statut', true)
-        ->where('date_fin', '>', now())
-        ->first();
-
-    if (!$abonnementActuel || $abonnementActuel->formule->value !== 'pro') {
-        return redirect()->route('agence.abonnement')
-            ->with('error', 'Seules les agences avec un abonnement Pro peuvent demander une mise en vedette.');
-    }
-
-    if ($bien->est_vedette) {
-        return redirect()->route('agence.biens.show', $bien)
-            ->with('warning', 'Ce bien est déjà en vedette.');
-    }
-
-    $duree = (int) $request->duree;
-    $tarifs = [
-        1 => 1000,
-        3 => 1500,
-        7 => 3000,
-        14 => 5000,
-        30 => 8000,
-    ];
-
-    if (!isset($tarifs[$duree])) {
-        return redirect()->back()->with('error', 'Durée invalide.');
-    }
-
-    // ✅ CRÉER LA DEMANDE EN BASE DE DONNÉES
-    $mise = MiseEnVedette::create([
-        'bien_id' => $bien->id,
-        'agence_id' => $agence->id,
-        'duree' => $duree,
-        'montant' => $tarifs[$duree],
-        'statut' => 'en_attente',
-        'date_debut' => null,
-        'date_fin' => null,
-    ]);
-
-    // ✅ NOTIFIER LES ADMINISTRATEURS
-    $admins = \App\Models\User::where('role', 'admin')->get();
-    foreach ($admins as $admin) {
-        try {
-            $admin->notify(new \App\Notifications\NouvelleDemandeVedetteNotification($mise));
-        } catch (\Exception $e) {
-            \Log::error('Erreur notification admin pour la demande #' . $mise->id . ': ' . $e->getMessage());
+        if ($bien->agence_id !== $agence->id) {
+            abort(403);
         }
-    }
 
-    // Rediriger vers la page de contact avec l'ID de la demande
-    return redirect()->route('agence.biens.vedette.contact', ['mise' => $mise->id])
-        ->with('success', 'Votre demande de mise en vedette a été enregistrée. Contactez-nous pour finaliser le paiement.');
-}
+        $request->validate([
+            'duree' => 'required|in:1,3,7,14,30',
+        ]);
+
+        // Vérifier l'abonnement Pro
+        $abonnementActuel = $agence->abonnements()
+            ->where('statut', true)
+            ->where('date_fin', '>', now())
+            ->first();
+
+        if (!$abonnementActuel || $abonnementActuel->formule->value !== 'pro') {
+            return redirect()->route('agence.abonnement')
+                ->with('error', 'Seules les agences avec un abonnement Pro peuvent demander une mise en vedette.');
+        }
+
+        if ($bien->est_vedette) {
+            return redirect()->route('agence.biens.show', ['bien' => $bien->slug])
+                ->with('warning', 'Ce bien est déjà en vedette.');
+        }
+
+        $duree = (int) $request->duree;
+        $tarifs = [
+            1 => 1000,
+            3 => 1500,
+            7 => 3000,
+            14 => 5000,
+            30 => 8000,
+        ];
+
+        if (!isset($tarifs[$duree])) {
+            return redirect()->back()->with('error', 'Durée invalide.');
+        }
+
+        // ✅ CRÉER LA DEMANDE EN BASE DE DONNÉES
+        $mise = MiseEnVedette::create([
+            'bien_id' => $bien->id,
+            'agence_id' => $agence->id,
+            'duree' => $duree,
+            'montant' => $tarifs[$duree],
+            'statut' => 'en_attente',
+            'date_debut' => null,
+            'date_fin' => null,
+        ]);
+
+        // ✅ NOTIFIER LES ADMINISTRATEURS
+        $admins = \App\Models\User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            try {
+                $admin->notify(new \App\Notifications\NouvelleDemandeVedetteNotification($mise));
+            } catch (\Exception $e) {
+                \Log::error('Erreur notification admin pour la demande #' . $mise->id . ': ' . $e->getMessage());
+            }
+        }
+
+        // Rediriger vers la page de contact avec l'ID de la demande
+        return redirect()->route('agence.biens.vedette.contact', ['mise' => $mise->id])
+            ->with('success', 'Votre demande de mise en vedette a été enregistrée. Contactez-nous pour finaliser le paiement.');
+    }
   
     // ==================== DEMANDES ====================
 
@@ -596,7 +581,7 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
     }
 
     /**
-     * Détail d'une demande
+     * Détail d'une demande - UTILISE LE SLUG
      */
     public function demandesShow(DemandeImmobiliere $demande)
     {
@@ -685,7 +670,8 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
         return redirect()->route('agence.profil')
             ->with('success', 'Profil mis à jour avec succès.');
     }
-// ==================== GESTION DES CRÉNEAUX RÉCURRENTS ====================
+    
+    // ==================== GESTION DES CRÉNEAUX RÉCURRENTS ====================
 
     /**
      * Sauvegarder le planning type (créneaux récurrents) dans la session
@@ -919,7 +905,8 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
         }
         return $semaine;
     }
-// ==================== CRÉNEAUX ====================
+    
+    // ==================== CRÉNEAUX ====================
 
     /**
      * Supprime un créneau spécifique
@@ -1086,12 +1073,6 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
     /**
      * Marquer un rendez-vous comme terminé
      */
-    /**
-     * Marquer un rendez-vous comme terminé
-     */
-    /**
-     * Marquer un rendez-vous comme terminé
-     */
     public function rendezvousTermine(RendezVous $rendezVous)
     {
         if ($rendezVous->agence_id !== Auth::user()->agence->id) {
@@ -1128,6 +1109,7 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
                 ->with('error', 'Une erreur est survenue lors de la clôture du rendez-vous.');
         }
     }
+    
     // ==================== ÉVALUATIONS ====================
 
     /**
@@ -1221,13 +1203,6 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
     /**
      * Gestion de l'abonnement
      */
-    /**
-     * Gestion de l'abonnement
-     */
-    /**
-     * Gestion de l'abonnement
-     */
-
     public function abonnement()
     {
         $agence = Auth::user()->agence;
@@ -1241,7 +1216,6 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
 
         if (!$agence->statut_validation) {
             $estNonValidee = true;
-
             $notifData = $this->getNotifications();
 
             return view('agence.abonnement.index', array_merge([
@@ -1251,13 +1225,35 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
                 'plans' => [],
                 'abonnementGratuitExpire' => false,
                 'estNonValidee' => $estNonValidee,
+                'aDejaEuGratuit' => false, // ✅ Ajouté
+                'isBasicActif' => false, // ✅ Ajouté
+                'isProActif' => false, // ✅ Ajouté
             ], $notifData));
         }
 
+        // ✅ Vérifier l'abonnement actuel
         $abonnementActuel = $agence->abonnements()
             ->where('statut', true)
             ->where('date_fin', '>', now())
             ->first();
+
+        // ✅ Vérifier si l'agence a déjà eu un abonnement gratuit (Basic) terminé
+        $aDejaEuGratuit = $agence->abonnements()
+            ->where('formule', 'basic')
+            ->where('statut', false)
+            ->exists();
+
+        // ✅ Vérifier si Basic est actif
+        $isBasicActif = false;
+        $isProActif = false;
+
+        if ($abonnementActuel) {
+            if ($abonnementActuel->formule->value === 'basic') {
+                $isBasicActif = true;
+            } elseif ($abonnementActuel->formule->value === 'pro') {
+                $isProActif = true;
+            }
+        }
 
         $abonnementGratuitExpire = false;
         $dernierAbonnement = $agence->abonnements()
@@ -1275,7 +1271,7 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
             ->limit(10)
             ->get();
 
-        // ✅ Utilisation de l'Enum pour générer les plans (seulement basic et pro)
+        // ✅ Utilisation de l'Enum pour générer les plans
         $plans = [];
         $formules = ['basic', 'pro'];
 
@@ -1313,28 +1309,21 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
             'abonnementGratuitExpire',
             'agence',
             'estNonValidee',
-            'tarifsVedette'
+            'tarifsVedette',
+            'aDejaEuGratuit', // ✅ Ajouté
+            'isBasicActif', // ✅ Ajouté
+            'isProActif' // ✅ Ajouté
         ), $notifData));
     }
 
     /**
      * Souscrire à un abonnement
      */
-    /**
-     * Souscrire à un abonnement
-     */
-    /**
-     * Souscrire à un abonnement
-     */
-    /**
-     * Souscrire à un abonnement
-     */
-
     public function souscrire(Request $request)
     {
         try {
             $request->validate([
-                'formule' => 'required|in:basic,pro' // ✅ Supprimé premium
+                'formule' => 'required|in:basic,pro'
             ]);
 
             $agence = Auth::user()->agence;
@@ -1352,6 +1341,7 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
             $formule = FormuleAbonnementEnum::from($request->formule);
             $montant = $formule->prix();
 
+            // ✅ Vérifier si l'agence a déjà un abonnement actif
             $abonnementActuel = $agence->abonnements()
                 ->where('statut', true)
                 ->where('date_fin', '>', now())
@@ -1361,12 +1351,13 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
                 $formuleActuelle = $abonnementActuel->formule->value;
                 $formuleDemandee = $request->formule;
 
+                // ✅ Si l'utilisateur a déjà un abonnement Basic actif
                 if ($formuleActuelle === $formuleDemandee) {
                     return redirect()->route('agence.abonnement')
                         ->with('error', 'Vous avez déjà un abonnement ' . $formule->label() . ' actif jusqu\'au ' . $abonnementActuel->date_fin->format('d/m/Y') . '.');
                 }
 
-                // ✅ Basic → peut passer à Pro
+                // ✅ Basic → peut passer à Pro (on désactive l'ancien)
                 if ($formuleActuelle === 'basic' && $formuleDemandee === 'pro') {
                     $abonnementActuel->update(['statut' => false]);
                 }
@@ -1380,7 +1371,7 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
                 }
             }
 
-            // ✅ Vérifier si l'agence a déjà eu un abonnement gratuit (Basic)
+            // ✅ Vérifier si l'agence a déjà eu un abonnement gratuit (Basic) terminé
             if ($montant == 0) {
                 $aDejaEuGratuit = $agence->abonnements()
                     ->where('formule', 'basic')
@@ -1393,27 +1384,31 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
                 }
             }
 
+            // ✅ Créer l'abonnement
             $abonnement = Abonnement::create([
                 'agence_id' => $agence->id,
                 'formule' => $formule,
                 'montant' => $montant,
                 'date_debut' => now(),
                 'date_fin' => now()->addMonth(),
-                'statut' => $montant == 0,
+                'statut' => $montant == 0, // Si gratuit, activé immédiatement
             ]);
 
+            // ✅ Si payant, rediriger vers PayDunya
             if ($montant > 0) {
                 return redirect()->route('paydunya.pay', ['abonnement' => $abonnement->id]);
             }
 
+            // ✅ Si gratuit, activer et rediriger
             return redirect()->route('agence.abonnement')
-                ->with('success', ' Abonnement gratuit activé avec succès !');
+                ->with('success', '🎉 Abonnement gratuit activé avec succès !');
         } catch (\Exception $e) {
             Log::error('Erreur souscription: ' . $e->getMessage());
             return redirect()->route('agence.abonnement')
                 ->with('error', 'Erreur lors de la souscription: ' . $e->getMessage());
         }
     }
+    
     /**
      * Mettre à jour/Changer d'abonnement
      */
@@ -1491,18 +1486,6 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
 
     /**
      * Historique des activités de l'agence
-     */
-    /**
-     * Historique des activités de l'agence
-     */
-    /**
-     * Historique des activités de l'agence
-     */
-    /**
-     * Historique des activités de l'agence
-     */
-    /**
-     * Historique des activités de l'agence
      * Affiche uniquement les activités terminées ou annulées
      */
     public function historique()
@@ -1539,7 +1522,7 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
                         'Budget client' => number_format($item->demande->budget_maximum, 0, ',', ' ') . ' FCFA',
                     ],
                     'link' => route('agence.propositions.show', $item),
-                    'demande_link' => route('agence.demandes.show', $item->demande_id),
+                    'demande_link' => route('agence.demandes.show', ['demande' => $item->demande->slug]), // ✅ SLUG
                 ];
             });
 
@@ -1654,7 +1637,4 @@ public function demanderVedette(Request $request, BienImmobilier $bien)
     }
 
     // ==================== UTILITAIRES ====================
-
-
-
 }

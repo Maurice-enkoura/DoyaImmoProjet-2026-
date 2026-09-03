@@ -375,174 +375,11 @@
         </div>
     </div>
 </section>
-
-<!-- ==================== CTA FLOTTANT AU SCROLL ==================== -->
-<a href="{{ route('register') }}" class="floating-cta" id="floatingCta" style="text-decoration:none;">
-    <div class="avatar-group">
-        <div class="avatar" style="background-color:#F5A623;">F</div>
-        <div class="avatar" style="background-color:#2A9D8F;">A</div>
-        <div class="avatar" style="background-color:#B85C3A;">M</div>
-        <div class="avatar" style="background-color:#4A90D9;">S</div>
-    </div>
-    <span class="cta-text">Trouvez votre logement en 2 minutes</span>
-    <i class="fa-solid fa-arrow-right"></i>
-</a>
 @endsection
 
 @push('styles')
 <style>
-/* ==================== CTA FLOTTANT AU SCROLL ==================== */
-.floating-cta {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #2A9D8F;
-    color: #fff;
-    padding: 10px 20px;
-    border-radius: 50px;
-    font-size: 13px;
-    font-weight: 600;
-    box-shadow: 0 8px 24px rgba(42, 157, 143, 0.35);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    z-index: 9999;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.4s ease;
-    cursor: pointer;
-    white-space: nowrap;
-    border: none;
-}
-
-.floating-cta.visible {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(-50%) translateY(0);
-}
-
-.floating-cta:hover {
-    background: #1B7A6F;
-    transform: translateX(-50%) translateY(-3px);
-    box-shadow: 0 12px 32px rgba(42, 157, 143, 0.45);
-}
-
-.avatar-group {
-    display: flex;
-    align-items: center;
-}
-
-.avatar {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: 700;
-    color: #fff;
-    border: 2px solid #fff;
-    margin-left: -8px;
-}
-
-.avatar:first-child {
-    margin-left: 0;
-}
-
-.cta-text {
-    white-space: nowrap;
-}
-
-.floating-cta i {
-    font-size: 13px;
-    transition: transform 0.3s;
-}
-
-.floating-cta:hover i {
-    transform: translateX(4px);
-}
-
-/* ==================== CORRECTIONS MOBILE ==================== */
-body {
-    padding-bottom: 60px;
-}
-
-@media (max-width: 640px) {
-    .floating-cta {
-        font-size: 11px;
-        padding: 8px 14px;
-        bottom: 12px;
-        gap: 6px;
-    }
-    
-    .avatar {
-        width: 20px;
-        height: 20px;
-        font-size: 8px;
-        border-width: 1.5px;
-    }
-}
-
-@media (max-width: 480px) {
-    body {
-        padding-bottom: 70px;
-    }
-    
-    .floating-cta {
-        font-size: 10px;
-        padding: 6px 12px;
-        bottom: 10px;
-        gap: 4px;
-    }
-    
-    .avatar {
-        width: 16px;
-        height: 16px;
-        font-size: 7px;
-        border-width: 1px;
-    }
-    
-    .cta-text {
-        font-size: 10px;
-    }
-    
-    .floating-cta i {
-        font-size: 10px;
-    }
-}
-
-/* ==================== DATE DE PUBLICATION ==================== */
-.bien-date {
-    font-size: clamp(11px, 0.8vw, 12px);
-    color: var(--muted);
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.bien-date i {
-    font-size: 11px;
-    color: var(--muted);
-}
-
-.vedette-date {
-    font-size: clamp(11px, 0.8vw, 12px);
-    color: var(--muted);
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.vedette-date i {
-    font-size: 11px;
-    color: var(--muted);
-}
-
-/* ==================== RESTE DU CSS ==================== */
+/* ==================== HERO ==================== */
 .hero-container,
 .banner-container,
 .quartiers-container,
@@ -882,6 +719,7 @@ body {
 .vedette-carousel .vedette-card {
     flex: 0 0 calc(33.333% - 12px);
     min-width: 0;
+    max-width: 280px;
     background: #fff;
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -901,10 +739,9 @@ body {
     border-width: 2px;
 }
 
-/* ✅ MÊME STYLE QUE LES CARTES BIENS */
 .vedette-image {
     position: relative;
-    height: 160px;
+    height: 150px;
     background: #F0F2F5;
     overflow: hidden;
     flex-shrink: 0;
@@ -919,11 +756,11 @@ body {
 
 .vedette-image .badge-vedette {
     position: absolute;
-    top: 8px;
-    left: 8px;
-    padding: 2px 10px;
+    top: 6px;
+    left: 6px;
+    padding: 2px 8px;
     border-radius: 999px;
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 600;
     color: #fff;
     background: #D4AF37;
@@ -931,21 +768,21 @@ body {
     letter-spacing: 0.3px;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     z-index: 2;
 }
 
 .vedette-image .badge-vedette i {
-    font-size: 8px;
+    font-size: 7px;
 }
 
 .vedette-image .badge-status {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    padding: 2px 10px;
+    top: 6px;
+    right: 6px;
+    padding: 2px 8px;
     border-radius: 999px;
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 600;
     color: #fff;
     text-transform: uppercase;
@@ -962,11 +799,11 @@ body {
 
 .vedette-image .badge-type {
     position: absolute;
-    bottom: 8px;
-    left: 8px;
-    padding: 2px 10px;
+    bottom: 6px;
+    left: 6px;
+    padding: 2px 8px;
     border-radius: 999px;
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 600;
     color: #fff;
     background: #B85C3A;
@@ -975,7 +812,7 @@ body {
 }
 
 .vedette-body {
-    padding: 12px 14px 14px;
+    padding: 10px 12px 12px;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -984,7 +821,7 @@ body {
 
 .vedette-title {
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
     margin-bottom: 2px;
     color: var(--ink);
     word-break: break-word;
@@ -994,69 +831,83 @@ body {
 .vedette-price {
     font-weight: 700;
     color: var(--rust);
-    font-size: 15px;
+    font-size: 14px;
     margin-bottom: 2px;
 }
 
 .vedette-location {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--muted);
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     word-break: break-word;
 }
 
 .vedette-location i {
     margin-right: 3px;
+    font-size: 9px;
+}
+
+.vedette-date {
     font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.vedette-date i {
+    font-size: 10px;
+    color: var(--muted);
 }
 
 .vedette-features {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
-.feature-pill {
+.vedette-features .feature-pill {
     display: inline-flex;
     align-items: center;
     gap: 3px;
     background: var(--border);
-    padding: 1px 8px;
+    padding: 1px 6px;
     border-radius: 999px;
-    font-size: 9px;
+    font-size: 8px;
     color: var(--text-soft);
     white-space: nowrap;
 }
 
-.feature-pill i {
-    font-size: 8px;
+.vedette-features .feature-pill i {
+    font-size: 7px;
 }
 
 .vedette-agency {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 10px;
+    gap: 4px;
+    font-size: 9px;
     color: var(--muted);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     word-break: break-word;
 }
 
 .vedette-agency i {
-    font-size: 11px;
+    font-size: 10px;
 }
 
 .vedette-body .btn {
     margin-top: auto;
-    font-size: 11px;
-    padding: 6px 12px;
+    font-size: 10px;
+    padding: 4px 10px;
 }
 
 /* ==================== BIENS GRID ==================== */
 .biens-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 16px;
 }
 
@@ -1069,6 +920,7 @@ body {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    max-width: 280px;
 }
 
 .bien-card:hover {
@@ -1083,7 +935,7 @@ body {
 
 .bien-image {
     position: relative;
-    height: 160px;
+    height: 150px;
     background: #F0F2F5;
     overflow: hidden;
     flex-shrink: 0;
@@ -1109,11 +961,11 @@ body {
 
 .badge-status {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    padding: 2px 10px;
+    top: 6px;
+    right: 6px;
+    padding: 2px 8px;
     border-radius: 999px;
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 600;
     color: #fff;
     text-transform: uppercase;
@@ -1130,11 +982,11 @@ body {
 
 .badge-vedette {
     position: absolute;
-    top: 8px;
-    left: 8px;
-    padding: 2px 10px;
+    top: 6px;
+    left: 6px;
+    padding: 2px 8px;
     border-radius: 999px;
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 600;
     color: #fff;
     background: #D4AF37;
@@ -1142,21 +994,21 @@ body {
     letter-spacing: 0.3px;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     z-index: 2;
 }
 
 .badge-vedette i {
-    font-size: 8px;
+    font-size: 7px;
 }
 
 .badge-type {
     position: absolute;
-    bottom: 8px;
-    left: 8px;
-    padding: 2px 10px;
+    bottom: 6px;
+    left: 6px;
+    padding: 2px 8px;
     border-radius: 999px;
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 600;
     color: #fff;
     background: #B85C3A;
@@ -1165,7 +1017,7 @@ body {
 }
 
 .bien-body {
-    padding: 12px 14px 14px;
+    padding: 10px 12px 12px;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -1174,7 +1026,7 @@ body {
 
 .bien-title {
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
     margin-bottom: 2px;
     color: var(--ink);
     word-break: break-word;
@@ -1184,63 +1036,77 @@ body {
 .bien-price {
     font-weight: 700;
     color: var(--rust);
-    font-size: 15px;
+    font-size: 14px;
     margin-bottom: 2px;
 }
 
 .bien-location {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--muted);
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     word-break: break-word;
 }
 
 .bien-location i {
     margin-right: 3px;
+    font-size: 9px;
+}
+
+.bien-date {
     font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.bien-date i {
+    font-size: 10px;
+    color: var(--muted);
 }
 
 .bien-features {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
-.feature-pill {
+.bien-features .feature-pill {
     display: inline-flex;
     align-items: center;
     gap: 3px;
     background: var(--border);
-    padding: 1px 8px;
+    padding: 1px 6px;
     border-radius: 999px;
-    font-size: 9px;
+    font-size: 8px;
     color: var(--text-soft);
     white-space: nowrap;
 }
 
-.feature-pill i {
-    font-size: 8px;
+.bien-features .feature-pill i {
+    font-size: 7px;
 }
 
 .bien-agency {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 10px;
+    gap: 4px;
+    font-size: 9px;
     color: var(--muted);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     word-break: break-word;
 }
 
 .bien-agency i {
-    font-size: 11px;
+    font-size: 10px;
 }
 
 .bien-body .btn {
     margin-top: auto;
-    font-size: 11px;
-    padding: 6px 12px;
+    font-size: 10px;
+    padding: 4px 10px;
 }
 
 .how-grid {
@@ -1520,6 +1386,7 @@ body {
 @media (max-width: 1200px) {
     .vedette-carousel .vedette-card {
         flex: 0 0 calc(33.333% - 12px);
+        max-width: none;
     }
 }
 
@@ -1538,6 +1405,7 @@ body {
     }
     .vedette-carousel .vedette-card {
         flex: 0 0 calc(50% - 8px);
+        max-width: none;
     }
 }
 
@@ -1565,7 +1433,7 @@ body {
         grid-template-columns: 1fr 1fr;
     }
     .biens-grid {
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     }
     .banner-item {
         height: 260px;
@@ -1588,6 +1456,7 @@ body {
 @media (max-width: 768px) {
     .vedette-carousel .vedette-card {
         flex: 0 0 calc(50% - 8px);
+        max-width: none;
     }
 }
 
@@ -1646,8 +1515,11 @@ body {
         gap: 10px;
     }
     .biens-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
         gap: 12px;
+    }
+    .bien-card {
+        max-width: none;
     }
     .cta-band {
         padding: 24px 16px;
@@ -1723,6 +1595,7 @@ body {
     }
     .vedette-carousel .vedette-card {
         flex: 0 0 calc(100% - 0px);
+        max-width: none;
     }
     .carousel-btn {
         width: 30px;
@@ -1753,22 +1626,23 @@ body {
         font-size: 20px;
     }
     .biens-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
     }
     .bien-image {
-        height: 170px;
+        height: 130px;
     }
     .badge-status,
     .badge-vedette,
     .badge-type {
-        font-size: 8px;
-        padding: 1px 8px;
+        font-size: 7px;
+        padding: 1px 6px;
     }
     .bien-title {
-        font-size: 13px;
+        font-size: 12px;
     }
     .bien-price {
-        font-size: 14px;
+        font-size: 13px;
     }
     .value-grid {
         grid-template-columns: 1fr;
@@ -1795,6 +1669,7 @@ body {
     }
     .vedette-carousel .vedette-card {
         flex: 0 0 calc(100% - 0px);
+        max-width: none;
     }
     .carousel-dots .dot {
         width: 8px;
@@ -1834,6 +1709,13 @@ body {
     .banner-content p {
         font-size: 10px;
     }
+    .biens-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    .bien-image {
+        height: 150px;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1848,23 +1730,6 @@ body {
 
 @push('scripts')
 <script>
-// ==================== CTA FLOTTANT AU SCROLL ====================
-document.addEventListener('DOMContentLoaded', function() {
-    const floatingCta = document.getElementById('floatingCta');
-    if (!floatingCta) return;
-    
-    function checkScroll() {
-        if (window.scrollY > 300) {
-            floatingCta.classList.add('visible');
-        } else {
-            floatingCta.classList.remove('visible');
-        }
-    }
-    
-    window.addEventListener('scroll', checkScroll);
-    checkScroll();
-});
-
 // ==================== VEDETTE CARROUSEL ====================
 let vedetteCurrentSlide = 0;
 let vedetteTotalSlides = 0;

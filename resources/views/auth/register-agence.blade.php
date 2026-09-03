@@ -3,7 +3,7 @@
 @section('title', 'Inscription Agence — DoyaImmo')
 
 @section('content')
-<div class="auth-shell">
+<div class="auth-shell" style="opacity:0;">
     <!-- Section gauche - Visuelle -->
     <div class="auth-visual">
         <div class="brand">

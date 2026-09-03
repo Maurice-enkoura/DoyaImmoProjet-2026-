@@ -6,16 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\EvaluationRequest;
 use App\Models\Evaluation;
 use App\Models\Agence;
-use App\Models\RendezVous;
 use App\Models\Proposition;
-use App\Enums\StatutRendezVousEnum;
+use App\Enums\StatutPropositionEnum;
 use Illuminate\Support\Facades\Auth;
 
 class EvaluationController extends Controller
 {
     public function index()
     {
-        $evaluations = Evaluation::with(['particulier.user', 'agence.user'])
+        $evaluations = Evaluation::with(['particulier.user', 'agence.user', 'proposition.bien'])
             ->where('particulier_id', Auth::user()->particulier->id)
             ->orderBy('created_at', 'desc')
             ->paginate(10);
@@ -23,76 +22,99 @@ class EvaluationController extends Controller
         return view('particulier.evaluations.index', compact('evaluations'));
     }
 
-    public function create(Agence $agence)
+    /**
+     * Créer une évaluation pour une proposition terminée
+     */
+    public function create(Proposition $proposition)
     {
-        $particulierId = Auth::user()->particulier->id;
+        $particulier = Auth::user()->particulier;
 
-        // ✅ Vérifier que le particulier a eu un rendez-vous terminé avec cette agence
-        $aEuRendezVous = RendezVous::where('particulier_id', $particulierId)
-            ->where('agence_id', $agence->id)
-            ->where('statut', StatutRendezVousEnum::TERMINE->value)
-            ->exists();
-
-        if (!$aEuRendezVous) {
-            return redirect()->route('particulier.rendezvous.index')
-                ->with('error', 'Vous ne pouvez évaluer que les agences avec lesquelles vous avez eu un rendez-vous terminé.');
+        // ✅ Vérifier que la proposition appartient au particulier
+        if ($proposition->particulier_id !== $particulier->id) {
+            abort(403, 'Cette proposition ne vous appartient pas.');
         }
 
-        // ✅ Vérifier que le particulier n'a pas déjà évalué cette agence
-        $dejaEvalue = Evaluation::where('particulier_id', $particulierId)
-            ->where('agence_id', $agence->id)
-            ->exists();
+        // ✅ Vérifier que la proposition est terminée
+        if ($proposition->statut !== StatutPropositionEnum::TERMINEE->value) {
+            return redirect()->route('particulier.propositions.index')
+                ->with('error', 'Vous ne pouvez évaluer que les propositions terminées.');
+        }
 
-        if ($dejaEvalue) {
-            // ✅ Récupérer l'évaluation existante pour rediriger vers celle-ci
-            $evaluationExistante = Evaluation::where('particulier_id', $particulierId)
-                ->where('agence_id', $agence->id)
-                ->first();
-                
+        // ✅ Vérifier que le particulier n'a pas déjà évalué cette proposition
+        $evaluationExistante = Evaluation::where('particulier_id', $particulier->id)
+            ->where('proposition_id', $proposition->id)
+            ->first();
+
+        if ($evaluationExistante) {
             return redirect()->route('particulier.evaluations.show', $evaluationExistante)
-                ->with('info', 'Vous avez déjà évalué cette agence. Voici votre évaluation.');
+                ->with('info', 'Vous avez déjà évalué cette proposition.');
         }
 
-        return view('particulier.evaluations.create', compact('agence'));
+        $agence = $proposition->agence;
+
+        return view('particulier.evaluations.create', compact('proposition', 'agence'));
     }
 
+    /**
+     * Stocker une nouvelle évaluation
+     */
     public function store(EvaluationRequest $request)
     {
-        $particulierId = Auth::user()->particulier->id;
+        $particulier = Auth::user()->particulier;
 
-        // ✅ Vérifier qu'il n'y a pas d'évaluation existante avant de créer
-        $existe = Evaluation::where('particulier_id', $particulierId)
-            ->where('agence_id', $request->agence_id)
+        // ✅ Vérifier la proposition
+        $proposition = Proposition::findOrFail($request->proposition_id);
+
+        // ✅ Vérifier que la proposition appartient au particulier
+        if ($proposition->particulier_id !== $particulier->id) {
+            abort(403, 'Cette proposition ne vous appartient pas.');
+        }
+
+        // ✅ Vérifier que la proposition est terminée
+        if ($proposition->statut !== StatutPropositionEnum::TERMINEE->value) {
+            return redirect()->route('particulier.propositions.index')
+                ->with('error', 'Vous ne pouvez évaluer que les propositions terminées.');
+        }
+
+        // ✅ Vérifier qu'il n'y a pas d'évaluation existante pour cette proposition
+        $existe = Evaluation::where('particulier_id', $particulier->id)
+            ->where('proposition_id', $proposition->id)
             ->exists();
 
         if ($existe) {
             return redirect()->route('particulier.evaluations.index')
-                ->with('error', 'Vous avez déjà évalué cette agence.');
+                ->with('error', 'Vous avez déjà évalué cette proposition.');
         }
 
-        Evaluation::create([
-            'particulier_id' => $particulierId,
-            'agence_id' => $request->agence_id,
+        // ✅ Créer l'évaluation
+        $evaluation = Evaluation::create([
+            'particulier_id' => $particulier->id,
+            'agence_id' => $proposition->agence_id,
+            'proposition_id' => $proposition->id,
             'note' => $request->note,
             'commentaire' => $request->commentaire,
+            'date_evaluation' => now(),
         ]);
 
         return redirect()->route('particulier.evaluations.index')
             ->with('success', 'Évaluation envoyée avec succès.');
     }
 
+    /**
+     * Afficher une évaluation
+     */
     public function show(Evaluation $evaluation)
     {
         if ($evaluation->particulier_id !== Auth::user()->particulier->id) {
             abort(403);
         }
 
-        $evaluation->load(['particulier.user', 'agence.user']);
+        $evaluation->load(['particulier.user', 'agence.user', 'proposition.bien']);
         return view('particulier.evaluations.show', compact('evaluation'));
     }
 
     /**
-     * Affiche le formulaire d'édition d'une évaluation
+     * Modifier une évaluation
      */
     public function edit(Evaluation $evaluation)
     {
@@ -104,7 +126,7 @@ class EvaluationController extends Controller
     }
 
     /**
-     * Met à jour une évaluation
+     * Mettre à jour une évaluation
      */
     public function update(EvaluationRequest $request, Evaluation $evaluation)
     {
@@ -122,7 +144,7 @@ class EvaluationController extends Controller
     }
 
     /**
-     * Supprime une évaluation
+     * Supprimer une évaluation
      */
     public function destroy(Evaluation $evaluation)
     {
@@ -134,5 +156,24 @@ class EvaluationController extends Controller
 
         return redirect()->route('particulier.evaluations.index')
             ->with('success', 'Évaluation supprimée avec succès.');
+    }
+
+    /**
+     * Liste des propositions terminées non évaluées
+     */
+    public function propositionsEvaluables()
+    {
+        $particulier = Auth::user()->particulier;
+
+        $propositions = Proposition::where('particulier_id', $particulier->id)
+            ->where('statut', StatutPropositionEnum::TERMINEE->value)
+            ->whereDoesntHave('evaluation', function($query) use ($particulier) {
+                $query->where('particulier_id', $particulier->id);
+            })
+            ->with(['agence', 'bien'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        return view('particulier.evaluations.propositions', compact('propositions'));
     }
 }

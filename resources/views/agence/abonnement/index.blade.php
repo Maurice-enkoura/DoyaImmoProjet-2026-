@@ -497,8 +497,11 @@
     <!-- ========== PLANS ========== -->
     @if(!isset($estNonValidee) || !$estNonValidee)
         @php
+            // ✅ Définir les variables pour la vue
             $isProActif = isset($abonnementActuel) && $abonnementActuel && $abonnementActuel->formule->value === 'pro';
             $isBasicActif = isset($abonnementActuel) && $abonnementActuel && $abonnementActuel->formule->value === 'basic';
+            
+            // ✅ Vérifier si l'agence a déjà eu un abonnement gratuit (Basic) terminé
             $aDejaEuGratuit = isset($agence) && $agence->abonnements()
                 ->where('formule', 'basic')
                 ->where('statut', false)
@@ -587,8 +590,8 @@
                         <li><span class="check gold">✓</span>  Accès complet aux demandes pertinentes</li>
                         <li><span class="check gold">✓</span>  Réception des demandes</li>
                         <li><span class="check gold">✓</span>  Gestion des rendez-vous</li>
-                        <li><span class="check gold">✓</span>  Profil agence </li>
-                        
+                        <li><span class="check gold">✓</span>  Profil agence professionnel</li>
+                        <li><span class="check gold">✓</span>  Statistiques de base</li>
                         <li>
                             <span class="check gold"></span> Possibilité de demander une mise en vedette
                             <span class="feature-pro">Payant</span>

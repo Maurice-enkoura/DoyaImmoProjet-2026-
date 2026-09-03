@@ -69,8 +69,98 @@
             </div>
         </div>
 
+        <!-- ✅ SECTION RÉPUTATION DÉTAILLÉE -->
+        <div class="reputation-section">
+            <h2 class="reputation-title">
+                <i class="fa-solid fa-star" style="color:#D4AF37;"></i>
+                Réputation de l'agence
+            </h2>
+
+            @if($agence->a_evaluations)
+                <div class="reputation-grid">
+                    <!-- Note globale -->
+                    <div class="reputation-global">
+                        <div class="global-note">
+                            <span class="note-number">{{ $agence->note_moyenne_formatee }}</span>
+                        </div>
+                        <div class="global-stars">
+                            @for($i = 1; $i <= 5; $i++)
+                                <i class="fa-solid fa-star {{ $i <= $agence->etoiles_pleines ? 'active' : '' }}"></i>
+                            @endfor
+                        </div>
+                        <div class="global-count">
+                            {{ $agence->nombreEvaluations }} avis
+                        </div>
+                    </div>
+
+                    <!-- Répartition des notes -->
+                    <div class="repartition-notes">
+                        @foreach($agence->pourcentageNotes as $note => $pourcentage)
+                            <div class="repartition-bar">
+                                <span class="repartition-label">{{ $note }} ★</span>
+                                <div class="repartition-progress">
+                                    <div class="repartition-fill" style="width: {{ $pourcentage }}%;"></div>
+                                </div>
+                                <span class="repartition-percent">{{ $pourcentage }}%</span>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Derniers avis -->
+                <div class="recent-evaluations">
+                    <h3 class="recent-title">Derniers avis</h3>
+                    @foreach($agence->evaluationsRecentes as $evaluation)
+                        <div class="evaluation-card">
+                            <div class="evaluation-header">
+                                <div class="evaluation-user">
+                                    <div class="evaluation-avatar">
+                                        {{ strtoupper(substr($evaluation->particulier->user->prenom, 0, 1)) }}
+                                    </div>
+                                    <div>
+                                        <div class="evaluation-name">{{ $evaluation->particulier->user->prenom }} {{ $evaluation->particulier->user->nom }}</div>
+                                        <div class="evaluation-date">{{ $evaluation->created_at->format('d/m/Y') }}</div>
+                                    </div>
+                                </div>
+                                <div class="evaluation-stars">
+                                    @for($i = 1; $i <= 5; $i++)
+                                        <i class="fa-solid fa-star {{ $i <= $evaluation->note ? 'active' : '' }}"></i>
+                                    @endfor
+                                </div>
+                            </div>
+                            @if($evaluation->commentaire)
+                                <p class="evaluation-comment">"{{ $evaluation->commentaire }}"</p>
+                            @endif
+                            @if($evaluation->proposition)
+                                <div class="evaluation-proposition">
+                                    <span class="proposition-label">Proposition du {{ $evaluation->proposition->created_at->format('d/m/Y') }}</span>
+                                    @if($evaluation->proposition->bien)
+                                        <span class="proposition-bien">• {{ $evaluation->proposition->bien->titre ?? 'Bien' }}</span>
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+
+                    @if($agence->nombreEvaluations > 5)
+                        <div class="see-all">
+                            <a href="#" class="btn btn-ghost btn-sm">
+                                Voir tous les avis <i class="fa-solid fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            @else
+                <div class="no-evaluations">
+                    <i class="fa-regular fa-star" style="font-size:32px;display:block;margin-bottom:12px;opacity:0.3;"></i>
+                    <p>Aucun avis pour le moment.</p>
+                    <p style="font-size:13px;color:var(--muted);">Soyez le premier à donner votre avis sur cette agence.</p>
+                </div>
+            @endif
+        </div>
+
         <!-- Coordonnées de contact -->
-        <div class="contact-card">
+        <div id="contact" class="contact-card">
             <h3 class="contact-title">
                 <i class="fa-solid fa-phone" style="color:#B85C3A;"></i> Contact
             </h3>
@@ -160,7 +250,8 @@
                                     @endif
                                 </div>
                                 <div class="bien-action">
-                                    <a href="{{ route('biens.show', $bien) }}" class="btn btn-rust btn-sm btn-block">Voir le détail</a>
+                                    <!-- ✅ Utilisation du slug -->
+                                    <a href="{{ route('biens.show', $bien->slug) }}" class="btn btn-rust btn-sm btn-block">Voir le détail</a>
                                 </div>
                             </div>
                         </div>
@@ -177,39 +268,8 @@
             @endif
         </div>
 
-        <!-- Évaluations -->
-        @if(isset($agence->evaluations) && $agence->evaluations->count() > 0)
-            <div class="evaluations-section">
-                <h2 class="evaluations-title">
-                    Évaluations ({{ $agence->evaluations->count() }})
-                </h2>
-                <div class="evaluations-list">
-                    @foreach($agence->evaluations->take(5) as $evaluation)
-                        <div class="evaluation-card">
-                            <div class="evaluation-header">
-                                <div class="evaluation-user">
-                                    <div class="evaluation-avatar">
-                                        {{ strtoupper(substr($evaluation->particulier->user->prenom, 0, 1)) }}
-                                    </div>
-                                    <div>
-                                        <div class="evaluation-name">{{ $evaluation->particulier->user->prenom }} {{ $evaluation->particulier->user->nom }}</div>
-                                        <div class="evaluation-date">{{ $evaluation->created_at->format('d/m/Y') }}</div>
-                                    </div>
-                                </div>
-                                <div class="evaluation-stars">
-                                    @for($i = 1; $i <= 5; $i++)
-                                        <i class="fa-solid fa-star {{ $i <= $evaluation->note ? 'active' : '' }}"></i>
-                                    @endfor
-                                </div>
-                            </div>
-                            @if($evaluation->commentaire)
-                                <p class="evaluation-comment">{{ $evaluation->commentaire }}</p>
-                            @endif
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        @endif
+        <!-- Évaluations (déjà affichées dans la section réputation) -->
+        <!-- La section réputation remplace cette partie -->
     </div>
 </div>
 @endsection
@@ -382,6 +442,217 @@
         font-size: clamp(11px, 0.7vw, 13px);
         color: var(--muted);
         margin-top: 2px;
+    }
+
+    /* ==================== RÉPUTATION ==================== */
+    .reputation-section {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: clamp(20px, 2.5vw, 24px);
+        margin-bottom: 24px;
+    }
+
+    .reputation-title {
+        font-family: var(--display);
+        font-size: clamp(20px, 2.5vw, 22px);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .reputation-grid {
+        display: grid;
+        grid-template-columns: 250px 1fr;
+        gap: 30px;
+        margin-bottom: 24px;
+    }
+
+    .reputation-global {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: #F7F9FC;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        text-align: center;
+    }
+
+    .global-note {
+        margin-bottom: 8px;
+    }
+
+    .note-number {
+        font-size: 48px;
+        font-weight: 800;
+        color: var(--ink);
+    }
+
+    .global-stars {
+        font-size: 24px;
+        color: #D4D8E0;
+        margin-bottom: 8px;
+    }
+
+    .global-stars .active {
+        color: #F5A623;
+    }
+
+    .global-count {
+        font-size: 14px;
+        color: var(--muted);
+    }
+
+    .repartition-notes {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 0;
+    }
+
+    .repartition-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .repartition-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-soft);
+        min-width: 45px;
+    }
+
+    .repartition-progress {
+        flex: 1;
+        height: 8px;
+        background: #E8ECF0;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .repartition-fill {
+        height: 100%;
+        border-radius: 4px;
+        background: #F5A623;
+        transition: width 0.6s ease;
+    }
+
+    .repartition-percent {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+        min-width: 40px;
+        text-align: right;
+    }
+
+    /* ===== RECENT EVALUATIONS ===== */
+    .recent-evaluations {
+        border-top: 1px solid var(--border);
+        padding-top: 20px;
+    }
+
+    .recent-title {
+        font-family: var(--display);
+        font-size: 16px;
+        margin-bottom: 16px;
+        color: var(--text-soft);
+    }
+
+    .evaluation-card {
+        background: #F7F9FC;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: clamp(14px, 1.5vw, 16px) clamp(16px, 1.5vw, 20px);
+        margin-bottom: 12px;
+    }
+
+    .evaluation-card:last-child {
+        margin-bottom: 0;
+    }
+
+    .evaluation-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .evaluation-user {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .evaluation-avatar {
+        width: clamp(28px, 3vw, 32px);
+        height: clamp(28px, 3vw, 32px);
+        border-radius: 50%;
+        background: #F5E6DF;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: clamp(11px, 0.8vw, 12px);
+        color: #B85C3A;
+        flex-shrink: 0;
+    }
+
+    .evaluation-name {
+        font-weight: 600;
+        font-size: clamp(13px, 0.9vw, 14px);
+    }
+
+    .evaluation-date {
+        font-size: clamp(11px, 0.7vw, 12px);
+        color: var(--muted);
+    }
+
+    .evaluation-stars {
+        color: #D4AF37;
+        font-size: clamp(13px, 0.9vw, 16px);
+    }
+
+    .evaluation-stars .fa-star:not(.active) {
+        color: #D4D8E0;
+    }
+
+    .evaluation-comment {
+        font-size: clamp(12px, 0.8vw, 13.5px);
+        color: var(--text-soft);
+        line-height: 1.6;
+        margin-top: 4px;
+    }
+
+    .evaluation-proposition {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .see-all {
+        text-align: center;
+        margin-top: 16px;
+    }
+
+    /* ===== NO EVALUATIONS ===== */
+    .no-evaluations {
+        text-align: center;
+        padding: 30px 20px;
+        color: var(--muted);
+    }
+
+    .no-evaluations p {
+        margin: 4px 0;
     }
 
     /* ===== CONTACT ===== */
@@ -677,85 +948,6 @@
         margin-top: auto;
     }
 
-    /* ===== EVALUATIONS ===== */
-    .evaluations-section {
-        margin-top: 40px;
-    }
-
-    .evaluations-title {
-        font-family: var(--display);
-        font-size: clamp(20px, 2.5vw, 22px);
-        margin-bottom: 20px;
-    }
-
-    .evaluations-list {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .evaluation-card {
-        background: #fff;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: clamp(14px, 1.5vw, 16px) clamp(16px, 1.5vw, 20px);
-    }
-
-    .evaluation-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 8px;
-    }
-
-    .evaluation-user {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .evaluation-avatar {
-        width: clamp(28px, 3vw, 32px);
-        height: clamp(28px, 3vw, 32px);
-        border-radius: 50%;
-        background: #F5E6DF;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-        font-size: clamp(11px, 0.8vw, 12px);
-        color: #B85C3A;
-        flex-shrink: 0;
-    }
-
-    .evaluation-name {
-        font-weight: 600;
-        font-size: clamp(13px, 0.9vw, 14px);
-    }
-
-    .evaluation-date {
-        font-size: clamp(11px, 0.7vw, 12px);
-        color: var(--muted);
-    }
-
-    .evaluation-stars {
-        color: #D4AF37;
-        font-size: clamp(13px, 0.9vw, 16px);
-    }
-
-    .evaluation-stars .fa-star:not(.active) {
-        color: #D4D8E0;
-    }
-
-    .evaluation-comment {
-        font-size: clamp(12px, 0.8vw, 13.5px);
-        color: var(--text-soft);
-        line-height: 1.6;
-        margin-top: 4px;
-    }
-
     /* ===== EMPTY STATE ===== */
     .empty-state {
         text-align: center;
@@ -902,6 +1094,31 @@
             flex-direction: column;
             align-items: flex-start;
         }
+
+        .reputation-grid {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .reputation-global {
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .global-note {
+            margin-bottom: 0;
+        }
+
+        .note-number {
+            font-size: 36px;
+        }
+
+        .global-stars {
+            font-size: 20px;
+        }
     }
 
     @media (max-width: 640px) {
@@ -999,6 +1216,20 @@
         .evaluation-stars {
             font-size: 13px;
         }
+
+        .repartition-bar {
+            gap: 6px;
+        }
+
+        .repartition-label {
+            font-size: 12px;
+            min-width: 35px;
+        }
+
+        .repartition-percent {
+            font-size: 11px;
+            min-width: 35px;
+        }
     }
 
     @media (max-width: 460px) {
@@ -1050,6 +1281,18 @@
 
         .agency-header-card {
             padding: 14px;
+        }
+
+        .note-number {
+            font-size: 30px;
+        }
+
+        .repartition-bar {
+            flex-wrap: wrap;
+        }
+
+        .repartition-label {
+            min-width: 30px;
         }
     }
 

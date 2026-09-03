@@ -17,7 +17,8 @@ class LoginRequest extends FormRequest
             'email' => 'required|string|email|max:255',
             'mot_de_passe' => 'required|string',
             'type' => 'nullable|string|in:particulier,agence',
-            'remember' => 'boolean',
+            //'remember' => 'boolean',
+             'remember' => 'nullable|boolean',
         ];
     }
 

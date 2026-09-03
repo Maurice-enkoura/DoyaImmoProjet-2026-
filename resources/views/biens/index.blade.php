@@ -35,9 +35,11 @@
                                 <i class="fa-solid fa-image"></i>
                             </div>
                         @endif
+                        <!-- BADGE VEDETTE - en haut à GAUCHE -->
                         <span class="vedette-badge">
                             <i class="fa-solid fa-star"></i> Vedette
                         </span>
+                        <!-- BADGE STATUS - en haut à DROITE -->
                         <span class="bien-status {{ $bien->statut ? 'disponible' : 'indisponible' }}">
                             {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
                         </span>
@@ -48,7 +50,6 @@
                         <div class="vedette-location">
                             <i class="fa-solid fa-location-dot"></i> {{ $bien->quartier->nom ?? $bien->quartier }}
                         </div>
-                        <!-- ✅ DATE DE PUBLICATION - VEDETTE -->
                         <div class="vedette-date">
                             <i class="fa-regular fa-clock"></i>
                             Publié {{ $bien->created_at->diffForHumans() }}
@@ -58,7 +59,8 @@
                             <span><i class="fa-solid fa-bed"></i> {{ $bien->nombre_chambres }} ch.</span>
                             <span><i class="fa-solid fa-bath"></i> {{ $bien->nombre_salles_bain }} sdb</span>
                         </div>
-                        <a href="{{ route('biens.show', $bien) }}" class="btn btn-rust btn-sm btn-block">
+                        <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                        <a href="{{ route('biens.show', $bien->slug) }}" class="btn btn-rust btn-sm btn-block">
                             <i class="fa-regular fa-eye"></i> Voir le bien
                         </a>
                     </div>
@@ -249,13 +251,22 @@
                             </div>
                         @endif
                         
+                        <!-- BADGE VEDETTE - en haut à GAUCHE -->
                         @if($bien->est_vedette && $bien->vedette_fin > now())
                             <span class="badge-vedette">
                                 <i class="fa-solid fa-star"></i> Vedette
                             </span>
                         @endif
                         
+                        <!-- BADGE TYPE - en bas à GAUCHE -->
                         <div class="bien-type-badge">{{ is_object($bien->type_bien) && method_exists($bien->type_bien, 'label') ? $bien->type_bien->label() : $bien->type_bien }}</div>
+                        
+                        <!-- BADGE STATUS - en haut à DROITE (ne chevauche pas Vedette) -->
+                        <div class="bien-status {{ $bien->statut ? 'disponible' : 'indisponible' }}">
+                            {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
+                        </div>
+                        
+                        <!-- MEDIA BADGE - en bas à DROITE -->
                         <div class="media-badge">
                             @php
                                 $imagesCount = $bien->medias->where('type_media', 'image')->count();
@@ -268,9 +279,6 @@
                                 <span><i class="fa-regular fa-circle-play"></i> {{ $videosCount }}</span>
                             @endif
                         </div>
-                        <div class="bien-status {{ $bien->statut ? 'disponible' : 'indisponible' }}">
-                            {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
-                        </div>
                     </div>
                     <div class="bien-body">
                         <div class="bien-title">{{ $bien->titre }}</div>
@@ -278,7 +286,6 @@
                         <div class="bien-location">
                             <i class="fa-solid fa-location-dot"></i> {{ $bien->quartier->nom ?? $bien->quartier }}
                         </div>
-                        <!-- ✅ DATE DE PUBLICATION -->
                         <div class="bien-date">
                             <i class="fa-regular fa-clock"></i>
                             Publié {{ $bien->created_at->diffForHumans() }}
@@ -305,7 +312,8 @@
                             @endif
                         </div>
                         <div class="bien-action">
-                            <a href="{{ route('biens.show', $bien) }}" class="btn btn-rust btn-sm btn-block">Voir le détail</a>
+                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                            <a href="{{ route('biens.show', $bien->slug) }}" class="btn btn-rust btn-sm btn-block">Voir le détail</a>
                         </div>
                     </div>
                 </div>
@@ -524,17 +532,16 @@
 .bien-card { background: #fff; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; position: relative; z-index: 1; }
 .bien-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
 
+/* ===== IMAGE CONTAINER ===== */
 .bien-image { 
+    position: relative;
     height: clamp(160px, 22vw, 200px); 
     display: flex; 
     align-items: center; 
     justify-content: center; 
-    color: var(--muted); 
-    position: relative; 
     overflow: hidden; 
     flex-shrink: 0; 
-    background: transparent !important;
-    background-color: transparent !important;
+    background: #F0F2F5;
 }
 
 .bien-image img { 
@@ -542,8 +549,6 @@
     height: 100%; 
     object-fit: cover; 
     display: block; 
-    background: transparent !important;
-    background-color: transparent !important;
 }
 
 .image-placeholder { 
@@ -552,10 +557,104 @@
     align-items: center; 
     color: var(--muted); 
     opacity: 0.5; 
-    background: transparent !important;
 }
 .image-placeholder i { font-size: 32px; margin-bottom: 4px; }
 .image-placeholder span { font-size: 11px; }
+
+/* ============================================================
+   BADGES SUR L'IMAGE - POSITIONNEMENT CORRIGÉ
+   ============================================================ */
+
+/* ✅ BADGE VEDETTE - en haut à GAUCHE */
+.badge-vedette { 
+    position: absolute; 
+    top: 10px; 
+    left: 10px; 
+    z-index: 6;
+    padding: 4px 12px; 
+    border-radius: 999px; 
+    font-size: 10px; 
+    font-weight: 700; 
+    color: #FFFFFF !important;
+    background: #D4AF37 !important;
+    display: flex; 
+    align-items: center; 
+    gap: 4px; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3); 
+    animation: pulseVedette 2s ease-in-out infinite; 
+    border: 1px solid rgba(255,255,255,0.2);
+}
+.badge-vedette i { font-size: 10px; color: #FFFFFF !important; }
+
+/* ✅ BADGE TYPE - en bas à GAUCHE */
+.bien-type-badge { 
+    position: absolute; 
+    bottom: 10px; 
+    left: 10px; 
+    z-index: 5;
+    padding: 4px 12px; 
+    border-radius: 999px; 
+    font-size: clamp(9px, 0.7vw, 10px); 
+    font-weight: 700; 
+    color: #FFFFFF !important;
+    background: var(--rust) !important;
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* ✅ BADGE STATUS - en haut à DROITE (ne chevauche pas Vedette) */
+.bien-status { 
+    position: absolute; 
+    top: 10px; 
+    right: 10px; 
+    z-index: 6;
+    padding: 4px 12px; 
+    border-radius: 999px; 
+    font-size: clamp(9px, 0.7vw, 10px); 
+    font-weight: 700; 
+    color: #FFFFFF !important;
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+    border: 1px solid rgba(255,255,255,0.2);
+}
+.bien-status.disponible { 
+    background: var(--teal) !important;
+}
+.bien-status.indisponible { 
+    background: #8A91A0 !important; 
+}
+
+/* ✅ MEDIA BADGE - en bas à DROITE */
+.media-badge { 
+    position: absolute; 
+    bottom: 10px; 
+    right: 10px; 
+    z-index: 5;
+    display: flex; 
+    gap: 6px; 
+    font-size: clamp(9px, 0.7vw, 10px); 
+    color: #FFFFFF !important;
+    background: rgba(0,0,0,0.6) !important;
+    padding: 3px 10px; 
+    border-radius: 999px; 
+    border: 1px solid rgba(255,255,255,0.15);
+}
+.media-badge span { display: flex; align-items: center; gap: 4px; }
+.media-badge span i { color: #FFFFFF !important; }
+
+/* ============================================================
+   FIN BADGES
+   ============================================================ */
+
+/* ===== BIEN BODY ===== */
+.bien-body { padding: 14px 16px 16px; flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; }
+.bien-title { font-weight: 700; font-size: clamp(14px, 1vw, 16px); margin-bottom: 2px; color: var(--ink); line-height: 1.3; word-break: break-word; }
+.bien-price { font-weight: 700; color: #B85C3A; font-size: clamp(15px, 1.1vw, 17px); margin-bottom: 3px; }
+.bien-location { font-size: clamp(12px, 0.8vw, 13px); color: var(--muted); margin-bottom: 6px; word-break: break-word; }
+.bien-location i { font-size: 11px; margin-right: 3px; }
 
 /* ===== DATE DE PUBLICATION ===== */
 .bien-date {
@@ -566,124 +665,11 @@
     align-items: center;
     gap: 5px;
 }
-
 .bien-date i {
     font-size: 11px;
     color: var(--muted);
 }
 
-/* ===== DATE DE PUBLICATION - VEDETTE ===== */
-.vedette-date {
-    font-size: 11px;
-    color: var(--muted);
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.vedette-date i {
-    font-size: 10px;
-    color: var(--muted);
-}
-
-/* ===== VUE LISTE MOBILE - DATE ===== */
-@media (max-width: 768px) {
-    .biens-grid.list-view .bien-date {
-        font-size: 10px;
-        margin-bottom: 3px;
-    }
-}
-
-@media (max-width: 480px) {
-    .biens-grid.list-view .bien-date {
-        font-size: 9px;
-    }
-}
-
-/* ===== ÉTIQUETTES AVEC LES COULEURS DOYAIMMO ===== */
-.bien-type-badge { 
-    position: absolute; 
-    bottom: 10px; 
-    left: 10px; 
-    padding: 4px 12px; 
-    border-radius: 999px; 
-    font-size: clamp(9px, 0.7vw, 10px); 
-    font-weight: 700; 
-    color: #FFFFFF !important;
-    background: var(--rust) !important;
-    text-transform: uppercase; 
-    letter-spacing: 0.5px; 
-    z-index: 2; 
-    border: 1px solid rgba(255,255,255,0.2);
-}
-
-.bien-status { 
-    position: absolute; 
-    top: 10px; 
-    right: 10px; 
-    padding: 4px 12px; 
-    border-radius: 999px; 
-    font-size: clamp(9px, 0.7vw, 10px); 
-    font-weight: 700; 
-    color: #FFFFFF !important;
-    text-transform: uppercase; 
-    letter-spacing: 0.5px; 
-    z-index: 2; 
-}
-.bien-status.disponible { 
-    background: var(--teal) !important;
-    border: 1px solid rgba(255,255,255,0.2);
-}
-.bien-status.indisponible { 
-    background: #8A91A0 !important; 
-    border: 1px solid rgba(255,255,255,0.2);
-}
-
-.media-badge { 
-    position: absolute; 
-    bottom: 10px; 
-    right: 10px; 
-    display: flex; 
-    gap: 6px; 
-    font-size: clamp(9px, 0.7vw, 10px); 
-    color: #FFFFFF !important;
-    background: var(--rust-soft) !important;
-    padding: 3px 10px; 
-    border-radius: 999px; 
-    z-index: 2; 
-    border: 1px solid rgba(255,255,255,0.15);
-}
-.media-badge span { display: flex; align-items: center; gap: 4px; }
-.media-badge span i { color: #FFFFFF !important; }
-
-.badge-vedette { 
-    position: absolute; 
-    top: 10px; 
-    left: 10px; 
-    padding: 4px 12px; 
-    border-radius: 999px; 
-    font-size: 10px; 
-    font-weight: 700; 
-    color: #FFFFFF !important;
-    background: #D4AF37 !important;
-    display: flex; 
-    align-items: center; 
-    gap: 4px; 
-    z-index: 2; 
-    text-transform: uppercase; 
-    letter-spacing: 0.5px; 
-    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3); 
-    animation: pulseVedette 2s ease-in-out infinite; 
-    border: 1px solid rgba(255,255,255,0.2);
-}
-.badge-vedette i { font-size: 10px; color: #FFFFFF !important; }
-
-.bien-body { padding: 14px 16px 16px; flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; }
-.bien-title { font-weight: 700; font-size: clamp(14px, 1vw, 16px); margin-bottom: 2px; color: var(--ink); line-height: 1.3; word-break: break-word; }
-.bien-price { font-weight: 700; color: #B85C3A; font-size: clamp(15px, 1.1vw, 17px); margin-bottom: 3px; }
-.bien-location { font-size: clamp(12px, 0.8vw, 13px); color: var(--muted); margin-bottom: 6px; word-break: break-word; }
-.bien-location i { font-size: 11px; margin-right: 3px; }
 .bien-type-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
 .bien-infos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; font-size: clamp(12px, 0.8vw, 13px); color: var(--text-soft); }
 .bien-infos span { display: flex; align-items: center; gap: 4px; }
@@ -692,6 +678,16 @@
 .bien-action { margin-top: 12px; }
 .meta-pill { display: inline-flex; align-items: center; gap: 4px; background: var(--border); padding: 2px 10px; border-radius: 999px; font-size: clamp(9px, 0.7vw, 10px); color: var(--text-soft); }
 .meta-pill i { font-size: 10px; }
+
+/* ===== ANIMATION VEDETTE ===== */
+@keyframes pulseVedette { 
+    0%, 100% { opacity: 1; } 
+    50% { opacity: 0.85; } 
+}
+
+/* ============================================================
+   VUE LISTE - IMAGES AGRANDIES
+   ============================================================ */
 
 /* ===== VUE LISTE DESKTOP ===== */
 .biens-grid.list-view {
@@ -706,12 +702,10 @@
 }
 
 .biens-grid.list-view .bien-image {
-    width: 280px;
-    min-width: 280px;
-    height: auto;
-    min-height: 200px;
-    background: transparent !important;
-    background-color: transparent !important;
+    width: 380px;
+    min-width: 380px;
+    height: 280px;
+    min-height: 280px;
 }
 
 .biens-grid.list-view .bien-image img {
@@ -719,8 +713,6 @@
     height: 100%;
     object-fit: cover;
     display: block;
-    background: transparent !important;
-    background-color: transparent !important;
 }
 
 .biens-grid.list-view .bien-body {
@@ -761,7 +753,7 @@
     min-width: 160px;
 }
 
-/* ===== VUE LISTE MOBILE ===== */
+/* ===== VUE LISTE TABLETTE ===== */
 @media (max-width: 768px) {
     .biens-grid.list-view {
         grid-template-columns: 1fr;
@@ -780,16 +772,14 @@
     }
 
     .biens-grid.list-view .bien-image {
-        width: 130px;
-        min-width: 130px;
-        height: 130px;
-        min-height: 130px;
+        width: 180px;
+        min-width: 180px;
+        height: 180px;
+        min-height: 180px;
         border-radius: 0;
         overflow: hidden;
         position: relative;
         flex-shrink: 0;
-        background: transparent !important;
-        background-color: transparent !important;
         margin: 0;
     }
 
@@ -801,8 +791,6 @@
         position: absolute !important;
         top: 0;
         left: 0;
-        background: transparent !important;
-        background-color: transparent !important;
     }
 
     .biens-grid.list-view .bien-image .image-placeholder {
@@ -856,7 +844,7 @@
         z-index: 5;
         display: flex !important;
         color: #FFFFFF !important;
-        background: rgba(184, 92, 58, 0.85) !important;
+        background: rgba(0,0,0,0.6) !important;
         border-radius: 4px;
         border: 1px solid rgba(255,255,255,0.15);
         gap: 4px;
@@ -888,7 +876,7 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
-        min-height: 130px;
+        min-height: 180px;
         background: #fff;
     }
 
@@ -944,17 +932,18 @@
     }
 }
 
+/* ===== VUE LISTE PETIT MOBILE ===== */
 @media (max-width: 480px) {
     .biens-grid.list-view .bien-image {
-        width: 110px;
-        min-width: 110px;
-        height: 110px;
-        min-height: 110px;
+        width: 150px;
+        min-width: 150px;
+        height: 150px;
+        min-height: 150px;
     }
 
     .biens-grid.list-view .bien-body {
         padding: 8px 10px 8px 12px;
-        min-height: 110px;
+        min-height: 150px;
     }
 
     .biens-grid.list-view .bien-title {
@@ -1018,38 +1007,108 @@
 .btn-sm { padding: 6px 12px; font-size: clamp(10px, 0.7vw, 11.5px); border-radius: 6px; }
 .btn-block { width: 100%; justify-content: center; }
 
-/* ===== BADGE VEDETTE ===== */
+/* ===== BADGE VEDETTE SUR CARTE ===== */
 .bien-card.vedette-card { border: 2px solid #D4AF37; position: relative; }
 .bien-card.vedette-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-radius: 12px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.05), transparent); pointer-events: none; z-index: 0; }
-@keyframes pulseVedette { 0%, 100% { opacity: 1; } 50% { opacity: 0.85; } }
 
 /* ===== VEDETTE SECTION ===== */
 .vedette-section { background: linear-gradient(135deg, #FDF5E6 0%, #FFF8E1 100%); border: 2px solid #D4AF37; border-radius: 16px; padding: 20px 20px 24px; margin-bottom: 24px; max-width: 1200px; margin-left: auto; margin-right: auto; }
 .vedette-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .vedette-header .eyebrow { margin-bottom: 0; background: #D4AF37; color: #fff; padding: 4px 16px; border-radius: 999px; }
 .vedette-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+
+/* ===== VEDETTE CARD ===== */
 .vedette-card { background: #fff; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; }
 .vedette-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
-.vedette-image { height: 150px; display: flex; align-items: center; justify-content: center; color: var(--muted); position: relative; overflow: hidden; flex-shrink: 0; background: transparent !important; }
+
+/* ===== VEDETTE IMAGE ===== */
+.vedette-image { position: relative; height: 150px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; background: #F0F2F5; }
 .vedette-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .vedette-image .image-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 28px; opacity: 0.3; }
-.vedette-badge { position: absolute; top: 8px; left: 8px; padding: 2px 12px; border-radius: 999px; font-size: 10px; font-weight: 700; color: #fff; background: #D4AF37; display: flex; align-items: center; gap: 4px; z-index: 2; animation: pulseVedette 2s ease-in-out infinite; }
+
+/* ✅ BADGE VEDETTE - en haut à GAUCHE (section vedette) */
+.vedette-badge { 
+    position: absolute; 
+    top: 8px; 
+    left: 8px; 
+    z-index: 6;
+    padding: 2px 12px; 
+    border-radius: 999px; 
+    font-size: 10px; 
+    font-weight: 700; 
+    color: #fff; 
+    background: #D4AF37; 
+    display: flex; 
+    align-items: center; 
+    gap: 4px; 
+    animation: pulseVedette 2s ease-in-out infinite; 
+}
 .vedette-badge i { font-size: 10px; color: #fff; }
+
+/* ✅ BADGE STATUS - en haut à DROITE (section vedette) */
+.vedette-image .bien-status {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 6;
+    padding: 2px 12px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.vedette-image .bien-status.disponible {
+    background: #2A9D8F !important;
+}
+.vedette-image .bien-status.indisponible {
+    background: #8A91A0 !important;
+}
+
 .vedette-body { padding: 12px 14px 14px; flex: 1; display: flex; flex-direction: column; }
 .vedette-title { font-weight: 700; font-size: 14px; margin-bottom: 2px; color: var(--ink); line-height: 1.3; word-break: break-word; }
 .vedette-price { font-weight: 700; color: #B85C3A; font-size: 15px; margin-bottom: 3px; }
 .vedette-location { font-size: 12px; color: var(--muted); margin-bottom: 4px; word-break: break-word; }
 .vedette-location i { font-size: 11px; margin-right: 3px; }
-.vedette-date { font-size: 11px; color: var(--muted); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
-.vedette-date i { font-size: 10px; color: var(--muted); }
+
+/* ===== DATE DE PUBLICATION - VEDETTE ===== */
+.vedette-date {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.vedette-date i {
+    font-size: 10px;
+    color: var(--muted);
+}
+
 .vedette-features { display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; color: var(--text-soft); margin-bottom: 10px; }
 .vedette-features span { display: flex; align-items: center; gap: 4px; }
 .vedette-features span i { font-size: 10px; }
 .vedette-body .btn { margin-top: auto; }
-@media (max-width: 640px) { .vedette-section { padding: 16px; border-radius: 12px; } .vedette-grid { grid-template-columns: 1fr 1fr; gap: 12px; } .vedette-image { height: 120px; } .vedette-title { font-size: 13px; } .vedette-price { font-size: 14px; } .vedette-location { font-size: 11px; } .vedette-features { font-size: 10px; gap: 4px; } }
-@media (max-width: 460px) { .vedette-grid { grid-template-columns: 1fr; } .vedette-image { height: 160px; } .vedette-title { font-size: 15px; } .vedette-price { font-size: 16px; } }
 
 /* ===== RESPONSIVE ===== */
+@media (max-width: 640px) { 
+    .vedette-section { padding: 16px; border-radius: 12px; } 
+    .vedette-grid { grid-template-columns: 1fr 1fr; gap: 12px; } 
+    .vedette-image { height: 120px; } 
+    .vedette-title { font-size: 13px; } 
+    .vedette-price { font-size: 14px; } 
+    .vedette-location { font-size: 11px; } 
+    .vedette-features { font-size: 10px; gap: 4px; } 
+}
+@media (max-width: 460px) { 
+    .vedette-grid { grid-template-columns: 1fr; } 
+    .vedette-image { height: 160px; } 
+    .vedette-title { font-size: 15px; } 
+    .vedette-price { font-size: 16px; } 
+}
+
+/* ===== RESPONSIVE GENERAL ===== */
 @media (max-width: 820px) {
     .search-filters { grid-template-columns: 1fr 1fr; }
     .filter-actions { grid-column: 1 / -1; }
@@ -1112,9 +1171,6 @@
     * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
     .badge-vedette { animation: none !important; }
     .vedette-badge { animation: none !important; }
-    .search-filters { transition: none !important; }
-    .btn-filters-toggle .fa-chevron-down { transition: none !important; }
-    .pagination a, .pagination span { transition: none !important; }
 }
 </style>
 

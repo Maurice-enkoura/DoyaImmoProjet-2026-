@@ -71,6 +71,9 @@ class DemandeController extends Controller
             ->with('success', 'Votre besoin a été publié avec succès.');
     }
 
+    /**
+     * Affiche le détail d'une demande - UTILISE LE SLUG
+     */
     public function show(DemandeImmobiliere $demande)
     {
         if ($demande->particulier->user_id !== Auth::id()) {
@@ -94,6 +97,9 @@ class DemandeController extends Controller
         return view('particulier.demandes.show', compact('demande'));
     }
 
+    /**
+     * Formulaire d'édition d'une demande - UTILISE LE SLUG
+     */
     public function edit(DemandeImmobiliere $demande)
     {
         if ($demande->particulier->user_id !== Auth::id()) {
@@ -120,6 +126,9 @@ class DemandeController extends Controller
         return view('particulier.demandes.edit', compact('demande', 'typesBien', 'typesOperation', 'quartiers'));
     }
 
+    /**
+     * Met à jour une demande - UTILISE LE SLUG
+     */
     public function update(DemandeImmobiliereRequest $request, DemandeImmobiliere $demande)
     {
         if ($demande->particulier->user_id !== Auth::id()) {
@@ -158,6 +167,9 @@ class DemandeController extends Controller
             ->with('success', 'Votre demande a été mise à jour avec succès.');
     }
 
+    /**
+     * Supprime/annule une demande - UTILISE LE SLUG
+     */
     public function destroy(DemandeImmobiliere $demande)
     {
         if ($demande->particulier->user_id !== Auth::id()) {
@@ -181,6 +193,9 @@ class DemandeController extends Controller
         return view('particulier.demandes.mes-demandes', compact('demandes'));
     }
 
+    /**
+     * Affiche les offres pour une demande - UTILISE LE SLUG
+     */
     public function offres(DemandeImmobiliere $demande)
     {
         if ($demande->particulier->user_id !== Auth::id()) {

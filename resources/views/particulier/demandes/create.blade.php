@@ -148,7 +148,9 @@
                         <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
                             Date d'entrée souhaitée
                         </label>
+                        <!-- ✅ CORRIGÉ : Ajout de l'attribut min pour empêcher les dates passées -->
                         <input type="date" name="date_entree_souhaitee" value="{{ old('date_entree_souhaitee') }}" 
+                               min="{{ date('Y-m-d') }}" 
                                style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;">
                         @error('date_entree_souhaitee')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>

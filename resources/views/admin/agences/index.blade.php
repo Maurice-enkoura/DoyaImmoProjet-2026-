@@ -191,20 +191,23 @@
                             <td style="text-align:center;">
                                 <div style="display:flex;gap:3px;justify-content:center;flex-wrap:wrap;">
                                     {{-- Voir --}}
-                                    <a href="{{ route('admin.agences.show', $agence) }}" class="btn btn-sm btn-ghost" title="Voir le détail">
+                                    <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                                    <a href="{{ route('admin.agences.show', $agence->slug) }}" class="btn btn-sm btn-ghost" title="Voir le détail">
                                         <i class="fa-solid fa-eye"></i>
                                     </a>
                                     
                                     {{-- Boutons selon le statut --}}
                                     @if(!$agence->statut_validation && !$agence->est_refusee && !$agence->bloque)
                                         {{-- En attente : Valider / Refuser --}}
-                                        <form action="{{ route('admin.agences.valider', $agence) }}" method="POST" style="display:inline;">
+                                        <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                                        <form action="{{ route('admin.agences.valider', $agence->slug) }}" method="POST" style="display:inline;">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-success" title="Valider cette agence" onclick="return confirm('Valider cette agence ?')">
                                                 <i class="fa-solid fa-check"></i>
                                             </button>
                                         </form>
-                                        <form action="{{ route('admin.agences.refuser', $agence) }}" method="POST" style="display:inline;">
+                                        <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                                        <form action="{{ route('admin.agences.refuser', $agence->slug) }}" method="POST" style="display:inline;">
                                             @csrf
                                             <input type="hidden" name="motif" value="Documents non conformes">
                                             <button type="submit" class="btn btn-sm btn-danger" title="Refuser cette agence" onclick="return confirm('Refuser cette agence ?')">
@@ -215,7 +218,8 @@
 
                                     @if($agence->est_refusee)
                                         {{-- Refusée : Réactiver --}}
-                                        <form action="{{ route('admin.agences.reactiver', $agence) }}" method="POST" style="display:inline;">
+                                        <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                                        <form action="{{ route('admin.agences.reactiver', $agence->slug) }}" method="POST" style="display:inline;">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-success" title="Réactiver cette agence" onclick="return confirm('Réactiver cette agence ? Elle sera remise en attente de validation.')">
                                                 <i class="fa-solid fa-rotate-left"></i>
@@ -225,7 +229,8 @@
 
                                     @if($agence->statut_validation && !$agence->bloque)
                                         {{-- Validée : Bloquer --}}
-                                        <form action="{{ route('admin.agences.bloquer', $agence) }}" method="POST" style="display:inline;">
+                                        <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                                        <form action="{{ route('admin.agences.bloquer', $agence->slug) }}" method="POST" style="display:inline;">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-danger" title="Bloquer cette agence" onclick="return confirm('Bloquer cette agence ?')">
                                                 <i class="fa-solid fa-ban"></i>
@@ -235,7 +240,8 @@
 
                                     @if($agence->bloque)
                                         {{-- Bloquée : Débloquer --}}
-                                        <form action="{{ route('admin.agences.debloquer', $agence) }}" method="POST" style="display:inline;">
+                                        <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                                        <form action="{{ route('admin.agences.debloquer', $agence->slug) }}" method="POST" style="display:inline;">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-success" title="Débloquer cette agence" onclick="return confirm('Débloquer cette agence ?')">
                                                 <i class="fa-solid fa-unlock"></i>
@@ -244,12 +250,14 @@
                                     @endif
 
                                     {{-- Documents --}}
-                                    <a href="{{ route('admin.agences.documents', $agence) }}" class="btn btn-sm btn-ghost" title="Voir les documents">
+                                    <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                                    <a href="{{ route('admin.agences.documents', $agence->slug) }}" class="btn btn-sm btn-ghost" title="Voir les documents">
                                         <i class="fa-solid fa-file"></i>
                                     </a>
 
                                     {{-- Supprimer --}}
-                                    <form action="{{ route('admin.agences.destroy', $agence) }}" method="POST" style="display:inline;" onsubmit="return confirm('⚠️ Supprimer définitivement cette agence ? Cette action est irréversible.')">
+                                    <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                                    <form action="{{ route('admin.agences.destroy', $agence->slug) }}" method="POST" style="display:inline;" onsubmit="return confirm('⚠️ Supprimer définitivement cette agence ? Cette action est irréversible.')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-danger" title="Supprimer définitivement">

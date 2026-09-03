@@ -142,25 +142,25 @@
             <div style="display:flex;flex-wrap:wrap;gap:6px;">
                 @php
                     $equipements = [
-                        'parking' => ['label' => ' Parking', 'value' => $demande->parking ?? false],
-                        'meuble' => ['label' => 'Meublé', 'value' => $demande->meuble ?? false],
-                        'climatisation' => ['label' => ' Climatisation', 'value' => $demande->climatisation ?? false],
-                        'balcon' => ['label' => ' Balcon', 'value' => $demande->balcon ?? false],
-                        'jardin' => ['label' => ' Jardin', 'value' => $demande->jardin ?? false],
-                        'piscine' => ['label' => ' Piscine', 'value' => $demande->piscine ?? false],
-                        'ascenseur' => ['label' => ' Ascenseur', 'value' => $demande->ascenseur ?? false],
-                        'securite' => ['label' => '  Sécurité', 'value' => $demande->securite ?? false],
+                        'parking' => ['label' => '🚗 Parking', 'value' => $demande->parking ?? false],
+                        'meuble' => ['label' => '🛋️ Meublé', 'value' => $demande->meuble ?? false],
+                        'climatisation' => ['label' => '❄️ Climatisation', 'value' => $demande->climatisation ?? false],
+                        'balcon' => ['label' => '🌅 Balcon', 'value' => $demande->balcon ?? false],
+                        'jardin' => ['label' => '🌿 Jardin', 'value' => $demande->jardin ?? false],
+                        'piscine' => ['label' => '🏊 Piscine', 'value' => $demande->piscine ?? false],
+                        'ascenseur' => ['label' => '🛗 Ascenseur', 'value' => $demande->ascenseur ?? false],
+                        'securite' => ['label' => '🛡️ Sécurité', 'value' => $demande->securite ?? false],
                     ];
                 @endphp
                 
                 @foreach($equipements as $key => $equipement)
                     @if($equipement['value'])
                         <span class="status-pill status-active" style="background:#E8F5E9;color:#1E7A47;border:1px solid #C8E6C9;">
-                            {{ $equipement['label'] }}
+                            ✅ {{ $equipement['label'] }}
                         </span>
                     @else
                         <span class="status-pill status-inactif" style="background:#F5F5F5;color:#999;border:1px solid #E0E0E0;">
-                            {{ $equipement['label'] }}
+                            ❌ {{ $equipement['label'] }}
                         </span>
                     @endif
                 @endforeach
@@ -177,7 +177,8 @@
 
         <!-- Actions (lecture seule) -->
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;">
-            <form action="{{ route('admin.demandes.destroy', $demande) }}" method="POST" onsubmit="return confirm('Supprimer définitivement cette demande ?')">
+            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+            <form action="{{ route('admin.demandes.destroy', $demande->slug) }}" method="POST" onsubmit="return confirm('Supprimer définitivement cette demande ?')">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-danger">
@@ -198,7 +199,7 @@
             </h3>
             @if($demande->propositions->count() > 0)
                 @foreach($demande->propositions as $proposition)
-                    <a href="{{ route('admin.propositions.show', $proposition) }}" style="text-decoration:none;color:inherit;display:block;">
+                    <a href="{{ route('admin.propositions.show', $proposition->id) }}" style="text-decoration:none;color:inherit;display:block;">
                         <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#F7F9FC;border-radius:8px;margin-bottom:8px;border-left:4px solid 
                             @if($proposition->statut === 'acceptee') var(--green)
                             @elseif($proposition->statut === 'refusee') var(--red)

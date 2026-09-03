@@ -132,7 +132,8 @@
 
             <!-- Actions -->
             <div style="display:flex;gap:12px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--border);">
-                <a href="{{ route('agence.propositions.create', $demande) }}" class="btn btn-rust">
+                <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                <a href="{{ route('agence.propositions.create', $demande->slug) }}" class="btn btn-rust">
                     <i class="fa-solid fa-paper-plane"></i> Faire une offre
                 </a>
                 <a href="{{ route('agence.demandes.index') }}" class="btn btn-ghost btn-sm" style="margin-left:auto;">

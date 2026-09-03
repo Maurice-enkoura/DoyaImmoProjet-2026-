@@ -47,6 +47,9 @@ class AdminDemandeController extends Controller
         return view('admin.demandes.index', compact('demandes', 'stats'));
     }
 
+    /**
+     * Affiche le détail d'une demande - UTILISE LE SLUG
+     */
     public function show(DemandeImmobiliere $demande)
     {
         $demande->load([
@@ -58,6 +61,9 @@ class AdminDemandeController extends Controller
         return view('admin.demandes.show', compact('demande'));
     }
 
+    /**
+     * Supprime une demande - UTILISE LE SLUG
+     */
     public function destroy(DemandeImmobiliere $demande)
     {
         $demande->delete();

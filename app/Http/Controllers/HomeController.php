@@ -323,7 +323,7 @@ class HomeController extends Controller
     }
 
     /**
-     * Détail d'un bien
+     * Détail d'un bien - UTILISE LE SLUG
      */
     public function bienShow(BienImmobilier $bien)
     {
@@ -463,7 +463,7 @@ class HomeController extends Controller
     }
 
     /**
-     * Détail d'une demande immobilière
+     * Détail d'une demande immobilière - UTILISE LE SLUG
      */
     public function demandeShow(DemandeImmobiliere $demande)
     {
@@ -523,7 +523,7 @@ class HomeController extends Controller
     }
 
     /**
-     * Détail d'une agence
+     * Détail d'une agence - UTILISE LE SLUG
      */
     public function agenceShow(Agence $agence)
     {
@@ -549,7 +549,7 @@ class HomeController extends Controller
     }
 
     /**
-     * Recherche AJAX pour l'autocomplétion
+     * Recherche AJAX pour l'autocomplétion - UTILISE LES SLUGS DANS LES URLS
      */
     public function autocomplete(Request $request)
     {
@@ -577,7 +577,7 @@ class HomeController extends Controller
                 ];
             });
 
-        // Recherche de biens
+        // Recherche de biens - UTILISE LE SLUG DANS L'URL
         $biens = BienImmobilier::where('statut', true)
             ->where(function ($q) use ($search) {
                 $q->where('titre', 'like', "%{$search}%")
@@ -592,11 +592,11 @@ class HomeController extends Controller
                     'value' => $item->id,
                     'description' => $item->quartier . ' - ' . number_format($item->prix, 0, ',', ' ') . ' FCFA',
                     'icon' => 'fa-solid fa-building',
-                    'url' => route('biens.show', $item),
+                    'url' => route('biens.show', ['bien' => $item->slug]), // UTILISE LE SLUG
                 ];
             });
 
-        // Recherche de besoins
+        // Recherche de besoins - UTILISE LE SLUG DANS L'URL
         $besoins = DemandeImmobiliere::where('statut', 'en_attente')
             ->where(function ($q) use ($search) {
                 $q->where('zone_recherchee', 'like', "%{$search}%")
@@ -611,11 +611,11 @@ class HomeController extends Controller
                     'value' => $item->id,
                     'description' => number_format($item->budget_maximum, 0, ',', ' ') . ' FCFA',
                     'icon' => 'fa-solid fa-home',
-                    'url' => route('besoins.show', $item),
+                    'url' => route('besoins.show', ['demande' => $item->slug]), // UTILISE LE SLUG
                 ];
             });
 
-        // Recherche d'agences
+        // Recherche d'agences - UTILISE LE SLUG DANS L'URL
         $agences = Agence::where('statut_validation', true)
             ->where(function ($q) use ($search) {
                 $q->where('nom_agence', 'like', "%{$search}%")
@@ -630,7 +630,7 @@ class HomeController extends Controller
                     'value' => $item->id,
                     'description' => $item->quartier,
                     'icon' => 'fa-solid fa-building',
-                    'url' => route('agences.public.show', $item),
+                    'url' => route('agences.public.show', ['agence' => $item->slug]), // UTILISE LE SLUG
                 ];
             });
 

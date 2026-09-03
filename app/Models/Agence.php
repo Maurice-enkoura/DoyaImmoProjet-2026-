@@ -14,6 +14,7 @@ use Carbon\Carbon;
 class Agence extends Model
 {
     use HasFactory;
+    use \App\Traits\Sluggable;
 
     protected $table = 'agences';
 
@@ -27,18 +28,22 @@ class Agence extends Model
         'logo',
         'statut_validation',
         'bloque',
-        // ✅ Ajouter les nouveaux champs
+        'slug',
         'est_refusee',
         'motif_refus',
         'date_refus',
+        'zones_intervention',
     ];
+    
+    protected $slugSource = 'nom';
 
     protected $casts = [
         'statut_validation' => 'boolean',
         'bloque' => 'boolean',
         'est_refusee' => 'boolean',
         'zones_intervention' => 'array',
-        'date_refus' => 'datetime', // ✅ Convertir en objet Carbon
+        'date_refus' => 'datetime', 
+        'slug' => 'string',
     ];
 
     // ==================== RELATIONS ====================
@@ -166,12 +171,109 @@ class Agence extends Model
         return round(($utilisees / $limite) * 100);
     }
 
-    // ==================== ÉVALUATIONS ====================
+    // ==================== ÉVALUATIONS & RÉPUTATION ====================
 
+    /**
+     * Calcule la note moyenne de l'agence
+     */
     public function getNoteMoyenneAttribute(): float
     {
         return $this->evaluations()->avg('note') ?? 0;
     }
+
+    /**
+     * Calcule le nombre total d'évaluations
+     */
+    public function getNombreEvaluationsAttribute(): int
+    {
+        return $this->evaluations()->count();
+    }
+
+    /**
+     * Récupère la répartition des notes (1 à 5 étoiles)
+     */
+    public function getRepartitionNotesAttribute(): array
+    {
+        $repartition = [];
+        for ($i = 1; $i <= 5; $i++) {
+            $repartition[$i] = $this->evaluations()
+                ->where('note', $i)
+                ->count();
+        }
+        return $repartition;
+    }
+
+    /**
+     * Récupère le pourcentage de chaque note
+     */
+    public function getPourcentageNotesAttribute(): array
+    {
+        $total = $this->nombreEvaluations;
+        if ($total === 0) {
+            return [1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0];
+        }
+
+        $pourcentage = [];
+        foreach ($this->repartitionNotes as $note => $count) {
+            $pourcentage[$note] = round(($count / $total) * 100);
+        }
+        return $pourcentage;
+    }
+
+    /**
+     * Récupère les évaluations récentes (limité à 5)
+     */
+    public function getEvaluationsRecentesAttribute()
+    {
+        return $this->evaluations()
+            ->with('particulier.user')
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+    }
+
+    /**
+     * Vérifie si l'agence a des évaluations
+     */
+    public function getAEvaluationsAttribute(): bool
+    {
+        return $this->evaluations()->exists();
+    }
+
+    /**
+     * Récupère la note moyenne formatée (ex: 4.5/5)
+     */
+    public function getNoteMoyenneFormateeAttribute(): string
+    {
+        $note = $this->note_moyenne;
+        return number_format($note, 1) . ' / 5';
+    }
+
+    /**
+     * Récupère le nombre d'étoiles pleines pour l'affichage
+     */
+    public function getEtoilesPleinesAttribute(): int
+    {
+        return (int) floor($this->note_moyenne);
+    }
+
+    /**
+     * Récupère le nombre d'étoiles vides pour l'affichage
+     */
+    public function getEtoilesVidesAttribute(): int
+    {
+        return 5 - $this->etoiles_pleines;
+    }
+
+    /**
+     * Récupère la note moyenne arrondie
+     */
+    public function getNoteArrondieAttribute(): int
+    {
+        return (int) round($this->note_moyenne);
+    }
+
+    // ==================== STATUT ====================
 
     public function estValidee(): bool
     {
@@ -200,7 +302,7 @@ class Agence extends Model
         return in_array($zone, $this->toutesZones);
     }
 
-    // ==================== ✅ NOUVEAUX ACCESSORS ====================
+    // ==================== ACCESSORS STATUT ====================
 
     /**
      * Accesseur pour le statut de l'agence (label)
@@ -243,11 +345,9 @@ class Agence extends Model
         }
         
         try {
-            // Si c'est déjà un objet Carbon
             if ($this->date_refus instanceof Carbon) {
                 return $this->date_refus->format('d/m/Y');
             }
-            // Si c'est une chaîne
             return Carbon::parse($this->date_refus)->format('d/m/Y');
         } catch (\Exception $e) {
             return (string) $this->date_refus;
@@ -276,5 +376,15 @@ class Agence extends Model
     public function getEstValideeAttribute(): bool
     {
         return $this->statut_validation && !$this->bloque;
+    }
+
+    // ==================== ROUTE KEY ====================
+    
+    /**
+     * Get the route key for the model.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
     }
 }

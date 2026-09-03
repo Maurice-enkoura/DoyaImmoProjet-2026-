@@ -3,7 +3,7 @@
 @section('title', 'Créer un compte — DoyaImmo')
 
 @section('content')
-<div class="auth-shell">
+<div class="auth-shell" style="opacity:0;">
     <!-- Section gauche - Visuelle -->
     <div class="auth-visual">
         <div class="brand">
@@ -12,35 +12,35 @@
         </div>
         
         <!-- Statistiques -->
-        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:24px;">
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px;">
             <!-- Citation -->
             <div>
-                <p class="quote" style="font-size:20px;margin:0;">
+                <p class="quote" style="font-size:18px;margin:0;max-width:400px;">
                     « Publier ma recherche m'a pris 3 minutes. Le lendemain j'avais déjà deux propositions. »
                 </p>
-                <p class="quote-by" style="margin-top:8px;">— Moussa D., client à Plateau</p>
+                <p class="quote-by" style="margin-top:6px;font-size:13px;color:#8A91A0;">— Moussa D., client à Plateau</p>
             </div>
 
             <!-- Statistiques dynamiques -->
             <div class="auth-stats" style="margin-top:0;">
                 <div>
-                    <b style="font-size:28px;">{{ $stats['besoins'] ?? 0 }}+</b>
-                    <span style="font-size:13px;color:#9AA1AB;">Besoins publiés</span>
+                    <b style="font-size:24px;">{{ $stats['besoins'] ?? 0 }}+</b>
+                    <span style="font-size:12px;color:#9AA1AB;">Besoins publiés</span>
                 </div>
                 <div>
-                    <b style="font-size:28px;">{{ $stats['agences'] ?? 0 }}+</b>
-                    <span style="font-size:13px;color:#9AA1AB;">Agences inscrites</span>
+                    <b style="font-size:24px;">{{ $stats['agences'] ?? 0 }}+</b>
+                    <span style="font-size:12px;color:#9AA1AB;">Agences inscrites</span>
                 </div>
                 <div>
-                    <b style="font-size:28px;">{{ $stats['delai_moyen'] ?? '48h' }}</b>
-                    <span style="font-size:13px;color:#9AA1AB;">Délai moyen de 1ère offre</span>
+                    <b style="font-size:24px;">{{ $stats['delai_moyen'] ?? '48h' }}</b>
+                    <span style="font-size:12px;color:#9AA1AB;">Délai moyen</span>
                 </div>
             </div>
         </div>
 
         <!-- Footer visuel -->
-        <div style="font-size:12px;color:#6A7280;margin-top:20px;">
-            <i class="fa-regular fa-circle-check" style="color:var(--gold);"></i>
+        <div class="auth-visual-footer">
+            <i class="fa-regular fa-circle-check"></i>
             {{ $stats['clients'] ?? 0 }} clients déjà inscrits sur DoyaImmo
         </div>
     </div>
@@ -103,7 +103,7 @@
     /* ===================== AUTH HEADER ===================== */
     .auth-header {
         text-align: center;
-        margin-bottom: 32px;
+        margin-bottom: 24px;
     }
 
     .auth-header h1 {
@@ -123,14 +123,14 @@
         display: flex;
         flex-direction: column;
         gap: 14px;
-        margin-bottom: 32px;
+        margin-bottom: 24px;
     }
 
     .choice-card {
         display: flex;
         align-items: center;
         gap: 16px;
-        padding: 18px 22px;
+        padding: 16px 20px;
         border: 2px solid var(--border);
         border-radius: 14px;
         text-decoration: none;
@@ -154,10 +154,10 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 48px;
-        height: 48px;
+        width: 44px;
+        height: 44px;
         border-radius: 12px;
-        font-size: 20px;
+        font-size: 18px;
         flex-shrink: 0;
         transition: background 0.25s;
     }
@@ -251,6 +251,19 @@
 
     /* ===================== RESPONSIVE ===================== */
     @media (max-width: 480px) {
+        .auth-header {
+            margin-bottom: 20px;
+        }
+
+        .auth-header h1 {
+            font-size: 20px;
+        }
+
+        .choice-container {
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
         .choice-card {
             padding: 14px 16px;
             gap: 12px;
@@ -273,10 +286,6 @@
 
         .choice-card .choice-arrow {
             font-size: 12px;
-        }
-
-        .auth-header h1 {
-            font-size: 20px;
         }
 
         .choice-card .badge {

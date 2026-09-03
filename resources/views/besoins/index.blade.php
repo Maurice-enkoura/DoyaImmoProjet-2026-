@@ -196,7 +196,8 @@
                         <p class="besoin-desc">{{ Str::limit($demande->description, 80) }}</p>
                         <div class="besoin-foot">
                             <span class="posted">Publié {{ $demande->created_at->diffForHumans() }}</span>
-                            <a href="{{ route('besoins.show', $demande) }}" class="btn btn-ghost btn-sm">Voir</a>
+                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                            <a href="{{ route('besoins.show', $demande->slug) }}" class="btn btn-ghost btn-sm">Voir</a>
                         </div>
                     </div>
                 </div>

@@ -11,7 +11,8 @@
             <h2>Mise en vedette</h2>
             <p>Choisissez la durée pour mettre en avant votre bien</p>
         </div>
-        <a href="{{ route('agence.biens.show', $bien) }}" class="btn btn-ghost btn-sm">
+        <!-- ✅ CORRIGÉ : Utilisation du slug -->
+        <a href="{{ route('agence.biens.show', $bien->slug) }}" class="btn btn-ghost btn-sm">
             <i class="fa-solid fa-arrow-left"></i> Retour au bien
         </a>
     </div>
@@ -46,7 +47,8 @@
             <i class="fa-solid fa-star" style="font-size:40px;color:#F5A623;display:block;margin-bottom:12px;"></i>
             <h3 style="font-size:17px;font-weight:600;color:var(--ink);">Ce bien est déjà en vedette</h3>
             <p style="color:var(--muted);font-size:13px;margin-top:4px;">Attendez la fin de la période actuelle pour faire une nouvelle demande.</p>
-            <a href="{{ route('agence.biens.show', $bien) }}" class="btn btn-ghost" style="margin-top:12px;">Voir le bien</a>
+            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+            <a href="{{ route('agence.biens.show', $bien->slug) }}" class="btn btn-ghost" style="margin-top:12px;">Voir le bien</a>
         </div>
     @else
         <!-- Tarifs -->
@@ -56,7 +58,8 @@
                     <div style="font-weight:700;font-size:18px;color:var(--ink);">{{ $jours }} jour{{ $jours > 1 ? 's' : '' }}</div>
                     <div style="font-size:24px;font-weight:700;color:var(--rust);margin:8px 0;">{{ number_format($prix, 0, ',', ' ') }} FCFA</div>
                     <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">/ mise en vedette</div>
-                    <form action="{{ route('agence.biens.vedette.store', $bien) }}" method="POST">
+                    <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                    <form action="{{ route('agence.biens.vedette.store', $bien->slug) }}" method="POST">
                         @csrf
                         <input type="hidden" name="duree" value="{{ $jours }}">
                         <button type="submit" class="btn btn-rust" style="width:100%;justify-content:center;">

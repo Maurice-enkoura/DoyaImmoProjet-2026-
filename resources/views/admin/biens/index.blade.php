@@ -27,15 +27,15 @@
     </div>
     <div class="kpi-card">
         <div class="kpi-value" style="color:#1E7A47;">{{ $stats['disponibles'] ?? 0 }}</div>
-        <div class="kpi-label"> Disponibles</div>
+        <div class="kpi-label"> ✅ Disponibles</div>
     </div>
     <div class="kpi-card">
         <div class="kpi-value" style="color:#C62828;">{{ $stats['indisponibles'] ?? 0 }}</div>
-        <div class="kpi-label"> Indisponibles</div>
+        <div class="kpi-label"> ❌ Indisponibles</div>
     </div>
     <div class="kpi-card">
         <div class="kpi-value" style="color:#F5A623;">{{ $stats['en_vedette'] ?? 0 }}</div>
-        <div class="kpi-label"> En vedette</div>
+        <div class="kpi-label"> ⭐ En vedette</div>
     </div>
 </div>
 
@@ -168,19 +168,22 @@
                 </td>
                 <td style="text-align:center;">
                     <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;">
-                        <a href="{{ route('admin.biens.show', $bien) }}" class="btn btn-sm btn-ghost" title="Voir">
+                        <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                        <a href="{{ route('admin.biens.show', $bien->slug) }}" class="btn btn-sm btn-ghost" title="Voir">
                             <i class="fa-solid fa-eye"></i>
                         </a>
                         
                         @if($bien->statut)
-                        <form action="{{ route('admin.biens.desactiver', $bien) }}" method="POST" style="display:inline;">
+                        <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                        <form action="{{ route('admin.biens.desactiver', $bien->slug) }}" method="POST" style="display:inline;">
                             @csrf
                             <button type="submit" class="btn btn-sm btn-danger" title="Désactiver" onclick="return confirm('Désactiver ce bien ?')">
                                 <i class="fa-solid fa-ban"></i>
                             </button>
                         </form>
                         @else
-                        <form action="{{ route('admin.biens.activer', $bien) }}" method="POST" style="display:inline;">
+                        <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                        <form action="{{ route('admin.biens.activer', $bien->slug) }}" method="POST" style="display:inline;">
                             @csrf
                             <button type="submit" class="btn btn-sm btn-success" title="Activer" onclick="return confirm('Activer ce bien ?')">
                                 <i class="fa-solid fa-check"></i>
@@ -190,24 +193,26 @@
 
                         <!-- Action Vedette - AVEC FORMULAIRE POST -->
                         @if($bien->est_vedette && $bien->vedette_fin > now())
-                            <form action="{{ route('admin.biens.vedette.retirer', $bien) }}" method="POST" style="display:inline;">
+                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                            <form action="{{ route('admin.biens.vedette.retirer', $bien->slug) }}" method="POST" style="display:inline;">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-danger" title="Retirer de la vedette" onclick="return confirm('Retirer ce bien de la vedette ?')">
                                     <i class="fa-solid fa-star-half-stroke"></i>
                                 </button>
                             </form>
-                            <button type="button" class="btn btn-sm btn-ghost" title="Prolonger" onclick="openProlongerModal({{ $bien->id }})">
+                            <button type="button" class="btn btn-sm btn-ghost" title="Prolonger" onclick="openProlongerModal('{{ $bien->slug }}')">
                                 <i class="fa-solid fa-clock"></i>
                             </button>
                         @else
-                            <!-- Utiliser un bouton qui ouvre le modal -->
-                            <button type="button" class="btn btn-sm btn-ghost" title="Mettre en vedette" onclick="openVedetteModal({{ $bien->id }})">
+                            <!-- Utiliser un bouton qui ouvre le modal avec le slug -->
+                            <button type="button" class="btn btn-sm btn-ghost" title="Mettre en vedette" onclick="openVedetteModal('{{ $bien->slug }}')">
                                 <i class="fa-solid fa-star" style="color:#F5A623;"></i>
                             </button>
                         @endif
 
-                        <form action="{{ route('admin.biens.destroy', $bien) }}" method="POST" style="display:inline;">
+                        <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                        <form action="{{ route('admin.biens.destroy', $bien->slug) }}" method="POST" style="display:inline;">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-sm btn-danger" title="Supprimer" onclick="return confirm('Supprimer définitivement ce bien ?')">
@@ -326,6 +331,7 @@
             <button onclick="closeVedetteModal()" style="background:none;border:none;font-size:24px;cursor:pointer;">&times;</button>
         </div>
         
+        <!-- ✅ CORRIGÉ : Utilisation du slug via JavaScript -->
         <form id="vedetteForm" method="POST">
             @csrf
             <div style="margin-bottom:16px;">
@@ -361,6 +367,7 @@
             <button onclick="closeProlongerModal()" style="background:none;border:none;font-size:24px;cursor:pointer;">&times;</button>
         </div>
         
+        <!-- ✅ CORRIGÉ : Utilisation du slug via JavaScript -->
         <form id="prolongerForm" method="POST">
             @csrf
             <div style="margin-bottom:16px;">
@@ -381,10 +388,11 @@
 </div>
 
 <script>
-    function openVedetteModal(bienId) {
+    // ✅ CORRIGÉ : Utilisation du slug dans les fonctions JavaScript
+    function openVedetteModal(bienSlug) {
         const modal = document.getElementById('vedetteModal');
         const form = document.getElementById('vedetteForm');
-        form.action = `/admin/biens/${bienId}/vedette`;
+        form.action = `/admin/biens/${bienSlug}/vedette`;
         modal.style.display = 'flex';
     }
 
@@ -392,10 +400,10 @@
         document.getElementById('vedetteModal').style.display = 'none';
     }
 
-    function openProlongerModal(bienId) {
+    function openProlongerModal(bienSlug) {
         const modal = document.getElementById('prolongerModal');
         const form = document.getElementById('prolongerForm');
-        form.action = `/admin/biens/${bienId}/vedette/prolonger`;
+        form.action = `/admin/biens/${bienSlug}/vedette/prolonger`;
         modal.style.display = 'flex';
     }
 

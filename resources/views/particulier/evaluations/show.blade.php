@@ -48,17 +48,45 @@
                     {{ $evaluation->note }} / 5
                     <span class="rating-text">
                         @if($evaluation->note >= 4)
-                            Très satisfait
+                            Très satisfait 🤩
                         @elseif($evaluation->note >= 3)
-                            Satisfait
+                            Satisfait 😊
                         @elseif($evaluation->note >= 2)
-                            Insatisfait
+                            Insatisfait 😕
                         @else
-                            Très insatisfait
+                            Très insatisfait 😞
                         @endif
                     </span>
                 </div>
             </div>
+
+            <!-- Proposition associée -->
+            @if($evaluation->proposition)
+                <div class="proposition-section">
+                    <h4 class="section-title">
+                        <i class="fa-regular fa-file-lines" style="color:var(--rust);"></i>
+                        Proposition associée
+                    </h4>
+                    <div class="proposition-info">
+                        <div class="proposition-detail">
+                            <span class="proposition-label">Date de la proposition</span>
+                            <span class="proposition-value">{{ $evaluation->proposition->created_at->format('d/m/Y') }}</span>
+                        </div>
+                        <div class="proposition-detail">
+                            <span class="proposition-label">Prix proposé</span>
+                            <span class="proposition-value" style="color:var(--rust);font-weight:700;">
+                                {{ number_format($evaluation->proposition->prix_propose, 0, ',', ' ') }} FCFA
+                            </span>
+                        </div>
+                        @if($evaluation->proposition->bien)
+                            <div class="proposition-detail">
+                                <span class="proposition-label">Bien</span>
+                                <span class="proposition-value">{{ $evaluation->proposition->bien->titre ?? 'Non spécifié' }}</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
 
             <!-- Commentaire -->
             <div class="comment-section">
@@ -129,8 +157,8 @@
             <a href="{{ route('particulier.evaluations.index') }}" class="btn btn-ghost btn-sm">
                 <i class="fa-solid fa-list"></i> Tous mes avis
             </a>
-            <!-- ✅ Route corrigée -->
-            <a href="{{ route('agences.public.show', $evaluation->agence) }}" class="btn btn-rust btn-sm" style="margin-left:auto;">
+            <!-- ✅ CORRIGÉ : Utilisation du slug pour l'agence -->
+            <a href="{{ route('agences.public.show', $evaluation->agence->slug) }}" class="btn btn-rust btn-sm" style="margin-left:auto;">
                 <i class="fa-solid fa-eye"></i> Voir le profil de l'agence
             </a>
         </div>
@@ -219,6 +247,41 @@
         display: flex;
         flex-direction: column;
         gap: 24px;
+    }
+
+    /* ===================== PROPOSITION ===================== */
+    .proposition-section {
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 20px;
+    }
+
+    .proposition-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        padding: 12px 16px;
+        background: #F7F9FC;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+    }
+
+    .proposition-detail {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .proposition-label {
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+
+    .proposition-value {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--ink);
     }
 
     /* ===================== RATING ===================== */
@@ -434,6 +497,10 @@
         }
 
         .agency-info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .proposition-info {
             grid-template-columns: 1fr;
         }
 

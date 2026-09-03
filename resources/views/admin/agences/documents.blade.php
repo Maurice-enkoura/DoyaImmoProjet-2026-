@@ -6,7 +6,8 @@
 
 @section('content')
 <div style="margin-bottom:20px;">
-    <a href="{{ route('admin.agences.show', $agence) }}" class="btn btn-ghost btn-sm">
+    <!-- ✅ CORRIGÉ : Utilisation du slug -->
+    <a href="{{ route('admin.agences.show', $agence->slug) }}" class="btn btn-ghost btn-sm">
         <i class="fa-solid fa-arrow-left"></i> Retour à l'agence
     </a>
 </div>
@@ -66,12 +67,13 @@
         <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">
             Sélectionnez les documents à valider ou rejeter.
         </p>
-        <form id="validationForm" action="{{ route('admin.agences.valider-documents', $agence) }}" method="POST">
+        <!-- ✅ CORRIGÉ : Utilisation du slug -->
+        <form id="validationForm" action="{{ route('admin.agences.valider-documents', $agence->slug) }}" method="POST">
             @csrf
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <select id="validationStatut" name="statut" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;flex:1;">
-                    <option value="valide"> Valider</option>
-                    <option value="rejete"> Rejeter</option>
+                    <option value="valide"> ✅ Valider</option>
+                    <option value="rejete"> ❌ Rejeter</option>
                 </select>
                 <button type="submit" class="btn btn-rust">
                     <i class="fa-solid fa-check"></i> Appliquer
@@ -238,7 +240,8 @@
             form.appendChild(commentaireInput);
         }
         
-        form.action = "{{ route('admin.agences.valider-documents', $agence) }}";
+        // ✅ CORRIGÉ : Utilisation du slug dans l'action
+        form.action = "{{ route('admin.agences.valider-documents', $agence->slug) }}";
         form.submit();
     }
 </script>

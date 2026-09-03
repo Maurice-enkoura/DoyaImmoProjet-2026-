@@ -182,10 +182,12 @@
         <!-- Actions -->
         <div style="display:flex;gap:12px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--border);">
             @if($demande->statut->value === 'en_attente')
-                <a href="{{ route('particulier.demandes.edit', $demande) }}" class="btn btn-ghost">
+                <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                <a href="{{ route('particulier.demandes.edit', $demande->slug) }}" class="btn btn-ghost">
                     <i class="fa-solid fa-pen"></i> Modifier
                 </a>
-                <form action="{{ route('particulier.demandes.destroy', $demande) }}" method="POST" style="display:inline;">
+                <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                <form action="{{ route('particulier.demandes.destroy', $demande->slug) }}" method="POST" style="display:inline;">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="btn btn-ghost" style="color:#C62828;border-color:#FFCDD2;" onclick="return confirm('Êtes-vous sûr de vouloir annuler cette demande ?')">

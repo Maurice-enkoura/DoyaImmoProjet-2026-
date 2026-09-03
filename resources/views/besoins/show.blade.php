@@ -95,7 +95,8 @@
                     </p>
                     @auth
                         @if(auth()->user()->isAgence())
-                            <a href="{{ route('agence.propositions.create', $demande) }}" class="btn btn-rust btn-block">
+                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                            <a href="{{ route('agence.propositions.create', $demande->slug) }}" class="btn btn-rust btn-block">
                                 <i class="fa-solid fa-paper-plane"></i> Envoyer une offre
                             </a>
                         @elseif(auth()->user()->isParticulier())

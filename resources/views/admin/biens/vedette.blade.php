@@ -37,7 +37,7 @@
 
 <div class="section-head">
     <div>
-        <h2> À la une</h2>
+        <h2>⭐ À la une</h2>
         <p>{{ $biens->total() }} biens en vedette</p>
     </div>
     <a href="{{ route('admin.biens.index') }}" class="btn btn-ghost btn-sm">
@@ -49,15 +49,15 @@
 <div class="kpi-grid">
     <div class="kpi-card">
         <div class="kpi-value">{{ $stats['en_vedette'] ?? 0 }}</div>
-        <div class="kpi-label"> En vedette</div>
+        <div class="kpi-label">⭐ En vedette</div>
     </div>
     <div class="kpi-card">
         <div class="kpi-value" style="color:#C62828;">{{ $stats['expirees'] ?? 0 }}</div>
-        <div class="kpi-label"> Expirées</div>
+        <div class="kpi-label">⏳ Expirées</div>
     </div>
     <div class="kpi-card">
         <div class="kpi-value">{{ $stats['total'] ?? 0 }}</div>
-        <div class="kpi-label"> Total des biens</div>
+        <div class="kpi-label">📦 Total des biens</div>
     </div>
 </div>
 
@@ -151,22 +151,26 @@
                 </td>
                 <td style="text-align:center;">
                     <div style="display:flex;gap:4px;justify-content:center;">
-                        <a href="{{ route('admin.biens.show', $bien) }}" class="btn btn-sm btn-ghost" title="Voir">
+                        <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                        <a href="{{ route('admin.biens.show', $bien->slug) }}" class="btn btn-sm btn-ghost" title="Voir">
                             <i class="fa-solid fa-eye"></i>
                         </a>
                         @if($bien->est_vedette && $bien->vedette_fin > now())
-                            <form action="{{ route('admin.biens.vedette.retirer', $bien) }}" method="POST" style="display:inline;">
+                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                            <form action="{{ route('admin.biens.vedette.retirer', $bien->slug) }}" method="POST" style="display:inline;">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-danger" title="Retirer de la vedette" onclick="return confirm('Retirer ce bien de la vedette ?')">
                                     <i class="fa-solid fa-star-half-stroke"></i>
                                 </button>
                             </form>
-                            <button type="button" class="btn btn-sm btn-ghost" title="Prolonger" onclick="openProlongerModal({{ $bien->id }})">
+                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                            <button type="button" class="btn btn-sm btn-ghost" title="Prolonger" onclick="openProlongerModal('{{ $bien->slug }}')">
                                 <i class="fa-solid fa-clock"></i>
                             </button>
                         @else
-                            <button type="button" class="btn btn-sm btn-ghost" title="Mettre en vedette" onclick="openVedetteModal({{ $bien->id }})">
+                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                            <button type="button" class="btn btn-sm btn-ghost" title="Mettre en vedette" onclick="openVedetteModal('{{ $bien->slug }}')">
                                 <i class="fa-solid fa-star" style="color:#F5A623;"></i>
                             </button>
                         @endif
@@ -199,6 +203,7 @@
             <button onclick="closeVedetteModal()" style="background:none;border:none;font-size:24px;cursor:pointer;">&times;</button>
         </div>
         
+        <!-- ✅ CORRIGÉ : Utilisation du slug via JavaScript -->
         <form id="vedetteForm" method="POST">
             @csrf
             <div style="margin-bottom:16px;">
@@ -233,6 +238,7 @@
             <button onclick="closeProlongerModal()" style="background:none;border:none;font-size:24px;cursor:pointer;">&times;</button>
         </div>
         
+        <!-- ✅ CORRIGÉ : Utilisation du slug via JavaScript -->
         <form id="prolongerForm" method="POST">
             @csrf
             <div style="margin-bottom:16px;">
@@ -253,8 +259,9 @@
 </div>
 
 <script>
-    function openVedetteModal(bienId) {
-        document.getElementById('vedetteForm').action = `/admin/biens/${bienId}/vedette`;
+    // ✅ CORRIGÉ : Utilisation du slug dans les fonctions JavaScript
+    function openVedetteModal(bienSlug) {
+        document.getElementById('vedetteForm').action = `/admin/biens/${bienSlug}/vedette`;
         document.getElementById('vedetteModal').style.display = 'flex';
     }
 
@@ -262,8 +269,8 @@
         document.getElementById('vedetteModal').style.display = 'none';
     }
 
-    function openProlongerModal(bienId) {
-        document.getElementById('prolongerForm').action = `/admin/biens/${bienId}/vedette/prolonger`;
+    function openProlongerModal(bienSlug) {
+        document.getElementById('prolongerForm').action = `/admin/biens/${bienSlug}/vedette/prolonger`;
         document.getElementById('prolongerModal').style.display = 'flex';
     }
 

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use app\Enums\StatutPropositionEnum;
 
 class Evaluation extends Model
 {
@@ -29,6 +30,8 @@ class Evaluation extends Model
         'date_reponse' => 'datetime',
     ];
 
+    // ==================== RELATIONS ====================
+
     public function particulier(): BelongsTo
     {
         return $this->belongsTo(Particulier::class);
@@ -39,14 +42,63 @@ class Evaluation extends Model
         return $this->belongsTo(Agence::class);
     }
 
-     public function proposition(): BelongsTo
+    public function proposition(): BelongsTo
     {
         return $this->belongsTo(Proposition::class);
     }
 
-    // ✅ Optionnel : relation avec le bien via la proposition
-    public function bien()
+    // ==================== SCOPES ====================
+
+    public function scopePourAgence($query, $agenceId)
     {
-        return $this->hasOneThrough(BienImmobilier::class, Proposition::class, 'id', 'id', 'proposition_id', 'bien_id');
+        return $query->where('agence_id', $agenceId);
+    }
+
+    public function scopePourParticulier($query, $particulierId)
+    {
+        return $query->where('particulier_id', $particulierId);
+    }
+
+    public function scopePourProposition($query, $propositionId)
+    {
+        return $query->where('proposition_id', $propositionId);
+    }
+
+    // ==================== VALIDATION ====================
+
+    /**
+     * Vérifier si un particulier peut évaluer une proposition
+     */
+    public static function peutEvaluerProposition($particulierId, $propositionId): bool
+    {
+        $proposition = Proposition::find($propositionId);
+        if (!$proposition) {
+            return false;
+        }
+
+        // ✅ Vérifier que le statut est terminé
+        if ($proposition->statut !== StatutPropositionEnum::TERMINEE->value) {
+            return false;
+        }
+
+        // ✅ Vérifier que le particulier est bien le destinataire
+        if ($proposition->particulier_id !== $particulierId) {
+            return false;
+        }
+
+        // ✅ Vérifier qu'il n'y a pas déjà une évaluation
+        return !self::where('particulier_id', $particulierId)
+            ->where('proposition_id', $propositionId)
+            ->exists();
+    }
+
+    /**
+     * Vérifier si un particulier a déjà évalué une proposition
+     */
+    public static function aDejaEvalueProposition($particulierId, $propositionId): bool
+    {
+        return self::where('particulier_id', $particulierId)
+            ->where('proposition_id', $propositionId)
+            ->exists();
     }
 }

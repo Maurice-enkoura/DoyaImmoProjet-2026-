@@ -13,6 +13,7 @@ use App\Enums\TypeContratEnum;
 class BienImmobilier extends Model
 {
     use HasFactory;
+    use \App\Traits\Sluggable;
 
     protected $table = 'biens_immobiliers';
 
@@ -37,7 +38,9 @@ class BienImmobilier extends Model
         'vedette_debut',
         'vedette_fin',
         'vedette_duree',
+        'slug',
     ];
+     protected $slugSource = 'titre';
 
     protected $casts = [
         'type_bien' => TypeBienEnum::class,
@@ -50,6 +53,7 @@ class BienImmobilier extends Model
         'est_vedette' => 'boolean',
         'vedette_debut' => 'datetime',
         'vedette_fin' => 'datetime',
+         'slug' => 'string',
     ];
 
     // ==================== RELATIONS ====================
@@ -224,4 +228,11 @@ class BienImmobilier extends Model
         $pourcentage = ($ecoule / $total) * 100;
         return (int) round(min(100, max(0, $pourcentage)));
     }
+    /**
+ * Get the route key for the model.
+ */
+public function getRouteKeyName(): string
+{
+    return 'slug';
+}
 }

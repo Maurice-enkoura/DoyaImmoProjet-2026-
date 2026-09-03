@@ -40,7 +40,25 @@
             $count5 = $evaluations->where('note', 5)->count();
             $count4 = $evaluations->where('note', 4)->count();
         @endphp
-        
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-number">{{ $total }}</div>
+                <div class="stat-label">Avis donnés</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" style="color:#F5A623;">{{ number_format($moyenne, 1) }}</div>
+                <div class="stat-label">Note moyenne ★</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" style="color:#1E7A47;">{{ $count5 }}</div>
+                <div class="stat-label">⭐⭐⭐⭐⭐</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" style="color:#0D47A1;">{{ $count4 }}</div>
+                <div class="stat-label">⭐⭐⭐⭐</div>
+            </div>
+        </div>
 
         <!-- Liste des avis -->
         <div style="display:flex;flex-direction:column;gap:16px;">
@@ -65,6 +83,16 @@
                                     {{ $evaluation->created_at->format('d/m/Y') }}
                                 </span>
                             </div>
+                            <!-- Proposition associée -->
+                            @if($evaluation->proposition)
+                                <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+                                    <i class="fa-regular fa-file-lines"></i>
+                                    Proposition du {{ $evaluation->proposition->created_at->format('d/m/Y') }}
+                                    @if($evaluation->proposition->bien)
+                                        - {{ $evaluation->proposition->bien->titre ?? 'Bien' }}
+                                    @endif
+                                </div>
+                            @endif
                             @if($evaluation->commentaire)
                                 <p style="font-size:13.5px;color:var(--text-soft);margin-top:8px;line-height:1.6;">
                                     "{{ $evaluation->commentaire }}"
@@ -84,14 +112,17 @@
                         
                         <!-- Actions -->
                         <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
-                            <a href="{{ route('particulier.evaluations.show', $evaluation) }}" class="btn btn-ghost btn-sm">
+                            <!-- ✅ CORRIGÉ : Utilisation de l'ID pour l'évaluation -->
+                            <a href="{{ route('particulier.evaluations.show', $evaluation->id) }}" class="btn btn-ghost btn-sm">
                                 <i class="fa-solid fa-eye"></i> Détails
                             </a>
                             @if($evaluation->particulier_id === Auth::user()->particulier->id)
-                                <a href="{{ route('particulier.evaluations.edit', $evaluation) }}" class="btn btn-ghost btn-sm">
+                                <!-- ✅ CORRIGÉ : Utilisation de l'ID pour l'évaluation -->
+                                <a href="{{ route('particulier.evaluations.edit', $evaluation->id) }}" class="btn btn-ghost btn-sm">
                                     <i class="fa-solid fa-pen"></i> Modifier
                                 </a>
-                                <form action="{{ route('particulier.evaluations.destroy', $evaluation) }}" method="POST" style="display:inline;">
+                                <!-- ✅ CORRIGÉ : Utilisation de l'ID pour l'évaluation -->
+                                <form action="{{ route('particulier.evaluations.destroy', $evaluation->id) }}" method="POST" style="display:inline;">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-ghost btn-sm" style="color:#C62828;border-color:#FFCDD2;" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet avis ?')">
@@ -133,6 +164,36 @@
     .fa-star:not(.active) {
         color: #D4D8E0;
     }
+
+    /* ===== STATS ===== */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .stat-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px 16px;
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--ink);
+    }
+
+    .stat-label {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+    }
+
+    /* ===== PAGINATION ===== */
     .pagination {
         display: flex;
         gap: 6px;
@@ -162,6 +223,7 @@
         border-color: var(--rust);
     }
 
+    /* ===== BOUTONS ===== */
     .btn {
         display: inline-flex;
         align-items: center;
@@ -205,6 +267,7 @@
         font-size: 12px;
     }
 
+    /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
         .section-head {
             flex-direction: column;
@@ -213,6 +276,9 @@
         }
         .section-head .btn {
             justify-content: center;
+        }
+        .stats-row {
+            grid-template-columns: repeat(2, 1fr) !important;
         }
         [style*="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;"] {
             flex-direction: column;
@@ -224,9 +290,6 @@
         [style*="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;"] .btn {
             flex: 1;
             justify-content: center;
-        }
-        .stats-row {
-            grid-template-columns: repeat(2, 1fr) !important;
         }
     }
 

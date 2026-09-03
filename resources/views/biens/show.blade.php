@@ -48,7 +48,7 @@
                             </div>
                         @endif
                         
-                        <!-- BADGE VEDETTE -->
+                        <!-- BADGE VEDETTE - en haut à GAUCHE -->
                         @if($bien->est_vedette && $bien->vedette_fin > now())
                             <div class="badge-vedette-detail">
                                 <i class="fa-solid fa-star"></i> En vedette
@@ -58,12 +58,17 @@
                             </div>
                         @endif
                         
+                        <!-- BADGE STATUS - en haut à DROITE (ne chevauche pas Vedette) -->
                         <div class="bien-status {{ $bien->statut ? 'disponible' : 'indisponible' }}">
                             {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
                         </div>
+                        
+                        <!-- VUES - en bas à GAUCHE -->
                         <div class="bien-views">
                             <i class="fa-regular fa-eye"></i> {{ $bien->vues ?? 0 }} vues
                         </div>
+                        
+                        <!-- TYPE - en bas à DROITE -->
                         <div class="bien-type-on-image">
                             {{ is_object($bien->type_bien) && method_exists($bien->type_bien, 'label') ? $bien->type_bien->label() : $bien->type_bien }}
                         </div>
@@ -219,7 +224,8 @@
                             @endif
                         </div>
 
-                        <a href="{{ route('agences.public.show', $bien->agence) }}" class="btn btn-ghost btn-block">
+                        <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                        <a href="{{ route('agences.public.show', $bien->agence->slug) }}" class="btn btn-ghost btn-block">
                             <i class="fa-solid fa-building"></i> Voir le profil
                         </a>
                     </div>
@@ -257,7 +263,8 @@
                             <div class="panel report-card">
                                 <h3>Signaler ce bien</h3>
                                 <p>Vous avez remarqué une anomalie ou une information incorrecte ?</p>
-                                <a href="{{ route('particulier.signalements.create-bien', $bien) }}" class="btn btn-ghost btn-sm btn-block report-btn">
+                                <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                                <a href="{{ route('particulier.signalements.create-bien', $bien->slug) }}" class="btn btn-ghost btn-sm btn-block report-btn">
                                     <i class="fa-solid fa-flag"></i> Signaler ce bien
                                 </a>
                             </div>
@@ -310,7 +317,8 @@
                                 </span>
                             </div>
                             <div class="bien-action">
-                                <a href="{{ route('biens.show', $bienSimilaire) }}" class="btn btn-ghost btn-sm btn-block">Voir</a>
+                                <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                                <a href="{{ route('biens.show', $bienSimilaire->slug) }}" class="btn btn-ghost btn-sm btn-block">Voir</a>
                             </div>
                         </div>
                     </div>
@@ -530,34 +538,111 @@
     }
 
     /* ============================================
-       RESTE DU CSS AVEC LES COULEURS DOYAIMMO
+       BADGES SUR L'IMAGE EN DETAIL - POSITIONNEMENT CORRIGÉ
     ============================================ */
+    .gallery-main {
+        position: relative;
+        min-height: clamp(250px, 40vw, 400px);
+        background: #F0F2F5;
+    }
+
+    .gallery-main img {
+        width: 100%;
+        height: clamp(250px, 40vw, 400px);
+        object-fit: cover;
+        cursor: pointer;
+    }
+
+    /* BADGE VEDETTE - en haut à GAUCHE */
     .badge-vedette-detail {
         position: absolute;
-        top: clamp(12px, 1.5vw, 16px);
-        left: clamp(12px, 1.5vw, 16px);
-        padding: clamp(6px, 0.7vw, 8px) clamp(14px, 1.5vw, 18px);
+        top: 16px;
+        left: 16px;
+        z-index: 5;
+        padding: 6px 18px;
         border-radius: 999px;
-        font-size: clamp(12px, 1vw, 14px);
+        font-size: 14px;
         font-weight: 700;
         color: #fff;
         background: linear-gradient(135deg, #D4AF37 0%, #E8951A 100%);
         box-shadow: 0 4px 16px rgba(212, 175, 55, 0.4);
-        z-index: 5;
         display: flex;
         align-items: center;
         gap: 6px;
         animation: pulseVedette 2s ease-in-out infinite;
+        border: 1px solid rgba(255,255,255,0.2);
     }
 
     .badge-vedette-detail i {
-        font-size: clamp(12px, 1vw, 14px);
+        font-size: 14px;
+        color: #fff;
     }
 
+    /* BADGE STATUS - en haut à DROITE (NE CHEVAUCHE PAS VEDETTE) */
+    .gallery-main .bien-status {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        z-index: 5;
+        padding: 6px 18px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .gallery-main .bien-status.disponible {
+        background: #2A9D8F !important;
+    }
+
+    .gallery-main .bien-status.indisponible {
+        background: #8A91A0 !important;
+    }
+
+    /* VUES - en bas à GAUCHE */
+    .bien-views {
+        position: absolute;
+        bottom: 16px;
+        left: 16px;
+        z-index: 5;
+        padding: 4px 14px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #fff;
+        background: rgba(0,0,0,0.6);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* TYPE - en bas à DROITE */
+    .bien-type-on-image {
+        position: absolute;
+        bottom: 16px;
+        right: 16px;
+        z-index: 5;
+        padding: 4px 14px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #fff;
+        background: #B85C3A;
+        border: 1px solid rgba(255,255,255,0.2);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    @keyframes pulseVedette {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.85; }
+    }
+
+    /* BADGE VEDETTE SIMILAIRE */
     .badge-vedette-similar {
         position: absolute;
         top: 8px;
         left: 8px;
+        z-index: 5;
         padding: 2px 10px;
         border-radius: 999px;
         font-size: clamp(8px, 0.6vw, 9px);
@@ -567,11 +652,12 @@
         display: flex;
         align-items: center;
         gap: 3px;
-        z-index: 2;
+        border: 1px solid rgba(255,255,255,0.2);
     }
 
     .badge-vedette-similar i {
         font-size: 8px;
+        color: #fff;
     }
 
     .bien-vedette-tag {
@@ -591,11 +677,7 @@
 
     .bien-vedette-tag i {
         font-size: 10px;
-    }
-
-    @keyframes pulseVedette {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.85; }
+        color: #fff;
     }
 
     /* ===== CONTENEUR ===== */
@@ -713,7 +795,7 @@
     .gallery-main {
         position: relative;
         min-height: clamp(250px, 40vw, 400px);
-        background: #E8ECF0;
+        background: #F0F2F5;
     }
 
     .gallery-main img {
@@ -743,47 +825,6 @@
         font-size: 48px;
         opacity: 0.3;
         margin-bottom: 8px;
-    }
-
-    .bien-status {
-        position: absolute;
-        top: clamp(12px, 1.5vw, 16px);
-        right: clamp(12px, 1.5vw, 16px);
-        padding: clamp(4px, 0.5vw, 6px) clamp(12px, 1.5vw, 16px);
-        border-radius: 999px;
-        font-size: clamp(10px, 0.8vw, 12px);
-        font-weight: 600;
-        color: #fff;
-        z-index: 2;
-    }
-
-    .bien-status.disponible { background: #2A9D8F; } /* TEAL DOYAIMMO */
-    .bien-status.indisponible { background: #8A91A0; }
-
-    .bien-views {
-        position: absolute;
-        bottom: clamp(12px, 1.5vw, 16px);
-        left: clamp(12px, 1.5vw, 16px);
-        padding: clamp(3px, 0.4vw, 4px) clamp(10px, 1.2vw, 14px);
-        border-radius: 999px;
-        font-size: clamp(10px, 0.8vw, 12px);
-        font-weight: 500;
-        color: #fff;
-        background: rgba(0,0,0,0.6);
-        z-index: 2;
-    }
-
-    .bien-type-on-image {
-        position: absolute;
-        bottom: clamp(12px, 1.5vw, 16px);
-        right: clamp(12px, 1.5vw, 16px);
-        padding: clamp(3px, 0.4vw, 4px) clamp(10px, 1.2vw, 14px);
-        border-radius: 999px;
-        font-size: clamp(10px, 0.8vw, 11px);
-        font-weight: 600;
-        color: #fff;
-        background: #B85C3A; /* RUST DOYAIMMO */
-        z-index: 2;
     }
 
     .gallery-thumbnails {
@@ -1118,12 +1159,11 @@
     }
 
     .bien-image {
-        background: #E8ECF0;
+        position: relative;
+        background: #F0F2F5;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--muted);
-        position: relative;
         overflow: hidden;
         height: clamp(140px, 18vw, 160px);
         flex-shrink: 0;
@@ -1152,27 +1192,31 @@
         position: absolute;
         bottom: 8px;
         left: 8px;
+        z-index: 2;
         padding: 2px 10px;
         border-radius: 999px;
         font-size: clamp(9px, 0.7vw, 10px);
         font-weight: 600;
         color: #fff;
         background: #B85C3A;
+        border: 1px solid rgba(255,255,255,0.2);
     }
 
     .similar-status {
         position: absolute;
         top: 8px;
         right: 8px;
+        z-index: 2;
         padding: 2px 10px;
         border-radius: 999px;
         font-size: clamp(9px, 0.7vw, 10px);
         font-weight: 600;
         color: #fff;
+        border: 1px solid rgba(255,255,255,0.2);
     }
 
-    .similar-status.disponible { background: #2A9D8F; }
-    .similar-status.indisponible { background: #8A91A0; }
+    .similar-status.disponible { background: #2A9D8F !important; }
+    .similar-status.indisponible { background: #8A91A0 !important; }
 
     .bien-body {
         padding: 12px 14px 14px;
@@ -1396,21 +1440,6 @@
             padding: 2px 8px;
         }
 
-        .bien-views {
-            font-size: 10px;
-            padding: 3px 10px;
-        }
-
-        .bien-status {
-            font-size: 10px;
-            padding: 4px 12px;
-        }
-
-        .bien-type-on-image {
-            font-size: 10px;
-            padding: 3px 10px;
-        }
-
         .badge-vedette-detail {
             font-size: 10px;
             padding: 4px 12px;
@@ -1420,6 +1449,27 @@
 
         .badge-vedette-detail i {
             font-size: 10px;
+        }
+
+        .gallery-main .bien-status {
+            font-size: 10px;
+            padding: 4px 12px;
+            top: 10px;
+            right: 10px;
+        }
+
+        .bien-views {
+            font-size: 10px;
+            padding: 3px 10px;
+            bottom: 10px;
+            left: 10px;
+        }
+
+        .bien-type-on-image {
+            font-size: 10px;
+            padding: 3px 10px;
+            bottom: 10px;
+            right: 10px;
         }
     }
 
@@ -1477,6 +1527,38 @@
 
         .lightbox-next {
             right: 4px;
+        }
+
+        .badge-vedette-detail {
+            font-size: 9px;
+            padding: 3px 10px;
+            top: 8px;
+            left: 8px;
+        }
+
+        .badge-vedette-detail i {
+            font-size: 9px;
+        }
+
+        .gallery-main .bien-status {
+            font-size: 9px;
+            padding: 3px 10px;
+            top: 8px;
+            right: 8px;
+        }
+
+        .bien-views {
+            font-size: 9px;
+            padding: 3px 8px;
+            bottom: 8px;
+            left: 8px;
+        }
+
+        .bien-type-on-image {
+            font-size: 9px;
+            padding: 3px 8px;
+            bottom: 8px;
+            right: 8px;
         }
     }
 

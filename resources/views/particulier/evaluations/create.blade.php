@@ -34,9 +34,30 @@
 
         <!-- Corps -->
         <div class="evaluation-body">
+            <!-- ✅ CORRIGÉ : Action vers la route store -->
             <form method="POST" action="{{ route('particulier.evaluations.store') }}">
                 @csrf
+                <!-- ✅ AJOUT : Champ proposition_id pour lier l'évaluation à la proposition -->
+                <input type="hidden" name="proposition_id" value="{{ $proposition->id }}">
                 <input type="hidden" name="agence_id" value="{{ $agence->id }}">
+
+                <!-- Informations de la proposition -->
+                <div class="proposition-info">
+                    <div class="proposition-details">
+                        <span class="proposition-label">Proposition du</span>
+                        <span class="proposition-date">{{ $proposition->created_at->format('d/m/Y') }}</span>
+                    </div>
+                    <div class="proposition-details">
+                        <span class="proposition-label">Prix proposé</span>
+                        <span class="proposition-price">{{ number_format($proposition->prix_propose, 0, ',', ' ') }} FCFA</span>
+                    </div>
+                    @if($proposition->bien)
+                    <div class="proposition-details">
+                        <span class="proposition-label">Bien</span>
+                        <span class="proposition-bien">{{ $proposition->bien->titre ?? 'Non spécifié' }}</span>
+                    </div>
+                    @endif
+                </div>
 
                 <!-- Note -->
                 <div class="form-group">
@@ -48,7 +69,7 @@
                             </button>
                         @endfor
                     </div>
-                    <input type="hidden" name="note" id="note" value="0" required>
+                    <input type="hidden" name="note" id="note" value="{{ old('note', 0) }}" required>
                     <div class="note-text" id="noteText">Sélectionnez une note</div>
                     @error('note') <span class="error">{{ $message }}</span> @enderror
                 </div>
@@ -77,7 +98,7 @@
 
                 <!-- Actions -->
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-rust">
+                    <button type="submit" class="btn btn-rust" id="submitBtn">
                         <i class="fa-solid fa-paper-plane"></i> Publier mon avis
                     </button>
                     <a href="{{ route('particulier.evaluations.index') }}" class="btn btn-ghost">
@@ -93,7 +114,7 @@
 @push('scripts')
 <script>
     // ===================== GESTION DES ÉTOILES =====================
-    let selectedNote = 0;
+    let selectedNote = {{ old('note', 0) }};
 
     function setNote(note) {
         selectedNote = note;
@@ -112,11 +133,11 @@
         // Mettre à jour le texte
         const noteText = document.getElementById('noteText');
         const labels = {
-            1: 'Très insatisfait',
-            2: 'Insatisfait',
-            3: 'Moyen',
-            4: 'Satisfait',
-            5: 'Très satisfait'
+            1: 'Très insatisfait 😞',
+            2: 'Insatisfait 😕',
+            3: 'Moyen 😐',
+            4: 'Satisfait 😊',
+            5: 'Très satisfait 🤩'
         };
         noteText.textContent = labels[note] || 'Sélectionnez une note';
         noteText.style.color = note >= 4 ? '#1E7A47' : note >= 3 ? '#F5A623' : '#C62828';
@@ -140,6 +161,21 @@
             document.querySelectorAll('.star-btn').forEach(s => {
                 s.classList.remove('hover');
             });
+        });
+    });
+
+    // ===================== INITIALISATION =====================
+    document.addEventListener('DOMContentLoaded', function() {
+        // Si une note est déjà sélectionnée (erreur de validation)
+        if (selectedNote > 0) {
+            setNote(selectedNote);
+        }
+
+        // Gestion du bouton de soumission
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publication en cours...';
+            btn.disabled = true;
         });
     });
 </script>
@@ -203,6 +239,50 @@
     /* ===================== BODY ===================== */
     .evaluation-body {
         padding: 24px;
+    }
+
+    /* ===================== PROPOSITION INFO ===================== */
+    .proposition-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px 24px;
+        padding: 12px 16px;
+        background: #F7F9FC;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        margin-bottom: 20px;
+    }
+
+    .proposition-details {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .proposition-label {
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+
+    .proposition-date {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--ink);
+    }
+
+    .proposition-price {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--rust);
+    }
+
+    .proposition-bien {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--ink);
     }
 
     /* ===================== FORMULAIRE ===================== */
@@ -417,6 +497,11 @@
         .evaluation-agency {
             flex-direction: column;
             text-align: center;
+        }
+
+        .proposition-info {
+            flex-direction: column;
+            gap: 10px;
         }
 
         .stars-input {

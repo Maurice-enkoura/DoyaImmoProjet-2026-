@@ -244,7 +244,7 @@
                 @endif
             </div>
             <span class="status-pill {{ $bien->statut ? 'status-active' : 'status-inactif' }}">
-                {{ $bien->statut ? ' Disponible' : ' Indisponible' }}
+                {{ $bien->statut ? ' ✅ Disponible' : ' ❌ Indisponible' }}
             </span>
         </div>
 
@@ -282,13 +282,13 @@
             <div style="padding:8px 12px;background:#F7F9FC;border-radius:8px;">
                 <div style="font-size:11px;color:var(--muted);">Parking</div>
                 <div style="font-weight:600;">
-                    {{ $bien->parking_disponible ? ' Oui' : ' Non' }}
+                    {{ $bien->parking_disponible ? ' ✅ Oui' : ' ❌ Non' }}
                 </div>
             </div>
             <div style="padding:8px 12px;background:#F7F9FC;border-radius:8px;">
                 <div style="font-size:11px;color:var(--muted);">Meublé</div>
                 <div style="font-weight:600;">
-                    {{ $bien->est_meuble ? ' Oui' : ' Non' }}
+                    {{ $bien->est_meuble ? ' ✅ Oui' : ' ❌ Non' }}
                 </div>
             </div>
 
@@ -400,9 +400,9 @@
                     <div style="font-size:12px;color:var(--muted);">
                         {{ $bien->agence->user->email ?? '' }}
                         @if($bien->agence && $bien->agence->statut_validation)
-                        <span class="status-pill status-active" style="font-size:10px;padding:1px 10px;"> Validée</span>
+                        <span class="status-pill status-active" style="font-size:10px;padding:1px 10px;"> ✅ Validée</span>
                         @else
-                        <span class="status-pill status-en_attente" style="font-size:10px;padding:1px 10px;"> En attente</span>
+                        <span class="status-pill status-en_attente" style="font-size:10px;padding:1px 10px;"> ⏳ En attente</span>
                         @endif
                     </div>
                 </div>
@@ -417,14 +417,16 @@
         <!-- Actions -->
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;">
             @if($bien->statut)
-            <form action="{{ route('admin.biens.desactiver', $bien) }}" method="POST">
+            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+            <form action="{{ route('admin.biens.desactiver', $bien->slug) }}" method="POST">
                 @csrf
                 <button type="submit" class="btn btn-danger" onclick="return confirm('Désactiver ce bien ?')">
                     <i class="fa-solid fa-eye-slash"></i> Désactiver
                 </button>
             </form>
             @else
-            <form action="{{ route('admin.biens.activer', $bien) }}" method="POST">
+            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+            <form action="{{ route('admin.biens.activer', $bien->slug) }}" method="POST">
                 @csrf
                 <button type="submit" class="btn btn-success" onclick="return confirm('Activer ce bien ?')">
                     <i class="fa-solid fa-eye"></i> Activer
@@ -432,7 +434,8 @@
             </form>
             @endif
             @if($bien->est_vedette && $bien->vedette_fin > now())
-            <form action="{{ route('admin.biens.vedette.retirer', $bien) }}" method="POST">
+            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+            <form action="{{ route('admin.biens.vedette.retirer', $bien->slug) }}" method="POST">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-warning" style="background:#F5A623;color:#fff;border-color:#F5A623;" onclick="return confirm('Retirer ce bien de la vedette ?')">
@@ -440,11 +443,13 @@
                 </button>
             </form>
             @else
-            <button type="button" class="btn btn-ghost" onclick="openVedetteModal({{ $bien->id }})">
+            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+            <button type="button" class="btn btn-ghost" onclick="openVedetteModal('{{ $bien->slug }}')">
                 <i class="fa-solid fa-star" style="color:#F5A623;"></i> Mettre en vedette
             </button>
             @endif
-            <form action="{{ route('admin.biens.destroy', $bien) }}" method="POST" onsubmit="return confirm('Supprimer ce bien définitivement ? Cette action est irréversible.')">
+            <!-- ✅ CORRIGÉ : Utilisation du slug -->
+            <form action="{{ route('admin.biens.destroy', $bien->slug) }}" method="POST" onsubmit="return confirm('Supprimer ce bien définitivement ? Cette action est irréversible.')">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-danger">
@@ -684,12 +689,12 @@ foreach($videos as $media) {
         e.stopPropagation();
     });
 
-    // Modal pour mettre en vedette
-    function openVedetteModal(bienId) {
+    // ✅ CORRIGÉ : Utilisation du slug pour le modal
+    function openVedetteModal(bienSlug) {
         // Créer un formulaire dynamique
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = `/admin/biens/${bienId}/vedette`;
+        form.action = `/admin/biens/${bienSlug}/vedette`;
         
         const csrf = document.createElement('input');
         csrf.type = 'hidden';

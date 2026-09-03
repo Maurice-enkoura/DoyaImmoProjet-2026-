@@ -3,7 +3,7 @@
 @section('title', 'Créer un compte client — DoyaImmo')
 
 @section('content')
-<div class="auth-shell">
+<div class="auth-shell" style="opacity:0;">
     <!-- Section gauche - Visuelle -->
     <div class="auth-visual">
         <div class="brand">
@@ -11,36 +11,32 @@
             <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--gold)">Immo</span></div>
         </div>
         
-        <!-- Statistiques -->
-        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:24px;">
-            <!-- Citation -->
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px;">
             <div>
-                <p class="quote" style="font-size:20px;margin:0;">
+                <p class="quote" style="font-size:18px;margin:0;max-width:400px;">
                     « Publier ma recherche m'a pris 3 minutes. Le lendemain j'avais déjà deux propositions. »
                 </p>
-                <p class="quote-by" style="margin-top:8px;">— Moussa D., client à Plateau</p>
+                <p class="quote-by" style="margin-top:6px;font-size:13px;color:#8A91A0;">— Moussa D., client à Plateau</p>
             </div>
 
-            <!-- Statistiques dynamiques -->
             <div class="auth-stats" style="margin-top:0;">
                 <div>
-                    <b style="font-size:28px;">{{ $stats['besoins'] ?? 0 }}+</b>
-                    <span style="font-size:13px;color:#9AA1AB;">Besoins publiés</span>
+                    <b style="font-size:24px;">{{ $stats['besoins'] ?? 0 }}+</b>
+                    <span style="font-size:12px;color:#9AA1AB;">Besoins publiés</span>
                 </div>
                 <div>
-                    <b style="font-size:28px;">{{ $stats['agences'] ?? 0 }}+</b>
-                    <span style="font-size:13px;color:#9AA1AB;">Agences inscrites</span>
+                    <b style="font-size:24px;">{{ $stats['agences'] ?? 0 }}+</b>
+                    <span style="font-size:12px;color:#9AA1AB;">Agences inscrites</span>
                 </div>
                 <div>
-                    <b style="font-size:28px;">{{ $stats['delai_moyen'] ?? '48h' }}</b>
-                    <span style="font-size:13px;color:#9AA1AB;">Délai moyen de 1ère offre</span>
+                    <b style="font-size:24px;">{{ $stats['delai_moyen'] ?? '48h' }}</b>
+                    <span style="font-size:12px;color:#9AA1AB;">Délai moyen</span>
                 </div>
             </div>
         </div>
 
-        <!-- Footer visuel -->
-        <div style="font-size:12px;color:#6A7280;margin-top:20px;">
-            <i class="fa-regular fa-circle-check" style="color:var(--gold);"></i>
+        <div class="auth-visual-footer">
+            <i class="fa-regular fa-circle-check"></i>
             {{ $stats['clients'] ?? 0 }} clients déjà inscrits sur DoyaImmo
         </div>
     </div>
@@ -48,13 +44,11 @@
     <!-- Section droite - Formulaire -->
     <div class="auth-form-side">
         <div class="auth-box">
-            <!-- En-tête -->
             <div class="brand">
                 <div class="brand-mark">D</div>
                 <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
             </div>
             
-            <!-- Toggle rôles -->
             <div class="role-toggle">
                 <a href="{{ route('register.particulier') }}" class="active">
                     <i class="fa-solid fa-user"></i> Espace client
@@ -70,7 +64,6 @@
             <form method="POST" action="{{ route('register.particulier') }}" id="registerForm">
                 @csrf
 
-                <!-- Étape 1 : Informations personnelles -->
                 <div class="form-section">
                     <h3 class="section-title">
                         <span class="step-badge">1</span> Informations personnelles
@@ -90,7 +83,6 @@
                     </div>
                 </div>
 
-                <!-- Étape 2 : Coordonnées -->
                 <div class="form-section">
                     <h3 class="section-title">
                         <span class="step-badge">2</span> Coordonnées
@@ -109,7 +101,6 @@
                     </div>
                 </div>
 
-                <!-- Étape 3 : Sécurité -->
                 <div class="form-section">
                     <h3 class="section-title">
                         <span class="step-badge">3</span> Sécurité
@@ -132,8 +123,7 @@
                         <input type="password" id="mot_de_passe_confirmation" name="mot_de_passe_confirmation" placeholder="Confirmer votre mot de passe" required>
                     </div>
 
-                    <!-- Indicateur de force du mot de passe -->
-                    <div class="password-strength" style="display:none;margin-top:8px;">
+                    <div class="password-strength" style="display:none;margin-top:6px;">
                         <div style="height:4px;border-radius:2px;background:var(--border);overflow:hidden;">
                             <div id="strengthBar" style="height:100%;width:0%;transition:width 0.3s;border-radius:2px;"></div>
                         </div>
@@ -141,7 +131,6 @@
                     </div>
                 </div>
 
-                <!-- Étape 4 : Informations complémentaires -->
                 <div class="form-section optional-section">
                     <h3 class="section-title">
                         <span class="step-badge">4</span> Informations complémentaires
@@ -161,7 +150,6 @@
                     </div>
                 </div>
 
-                <!-- Conditions -->
                 <div class="field conditions-field">
                     <label class="check-row">
                         <input type="checkbox" name="conditions" required>
@@ -170,14 +158,13 @@
                     </label>
                 </div>
 
-                <!-- Actions -->
                 <button type="submit" class="btn btn-rust btn-block btn-lg" id="submitBtn">
                     <i class="fas fa-user-plus"></i> Créer mon compte
                 </button>
                 
-                <p style="text-align:center;margin-top:12px;font-size:12px;color:var(--muted);">
+                <p style="text-align:center;margin-top:10px;font-size:12px;color:var(--muted);">
                     <i class="fas fa-lock" style="margin-right:4px;"></i>
-                    Vos données sont sécurisées et ne seront jamais partagées
+                    Vos données sont sécurisées
                 </p>
             </form>
 
@@ -189,7 +176,7 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- Toggle password visibility ---
+    // Toggle password
     document.querySelectorAll('.toggle-password').forEach(button => {
         button.addEventListener('click', function() {
             const input = this.closest('.password-wrapper').querySelector('input');
@@ -207,358 +194,102 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // --- Password strength meter ---
+    // Password strength
     const passwordInput = document.getElementById('mot_de_passe');
     const strengthBar = document.getElementById('strengthBar');
     const strengthText = document.getElementById('strengthText');
     const strengthContainer = document.querySelector('.password-strength');
 
-    passwordInput.addEventListener('input', function() {
-        const password = this.value;
-        
-        if (password.length === 0) {
-            strengthContainer.style.display = 'none';
-            return;
-        }
+    if (passwordInput) {
+        passwordInput.addEventListener('input', function() {
+            const password = this.value;
+            
+            if (password.length === 0) {
+                strengthContainer.style.display = 'none';
+                return;
+            }
 
-        strengthContainer.style.display = 'block';
-        
-        let strength = 0;
-        let label = 'Faible';
-        let color = '#C62828';
+            strengthContainer.style.display = 'block';
+            
+            let strength = 0;
+            let label = 'Faible';
+            let color = '#C62828';
 
-        // Longueur
-        if (password.length >= 8) strength += 1;
-        if (password.length >= 12) strength += 1;
+            if (password.length >= 8) strength += 1;
+            if (password.length >= 12) strength += 1;
+            if (/[A-Z]/.test(password)) strength += 1;
+            if (/[a-z]/.test(password)) strength += 1;
+            if (/[0-9]/.test(password)) strength += 1;
+            if (/[^A-Za-z0-9]/.test(password)) strength += 1;
 
-        // Majuscule
-        if (/[A-Z]/.test(password)) strength += 1;
-        
-        // Minuscule
-        if (/[a-z]/.test(password)) strength += 1;
-        
-        // Chiffre
-        if (/[0-9]/.test(password)) strength += 1;
-        
-        // Caractère spécial
-        if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+            let percentage = Math.min((strength / 6) * 100, 100);
 
-        let percentage = Math.min((strength / 6) * 100, 100);
+            if (strength <= 2) {
+                label = 'Faible';
+                color = '#C62828';
+            } else if (strength <= 4) {
+                label = 'Moyen';
+                color = '#F5A623';
+            } else if (strength <= 5) {
+                label = 'Fort';
+                color = '#4A90D9';
+            } else {
+                label = 'Très fort';
+                color = '#1E7A47';
+            }
 
-        if (strength <= 2) {
-            label = 'Faible';
-            color = '#C62828';
-        } else if (strength <= 4) {
-            label = 'Moyen';
-            color = '#F5A623';
-        } else if (strength <= 5) {
-            label = 'Fort';
-            color = '#4A90D9';
-        } else {
-            label = 'Très fort';
-            color = '#1E7A47';
-        }
+            strengthBar.style.width = percentage + '%';
+            strengthBar.style.background = color;
+            strengthText.textContent = 'Force : ' + label;
+            strengthText.style.color = color;
+        });
+    }
 
-        strengthBar.style.width = percentage + '%';
-        strengthBar.style.background = color;
-        strengthText.textContent = 'Force : ' + label;
-        strengthText.style.color = color;
-    });
-
-    // --- Form validation ---
+    // Form validation
     const form = document.getElementById('registerForm');
     const submitBtn = document.getElementById('submitBtn');
 
-    form.addEventListener('submit', function(e) {
-        const password = document.getElementById('mot_de_passe').value;
-        const confirm = document.getElementById('mot_de_passe_confirmation').value;
-        const conditions = document.querySelector('input[name="conditions"]');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const password = document.getElementById('mot_de_passe').value;
+            const confirm = document.getElementById('mot_de_passe_confirmation').value;
+            const conditions = document.querySelector('input[name="conditions"]');
 
-        // Vérifier que les mots de passe correspondent
-        if (password !== confirm) {
-            e.preventDefault();
-            alert('Les mots de passe ne correspondent pas.');
-            return;
+            if (password !== confirm) {
+                e.preventDefault();
+                alert('Les mots de passe ne correspondent pas.');
+                return;
+            }
+
+            if (password.length < 8) {
+                e.preventDefault();
+                alert('Le mot de passe doit contenir au moins 8 caractères.');
+                return;
+            }
+
+            if (!conditions.checked) {
+                e.preventDefault();
+                alert('Vous devez accepter les conditions d\'utilisation.');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création en cours...';
+        });
+    }
+
+    // Auto-capitalisation
+    document.getElementById('nom')?.addEventListener('blur', function() {
+        if (this.value.length > 0) {
+            this.value = this.value.charAt(0).toUpperCase() + this.value.slice(1).toLowerCase();
         }
-
-        // Vérifier la longueur du mot de passe
-        if (password.length < 8) {
-            e.preventDefault();
-            alert('Le mot de passe doit contenir au moins 8 caractères.');
-            return;
-        }
-
-        // Vérifier les conditions
-        if (!conditions.checked) {
-            e.preventDefault();
-            alert('Vous devez accepter les conditions d\'utilisation.');
-            return;
-        }
-
-        // Désactiver le bouton pour éviter les doubles soumissions
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création en cours...';
     });
 
-    // --- Auto-capitalisation des noms ---
-    document.getElementById('nom').addEventListener('blur', function() {
-        this.value = this.value.charAt(0).toUpperCase() + this.value.slice(1).toLowerCase();
-    });
-
-    document.getElementById('prenom').addEventListener('blur', function() {
-        this.value = this.value.charAt(0).toUpperCase() + this.value.slice(1).toLowerCase();
+    document.getElementById('prenom')?.addEventListener('blur', function() {
+        if (this.value.length > 0) {
+            this.value = this.value.charAt(0).toUpperCase() + this.value.slice(1).toLowerCase();
+        }
     });
 });
 </script>
-@endpush
-
-@push('styles')
-<style>
-    /* Styles spécifiques au formulaire d'inscription client */
-    .form-section {
-        margin-bottom: 24px;
-        padding-bottom: 24px;
-        border-bottom: 1px solid var(--border);
-    }
-
-    .form-section:last-of-type {
-        border-bottom: none;
-        margin-bottom: 0;
-        padding-bottom: 0;
-    }
-
-    .section-title {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-family: var(--display);
-        font-size: 15px;
-        font-weight: 600;
-        color: var(--text);
-        margin-bottom: 16px;
-    }
-
-    .step-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: var(--rust);
-        color: #fff;
-        font-size: 13px;
-        font-weight: 700;
-        flex-shrink: 0;
-    }
-
-    .optional-badge {
-        font-size: 11px;
-        font-weight: 500;
-        color: var(--muted);
-        background: var(--border);
-        padding: 2px 10px;
-        border-radius: 20px;
-        margin-left: auto;
-    }
-
-    .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-    }
-
-    @media (max-width: 480px) {
-        .form-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    .field {
-        margin-bottom: 0;
-    }
-
-    .field label {
-        display: block;
-        font-size: 12.5px;
-        font-weight: 600;
-        color: var(--text-soft);
-        margin-bottom: 4px;
-    }
-
-    .field input {
-        width: 100%;
-        padding: 10px 14px;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        font-size: 13px;
-        font-family: inherit;
-        transition: all 0.2s;
-        background: #fff;
-    }
-
-    .field input:focus {
-        outline: none;
-        border-color: var(--rust);
-        box-shadow: 0 0 0 3px rgba(181, 80, 42, 0.1);
-    }
-
-    .field input.is-invalid {
-        border-color: #C62828;
-    }
-
-    .field input.is-invalid:focus {
-        box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.1);
-    }
-
-    .field input::placeholder {
-        color: #B0B8C4;
-    }
-
-    .required {
-        color: var(--rust);
-        font-weight: 600;
-        margin-left: 2px;
-    }
-
-    .error-message {
-        display: block;
-        color: #C62828;
-        font-size: 12px;
-        margin-top: 4px;
-    }
-
-    .field-hint {
-        display: block;
-        font-size: 12px;
-        color: var(--muted);
-        margin-top: 4px;
-    }
-
-    .password-wrapper {
-        position: relative;
-    }
-
-    .password-wrapper input {
-        padding-right: 44px;
-    }
-
-    .toggle-password {
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        color: var(--muted);
-        cursor: pointer;
-        padding: 4px;
-        font-size: 16px;
-        transition: color 0.2s;
-    }
-
-    .toggle-password:hover {
-        color: var(--text);
-    }
-
-    .password-strength {
-        animation: strengthPulse 0.3s ease;
-    }
-
-    @keyframes strengthPulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
-    }
-
-    .conditions-field {
-        margin: 20px 0;
-    }
-
-    .check-row {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        font-size: 13px;
-        color: var(--text-soft);
-        cursor: pointer;
-    }
-
-    .check-row input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        min-width: 18px;
-        margin-top: 2px;
-        cursor: pointer;
-        accent-color: var(--rust);
-    }
-
-    .check-row .link {
-        color: var(--rust);
-        font-weight: 600;
-        text-decoration: none;
-    }
-
-    .check-row .link:hover {
-        text-decoration: underline;
-    }
-
-    .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 20px;
-        border-radius: 12px;
-        font-size: 13.5px;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.2s;
-        border: 1px solid transparent;
-        cursor: pointer;
-        font-family: inherit;
-    }
-
-    .btn-rust {
-        background: var(--rust);
-        color: #fff;
-        border-color: var(--rust);
-    }
-
-    .btn-rust:hover {
-        background: #9A4523;
-        border-color: #9A4523;
-        color: #fff;
-    }
-
-    .btn-rust:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-
-    .btn-block {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .btn-lg {
-        padding: 14px 28px;
-        font-size: 15px;
-    }
-
-    .auth-foot-link {
-        text-align: center;
-        margin-top: 24px;
-        font-size: 14px;
-        color: var(--text-soft);
-    }
-
-    .auth-foot-link a {
-        color: var(--rust);
-        text-decoration: none;
-        font-weight: 600;
-    }
-
-    .auth-foot-link a:hover {
-        text-decoration: underline;
-    }
-</style>
 @endpush

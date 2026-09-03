@@ -16,8 +16,8 @@
             <div class="filter-group">
                 <select id="filterType" onchange="filterHistorique()" style="padding:8px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:#fff;font-family:inherit;cursor:pointer;">
                     <option value="all">Toutes les activités</option>
-                    <option value="proposition">📨 Offres envoyées</option>
-                    <option value="rendezvous">📅 Rendez-vous</option>
+                    <option value="proposition"> Offres envoyées</option>
+                    <option value="rendezvous"> Rendez-vous</option>
                     <option value="evaluation">⭐ Avis reçus</option>
                 </select>
             </div>
@@ -151,6 +151,7 @@
 
                             <div class="event-actions">
                                 @if(isset($event['demande_link']))
+                                    <!-- ✅ CORRIGÉ : Utilisation du slug dans le lien -->
                                     <a href="{{ $event['demande_link'] }}" class="btn btn-ghost btn-sm">
                                         <i class="fa-regular fa-file-lines"></i> Voir la demande
                                     </a>

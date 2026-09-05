@@ -15,7 +15,8 @@
     <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:clamp(16px, 2vw, 24px);">
         @if($errors->any())
             <div style="padding:12px 16px;background:#FFEBEE;border-radius:10px;border:1px solid #FFCDD2;margin-bottom:16px;">
-                <ul style="margin:0;padding:0 0 0 16px;color:#C62828;font-size:13px;">
+                <strong style="color:#C62828;">Veuillez corriger les erreurs suivantes :</strong>
+                <ul style="margin:8px 0 0;padding:0 0 0 16px;color:#C62828;font-size:13px;">
                     @foreach($errors->all() as $error)
                         <li>{{ $error }}</li>
                     @endforeach
@@ -42,6 +43,9 @@
                         @error('titre')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
+                        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                            <i class="fa-regular fa-info-circle"></i> Le titre sera utilisé pour générer l'URL du bien.
+                        </div>
                     </div>
                     <div>
                         <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
@@ -58,6 +62,10 @@
                         @error('type_bien')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
+                        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                            <i class="fa-regular fa-info-circle"></i> 
+                            Le type de bien détermine les critères à renseigner.
+                        </div>
                     </div>
                 </div>
 
@@ -66,7 +74,7 @@
                         <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
                             Type de contrat <span style="color:#C62828;">*</span>
                         </label>
-                        <select name="type_contrat" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;" required>
+                        <select name="type_contrat" id="type_contrat" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;" required>
                             <option value="">Sélectionnez un contrat</option>
                             @foreach(\App\Enums\TypeContratEnum::cases() as $type)
                                 <option value="{{ $type->value }}" {{ old('type_contrat') == $type->value ? 'selected' : '' }}>
@@ -77,6 +85,10 @@
                         @error('type_contrat')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
+                        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                            <i class="fa-regular fa-info-circle"></i> 
+                            Vente ou Location.
+                        </div>
                     </div>
                     <div>
                         <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
@@ -87,6 +99,10 @@
                         @error('prix')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
+                        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                            <i class="fa-regular fa-info-circle"></i> 
+                            <span id="prixHint">Prix de vente ou loyer mensuel selon le contrat.</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -121,54 +137,68 @@
                 </div>
             </div>
 
-            <!-- Caractéristiques -->
+            <!-- ✅ Caractéristiques avec adaptation selon le type -->
             <div style="margin-bottom:20px;padding-top:16px;border-top:1px solid var(--border);">
                 <h4 style="font-family:var(--display);font-size:clamp(14px, 1vw, 15px);margin-bottom:12px;color:var(--text-soft);">
                     <i class="fa-solid fa-sliders-h" style="color:var(--rust);"></i> Caractéristiques
                 </h4>
+                <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+                    <span id="caractLabel">Renseignez les caractéristiques du bien.</span>
+                </p>
 
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
                     <div>
                         <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
-                            Chambres <span style="color:#C62828;">*</span>
+                            <span id="chambresLabel">Chambres <span style="color:#C62828;">*</span></span>
                         </label>
                         <input type="number" name="nombre_chambres" id="nombre_chambres" value="{{ old('nombre_chambres', 0) }}" min="0"
-                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;" required>
+                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;">
                         @error('nombre_chambres')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
+                        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                            <i class="fa-regular fa-info-circle"></i> 
+                            <span id="chambresHint">Nombre de chambres.</span>
+                        </div>
                     </div>
                     <div>
                         <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
-                            Salles de bain <span style="color:#C62828;">*</span>
+                            <span id="sdbLabel">Salles de bain <span style="color:#C62828;">*</span></span>
                         </label>
                         <input type="number" name="nombre_salles_bain" id="nombre_salles_bain" value="{{ old('nombre_salles_bain', 0) }}" min="0"
-                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;" required>
+                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;">
                         @error('nombre_salles_bain')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
+                        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                            <i class="fa-regular fa-info-circle"></i> 
+                            <span id="sdbHint">Nombre de salles de bain.</span>
+                        </div>
                     </div>
                     <div>
                         <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
-                            Surface (m²)
+                            Surface (m²) <span style="color:#C62828;">*</span>
                         </label>
-                        <input type="number" step="0.01" name="surface" id="surface" value="{{ old('surface') }}" placeholder="Ex: 150"
-                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;">
+                        <input type="number" step="0.01" name="surface" id="surface" value="{{ old('surface') }}" placeholder="Ex: 150" min="0"
+                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;" required>
                         @error('surface')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
-                        <small style="font-size:11px;color:var(--muted);">Optionnel</small>
+                        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                            <i class="fa-regular fa-info-circle"></i> 
+                            <span id="surfaceHint">Surface habitable en m².</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Équipements -->
+            <!-- ✅ Équipements COMPLETS -->
             <div style="margin-bottom:20px;padding-top:16px;border-top:1px solid var(--border);">
                 <h4 style="font-family:var(--display);font-size:clamp(14px, 1vw, 15px);margin-bottom:12px;color:var(--text-soft);">
                     <i class="fa-solid fa-cogs" style="color:var(--rust);"></i> Équipements
                 </h4>
                 <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
-                    Sélectionnez les équipements disponibles dans ce bien.
+                    <span id="equipLabel">Sélectionnez les équipements disponibles dans ce bien.</span>
                 </p>
 
                 <div id="equipementsContainer" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;">
@@ -179,6 +209,30 @@
                     <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;">
                         <input type="checkbox" name="est_meuble" value="1" {{ old('est_meuble') ? 'checked' : '' }}>
                         <i class="fa-solid fa-couch" style="color:var(--muted);"></i> Meublé
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;">
+                        <input type="checkbox" name="climatisation" value="1" {{ old('climatisation') ? 'checked' : '' }}>
+                        <i class="fa-solid fa-snowflake" style="color:var(--muted);"></i> Climatisation
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;">
+                        <input type="checkbox" name="balcon" value="1" {{ old('balcon') ? 'checked' : '' }}>
+                        <i class="fa-solid fa-umbrella" style="color:var(--muted);"></i> Balcon
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;">
+                        <input type="checkbox" name="jardin" value="1" {{ old('jardin') ? 'checked' : '' }}>
+                        <i class="fa-solid fa-tree" style="color:var(--muted);"></i> Jardin
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;">
+                        <input type="checkbox" name="piscine" value="1" {{ old('piscine') ? 'checked' : '' }}>
+                        <i class="fa-solid fa-water" style="color:var(--muted);"></i> Piscine
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;">
+                        <input type="checkbox" name="ascenseur" value="1" {{ old('ascenseur') ? 'checked' : '' }}>
+                        <i class="fa-solid fa-elevator" style="color:var(--muted);"></i> Ascenseur
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;">
+                        <input type="checkbox" name="securite" value="1" {{ old('securite') ? 'checked' : '' }}>
+                        <i class="fa-solid fa-shield-halved" style="color:var(--muted);"></i> Sécurité 24h/24
                     </label>
                 </div>
 
@@ -202,19 +256,18 @@
                 </div>
             </div>
 
-            <!-- Photos - Sélection multiple -->
+            <!-- Photos -->
             <div style="margin-top:20px;padding:clamp(14px, 1.5vw, 20px);background:#F7F9FC;border-radius:10px;border:2px dashed var(--border);">
                 <h4 style="font-family:var(--display);font-size:clamp(13px, 0.9vw, 14px);margin-bottom:8px;">
-                    <i class="fa-regular fa-image" style="color:var(--rust);"></i> Photos du bien
+                    <i class="fa-regular fa-image" style="color:var(--rust);"></i> Photos du bien <span style="color:#C62828;">*</span>
                 </h4>
                 <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
                     Ajoutez jusqu'à <strong>10 photos</strong> (format JPG, PNG, JPEG, WebP - max 5 Mo chacune)
                 </p>
                 <input type="file" name="images[]" accept="image/*" multiple 
                        id="imageInput"
-                       style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;">
+                       style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;" required>
                 
-                <!-- Prévisualisation des photos -->
                 <div id="imagePreviewContainer" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-top:12px;display:none;"></div>
                 <div style="font-size:11px;color:var(--muted);margin-top:8px;">
                     <span id="imageCount">0</span>/10 photos sélectionnées
@@ -227,7 +280,7 @@
                 @enderror
             </div>
 
-            <!-- Vidéos - Sélection multiple -->
+            <!-- Vidéos -->
             <div style="margin-top:16px;padding:clamp(14px, 1.5vw, 20px);background:#F7F9FC;border-radius:10px;border:2px dashed var(--border);">
                 <h4 style="font-family:var(--display);font-size:clamp(13px, 0.9vw, 14px);margin-bottom:8px;">
                     <i class="fa-regular fa-circle-play" style="color:var(--rust);"></i> Vidéos du bien
@@ -239,7 +292,6 @@
                        id="videoInput"
                        style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;">
                 
-                <!-- Prévisualisation des vidéos -->
                 <div id="videoPreviewContainer" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:12px;display:none;"></div>
                 <div style="font-size:11px;color:var(--muted);margin-top:8px;">
                     <span id="videoCount">0</span>/1 vidéo sélectionnée
@@ -266,33 +318,148 @@
 </div>
 
 <script>
-    // ==================== GESTION DES CHAMPS CONDITIONNELS ====================
+    // ============================================
+    // ADAPTATION SELON LE TYPE DE BIEN
+    // ============================================
     document.getElementById('type_bien')?.addEventListener('change', function() {
         const type = this.value;
+        
+        // Éléments DOM
         const equipementsContainer = document.getElementById('equipementsContainer');
         const terrainNote = document.getElementById('terrainNote');
-        const chambres = document.getElementById('nombre_chambres');
-        const sdb = document.getElementById('nombre_salles_bain');
-        const surface = document.getElementById('surface');
+        const chambresInput = document.getElementById('nombre_chambres');
+        const sdbInput = document.getElementById('nombre_salles_bain');
+        const surfaceInput = document.getElementById('surface');
+        const chambresLabel = document.getElementById('chambresLabel');
+        const sdbLabel = document.getElementById('sdbLabel');
+        const chambresHint = document.getElementById('chambresHint');
+        const sdbHint = document.getElementById('sdbHint');
+        const surfaceHint = document.getElementById('surfaceHint');
+        const caracteristiquesLabel = document.getElementById('caractLabel');
+        const equipLabel = document.getElementById('equipLabel');
+        const prixHint = document.getElementById('prixHint');
         
-        if (type === 'terrain') {
+        // Réinitialiser les champs
+        chambresInput.disabled = false;
+        sdbInput.disabled = false;
+        chambresInput.removeAttribute('required');
+        sdbInput.removeAttribute('required');
+        surfaceInput.setAttribute('required', 'required');
+        
+        // Définir le comportement selon le type
+        const isTerrain = type === 'terrain';
+        const isLocal = type === 'local_commercial' || type === 'bureau';
+        const isResidentiel = type === 'appartement' || type === 'maison' || type === 'villa' || type === 'immeuble';
+        const isChambre = type === 'chambre' || type === 'studio';
+        
+        if (isTerrain) {
+            // ✅ TERRAIN
             equipementsContainer.style.display = 'none';
             terrainNote.style.display = 'block';
-            chambres.value = 0;
-            chambres.disabled = true;
-            sdb.value = 0;
-            sdb.disabled = true;
-            surface.placeholder = 'Optionnel (ex: 500)';
-        } else {
+            
+            chambresInput.value = 0;
+            chambresInput.disabled = true;
+            sdbInput.value = 0;
+            sdbInput.disabled = true;
+            
+            chambresLabel.innerHTML = 'Chambres <span style="color:#8A91A0;font-weight:400;">(N/A)</span>';
+            sdbLabel.innerHTML = 'Salles de bain <span style="color:#8A91A0;font-weight:400;">(N/A)</span>';
+            chambresHint.textContent = 'Non applicable pour un terrain.';
+            sdbHint.textContent = 'Non applicable pour un terrain.';
+            surfaceHint.textContent = 'Surface du terrain en m².';
+            caracteristiquesLabel.textContent = 'Un terrain n\'a pas de chambres ni de salles de bain.';
+            equipLabel.textContent = 'Les équipements ne sont pas applicables pour un terrain.';
+            
+            surfaceInput.setAttribute('required', 'required');
+            prixHint.textContent = 'Prix de vente du terrain.';
+            
+        } else if (isLocal) {
+            // ✅ LOCAL COMMERCIAL / BUREAU
             equipementsContainer.style.display = 'grid';
             terrainNote.style.display = 'none';
-            chambres.disabled = false;
-            sdb.disabled = false;
-            surface.placeholder = 'Ex: 150';
+            
+            chambresInput.disabled = false;
+            sdbInput.disabled = false;
+            
+            chambresLabel.innerHTML = 'Chambres <span style="color:#8A91A0;font-weight:400;">(optionnel)</span>';
+            sdbLabel.innerHTML = 'Salles de bain <span style="color:#8A91A0;font-weight:400;">(optionnel)</span>';
+            chambresHint.textContent = 'Peuvent être utiles pour un local avec logement.';
+            sdbHint.textContent = 'Peuvent être utiles pour un local avec logement.';
+            surfaceHint.textContent = 'Surface du local en m².';
+            caracteristiquesLabel.textContent = 'Renseignez les caractéristiques du local.';
+            equipLabel.textContent = 'Sélectionnez les équipements disponibles.';
+            
+            chambresInput.removeAttribute('required');
+            sdbInput.removeAttribute('required');
+            surfaceInput.setAttribute('required', 'required');
+            
+            prixHint.textContent = 'Prix de vente ou loyer selon le contrat.';
+            
+        } else if (isResidentiel || isChambre) {
+            // ✅ RÉSIDENTIEL (Appartement, Maison, Villa, Immeuble, Chambre, Studio)
+            equipementsContainer.style.display = 'grid';
+            terrainNote.style.display = 'none';
+            
+            chambresInput.disabled = false;
+            sdbInput.disabled = false;
+            
+            chambresLabel.innerHTML = 'Chambres <span style="color:#C62828;">*</span>';
+            sdbLabel.innerHTML = 'Salles de bain <span style="color:#C62828;">*</span>';
+            chambresHint.textContent = 'Nombre de chambres du bien.';
+            sdbHint.textContent = 'Nombre de salles de bain.';
+            surfaceHint.textContent = 'Surface habitable en m².';
+            caracteristiquesLabel.textContent = 'Renseignez les caractéristiques du bien.';
+            equipLabel.textContent = 'Sélectionnez les équipements disponibles dans ce bien.';
+            
+            chambresInput.setAttribute('required', 'required');
+            sdbInput.setAttribute('required', 'required');
+            surfaceInput.setAttribute('required', 'required');
+            
+            prixHint.textContent = 'Prix de vente ou loyer selon le contrat.';
+            
+        } else {
+            // ✅ AUTRES (cas par défaut)
+            equipementsContainer.style.display = 'grid';
+            terrainNote.style.display = 'none';
+            
+            chambresInput.disabled = false;
+            sdbInput.disabled = false;
+            
+            chambresLabel.innerHTML = 'Chambres <span style="color:#C62828;">*</span>';
+            sdbLabel.innerHTML = 'Salles de bain <span style="color:#C62828;">*</span>';
+            chambresHint.textContent = 'Nombre de chambres.';
+            sdbHint.textContent = 'Nombre de salles de bain.';
+            surfaceHint.textContent = 'Surface en m².';
+            caracteristiquesLabel.textContent = 'Renseignez les caractéristiques du bien.';
+            equipLabel.textContent = 'Sélectionnez les équipements disponibles.';
+            
+            chambresInput.setAttribute('required', 'required');
+            sdbInput.setAttribute('required', 'required');
+            surfaceInput.setAttribute('required', 'required');
+            
+            prixHint.textContent = 'Prix de vente ou loyer selon le contrat.';
         }
     });
 
-    // ==================== PRÉVISUALISATION DES IMAGES ====================
+    // ============================================
+    // ADAPTATION SELON LE TYPE DE CONTRAT
+    // ============================================
+    document.getElementById('type_contrat')?.addEventListener('change', function() {
+        const value = this.value;
+        const prixHint = document.getElementById('prixHint');
+        
+        if (value === 'location') {
+            prixHint.textContent = 'Loyer mensuel en FCFA.';
+        } else if (value === 'vente') {
+            prixHint.textContent = 'Prix de vente en FCFA.';
+        } else {
+            prixHint.textContent = 'Prix de vente ou loyer selon le contrat.';
+        }
+    });
+
+    // ============================================
+    // PRÉVISUALISATION DES IMAGES
+    // ============================================
     document.getElementById('imageInput')?.addEventListener('change', function(e) {
         const container = document.getElementById('imagePreviewContainer');
         container.innerHTML = '';
@@ -306,7 +473,6 @@
             return;
         }
         
-        // ✅ Limiter à 10 photos
         if (files.length > 10) {
             alert('⚠️ Vous ne pouvez sélectionner que 10 photos maximum.');
             this.value = '';
@@ -334,7 +500,9 @@
         });
     });
 
-    // ==================== PRÉVISUALISATION DES VIDÉOS ====================
+    // ============================================
+    // PRÉVISUALISATION DES VIDÉOS
+    // ============================================
     document.getElementById('videoInput')?.addEventListener('change', function(e) {
         const container = document.getElementById('videoPreviewContainer');
         container.innerHTML = '';
@@ -348,7 +516,6 @@
             return;
         }
         
-        // ✅ Limiter à 1 vidéo
         if (files.length > 1) {
             alert('⚠️ Vous ne pouvez sélectionner qu\'1 vidéo maximum.');
             this.value = '';
@@ -379,16 +546,21 @@
         });
     });
 
-    // ==================== SOUMISSION DU FORMULAIRE ====================
+    // ============================================
+    // SOUMISSION DU FORMULAIRE
+    // ============================================
     document.getElementById('bienForm')?.addEventListener('submit', function(e) {
         const btn = document.getElementById('submitBtn');
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publication en cours...';
         btn.disabled = true;
     });
 
-    // ==================== INITIALISATION ====================
+    // ============================================
+    // INITIALISATION
+    // ============================================
     document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('type_bien')?.dispatchEvent(new Event('change'));
+        document.getElementById('type_contrat')?.dispatchEvent(new Event('change'));
     });
 </script>
 @endsection
@@ -400,6 +572,10 @@
         cursor: pointer;
     }
 
+    label:has(input[type="checkbox"]:hover) {
+        border-color: var(--rust);
+    }
+
     label:has(input[type="checkbox"]:checked) {
         background: var(--rust-soft);
         border-color: var(--rust);
@@ -407,6 +583,13 @@
 
     label:has(input[type="checkbox"]:checked) i {
         color: var(--rust) !important;
+    }
+
+    label:has(input[type="checkbox"]) input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        flex-shrink: 0;
     }
 
     .btn-rust:hover {
@@ -421,7 +604,17 @@
         cursor: not-allowed;
     }
 
-    /* ✅ RESPONSIVE */
+    #equipementsContainer, #terrainNote {
+        transition: all 0.3s ease;
+    }
+
+    input:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        background: #F7F9FC;
+    }
+
+    /* RESPONSIVE */
     @media (max-width: 768px) {
         [style*="display:grid;grid-template-columns:1fr 1fr;gap:16px;"] {
             grid-template-columns: 1fr !important;
@@ -434,6 +627,9 @@
         }
         [style*="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))"] {
             grid-template-columns: repeat(auto-fill,minmax(140px,1fr)) !important;
+        }
+        [style*="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))"] {
+            grid-template-columns: 1fr 1fr !important;
         }
     }
 
@@ -449,8 +645,15 @@
         [style*="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))"] {
             grid-template-columns: 1fr !important;
         }
+        [style*="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))"] {
+            grid-template-columns: 1fr !important;
+        }
         [style*="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:12px;flex-wrap:wrap;"] {
             flex-direction: column !important;
+        }
+        label:has(input[type="checkbox"]) {
+            font-size: 12px !important;
+            padding: 6px 10px !important;
         }
     }
 

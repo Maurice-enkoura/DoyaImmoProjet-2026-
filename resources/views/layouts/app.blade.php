@@ -4,8 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <!-- ============================================
+         ✅ SEO : META TAGS
+         ============================================ -->
     <title>@yield('title', 'DoyaImmo — Trouvez votre logement à Dakar, simplement')</title>
-    
+    <meta name="description" content="@yield('meta_description', 'DoyaImmo est une plateforme immobilière basée à Dakar qui met en relation particuliers et agences immobilières pour la recherche, la location et la vente de logements.')">
+    <link rel="canonical" href="@yield('canonical', 'https://doyaimmo.com'.request()->getRequestUri())">
+    <meta name="robots" content="@yield('robots', 'index, follow')">
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+
+    <!-- Open Graph -->
+    <meta property="og:site_name" content="DoyaImmo">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="@yield('og_title', 'DoyaImmo — Trouvez votre logement à Dakar, simplement')">
+    <meta property="og:description" content="@yield('og_description', 'DoyaImmo met en relation particuliers et agences immobilières à Dakar. Publiez votre recherche ou consultez les biens disponibles, quartier par quartier.')">
+    <meta property="og:url" content="@yield('canonical', 'https://doyaimmo.com'.request()->getRequestUri())">
+    <meta property="og:image" content="{{ asset('favicon.png') }}">
+    <meta property="og:locale" content="fr_SN">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="@yield('og_title', 'DoyaImmo — Trouvez votre logement à Dakar, simplement')">
+    <meta name="twitter:description" content="@yield('og_description', 'DoyaImmo met en relation particuliers et agences immobilières à Dakar. Publiez votre recherche ou consultez les biens disponibles, quartier par quartier.')">
+    <meta name="twitter:image" content="{{ asset('favicon.png') }}">
+    <!-- ========================================== -->
+
     <!-- ===== STYLES CRITIQUES ANTI-FLASH ===== -->
     <style>
         /* ✅ Anti-flash : cacher tout le contenu au chargement */
@@ -1942,6 +1969,12 @@
 </script>
 
 @stack('scripts')
+
+<!-- ============================================
+     ✅ AJOUT SEO : STACK JSON-LD
+     ============================================ -->
+@stack('jsonld')
+<!-- ========================================== -->
 
 </body>
 </html>

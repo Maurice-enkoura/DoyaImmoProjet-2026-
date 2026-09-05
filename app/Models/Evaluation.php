@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use app\Enums\StatutPropositionEnum;
+use App\Enums\StatutPropositionEnum;
 
 class Evaluation extends Model
 {
@@ -76,8 +76,11 @@ class Evaluation extends Model
             return false;
         }
 
+        // ✅ Récupérer la valeur du statut (gère les Enums et les strings)
+        $statutValue = $proposition->statut instanceof \UnitEnum ? $proposition->statut->value : $proposition->statut;
+
         // ✅ Vérifier que le statut est terminé
-        if ($proposition->statut !== StatutPropositionEnum::TERMINEE->value) {
+        if ($statutValue !== 'terminee') {
             return false;
         }
 

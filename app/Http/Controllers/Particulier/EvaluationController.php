@@ -34,8 +34,10 @@ class EvaluationController extends Controller
             abort(403, 'Cette proposition ne vous appartient pas.');
         }
 
-        // ✅ Vérifier que la proposition est terminée
-        if ($proposition->statut !== StatutPropositionEnum::TERMINEE->value) {
+        // ✅ Vérifier que la proposition est terminée - CORRIGÉ pour gérer les Enums
+        $statutValue = $proposition->statut instanceof \UnitEnum ? $proposition->statut->value : $proposition->statut;
+        
+        if ($statutValue !== StatutPropositionEnum::TERMINEE->value) {
             return redirect()->route('particulier.propositions.index')
                 ->with('error', 'Vous ne pouvez évaluer que les propositions terminées.');
         }
@@ -70,8 +72,10 @@ class EvaluationController extends Controller
             abort(403, 'Cette proposition ne vous appartient pas.');
         }
 
-        // ✅ Vérifier que la proposition est terminée
-        if ($proposition->statut !== StatutPropositionEnum::TERMINEE->value) {
+        // ✅ Vérifier que la proposition est terminée - CORRIGÉ pour gérer les Enums
+        $statutValue = $proposition->statut instanceof \UnitEnum ? $proposition->statut->value : $proposition->statut;
+        
+        if ($statutValue !== StatutPropositionEnum::TERMINEE->value) {
             return redirect()->route('particulier.propositions.index')
                 ->with('error', 'Vous ne pouvez évaluer que les propositions terminées.');
         }

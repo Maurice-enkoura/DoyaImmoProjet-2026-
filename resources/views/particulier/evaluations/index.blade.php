@@ -33,32 +33,7 @@
     @endif
 
     @if($evaluations->count() > 0)
-        <!-- Statistiques rapides -->
-        @php
-            $total = $evaluations->total();
-            $moyenne = $evaluations->avg('note') ?? 0;
-            $count5 = $evaluations->where('note', 5)->count();
-            $count4 = $evaluations->where('note', 4)->count();
-        @endphp
-
-        <div class="stats-row">
-            <div class="stat-card">
-                <div class="stat-number">{{ $total }}</div>
-                <div class="stat-label">Avis donnés</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" style="color:#F5A623;">{{ number_format($moyenne, 1) }}</div>
-                <div class="stat-label">Note moyenne ★</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" style="color:#1E7A47;">{{ $count5 }}</div>
-                <div class="stat-label">⭐⭐⭐⭐⭐</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" style="color:#0D47A1;">{{ $count4 }}</div>
-                <div class="stat-label">⭐⭐⭐⭐</div>
-            </div>
-        </div>
+       
 
         <!-- Liste des avis -->
         <div style="display:flex;flex-direction:column;gap:16px;">

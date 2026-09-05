@@ -58,7 +58,7 @@
                             </div>
                         @endif
                         
-                        <!-- BADGE STATUS - en haut à DROITE (ne chevauche pas Vedette) -->
+                        <!-- BADGE STATUS - en haut à DROITE -->
                         <div class="bien-status {{ $bien->statut ? 'disponible' : 'indisponible' }}">
                             {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
                         </div>
@@ -119,6 +119,24 @@
                         @if($bien->est_meuble)
                             <span class="meta-pill"><i class="fa-solid fa-couch"></i> Meublé</span>
                         @endif
+                        @if($bien->climatisation)
+                            <span class="meta-pill"><i class="fa-solid fa-snowflake"></i> Climatisation</span>
+                        @endif
+                        @if($bien->piscine)
+                            <span class="meta-pill"><i class="fa-solid fa-water"></i> Piscine</span>
+                        @endif
+                        @if($bien->jardin)
+                            <span class="meta-pill"><i class="fa-solid fa-tree"></i> Jardin</span>
+                        @endif
+                        @if($bien->balcon)
+                            <span class="meta-pill"><i class="fa-solid fa-umbrella"></i> Balcon</span>
+                        @endif
+                        @if($bien->ascenseur)
+                            <span class="meta-pill"><i class="fa-solid fa-elevator"></i> Ascenseur</span>
+                        @endif
+                        @if($bien->securite)
+                            <span class="meta-pill"><i class="fa-solid fa-shield"></i> Sécurité</span>
+                        @endif
                     </div>
 
                     <h3 class="section-title">Description</h3>
@@ -137,22 +155,73 @@
                             <span class="info-label">Surface</span>
                             <span class="info-value">{{ $bien->surface }} m²</span>
                         </div>
+                        
+                        @if($bien->nombre_chambres > 0)
                         <div class="info-item">
                             <span class="info-label">Chambres</span>
                             <span class="info-value">{{ $bien->nombre_chambres }}</span>
                         </div>
+                        @endif
+                        
+                        @if($bien->nombre_salles_bain > 0)
                         <div class="info-item">
                             <span class="info-label">Salles de bain</span>
                             <span class="info-value">{{ $bien->nombre_salles_bain }}</span>
                         </div>
+                        @endif
+                        
                         <div class="info-item">
                             <span class="info-label">Parking</span>
-                            <span class="info-value">{{ $bien->parking_disponible ? 'Disponible' : 'Non disponible' }}</span>
+                            <span class="info-value">{{ $bien->parking_disponible ? ' Disponible' : 'Non disponible' }}</span>
                         </div>
+                        
                         <div class="info-item">
                             <span class="info-label">Meublé</span>
-                            <span class="info-value">{{ $bien->est_meuble ? 'Oui' : 'Non' }}</span>
+                            <span class="info-value">{{ $bien->est_meuble ? ' Oui' : 'Non' }}</span>
                         </div>
+                        
+                        @if($bien->climatisation)
+                        <div class="info-item">
+                            <span class="info-label">Climatisation</span>
+                            <span class="info-value"> Oui</span>
+                        </div>
+                        @endif
+                        
+                        @if($bien->balcon)
+                        <div class="info-item">
+                            <span class="info-label">Balcon</span>
+                            <span class="info-value"> Oui</span>
+                        </div>
+                        @endif
+                        
+                        @if($bien->jardin)
+                        <div class="info-item">
+                            <span class="info-label">Jardin</span>
+                            <span class="info-value"> Oui</span>
+                        </div>
+                        @endif
+                        
+                        @if($bien->piscine)
+                        <div class="info-item">
+                            <span class="info-label">Piscine</span>
+                            <span class="info-value"> Oui</span>
+                        </div>
+                        @endif
+                        
+                        @if($bien->ascenseur)
+                        <div class="info-item">
+                            <span class="info-label">Ascenseur</span>
+                            <span class="info-value"> Oui</span>
+                        </div>
+                        @endif
+                        
+                        @if($bien->securite)
+                        <div class="info-item">
+                            <span class="info-label">Sécurité 24h/24</span>
+                            <span class="info-value"> Oui</span>
+                        </div>
+                        @endif
+                        
                         <div class="info-item">
                             <span class="info-label">Contrat</span>
                             <span class="info-value">{{ is_object($bien->type_contrat) && method_exists($bien->type_contrat, 'label') ? $bien->type_contrat->label() : $bien->type_contrat }}</span>
@@ -169,6 +238,22 @@
                             <span class="info-label">Vues</span>
                             <span class="info-value">{{ $bien->vues ?? 0 }}</span>
                         </div>
+
+                        <!-- ✅ ÉQUIPEMENTS -->
+                        @php
+                            $equipements = $bien->equipements;
+                        @endphp
+                        @if(count($equipements) > 0)
+                        <div class="info-item full" style="border: 1px solid #C8E6C9; background: #E8F5E9;">
+                            <span class="info-label" style="color:#1E7A47; font-weight:600;">
+                                <i class="fa-solid fa-check-circle" style="color:#1E7A47;"></i> Équipements
+                            </span>
+                            <span class="info-value" style="color:#1E7A47; text-align:right;">
+                                {{ implode(' · ', $equipements) }}
+                            </span>
+                        </div>
+                        @endif
+                        
                         @if($bien->est_vedette && $bien->vedette_fin > now())
                         <div class="info-item full" style="border: 2px solid #D4AF37; background: #FDF5E6;">
                             <span class="info-label" style="color:#D4AF37; font-weight:700;">
@@ -224,7 +309,6 @@
                             @endif
                         </div>
 
-                        <!-- ✅ CORRIGÉ : Utilisation du slug -->
                         <a href="{{ route('agences.public.show', $bien->agence->slug) }}" class="btn btn-ghost btn-block">
                             <i class="fa-solid fa-building"></i> Voir le profil
                         </a>
@@ -263,7 +347,6 @@
                             <div class="panel report-card">
                                 <h3>Signaler ce bien</h3>
                                 <p>Vous avez remarqué une anomalie ou une information incorrecte ?</p>
-                                <!-- ✅ CORRIGÉ : Utilisation du slug -->
                                 <a href="{{ route('particulier.signalements.create-bien', $bien->slug) }}" class="btn btn-ghost btn-sm btn-block report-btn">
                                     <i class="fa-solid fa-flag"></i> Signaler ce bien
                                 </a>
@@ -315,9 +398,14 @@
                                 <span class="meta-pill">
                                     <i class="fa-solid fa-bed"></i> {{ $bienSimilaire->nombre_chambres }} ch.
                                 </span>
+                                @if($bienSimilaire->climatisation)
+                                    <span class="meta-pill"><i class="fa-solid fa-snowflake"></i></span>
+                                @endif
+                                @if($bienSimilaire->piscine)
+                                    <span class="meta-pill"><i class="fa-solid fa-water"></i></span>
+                                @endif
                             </div>
                             <div class="bien-action">
-                                <!-- ✅ CORRIGÉ : Utilisation du slug -->
                                 <a href="{{ route('biens.show', $bienSimilaire->slug) }}" class="btn btn-ghost btn-sm btn-block">Voir</a>
                             </div>
                         </div>
@@ -538,7 +626,7 @@
     }
 
     /* ============================================
-       BADGES SUR L'IMAGE EN DETAIL - POSITIONNEMENT CORRIGÉ
+       BADGES SUR L'IMAGE EN DETAIL
     ============================================ */
     .gallery-main {
         position: relative;
@@ -553,7 +641,6 @@
         cursor: pointer;
     }
 
-    /* BADGE VEDETTE - en haut à GAUCHE */
     .badge-vedette-detail {
         position: absolute;
         top: 16px;
@@ -578,7 +665,6 @@
         color: #fff;
     }
 
-    /* BADGE STATUS - en haut à DROITE (NE CHEVAUCHE PAS VEDETTE) */
     .gallery-main .bien-status {
         position: absolute;
         top: 16px;
@@ -600,7 +686,6 @@
         background: #8A91A0 !important;
     }
 
-    /* VUES - en bas à GAUCHE */
     .bien-views {
         position: absolute;
         bottom: 16px;
@@ -615,7 +700,6 @@
         border: 1px solid rgba(255,255,255,0.1);
     }
 
-    /* TYPE - en bas à DROITE */
     .bien-type-on-image {
         position: absolute;
         bottom: 16px;
@@ -637,7 +721,6 @@
         50% { opacity: 0.85; }
     }
 
-    /* BADGE VEDETTE SIMILAIRE */
     .badge-vedette-similar {
         position: absolute;
         top: 8px;

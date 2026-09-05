@@ -15,7 +15,8 @@
     <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:clamp(16px, 2vw, 24px);">
         @if($errors->any())
             <div style="padding:12px 16px;background:#FFEBEE;border-radius:10px;border:1px solid #FFCDD2;margin-bottom:16px;">
-                <ul style="margin:0;padding:0 0 0 16px;color:#C62828;font-size:13px;">
+                <strong style="color:#C62828;">Veuillez corriger les erreurs suivantes :</strong>
+                <ul style="margin:8px 0 0;padding:0 0 0 16px;color:#C62828;font-size:13px;">
                     @foreach($errors->all() as $error)
                         <li>{{ $error }}</li>
                     @endforeach
@@ -24,12 +25,12 @@
         @endif
 
         @if(session('success'))
-            <div style="padding:12px 16px;background:#E8F5E9;border-radius:10px;border:1px solid #C8E6C9;margin-bottom:16px;color:#1E7A47;">
-                <i class="fa-solid fa-check-circle"></i> {{ session('success') }}
+            <div style="padding:12px 16px;background:#E8F5E9;border-radius:10px;border:1px solid #C8E6C9;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+                <i class="fa-solid fa-check-circle" style="color:#1E7A47;"></i>
+                <span style="color:#1E7A47;font-size:13px;">{{ session('success') }}</span>
             </div>
         @endif
 
-        <!-- ✅ CORRIGÉ : Utilisation du slug -->
         <form method="POST" action="{{ route('agence.biens.update', $bien->slug) }}" enctype="multipart/form-data" id="bienForm">
             @csrf
             @method('PUT')
@@ -66,6 +67,10 @@
                         @error('type_bien')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
+                        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                            <i class="fa-regular fa-info-circle"></i> 
+                            Le type de bien détermine les critères obligatoires.
+                        </div>
                     </div>
                 </div>
 
@@ -74,7 +79,7 @@
                         <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
                             Type de contrat <span style="color:#C62828;">*</span>
                         </label>
-                        <select name="type_contrat" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;" required>
+                        <select name="type_contrat" id="type_contrat" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;" required>
                             <option value="">Sélectionnez un contrat</option>
                             @foreach(\App\Enums\TypeContratEnum::cases() as $type)
                                 <option value="{{ $type->value }}" {{ old('type_contrat', $bien->type_contrat->value) == $type->value ? 'selected' : '' }}>
@@ -85,16 +90,25 @@
                         @error('type_contrat')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
+                        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                            <i class="fa-regular fa-info-circle"></i> 
+                            Vente ou Location.
+                        </div>
                     </div>
                     <div>
                         <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
                             Prix (FCFA) <span style="color:#C62828;">*</span>
                         </label>
                         <input type="number" name="prix" value="{{ old('prix', $bien->prix) }}" 
+                               placeholder="Ex: 250000000"
                                style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;" required>
                         @error('prix')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
+                        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                            <i class="fa-regular fa-info-circle"></i> 
+                            <span id="prixHint">Prix de vente ou loyer mensuel selon le contrat.</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -111,6 +125,7 @@
                             Quartier <span style="color:#C62828;">*</span>
                         </label>
                         <input type="text" name="quartier" value="{{ old('quartier', $bien->quartier) }}" 
+                               placeholder="Ex: Almadies, Ngor, Mermoz"
                                style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;" required>
                         @error('quartier')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
@@ -121,6 +136,7 @@
                             Adresse <span style="color:#C62828;">*</span>
                         </label>
                         <input type="text" name="adresse" value="{{ old('adresse', $bien->adresse) }}" 
+                               placeholder="Ex: Rue des Almadies, Dakar"
                                style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;" required>
                         @error('adresse')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
@@ -134,59 +150,98 @@
                 <h4 style="font-family:var(--display);font-size:clamp(14px, 1vw, 15px);margin-bottom:12px;color:var(--text-soft);">
                     <i class="fa-solid fa-sliders-h" style="color:var(--rust);"></i> Caractéristiques
                 </h4>
+                <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+                    <span id="caractLabel">Renseignez les caractéristiques du bien.</span>
+                </p>
 
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
                     <div>
                         <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
-                            Chambres <span style="color:#C62828;">*</span>
+                            <span id="chambresLabel">Chambres <span style="color:#C62828;">*</span></span>
                         </label>
                         <input type="number" name="nombre_chambres" id="nombre_chambres" value="{{ old('nombre_chambres', $bien->nombre_chambres) }}" min="0"
-                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;" required>
+                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;">
                         @error('nombre_chambres')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
+                        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                            <i class="fa-regular fa-info-circle"></i> 
+                            <span id="chambresHint">Nombre de chambres.</span>
+                        </div>
                     </div>
                     <div>
                         <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
-                            Salles de bain <span style="color:#C62828;">*</span>
+                            <span id="sdbLabel">Salles de bain <span style="color:#C62828;">*</span></span>
                         </label>
                         <input type="number" name="nombre_salles_bain" id="nombre_salles_bain" value="{{ old('nombre_salles_bain', $bien->nombre_salles_bain) }}" min="0"
-                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;" required>
+                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;">
                         @error('nombre_salles_bain')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
+                        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                            <i class="fa-regular fa-info-circle"></i> 
+                            <span id="sdbHint">Nombre de salles de bain.</span>
+                        </div>
                     </div>
                     <div>
                         <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
-                            Surface (m²)
+                            Surface (m²) <span style="color:#C62828;">*</span>
                         </label>
                         <input type="number" step="0.01" name="surface" id="surface" value="{{ old('surface', $bien->surface) }}" 
-                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;">
+                               placeholder="Ex: 150" min="0"
+                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;" required>
                         @error('surface')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
-                        <small style="font-size:11px;color:var(--muted);">Optionnel</small>
+                        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                            <i class="fa-regular fa-info-circle"></i> 
+                            <span id="surfaceHint">Surface habitable en m².</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Équipements -->
+            <!-- ✅ Équipements COMPLETS -->
             <div style="margin-bottom:20px;padding-top:16px;border-top:1px solid var(--border);">
                 <h4 style="font-family:var(--display);font-size:clamp(14px, 1vw, 15px);margin-bottom:12px;color:var(--text-soft);">
                     <i class="fa-solid fa-cogs" style="color:var(--rust);"></i> Équipements
                 </h4>
                 <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
-                    Sélectionnez les équipements disponibles dans ce bien.
+                    <span id="equipLabel">Sélectionnez les équipements disponibles dans ce bien.</span>
                 </p>
 
                 <div id="equipementsContainer" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;">
-                    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;">
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;{{ old('parking_disponible', $bien->parking_disponible) ? 'background:var(--rust-soft);border-color:var(--rust);' : '' }}">
                         <input type="checkbox" name="parking_disponible" value="1" {{ old('parking_disponible', $bien->parking_disponible) ? 'checked' : '' }}>
                         <i class="fa-solid fa-car" style="color:{{ old('parking_disponible', $bien->parking_disponible) ? 'var(--rust)' : 'var(--muted)' }};"></i> Parking
                     </label>
-                    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;">
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;{{ old('est_meuble', $bien->est_meuble) ? 'background:var(--rust-soft);border-color:var(--rust);' : '' }}">
                         <input type="checkbox" name="est_meuble" value="1" {{ old('est_meuble', $bien->est_meuble) ? 'checked' : '' }}>
                         <i class="fa-solid fa-couch" style="color:{{ old('est_meuble', $bien->est_meuble) ? 'var(--rust)' : 'var(--muted)' }};"></i> Meublé
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;{{ old('climatisation', $bien->climatisation ?? false) ? 'background:var(--rust-soft);border-color:var(--rust);' : '' }}">
+                        <input type="checkbox" name="climatisation" value="1" {{ old('climatisation', $bien->climatisation ?? false) ? 'checked' : '' }}>
+                        <i class="fa-solid fa-snowflake" style="color:{{ old('climatisation', $bien->climatisation ?? false) ? 'var(--rust)' : 'var(--muted)' }};"></i> Climatisation
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;{{ old('balcon', $bien->balcon ?? false) ? 'background:var(--rust-soft);border-color:var(--rust);' : '' }}">
+                        <input type="checkbox" name="balcon" value="1" {{ old('balcon', $bien->balcon ?? false) ? 'checked' : '' }}>
+                        <i class="fa-solid fa-umbrella" style="color:{{ old('balcon', $bien->balcon ?? false) ? 'var(--rust)' : 'var(--muted)' }};"></i> Balcon
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;{{ old('jardin', $bien->jardin ?? false) ? 'background:var(--rust-soft);border-color:var(--rust);' : '' }}">
+                        <input type="checkbox" name="jardin" value="1" {{ old('jardin', $bien->jardin ?? false) ? 'checked' : '' }}>
+                        <i class="fa-solid fa-tree" style="color:{{ old('jardin', $bien->jardin ?? false) ? 'var(--rust)' : 'var(--muted)' }};"></i> Jardin
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;{{ old('piscine', $bien->piscine ?? false) ? 'background:var(--rust-soft);border-color:var(--rust);' : '' }}">
+                        <input type="checkbox" name="piscine" value="1" {{ old('piscine', $bien->piscine ?? false) ? 'checked' : '' }}>
+                        <i class="fa-solid fa-water" style="color:{{ old('piscine', $bien->piscine ?? false) ? 'var(--rust)' : 'var(--muted)' }};"></i> Piscine
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;{{ old('ascenseur', $bien->ascenseur ?? false) ? 'background:var(--rust-soft);border-color:var(--rust);' : '' }}">
+                        <input type="checkbox" name="ascenseur" value="1" {{ old('ascenseur', $bien->ascenseur ?? false) ? 'checked' : '' }}>
+                        <i class="fa-solid fa-elevator" style="color:{{ old('ascenseur', $bien->ascenseur ?? false) ? 'var(--rust)' : 'var(--muted)' }};"></i> Ascenseur
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;{{ old('securite', $bien->securite ?? false) ? 'background:var(--rust-soft);border-color:var(--rust);' : '' }}">
+                        <input type="checkbox" name="securite" value="1" {{ old('securite', $bien->securite ?? false) ? 'checked' : '' }}>
+                        <i class="fa-solid fa-shield-halved" style="color:{{ old('securite', $bien->securite ?? false) ? 'var(--rust)' : 'var(--muted)' }};"></i> Sécurité 24h/24
                     </label>
                 </div>
 
@@ -195,15 +250,29 @@
                 </div>
             </div>
 
-            <!-- Description -->
+            <!-- ✅ Description avec compteur de caractères -->
             <div style="margin-bottom:20px;padding-top:16px;border-top:1px solid var(--border);">
                 <h4 style="font-family:var(--display);font-size:clamp(14px, 1vw, 15px);margin-bottom:8px;color:var(--text-soft);">
                     <i class="fa-solid fa-align-left" style="color:var(--rust);"></i> Description <span style="color:#C62828;">*</span>
                 </h4>
-                <textarea name="description" rows="4" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;resize:vertical;min-height:100px;" required>{{ old('description', $bien->description) }}</textarea>
+                <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">
+                    Décrivez votre bien en détail. Plus votre description est précise, meilleures seront les propositions.
+                </p>
+                <textarea name="description" rows="4" 
+                          placeholder="Ex: Magnifique appartement F3 de 100m² à Liberté 6, avec 3 chambres, 2 salles de bain, parking sécurisé, climatisé, proche des transports en commun..."
+                          style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;resize:vertical;min-height:100px;" 
+                          required>{{ old('description', $bien->description) }}</textarea>
                 @error('description')
-                    <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
+                    <small style="color:#C62828;font-size:12px;display:block;margin-top:4px;">
+                        <i class="fa-solid fa-exclamation-circle"></i> {{ $message }}
+                    </small>
                 @enderror
+                <div style="font-size:11px;color:var(--muted);margin-top:4px;display:flex;justify-content:space-between;align-items:center;">
+                    <span><i class="fa-regular fa-info-circle"></i> Minimum 20 caractères</span>
+                    <span id="descriptionCounter" style="font-weight:500;">
+                        <span id="charCount" style="color:{{ strlen(old('description', $bien->description)) >= 20 ? '#1E7A47' : '#C62828' }};">{{ strlen(old('description', $bien->description)) }}</span> / 20 caractères
+                    </span>
+                </div>
             </div>
 
             <!-- ==================== GESTION DES MÉDIAS ==================== -->
@@ -221,15 +290,15 @@
                     </div>
                     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:12px;">
                         @foreach($images as $media)
-                            <div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border);aspect-ratio:1/1;">
+                            <div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border);aspect-ratio:1/1;background:#F0F2F5;">
                                 <img src="{{ asset('storage/' . $media->fichier) }}" 
                                      alt="Photo" 
                                      style="width:100%;height:100%;object-fit:cover;">
-                                <a href="javascript:void(0)" 
-                                   onclick="supprimerMedia('{{ $media->id }}', this)"
-                                   style="position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(0,0,0,0.7);color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;text-decoration:none;transition:all 0.2s;">
+                                <button type="button" 
+                                        onclick="supprimerMedia('{{ $media->id }}', this)"
+                                        style="position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(0,0,0,0.7);color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
                                     <i class="fa-solid fa-times"></i>
-                                </a>
+                                </button>
                             </div>
                         @endforeach
                     </div>
@@ -261,11 +330,11 @@
                                 <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:32px;opacity:0.5;pointer-events:none;">
                                     <i class="fa-solid fa-play"></i>
                                 </div>
-                                <a href="javascript:void(0)" 
-                                   onclick="supprimerMedia('{{ $media->id }}', this)"
-                                   style="position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(0,0,0,0.7);color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;text-decoration:none;transition:all 0.2s;">
+                                <button type="button" 
+                                        onclick="supprimerMedia('{{ $media->id }}', this)"
+                                        style="position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(0,0,0,0.7);color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
                                     <i class="fa-solid fa-times"></i>
-                                </a>
+                                </button>
                             </div>
                         @endforeach
                     </div>
@@ -287,7 +356,6 @@
                        id="imageInput"
                        style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;">
                 
-                <!-- Prévisualisation des photos sélectionnées -->
                 <div id="imagePreviewContainer" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-top:12px;display:none;"></div>
                 
                 @error('images.*')
@@ -310,7 +378,6 @@
                        id="videoInput"
                        style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;">
                 
-                <!-- Prévisualisation des vidéos sélectionnées -->
                 <div id="videoPreviewContainer" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:12px;display:none;"></div>
                 
                 @error('videos.*')
@@ -335,33 +402,148 @@
 </div>
 
 <script>
-    // ==================== GESTION DES CHAMPS CONDITIONNELS ====================
+    // ============================================
+    // ADAPTATION SELON LE TYPE DE BIEN
+    // ============================================
     document.getElementById('type_bien')?.addEventListener('change', function() {
         const type = this.value;
+        
+        // Éléments DOM
         const equipementsContainer = document.getElementById('equipementsContainer');
         const terrainNote = document.getElementById('terrainNote');
-        const chambres = document.getElementById('nombre_chambres');
-        const sdb = document.getElementById('nombre_salles_bain');
-        const surface = document.getElementById('surface');
+        const chambresInput = document.getElementById('nombre_chambres');
+        const sdbInput = document.getElementById('nombre_salles_bain');
+        const surfaceInput = document.getElementById('surface');
+        const chambresLabel = document.getElementById('chambresLabel');
+        const sdbLabel = document.getElementById('sdbLabel');
+        const chambresHint = document.getElementById('chambresHint');
+        const sdbHint = document.getElementById('sdbHint');
+        const surfaceHint = document.getElementById('surfaceHint');
+        const caracteristiquesLabel = document.getElementById('caractLabel');
+        const equipLabel = document.getElementById('equipLabel');
+        const prixHint = document.getElementById('prixHint');
         
-        if (type === 'terrain') {
+        // Réinitialiser les champs
+        chambresInput.disabled = false;
+        sdbInput.disabled = false;
+        chambresInput.removeAttribute('required');
+        sdbInput.removeAttribute('required');
+        surfaceInput.setAttribute('required', 'required');
+        
+        // Définir le comportement selon le type
+        const isTerrain = type === 'terrain';
+        const isLocal = type === 'local_commercial' || type === 'bureau';
+        const isResidentiel = type === 'appartement' || type === 'maison' || type === 'villa' || type === 'immeuble';
+        const isChambre = type === 'chambre' || type === 'studio';
+        
+        if (isTerrain) {
+            // ✅ TERRAIN
             equipementsContainer.style.display = 'none';
             terrainNote.style.display = 'block';
-            chambres.value = 0;
-            chambres.disabled = true;
-            sdb.value = 0;
-            sdb.disabled = true;
-            surface.placeholder = 'Optionnel (ex: 500)';
-        } else {
+            
+            chambresInput.value = 0;
+            chambresInput.disabled = true;
+            sdbInput.value = 0;
+            sdbInput.disabled = true;
+            
+            chambresLabel.innerHTML = 'Chambres <span style="color:#8A91A0;font-weight:400;">(N/A)</span>';
+            sdbLabel.innerHTML = 'Salles de bain <span style="color:#8A91A0;font-weight:400;">(N/A)</span>';
+            chambresHint.textContent = 'Non applicable pour un terrain.';
+            sdbHint.textContent = 'Non applicable pour un terrain.';
+            surfaceHint.textContent = 'Surface du terrain en m².';
+            caracteristiquesLabel.textContent = 'Un terrain n\'a pas de chambres ni de salles de bain.';
+            equipLabel.textContent = 'Les équipements ne sont pas applicables pour un terrain.';
+            
+            surfaceInput.setAttribute('required', 'required');
+            prixHint.textContent = 'Prix de vente du terrain.';
+            
+        } else if (isLocal) {
+            // ✅ LOCAL COMMERCIAL / BUREAU
             equipementsContainer.style.display = 'grid';
             terrainNote.style.display = 'none';
-            chambres.disabled = false;
-            sdb.disabled = false;
-            surface.placeholder = 'Ex: 150';
+            
+            chambresInput.disabled = false;
+            sdbInput.disabled = false;
+            
+            chambresLabel.innerHTML = 'Chambres <span style="color:#8A91A0;font-weight:400;">(optionnel)</span>';
+            sdbLabel.innerHTML = 'Salles de bain <span style="color:#8A91A0;font-weight:400;">(optionnel)</span>';
+            chambresHint.textContent = 'Peuvent être utiles pour un local avec logement.';
+            sdbHint.textContent = 'Peuvent être utiles pour un local avec logement.';
+            surfaceHint.textContent = 'Surface du local en m².';
+            caracteristiquesLabel.textContent = 'Renseignez les caractéristiques du local.';
+            equipLabel.textContent = 'Sélectionnez les équipements disponibles.';
+            
+            chambresInput.removeAttribute('required');
+            sdbInput.removeAttribute('required');
+            surfaceInput.setAttribute('required', 'required');
+            
+            prixHint.textContent = 'Prix de vente ou loyer selon le contrat.';
+            
+        } else if (isResidentiel || isChambre) {
+            // ✅ RÉSIDENTIEL (Appartement, Maison, Villa, Immeuble, Chambre, Studio)
+            equipementsContainer.style.display = 'grid';
+            terrainNote.style.display = 'none';
+            
+            chambresInput.disabled = false;
+            sdbInput.disabled = false;
+            
+            chambresLabel.innerHTML = 'Chambres <span style="color:#C62828;">*</span>';
+            sdbLabel.innerHTML = 'Salles de bain <span style="color:#C62828;">*</span>';
+            chambresHint.textContent = 'Nombre de chambres du bien.';
+            sdbHint.textContent = 'Nombre de salles de bain.';
+            surfaceHint.textContent = 'Surface habitable en m².';
+            caracteristiquesLabel.textContent = 'Renseignez les caractéristiques du bien.';
+            equipLabel.textContent = 'Sélectionnez les équipements disponibles dans ce bien.';
+            
+            chambresInput.setAttribute('required', 'required');
+            sdbInput.setAttribute('required', 'required');
+            surfaceInput.setAttribute('required', 'required');
+            
+            prixHint.textContent = 'Prix de vente ou loyer selon le contrat.';
+            
+        } else {
+            // ✅ AUTRES (cas par défaut)
+            equipementsContainer.style.display = 'grid';
+            terrainNote.style.display = 'none';
+            
+            chambresInput.disabled = false;
+            sdbInput.disabled = false;
+            
+            chambresLabel.innerHTML = 'Chambres <span style="color:#C62828;">*</span>';
+            sdbLabel.innerHTML = 'Salles de bain <span style="color:#C62828;">*</span>';
+            chambresHint.textContent = 'Nombre de chambres.';
+            sdbHint.textContent = 'Nombre de salles de bain.';
+            surfaceHint.textContent = 'Surface en m².';
+            caracteristiquesLabel.textContent = 'Renseignez les caractéristiques du bien.';
+            equipLabel.textContent = 'Sélectionnez les équipements disponibles.';
+            
+            chambresInput.setAttribute('required', 'required');
+            sdbInput.setAttribute('required', 'required');
+            surfaceInput.setAttribute('required', 'required');
+            
+            prixHint.textContent = 'Prix de vente ou loyer selon le contrat.';
         }
     });
 
-    // ==================== PRÉVISUALISATION DES IMAGES ====================
+    // ============================================
+    // ADAPTATION SELON LE TYPE DE CONTRAT
+    // ============================================
+    document.getElementById('type_contrat')?.addEventListener('change', function() {
+        const value = this.value;
+        const prixHint = document.getElementById('prixHint');
+        
+        if (value === 'location') {
+            prixHint.textContent = 'Loyer mensuel en FCFA.';
+        } else if (value === 'vente') {
+            prixHint.textContent = 'Prix de vente en FCFA.';
+        } else {
+            prixHint.textContent = 'Prix de vente ou loyer selon le contrat.';
+        }
+    });
+
+    // ============================================
+    // PRÉVISUALISATION DES IMAGES
+    // ============================================
     document.getElementById('imageInput')?.addEventListener('change', function(e) {
         const container = document.getElementById('imagePreviewContainer');
         container.innerHTML = '';
@@ -374,7 +556,6 @@
             return;
         }
         
-        // ✅ Limiter à 10 photos
         if (files.length > 10) {
             alert('⚠️ Vous ne pouvez sélectionner que 10 photos maximum.');
             this.value = '';
@@ -403,7 +584,9 @@
         });
     });
 
-    // ==================== PRÉVISUALISATION DES VIDÉOS ====================
+    // ============================================
+    // PRÉVISUALISATION DES VIDÉOS
+    // ============================================
     document.getElementById('videoInput')?.addEventListener('change', function(e) {
         const container = document.getElementById('videoPreviewContainer');
         container.innerHTML = '';
@@ -416,7 +599,6 @@
             return;
         }
         
-        // ✅ Limiter à 1 vidéo
         if (files.length > 1) {
             alert('⚠️ Vous ne pouvez sélectionner qu\'1 vidéo maximum.');
             this.value = '';
@@ -448,7 +630,9 @@
         });
     });
 
-    // ==================== SUPPRESSION DE MÉDIA AVEC AJAX ====================
+    // ============================================
+    // SUPPRESSION DE MÉDIA AVEC AJAX
+    // ============================================
     function supprimerMedia(mediaId, element) {
         if (!confirm('Voulez-vous vraiment supprimer ce média ?')) {
             return;
@@ -460,10 +644,12 @@
         parent.style.opacity = '0.5';
         parent.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);"><i class="fa-solid fa-spinner fa-spin"></i></div>';
 
+        const token = document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="_token"]')?.value;
+
         fetch(`/agence/medias/${mediaId}`, {
             method: 'DELETE',
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'X-CSRF-TOKEN': token,
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             }
@@ -473,7 +659,9 @@
             if (data.success) {
                 parent.remove();
                 
-                const container = parent.closest('div[style*="grid-template-columns"]');
+                // Mettre à jour le compteur
+                const container = parent.closest('div[style*="grid-template-columns:repeat(auto-fill,minmax(100px,1fr))"]') || 
+                                  parent.closest('div[style*="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))"]');
                 if (container) {
                     const countSpan = container.previousElementSibling?.querySelector('span');
                     if (countSpan) {
@@ -488,7 +676,7 @@
             } else {
                 parent.innerHTML = originalHtml;
                 parent.style.opacity = '1';
-                alert('Erreur lors de la suppression du média.');
+                alert('Erreur lors de la suppression du média : ' + (data.message || ''));
             }
         })
         .catch(error => {
@@ -499,7 +687,9 @@
         });
     }
 
-    // ==================== TOAST POUR LES NOTIFICATIONS ====================
+    // ============================================
+    // TOAST POUR LES NOTIFICATIONS
+    // ============================================
     function showToast(message, type = 'success') {
         const toast = document.createElement('div');
         toast.style.cssText = `
@@ -529,19 +719,41 @@
         }, 4000);
     }
 
-    // ==================== SOUMISSION DU FORMULAIRE ====================
+    // ============================================
+    // SOUMISSION DU FORMULAIRE
+    // ============================================
     document.getElementById('bienForm')?.addEventListener('submit', function(e) {
         const btn = document.getElementById('submitBtn');
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mise à jour...';
         btn.disabled = true;
     });
 
-    // ==================== INITIALISATION ====================
+    // ============================================
+    // INITIALISATION
+    // ============================================
     document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('type_bien')?.dispatchEvent(new Event('change'));
+        document.getElementById('type_contrat')?.dispatchEvent(new Event('change'));
+        
+        // ✅ Initialiser le compteur de caractères
+        const descriptionTextarea = document.querySelector('textarea[name="description"]');
+        const charCount = document.getElementById('charCount');
+        
+        if (descriptionTextarea && charCount) {
+            function updateCharCount() {
+                const length = descriptionTextarea.value.length;
+                const color = length >= 20 ? '#1E7A47' : '#C62828';
+                charCount.textContent = length;
+                charCount.style.color = color;
+            }
+            
+            descriptionTextarea.addEventListener('input', updateCharCount);
+        }
     });
 
-    // ==================== ANIMATIONS CSS ====================
+    // ============================================
+    // ANIMATIONS CSS
+    // ============================================
     const style = document.createElement('style');
     style.textContent = `
         @keyframes slideInRight {
@@ -564,6 +776,10 @@
         cursor: pointer;
     }
 
+    label:has(input[type="checkbox"]:hover) {
+        border-color: var(--rust);
+    }
+
     label:has(input[type="checkbox"]:checked) {
         background: var(--rust-soft);
         border-color: var(--rust);
@@ -571,6 +787,13 @@
 
     label:has(input[type="checkbox"]:checked) i {
         color: var(--rust) !important;
+    }
+
+    label:has(input[type="checkbox"]) input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        flex-shrink: 0;
     }
 
     .btn-rust:hover {
@@ -583,6 +806,21 @@
     .btn-rust:disabled {
         opacity: 0.6;
         cursor: not-allowed;
+    }
+
+    #equipementsContainer, #terrainNote {
+        transition: all 0.3s ease;
+    }
+
+    input:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        background: #F7F9FC;
+    }
+
+    #charCount {
+        font-weight: 700;
+        transition: color 0.2s;
     }
 
     /* ✅ RESPONSIVE */
@@ -599,6 +837,9 @@
         [style*="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))"] {
             grid-template-columns: repeat(auto-fill,minmax(140px,1fr)) !important;
         }
+        [style*="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))"] {
+            grid-template-columns: 1fr 1fr !important;
+        }
     }
 
     @media (max-width: 480px) {
@@ -613,8 +854,15 @@
         [style*="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))"] {
             grid-template-columns: 1fr !important;
         }
+        [style*="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))"] {
+            grid-template-columns: 1fr !important;
+        }
         [style*="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:12px;flex-wrap:wrap;"] {
             flex-direction: column !important;
+        }
+        label:has(input[type="checkbox"]) {
+            font-size: 12px !important;
+            padding: 6px 10px !important;
         }
     }
 

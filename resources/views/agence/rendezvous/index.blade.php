@@ -25,19 +25,23 @@
         <!-- Statistiques rapides -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;">
             <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;text-align:center;">
-                <div style="font-size:24px;font-weight:700;color:var(--ink);">{{ $rendezVous->where('statut', 'planifie')->count() }}</div>
+                <div style="font-size:24px;font-weight:700;color:#E65100;">{{ $rendezVous->where('statut', 'planifie')->count() }}</div>
                 <div style="font-size:12px;color:var(--muted);">En attente</div>
             </div>
             <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;text-align:center;">
                 <div style="font-size:24px;font-weight:700;color:#0D47A1;">{{ $rendezVous->where('statut', 'confirme')->count() }}</div>
                 <div style="font-size:12px;color:var(--muted);">Confirmés</div>
             </div>
+            <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;text-align:center;">
+                <div style="font-size:24px;font-weight:700;color:#1E7A47;">{{ $rendezVous->where('statut', 'termine')->count() }}</div>
+                <div style="font-size:12px;color:var(--muted);">Terminés</div>
+            </div>
         </div>
 
-        <!-- Liste des rendez-vous (uniquement planifiés et confirmés) -->
+        <!-- Liste des rendez-vous -->
         <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
             @foreach($rendezVous as $rdv)
-                @if($rdv->statut->value === 'planifie' || $rdv->statut->value === 'confirme')
+                @if($rdv->statut->value === 'planifie' || $rdv->statut->value === 'confirme' || $rdv->statut->value === 'termine')
                 <div style="display:flex;align-items:center;gap:16px;padding:16px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;transition:background 0.2s;">
                     
                     <!-- Date -->
@@ -67,15 +71,25 @@
                             {{ $rdv->particulier->user->prenom ?? 'Client' }} {{ $rdv->particulier->user->nom ?? '' }}
                         </div>
                         
-                        <!-- ✅ Numéro de téléphone du particulier -->
+                        <!-- ✅ Numéro de téléphone - Visible UNIQUEMENT si confirmé ou terminé -->
                         <div style="font-size:13px;color:var(--muted);">
                             <i class="fa-solid fa-phone" style="margin-right:4px;color:var(--rust);"></i>
-                            @if($rdv->particulier->user && $rdv->particulier->user->telephone)
-                                <a href="tel:{{ $rdv->particulier->user->telephone }}" style="color:var(--ink);text-decoration:none;font-weight:500;">
-                                    {{ $rdv->particulier->user->telephone }}
-                                </a>
+                            @if($rdv->statut->value === 'confirme' || $rdv->statut->value === 'termine')
+                                @if($rdv->particulier->user && $rdv->particulier->user->telephone)
+                                    <a href="tel:{{ $rdv->particulier->user->telephone }}" style="color:var(--ink);text-decoration:none;font-weight:500;">
+                                        {{ $rdv->particulier->user->telephone }}
+                                    </a>
+                                    <span style="font-size:10px;color:#1E7A47;margin-left:4px;">
+                                        <i class="fa-solid fa-check-circle"></i>
+                                    </span>
+                                @else
+                                    <span style="color:var(--muted);">Non renseigné</span>
+                                @endif
                             @else
-                                <span style="color:var(--muted);">Non renseigné</span>
+                                <span style="color:var(--muted);">
+                                    <i class="fa-solid fa-lock" style="font-size:10px;"></i> 
+                                    Confirmez pour voir le numéro
+                                </span>
                             @endif
                         </div>
                         
@@ -100,6 +114,7 @@
                     <!-- Actions -->
                     <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;">
                         @if($rdv->statut->value === 'planifie')
+                            <!-- ✅ L'agence confirme ou annule -->
                             <form action="{{ route('agence.rendezvous.confirmer', $rdv) }}" method="POST" style="display:inline;">
                                 @csrf
                                 <button type="submit" class="btn btn-rust btn-sm">
@@ -108,29 +123,40 @@
                             </form>
                             <form action="{{ route('agence.rendezvous.annuler', $rdv) }}" method="POST" style="display:inline;">
                                 @csrf
-                                <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('Annuler ce rendez-vous ?')">
+                                <button type="submit" class="btn btn-ghost btn-sm" style="color:#C62828;border-color:#FFCDD2;" onclick="return confirm('Annuler ce rendez-vous ?')">
                                     <i class="fa-solid fa-xmark"></i> Annuler
                                 </button>
                             </form>
                         @elseif($rdv->statut->value === 'confirme')
-                            <!-- ✅ Bouton Appeler le client -->
+                            <!-- ✅ L'agence peut appeler, terminer ou annuler -->
                             @if($rdv->particulier->user && $rdv->particulier->user->telephone)
-                                <a href="tel:{{ $rdv->particulier->user->telephone }}" class="btn btn-success btn-sm" style="background:#25D366;color:#fff;border:none;padding:6px 14px;border-radius:10px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+                                <a href="tel:{{ $rdv->particulier->user->telephone }}" class="btn btn-success btn-sm">
                                     <i class="fa-solid fa-phone"></i> Appeler
                                 </a>
                             @endif
                             <form action="{{ route('agence.rendezvous.termine', $rdv) }}" method="POST" style="display:inline;">
                                 @csrf
                                 <button type="submit" class="btn btn-rust btn-sm" onclick="return confirm('Marquer ce rendez-vous comme terminé ?')">
-                                    <i class="fa-solid fa-check-circle"></i> Terminé
+                                    <i class="fa-solid fa-check-circle"></i> Terminer
                                 </button>
                             </form>
                             <form action="{{ route('agence.rendezvous.annuler', $rdv) }}" method="POST" style="display:inline;">
                                 @csrf
-                                <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('Annuler ce rendez-vous ?')">
+                                <button type="submit" class="btn btn-ghost btn-sm" style="color:#C62828;border-color:#FFCDD2;" onclick="return confirm('Annuler ce rendez-vous ?')">
                                     <i class="fa-solid fa-xmark"></i> Annuler
                                 </button>
                             </form>
+                        @elseif($rdv->statut->value === 'termine')
+                            <!-- ✅ Rendez-vous terminé - Affichage informatif -->
+                            <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:10px;font-size:12px;font-weight:600;background:#E8F5E9;color:#1E7A47;border:1px solid #C8E6C9;">
+                                <i class="fa-solid fa-check-circle"></i> Visite terminée
+                            </span>
+                            <!-- ✅ Bouton Appeler même après terminé -->
+                            @if($rdv->particulier->user && $rdv->particulier->user->telephone)
+                                <a href="tel:{{ $rdv->particulier->user->telephone }}" class="btn btn-success btn-sm">
+                                    <i class="fa-solid fa-phone"></i> Appeler
+                                </a>
+                            @endif
                         @endif
                         <a href="{{ route('agence.rendezvous.show', $rdv) }}" class="btn btn-ghost btn-sm">
                             <i class="fa-solid fa-eye"></i> Détails
@@ -293,11 +319,22 @@
         [style*="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;"] {
             justify-content: center !important;
         }
+        [style*="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;"] form {
+            width: 100%;
+        }
+        [style*="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;"] .btn {
+            justify-content: center !important;
+            width: 100%;
+        }
     }
 
     @media (max-width: 480px) {
         [style*="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;"] {
             grid-template-columns: 1fr 1fr !important;
+        }
+        .btn-sm {
+            font-size: 11px;
+            padding: 4px 10px;
         }
     }
 </style>

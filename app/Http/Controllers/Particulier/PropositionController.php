@@ -136,4 +136,46 @@ class PropositionController extends Controller
         return redirect()->route('particulier.propositions.index')
             ->with('success', 'Proposition sélectionnée avec succès. Les autres propositions ont été refusées.');
     }
+
+    /**
+     * ✅ Refuser une proposition (le client la refuse)
+     */
+    public function refuser(Proposition $proposition)
+    {
+        // ✅ Vérifier que la proposition appartient bien au particulier connecté
+        if ($proposition->particulier_id !== Auth::user()->particulier->id) {
+            abort(403, 'Cette proposition ne vous appartient pas.');
+        }
+
+        // ✅ Vérifier que la proposition est en attente
+        if ($proposition->statut->value !== StatutPropositionEnum::EN_ATTENTE->value) {
+            return back()->with('error', 'Cette proposition ne peut pas être refusée car elle n\'est plus en attente.');
+        }
+
+        // ✅ Vérifier que la demande est encore active
+        $demande = $proposition->demande;
+        $statutDemande = $demande->statut->value;
+        
+        if (!in_array($statutDemande, [
+            StatutDemandeEnum::EN_ATTENTE->value,
+            StatutDemandeEnum::EN_COURS->value
+        ])) {
+            return back()->with('error', 'Cette demande n\'est plus active.');
+        }
+
+        // ✅ Mettre à jour le statut de la proposition
+        $proposition->update([
+            'statut' => StatutPropositionEnum::REFUSEE
+        ]);
+
+        // ✅ Notifier l'agence (optionnel)
+        try {
+            $proposition->agence->user->notify(new \App\Notifications\PropositionRefuseeNotification($proposition));
+        } catch (\Exception $e) {
+            \Log::error('Erreur notification refus: ' . $e->getMessage());
+        }
+
+        return redirect()->route('particulier.propositions.index')
+            ->with('success', 'Offre refusée avec succès.');
+    }
 }

@@ -27,7 +27,17 @@
         </div>
     @endif
 
+    @if(session('success'))
+        <div style="padding:12px 16px;background:#E8F5E9;color:#1E7A47;border:1px solid #C8E6C9;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <i class="fa-solid fa-check-circle"></i>
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
+
     @if($rendezVous->count() > 0)
+        <!-- Statistiques rapides -->
+       
+
         <!-- Liste des rendez-vous -->
         <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
             @foreach($rendezVous as $rdv)
@@ -60,15 +70,25 @@
                             {{ $rdv->agence->nom_agence }}
                         </div>
                         
-                        <!-- ✅ Numéro de téléphone de l'agence -->
+                        <!-- ✅ Numéro de téléphone - Visible UNIQUEMENT si confirmé ou terminé -->
                         <div style="font-size:13px;color:var(--muted);">
                             <i class="fa-solid fa-phone" style="margin-right:4px;color:var(--rust);"></i>
-                            @if($rdv->agence->user && $rdv->agence->user->telephone)
-                                <a href="tel:{{ $rdv->agence->user->telephone }}" style="color:var(--ink);text-decoration:none;font-weight:500;">
-                                    {{ $rdv->agence->user->telephone }}
-                                </a>
+                            @if($rdv->statut->value === 'confirme' || $rdv->statut->value === 'termine')
+                                @if($rdv->agence->user && $rdv->agence->user->telephone)
+                                    <a href="tel:{{ $rdv->agence->user->telephone }}" style="color:var(--ink);text-decoration:none;font-weight:500;">
+                                        {{ $rdv->agence->user->telephone }}
+                                    </a>
+                                    <span style="font-size:10px;color:#1E7A47;margin-left:4px;">
+                                        <i class="fa-solid fa-check-circle"></i>
+                                    </span>
+                                @else
+                                    <span style="color:var(--muted);">Non renseigné</span>
+                                @endif
                             @else
-                                <span style="color:var(--muted);">Non renseigné</span>
+                                <span style="color:var(--muted);">
+                                    <i class="fa-solid fa-lock" style="font-size:10px;"></i> 
+                                    En attente de confirmation
+                                </span>
                             @endif
                         </div>
                         
@@ -93,19 +113,19 @@
                     <!-- Actions -->
                     <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;">
                         @if($rdv->statut->value === 'planifie')
-                            <form action="{{ route('particulier.rendezvous.confirmer', $rdv) }}" method="POST" style="display:inline;">
-                                @csrf
-                                <button type="submit" class="btn btn-rust btn-sm">
-                                    <i class="fa-solid fa-check"></i> Confirmer
-                                </button>
-                            </form>
+                            <!-- ❌ Le particulier ne peut PAS confirmer, seulement annuler -->
+                            <div style="padding:6px 14px;background:#FFF8E1;border-radius:10px;color:#E65100;font-size:12px;display:flex;align-items:center;gap:6px;border:1px solid #FFE0B2;">
+                                <i class="fa-solid fa-clock"></i>
+                                En attente de confirmation
+                            </div>
                             <form action="{{ route('particulier.rendezvous.annuler', $rdv) }}" method="POST" style="display:inline;">
                                 @csrf
-                                <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('Annuler ce rendez-vous ?')">
+                                <button type="submit" class="btn btn-ghost btn-sm" style="color:#C62828;border-color:#FFCDD2;" onclick="return confirm('Annuler ce rendez-vous ?')">
                                     <i class="fa-solid fa-xmark"></i> Annuler
                                 </button>
                             </form>
                         @elseif($rdv->statut->value === 'confirme')
+                            <!-- ✅ Bouton Appeler - UNIQUEMENT si confirmé ET numéro présent -->
                             @if($rdv->agence->user && $rdv->agence->user->telephone)
                                 <a href="tel:{{ $rdv->agence->user->telephone }}" class="btn btn-success btn-sm">
                                     <i class="fa-solid fa-phone"></i> Appeler
@@ -113,18 +133,20 @@
                             @endif
                             <form action="{{ route('particulier.rendezvous.annuler', $rdv) }}" method="POST" style="display:inline;">
                                 @csrf
-                                <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('Annuler ce rendez-vous ?')">
+                                <button type="submit" class="btn btn-ghost btn-sm" style="color:#C62828;border-color:#FFCDD2;" onclick="return confirm('Annuler ce rendez-vous ?')">
                                     <i class="fa-solid fa-xmark"></i> Annuler
                                 </button>
                             </form>
                         @elseif($rdv->statut->value === 'termine')
                             @php
+                                // ✅ CORRIGÉ : Vérifier par proposition_id, pas par agence_id
                                 $dejaEvalue = \App\Models\Evaluation::where('particulier_id', Auth::user()->particulier->id)
-                                    ->where('agence_id', $rdv->agence_id)
+                                    ->where('proposition_id', $rdv->proposition_id)
                                     ->exists();
                             @endphp
                             @if(!$dejaEvalue)
-                                <a href="{{ route('particulier.evaluations.create', $rdv->agence) }}" class="btn btn-rust btn-sm">
+                                <!-- ✅ CORRIGÉ : Passer la proposition, PAS l'agence -->
+                                <a href="{{ route('particulier.evaluations.create', $rdv->proposition) }}" class="btn btn-rust btn-sm">
                                     <i class="fa-solid fa-star"></i> Évaluer
                                 </a>
                             @else
@@ -132,6 +154,7 @@
                                     <i class="fa-solid fa-check-circle" style="color:#1E7A47;"></i> Déjà évalué
                                 </span>
                             @endif
+                            <!-- ✅ Bouton Appeler - UNIQUEMENT si terminé ET numéro présent -->
                             @if($rdv->agence->user && $rdv->agence->user->telephone)
                                 <a href="tel:{{ $rdv->agence->user->telephone }}" class="btn btn-success btn-sm">
                                     <i class="fa-solid fa-phone"></i> Appeler
@@ -304,15 +327,26 @@
         [style*="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;"] {
             justify-content: center !important;
         }
+        [style*="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;"] form {
+            width: 100%;
+        }
+        [style*="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;"] .btn {
+            justify-content: center !important;
+            width: 100%;
+        }
     }
 
     @media (max-width: 480px) {
-        [style*="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;"] {
-            grid-template-columns: 1fr 1fr !important;
-        }
         .btn-sm {
             font-size: 11px;
             padding: 4px 10px;
+        }
+        [style*="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;"] {
+            grid-template-columns: 1fr 1fr !important;
+        }
+        .status-pill {
+            font-size: 11px;
+            padding: 3px 10px;
         }
     }
 </style>

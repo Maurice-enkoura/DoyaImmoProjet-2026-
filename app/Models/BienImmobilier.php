@@ -31,6 +31,12 @@ class BienImmobilier extends Model
         'surface',
         'parking_disponible',
         'est_meuble',
+        'climatisation',
+        'balcon',
+        'jardin',
+        'piscine',
+        'ascenseur',
+        'securite',
         'description',
         'statut',
         'vues',
@@ -40,7 +46,8 @@ class BienImmobilier extends Model
         'vedette_duree',
         'slug',
     ];
-     protected $slugSource = 'titre';
+    
+    protected $slugSource = 'titre';
 
     protected $casts = [
         'type_bien' => TypeBienEnum::class,
@@ -49,11 +56,17 @@ class BienImmobilier extends Model
         'surface' => 'decimal:2',
         'parking_disponible' => 'boolean',
         'est_meuble' => 'boolean',
+        'climatisation' => 'boolean',
+        'balcon' => 'boolean',
+        'jardin' => 'boolean',
+        'piscine' => 'boolean',
+        'ascenseur' => 'boolean',
+        'securite' => 'boolean',
         'statut' => 'boolean',
         'est_vedette' => 'boolean',
         'vedette_debut' => 'datetime',
         'vedette_fin' => 'datetime',
-         'slug' => 'string',
+        'slug' => 'string',
     ];
 
     // ==================== RELATIONS ====================
@@ -152,20 +165,118 @@ class BienImmobilier extends Model
         return $titre;
     }
 
+    /**
+     * Récupère le statut du bien en texte
+     */
+    public function getStatutTexteAttribute(): string
+    {
+        return $this->statut ? 'Disponible' : 'Indisponible';
+    }
+
+    /**
+     * Récupère la classe CSS du statut
+     */
+    public function getStatutClasseAttribute(): string
+    {
+        return $this->statut ? 'disponible' : 'indisponible';
+    }
+
+    // ==================== ✅ ÉQUIPEMENTS COMPLETS ====================
+
+    /**
+     * Récupère la liste complète des équipements du bien
+     */
+    public function getEquipementsAttribute(): array
+    {
+        $equipements = [];
+        if ($this->parking_disponible) $equipements[] = 'Parking';
+        if ($this->est_meuble) $equipements[] = 'Meublé';
+        if ($this->climatisation) $equipements[] = 'Climatisation';
+        if ($this->balcon) $equipements[] = 'Balcon';
+        if ($this->jardin) $equipements[] = 'Jardin';
+        if ($this->piscine) $equipements[] = 'Piscine';
+        if ($this->ascenseur) $equipements[] = 'Ascenseur';
+        if ($this->securite) $equipements[] = 'Sécurité 24h/24';
+        return $equipements;
+    }
+
+    /**
+     * Vérifie si le bien a un équipement spécifique
+     */
+    public function hasEquipement(string $equipement): bool
+    {
+        return in_array($equipement, $this->equipements);
+    }
+
+    /**
+     * Récupère le nombre d'équipements du bien
+     */
+    public function getEquipementsCountAttribute(): int
+    {
+        return count($this->equipements);
+    }
+
+    /**
+     * Récupère les équipements sous forme de tableau associatif
+     */
+    public function getEquipementsWithStatusAttribute(): array
+    {
+        return [
+            'parking' => ['label' => '🚗 Parking', 'value' => $this->parking_disponible ?? false],
+            'meuble' => ['label' => '🛋️ Meublé', 'value' => $this->est_meuble ?? false],
+            'climatisation' => ['label' => '❄️ Climatisation', 'value' => $this->climatisation ?? false],
+            'balcon' => ['label' => '🌅 Balcon', 'value' => $this->balcon ?? false],
+            'jardin' => ['label' => '🌿 Jardin', 'value' => $this->jardin ?? false],
+            'piscine' => ['label' => '🏊 Piscine', 'value' => $this->piscine ?? false],
+            'ascenseur' => ['label' => '🛗 Ascenseur', 'value' => $this->ascenseur ?? false],
+            'securite' => ['label' => '🛡️ Sécurité', 'value' => $this->securite ?? false],
+        ];
+    }
+
+    /**
+     * Récupère les équipements sous forme de badges HTML
+     */
+    public function getEquipementsHtmlAttribute(): string
+    {
+        $equipements = $this->equipements;
+        if (empty($equipements)) {
+            return '<span class="text-muted">Aucun équipement</span>';
+        }
+        
+        $badges = array_map(function($equipement) {
+            return '<span class="badge-equipement">' . $equipement . '</span>';
+        }, $equipements);
+        
+        return implode(' ', $badges);
+    }
+
     // ==================== VEDETTE ====================
 
+    /**
+     * Getter pour est_vedette (sans effet de bord)
+     */
     public function getEstVedetteAttribute($value)
     {
+        // Vérifier si la vedette est expirée mais ne pas modifier la DB
         if ($value && $this->vedette_fin && $this->vedette_fin <= now()) {
-            $this->update(['est_vedette' => false]);
             return false;
         }
         return $value;
     }
 
     /**
+     * Vérifier et mettre à jour le statut vedette si expiré
+     * À appeler périodiquement (via un job ou un scheduler)
+     */
+    public function verifierEtMettreAJourVedette(): void
+    {
+        if ($this->est_vedette && $this->vedette_fin && $this->vedette_fin <= now()) {
+            $this->update(['est_vedette' => false]);
+        }
+    }
+
+    /**
      * Récupère le nombre de jours restants pour la vedette
-     * Retourne un entier et gère les cas où il reste moins d'un jour
      */
     public function getVedetteJoursRestantsAttribute(): int
     {
@@ -173,15 +284,12 @@ class BienImmobilier extends Model
             return 0;
         }
         
-        // Si la date est déjà passée
         if ($this->vedette_fin->isPast()) {
             return 0;
         }
         
-        // Calculer la différence en jours
         $diff = now()->diffInDays($this->vedette_fin, true);
         
-        // Si la différence est de 0 (moins de 24h), retourner 1
         if ($diff < 1 && $this->vedette_fin->isFuture()) {
             return 1;
         }
@@ -228,11 +336,54 @@ class BienImmobilier extends Model
         $pourcentage = ($ecoule / $total) * 100;
         return (int) round(min(100, max(0, $pourcentage)));
     }
+
+    // ==================== MÉTHODES DE COMPATIBILITÉ ====================
+
     /**
- * Get the route key for the model.
- */
-public function getRouteKeyName(): string
-{
-    return 'slug';
-}
+     * Vérifie si le bien est compatible avec une demande
+     */
+    public function estCompatibleAvec(DemandeImmobiliere $demande): bool
+    {
+        // 1. Type d'opération
+        $typeOperation = $demande->type_operation instanceof \UnitEnum ? $demande->type_operation->value : $demande->type_operation;
+        $typeContrat = $this->type_contrat instanceof \UnitEnum ? $this->type_contrat->value : $this->type_contrat;
+        
+        if ($typeOperation !== $typeContrat) {
+            return false;
+        }
+        
+        // 2. Type de bien
+        $typeBienDemande = $demande->type_bien instanceof \UnitEnum ? $demande->type_bien->value : $demande->type_bien;
+        $typeBienBien = $this->type_bien instanceof \UnitEnum ? $this->type_bien->value : $this->type_bien;
+        
+        if ($typeBienDemande !== $typeBienBien) {
+            return false;
+        }
+        
+        // 3. Zone géographique
+        $zoneDemande = trim(strtolower($demande->zone_recherchee ?? ''));
+        $zoneBien = trim(strtolower($this->quartier ?? ''));
+        
+        if (!empty($zoneDemande) && !empty($zoneBien)) {
+            if ($zoneDemande !== $zoneBien && 
+                strpos($zoneBien, $zoneDemande) === false && 
+                strpos($zoneDemande, $zoneBien) === false) {
+                return false;
+            }
+        }
+        
+        // 4. Budget
+        if ($this->prix > $demande->budget_maximum) {
+            return false;
+        }
+        
+        return true;
+    }
+
+    // ==================== ROUTE KEY ====================
+    
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
 }

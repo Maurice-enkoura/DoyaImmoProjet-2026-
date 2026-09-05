@@ -121,6 +121,20 @@
                             @endif
                         </span>
                     </div>
+                    <!-- ✅ Email du client -->
+                    <div class="info-item">
+                        <span class="label">Email</span>
+                        <span class="value">{{ $rendezVous->particulier->user->email ?? 'Non renseigné' }}</span>
+                    </div>
+                    <!-- ✅ Statut du rendez-vous -->
+                    <div class="info-item">
+                        <span class="label">Statut</span>
+                        <span class="value">
+                            <span class="status-pill status-{{ $rendezVous->statut->value }}" style="font-size:11px;padding:2px 12px;">
+                                {{ $rendezVous->statut->label() }}
+                            </span>
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -175,12 +189,12 @@
                         <span class="label">Téléphone</span>
                         <span class="value">
                             <i class="fa-solid fa-phone" style="color:var(--rust);"></i>
-                            {{ $rendezVous->agence->telephone ?? 'Non renseigné' }}
+                            {{ $rendezVous->agence->user->telephone ?? 'Non renseigné' }}
                         </span>
                     </div>
                     <div class="info-item">
                         <span class="label">Email</span>
-                        <span class="value">{{ $rendezVous->agence->email ?? 'Non renseigné' }}</span>
+                        <span class="value">{{ $rendezVous->agence->user->email ?? 'Non renseigné' }}</span>
                     </div>
                     <div class="info-item">
                         <span class="label">Adresse</span>
@@ -212,41 +226,60 @@
         <!-- Footer -->
         <div class="rdv-detail-footer">
             @if($rendezVous->statut->value === 'planifie')
-                <form action="{{ route('agence.rendezvous.update', $rendezVous) }}" method="POST" class="action-form">
+                <!-- ✅ L'agence confirme ou annule -->
+                <form action="{{ route('agence.rendezvous.confirmer', $rendezVous) }}" method="POST" class="action-form">
                     @csrf
-                    @method('PUT')
-                    <input type="hidden" name="statut" value="confirme">
                     <button type="submit" class="btn btn-rust">
                         <i class="fa-solid fa-check"></i> Confirmer le rendez-vous
                     </button>
                 </form>
-                <form action="{{ route('agence.rendezvous.update', $rendezVous) }}" method="POST" class="action-form">
+                <form action="{{ route('agence.rendezvous.annuler', $rendezVous) }}" method="POST" class="action-form">
                     @csrf
-                    @method('PUT')
-                    <input type="hidden" name="statut" value="annule">
                     <button type="submit" class="btn btn-ghost btn-danger" onclick="return confirm('Annuler ce rendez-vous ?')">
                         <i class="fa-solid fa-xmark"></i> Annuler
                     </button>
                 </form>
             @elseif($rendezVous->statut->value === 'confirme')
-                <form action="{{ route('agence.rendezvous.update', $rendezVous) }}" method="POST" class="action-form">
+                <!-- ✅ L'agence peut appeler, terminer ou annuler -->
+                @if($rendezVous->particulier->user && $rendezVous->particulier->user->telephone)
+                    <a href="tel:{{ $rendezVous->particulier->user->telephone }}" class="btn btn-success">
+                        <i class="fa-solid fa-phone"></i> Appeler le client
+                    </a>
+                @endif
+                <form action="{{ route('agence.rendezvous.termine', $rendezVous) }}" method="POST" class="action-form">
                     @csrf
-                    @method('PUT')
-                    <input type="hidden" name="statut" value="termine">
-                    <button type="submit" class="btn btn-rust">
+                    <button type="submit" class="btn btn-rust" onclick="return confirm('Marquer ce rendez-vous comme terminé ?')">
                         <i class="fa-solid fa-check-double"></i> Terminer la visite
                     </button>
                 </form>
-                <form action="{{ route('agence.rendezvous.update', $rendezVous) }}" method="POST" class="action-form">
+                <form action="{{ route('agence.rendezvous.annuler', $rendezVous) }}" method="POST" class="action-form">
                     @csrf
-                    @method('PUT')
-                    <input type="hidden" name="statut" value="annule">
                     <button type="submit" class="btn btn-ghost btn-danger" onclick="return confirm('Annuler ce rendez-vous ?')">
                         <i class="fa-solid fa-xmark"></i> Annuler
                     </button>
                 </form>
+            @elseif($rendezVous->statut->value === 'termine')
+                <!-- ✅ Rendez-vous terminé - Affichage informatif -->
+                <div style="padding:8px 16px;background:#E8F5E9;border-radius:10px;color:#1E7A47;font-size:13px;display:flex;align-items:center;gap:8px;border:1px solid #C8E6C9;">
+                    <i class="fa-solid fa-check-circle"></i>
+                    Visite terminée
+                </div>
+                <!-- ✅ Bouton Appeler même après terminé -->
+                @if($rendezVous->particulier->user && $rendezVous->particulier->user->telephone)
+                    <a href="tel:{{ $rendezVous->particulier->user->telephone }}" class="btn btn-success">
+                        <i class="fa-solid fa-phone"></i> Appeler le client
+                    </a>
+                @endif
+            @elseif($rendezVous->statut->value === 'annule')
+                <!-- ✅ Rendez-vous annulé -->
+                <div style="padding:8px 16px;background:#FFEBEE;border-radius:10px;color:#C62828;font-size:13px;display:flex;align-items:center;gap:8px;border:1px solid #FFCDD2;">
+                    <i class="fa-solid fa-ban"></i>
+                    Rendez-vous annulé
+                </div>
             @endif
-            <a href="{{ route('agence.rendezvous.index') }}" class="btn btn-ghost">Retour</a>
+            <a href="{{ route('agence.rendezvous.index') }}" class="btn btn-ghost" style="margin-left:auto;">
+                <i class="fa-solid fa-list"></i> Tous mes rendez-vous
+            </a>
         </div>
     </div>
 </div>
@@ -659,6 +692,25 @@
         border-color: #EF9A9A;
     }
 
+    .btn-success {
+        background: #25D366;
+        color: #fff;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 12px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        transition: background 0.2s;
+    }
+
+    .btn-success:hover {
+        background: #1DA851;
+        color: #fff;
+    }
+
     .btn-sm {
         padding: 6px 14px;
         font-size: 12.5px;
@@ -729,6 +781,15 @@
 
         .rdv-detail-footer .btn {
             justify-content: center;
+            width: 100%;
+        }
+
+        .rdv-detail-footer form {
+            width: 100%;
+        }
+
+        .rdv-detail-footer form .btn {
+            width: 100%;
         }
 
         .gallery-grid {
@@ -784,6 +845,11 @@
 
         .video-item video {
             height: 120px;
+        }
+
+        .btn-success {
+            font-size: 12px;
+            padding: 8px 16px;
         }
     }
 </style>

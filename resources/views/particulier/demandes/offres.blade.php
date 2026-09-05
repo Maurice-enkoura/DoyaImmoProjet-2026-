@@ -13,16 +13,52 @@
         </a>
     </div>
 
+    <!-- ✅ AFFICHAGE DES MESSAGES FLASH -->
+    @if(session('error'))
+        <div style="padding:12px 16px;background:#FFEBEE;border-radius:10px;border:1px solid #FFCDD2;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <i class="fa-solid fa-exclamation-circle" style="color:#C62828;"></i>
+            <span style="color:#C62828;font-size:13px;">{{ session('error') }}</span>
+        </div>
+    @endif
+
+    @if(session('success'))
+        <div style="padding:12px 16px;background:#E8F5E9;border-radius:10px;border:1px solid #C8E6C9;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <i class="fa-solid fa-check-circle" style="color:#1E7A47;"></i>
+            <span style="color:#1E7A47;font-size:13px;">{{ session('success') }}</span>
+        </div>
+    @endif
+
+    @if(session('info'))
+        <div style="padding:12px 16px;background:#E3F2FD;border-radius:10px;border:1px solid #BBDEFB;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <i class="fa-solid fa-info-circle" style="color:#0D47A1;"></i>
+            <span style="color:#0D47A1;font-size:13px;">{{ session('info') }}</span>
+        </div>
+    @endif
+
     <!-- En-tête du besoin -->
     <div class="demande-header">
         <div>
             <h3>{{ $demande->type_bien->label() }} — {{ $demande->zone_recherchee }}</h3>
             <p class="sub">
                 <i class="fa-regular fa-coins"></i>
-                Budget max : {{ number_format($demande->budget_maximum, 0, ',', ' ') }} F/mois
+                @if($demande->type_operation->value === 'location')
+                    Budget max : {{ number_format($demande->budget_maximum, 0, ',', ' ') }} F/mois
+                @else
+                    Budget d'achat : {{ number_format($demande->budget_maximum, 0, ',', ' ') }} F
+                @endif
                 <span class="separator">|</span>
                 <i class="fa-regular fa-calendar"></i>
                 Publié le {{ $demande->created_at->format('d/m/Y') }}
+                @if($demande->surface_minimum)
+                    <span class="separator">|</span>
+                    <i class="fa-regular fa-square"></i>
+                    Surface min : {{ $demande->surface_minimum }} m²
+                @endif
+                @if($demande->nombre_chambres)
+                    <span class="separator">|</span>
+                    <i class="fa-regular fa-bed"></i>
+                    {{ $demande->nombre_chambres }} ch.
+                @endif
             </p>
         </div>
         <span class="status-badge status-{{ $demande->statut->value }}">
@@ -31,10 +67,43 @@
         </span>
     </div>
 
+    <!-- Statistiques rapides des offres -->
+    @if($offres->count() > 0)
+        <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+            <div style="padding:8px 16px;background:#E3F2FD;border-radius:8px;border:1px solid #BBDEFB;">
+                <span style="font-weight:600;color:#0D47A1;">Total : {{ $offres->total() }}</span>
+            </div>
+            <div style="padding:8px 16px;background:#FFF8E1;border-radius:8px;border:1px solid #FFE0B2;">
+                <span style="font-weight:600;color:#E65100;">
+                    En attente : {{ $offres->where('statut.value', 'en_attente')->count() }}
+                </span>
+            </div>
+            <div style="padding:8px 16px;background:#E8F5E9;border-radius:8px;border:1px solid #C8E6C9;">
+                <span style="font-weight:600;color:#1E7A47;">
+                    Acceptées : {{ $offres->where('statut.value', 'acceptee')->count() }}
+                </span>
+            </div>
+            <div style="padding:8px 16px;background:#FFEBEE;border-radius:8px;border:1px solid #FFCDD2;">
+                <span style="font-weight:600;color:#C62828;">
+                    Refusées : {{ $offres->where('statut.value', 'refusee')->count() }}
+                </span>
+            </div>
+        </div>
+    @endif
+
     <!-- Liste des offres -->
     @if($offres->count() > 0)
         <div class="offres-list">
             @foreach($offres as $offre)
+                @php
+                    $statutColors = [
+                        'en_attente' => ['bg' => '#FFF8E1', 'color' => '#E65100', 'label' => 'En attente'],
+                        'acceptee' => ['bg' => '#E8F5E9', 'color' => '#1E7A47', 'label' => ' Acceptée'],
+                        'refusee' => ['bg' => '#FFEBEE', 'color' => '#C62828', 'label' => ' Refusée'],
+                        'terminee' => ['bg' => '#E3F2FD', 'color' => '#0D47A1', 'label' => 'Terminée'],
+                    ];
+                    $statutInfo = $statutColors[$offre->statut->value] ?? $statutColors['en_attente'];
+                @endphp
                 <div class="offre-card">
                     <div class="offre-header">
                         <div class="offre-agency">
@@ -50,9 +119,14 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="offre-price">
-                            <div class="price-amount">{{ number_format($offre->prix_propose, 0, ',', ' ') }} FCFA</div>
-                            <div class="price-label">Prix proposé</div>
+                        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                            <div class="offre-price">
+                                <div class="price-amount">{{ number_format($offre->prix_propose, 0, ',', ' ') }} FCFA</div>
+                                <div class="price-label">Prix proposé</div>
+                            </div>
+                            <span class="offre-status-badge" style="background:{{ $statutInfo['bg'] }};color:{{ $statutInfo['color'] }};padding:4px 12px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;">
+                                {{ $statutInfo['label'] }}
+                            </span>
                         </div>
                     </div>
 
@@ -63,10 +137,37 @@
                                 <i class="fa-solid fa-location-dot"></i> {{ $offre->bien->adresse ?? 'Adresse non spécifiée' }}
                             </span>
                         </div>
+                        
+                        <!-- ✅ Équipements du bien -->
+                        @php
+                            $equipementsBien = $offre->bien->equipements ?? [];
+                        @endphp
+                        @if(count($equipementsBien) > 0)
+                            <div class="offre-equipements">
+                                <span style="font-size:12px;color:var(--muted);font-weight:600;">Équipements :</span>
+                                @foreach($equipementsBien as $equipement)
+                                    <span class="equipement-tag">{{ $equipement }}</span>
+                                @endforeach
+                            </div>
+                        @endif
+                        
                         @if($offre->message)
                             <div class="offre-message">
                                 <i class="fa-regular fa-message"></i>
                                 {{ $offre->message }}
+                            </div>
+                        @endif
+                        
+                        <!-- ✅ Score de matching -->
+                        @if($offre->score_matching)
+                            <div class="offre-score" style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                                <span style="font-size:12px;color:var(--muted);">Score de compatibilité :</span>
+                                <span style="font-weight:700;color:{{ $offre->score_matching >= 80 ? '#1E7A47' : ($offre->score_matching >= 60 ? '#E65100' : '#C62828') }};">
+                                    {{ $offre->score_matching }}%
+                                </span>
+                                <span style="font-size:11px;color:var(--muted);">
+                                    ({{ $offre->niveau_matching ?? 'Non évalué' }})
+                                </span>
                             </div>
                         @endif
                     </div>
@@ -74,16 +175,15 @@
                     <div class="offre-footer">
                         <span class="offre-date">
                             <i class="fa-regular fa-clock"></i>
-                            Reçue le {{ $offre->created_at->format('d/m/Y') }}
+                            Reçue le {{ $offre->created_at->format('d/m/Y à H:i') }}
                         </span>
                         <div class="offre-actions">
-                            <!-- ✅ CORRIGÉ : Utilisation de l'ID (selon les routes) -->
                             <a href="{{ route('particulier.propositions.show', $offre->id) }}" class="btn btn-ghost btn-sm">
                                 <i class="fa-solid fa-eye"></i> Détails
                             </a>
                             @if($offre->statut->value === 'en_attente')
-                                <!-- ✅ CORRIGÉ : Utilisation de l'ID (selon les routes) -->
-                                <form action="{{ route('particulier.propositions.selectionner', $offre->id) }}" method="POST" style="display:inline;">
+                                <form action="{{ route('particulier.propositions.selectionner', $offre->id) }}" method="POST" style="display:inline;" 
+                                      onsubmit="return confirm(' Sélectionner cette offre ? Cela clôturera les autres offres en attente.')">
                                     @csrf
                                     <button type="submit" class="btn btn-rust btn-sm">
                                         <i class="fa-solid fa-check"></i> Sélectionner
@@ -285,6 +385,24 @@
         color: var(--muted);
     }
 
+    .offre-equipements {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 0;
+    }
+
+    .equipement-tag {
+        display: inline-block;
+        padding: 2px 10px;
+        background: #F0F2F5;
+        border-radius: 999px;
+        font-size: 11px;
+        color: var(--text-soft);
+        border: 1px solid var(--border);
+    }
+
     .offre-message {
         padding: 8px 12px;
         background: #F7F9FC;
@@ -476,6 +594,12 @@
             flex: 1;
             justify-content: center;
         }
+
+        .offre-bien {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+        }
     }
 
     @media (max-width: 480px) {
@@ -487,19 +611,26 @@
             font-size: 12px;
         }
 
-        .price-amount {
-            font-size: 16px;
+        .demande-header .sub .separator {
+            margin: 0 4px;
         }
 
-        .offre-bien {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 4px;
+        .price-amount {
+            font-size: 16px;
         }
 
         .offre-actions .btn {
             font-size: 11px;
             padding: 4px 10px;
+        }
+
+        .offre-equipements {
+            gap: 4px;
+        }
+
+        .equipement-tag {
+            font-size: 10px;
+            padding: 1px 8px;
         }
     }
 </style>

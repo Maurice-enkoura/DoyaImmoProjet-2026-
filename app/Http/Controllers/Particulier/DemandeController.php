@@ -50,8 +50,8 @@ class DemandeController extends Controller
             'budget_maximum' => $request->budget_maximum,
             'zone_recherchee' => $request->zone_recherchee,
             'quartier_id' => $request->quartier_id,
-            'nombre_chambres' => $request->nombre_chambres,
-            'nombre_salles_bain' => $request->nombre_salles_bain,
+            'nombre_chambres' => $request->nombre_chambres ?? 0,
+            'nombre_salles_bain' => $request->nombre_salles_bain ?? 0,
             'surface_minimum' => $request->surface_minimum,
             'parking' => $request->boolean('parking'),
             'meuble' => $request->boolean('meuble'),
@@ -80,14 +80,12 @@ class DemandeController extends Controller
             abort(403);
         }
 
-        // Convertir le statut en Enum si c'est une chaîne
         if (is_string($demande->statut)) {
             $demande->statut = StatutDemandeEnum::from($demande->statut);
         }
 
         $demande->load(['propositions.agence.user', 'propositions.bien']);
         
-        // Convertir les statuts des propositions en Enum
         foreach ($demande->propositions as $proposition) {
             if (is_string($proposition->statut)) {
                 $proposition->statut = \App\Enums\StatutPropositionEnum::from($proposition->statut);
@@ -106,10 +104,8 @@ class DemandeController extends Controller
             abort(403);
         }
 
-        // Récupérer la valeur du statut (que ce soit un Enum ou une chaîne)
         $statutValue = is_object($demande->statut) ? $demande->statut->value : $demande->statut;
 
-        // Vérifier si le statut est "en_attente"
         if ($statutValue !== StatutDemandeEnum::EN_ATTENTE->value) {
             return back()->with('error', 'Cette demande ne peut plus être modifiée.');
         }
@@ -118,7 +114,6 @@ class DemandeController extends Controller
         $typesOperation = TypeOperationEnum::labels();
         $quartiers = Quartier::actif()->orderBy('nom')->get();
 
-        // Convertir le statut en Enum pour la vue si ce n'est pas déjà fait
         if (is_string($demande->statut)) {
             $demande->statut = StatutDemandeEnum::from($demande->statut);
         }
@@ -147,8 +142,8 @@ class DemandeController extends Controller
             'budget_maximum' => $request->budget_maximum,
             'zone_recherchee' => $request->zone_recherchee,
             'quartier_id' => $request->quartier_id,
-            'nombre_chambres' => $request->nombre_chambres,
-            'nombre_salles_bain' => $request->nombre_salles_bain,
+            'nombre_chambres' => $request->nombre_chambres ?? 0,
+            'nombre_salles_bain' => $request->nombre_salles_bain ?? 0,
             'surface_minimum' => $request->surface_minimum,
             'parking' => $request->boolean('parking'),
             'meuble' => $request->boolean('meuble'),

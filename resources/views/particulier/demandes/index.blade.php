@@ -23,23 +23,39 @@
 
     <div class="besoin-grid">
         @forelse($demandes as $demande)
+            @php
+                // Récupérer le statut correctement
+                $statutValue = is_object($demande->statut) ? $demande->statut->value : $demande->statut;
+                $statutLabel = is_object($demande->statut) ? $demande->statut->label() : $demande->statut;
+                
+                // Compter les offres par statut
+                $totalOffres = $demande->propositions->count();
+                $offresEnAttente = $demande->propositions->where('statut.value', 'en_attente')->count();
+                $offresAcceptees = $demande->propositions->where('statut.value', 'acceptee')->count();
+                
+                // Déterminer le libellé du budget
+                $budgetLabel = is_object($demande->type_operation) && $demande->type_operation->value === 'location' ? 'F/mois' : 'F';
+            @endphp
             <div class="besoin-card">
                 <div class="besoin-body">
                     <div class="besoin-top">
                         <div class="besoin-type">{{ $demande->type_bien->label() }}</div>
-                        <div class="besoin-budget">{{ number_format($demande->budget_maximum, 0, ',', ' ') }} F/mois</div>
+                        <div class="besoin-budget">{{ number_format($demande->budget_maximum, 0, ',', ' ') }} {{ $budgetLabel }}</div>
                     </div>
                     
                     <div class="besoin-meta">
                         <span class="meta-pill"><i class="fa-solid fa-location-dot"></i> {{ $demande->zone_recherchee }}</span>
                         <span class="meta-pill"><i class="fa-regular fa-calendar"></i> {{ $demande->created_at->format('d/m/Y') }}</span>
+                        @if($demande->surface_minimum)
+                            <span class="meta-pill"><i class="fa-regular fa-square"></i> {{ $demande->surface_minimum }} m²</span>
+                        @endif
                     </div>
 
                     <!-- Statut avec badge -->
-                    <div class="status-badge status-{{ $demande->statut_value }}">
+                    <span class="status-badge status-{{ $statutValue }}">
                         <i class="fa-solid fa-circle" style="font-size:8px;"></i>
-                        {{ $demande->statut_label }}
-                    </div>
+                        {{ $statutLabel }}
+                    </span>
 
                     <p class="besoin-desc">
                         {{ Str::limit($demande->description, 120) }}
@@ -49,18 +65,18 @@
                     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
                         <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:999px;font-size:13px;font-weight:600;background:#E3F2FD;color:#0D47A1;border:1px solid #BBDEFB;">
                             <i class="fa-regular fa-envelope"></i>
-                            {{ $demande->propositions->count() }} offre(s) reçue(s)
+                            {{ $totalOffres }} offre(s) reçue(s)
                         </span>
-                        @if($demande->propositions->where('statut', 'en_attente')->count() > 0)
+                        @if($offresEnAttente > 0)
                             <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:999px;font-size:13px;font-weight:600;background:#FFF8E1;color:#E65100;border:1px solid #FFE0B2;">
                                 <i class="fa-regular fa-clock"></i>
-                                {{ $demande->propositions->where('statut', 'en_attente')->count() }} en attente
+                                {{ $offresEnAttente }} en attente
                             </span>
                         @endif
-                        @if($demande->propositions->where('statut', 'acceptee')->count() > 0)
+                        @if($offresAcceptees > 0)
                             <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:999px;font-size:13px;font-weight:600;background:#E8F5E9;color:#1E7A47;border:1px solid #C8E6C9;">
                                 <i class="fa-regular fa-check-circle"></i>
-                                {{ $demande->propositions->where('statut', 'acceptee')->count() }} acceptée(s)
+                                {{ $offresAcceptees }} acceptée(s)
                             </span>
                         @endif
                     </div>
@@ -70,15 +86,17 @@
                             <i class="fa-regular fa-clock"></i> {{ $demande->created_at->diffForHumans() }}
                         </span>
                         <div class="besoin-actions">
-                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
                             <a href="{{ route('particulier.demandes.show', $demande->slug) }}" class="btn btn-ghost btn-sm">
                                 <i class="fa-solid fa-eye"></i> Voir
                             </a>
-                            @if($demande->propositions->count() > 0)
-                                <!-- ✅ CORRIGÉ : Utilisation du slug -->
+                            @if($totalOffres > 0)
                                 <a href="{{ route('particulier.demandes.offres', $demande->slug) }}" class="btn btn-rust btn-sm">
                                     <i class="fa-solid fa-file-invoice"></i> Voir offres
                                 </a>
+                            @else
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:10px;font-size:11px;color:var(--muted);background:#F7F9FC;border:1px solid var(--border);">
+                                    <i class="fa-regular fa-clock"></i> En attente d'offres
+                                </span>
                             @endif
                         </div>
                     </div>
@@ -200,6 +218,8 @@
         font-weight: 700;
         color: var(--rust);
         font-size: 14px;
+        flex-shrink: 0;
+        margin-left: 8px;
     }
 
     .besoin-meta {
@@ -252,6 +272,16 @@
     }
 
     .status-annulee {
+        background: #FFEBEE;
+        color: #C62828;
+    }
+
+    .status-acceptee {
+        background: #E8F5E9;
+        color: #1E7A47;
+    }
+
+    .status-refusee {
         background: #FFEBEE;
         color: #C62828;
     }
@@ -512,6 +542,7 @@
 
         .besoin-budget {
             font-size: 13px;
+            margin-left: 0;
         }
 
         .pagination a,
@@ -526,9 +557,18 @@
             padding: 4px 10px;
         }
 
-        .offre-counter .badge-offre {
-            font-size: 11px;
-            padding: 3px 10px;
+        .besoin-meta .meta-pill {
+            font-size: 10px;
+            padding: 1px 10px;
+        }
+
+        [style*="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;"] {
+            gap: 6px !important;
+        }
+
+        [style*="display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:999px;font-size:13px;font-weight:600;"] {
+            font-size: 11px !important;
+            padding: 3px 10px !important;
         }
     }
 </style>

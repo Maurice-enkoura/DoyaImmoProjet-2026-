@@ -27,15 +27,15 @@
     </div>
     <div class="kpi-card">
         <div class="kpi-value" style="color:#1E7A47;">{{ $stats['disponibles'] ?? 0 }}</div>
-        <div class="kpi-label"> ✅ Disponibles</div>
+        <div class="kpi-label"> Disponibles</div>
     </div>
     <div class="kpi-card">
         <div class="kpi-value" style="color:#C62828;">{{ $stats['indisponibles'] ?? 0 }}</div>
-        <div class="kpi-label"> ❌ Indisponibles</div>
+        <div class="kpi-label"> Indisponibles</div>
     </div>
     <div class="kpi-card">
         <div class="kpi-value" style="color:#F5A623;">{{ $stats['en_vedette'] ?? 0 }}</div>
-        <div class="kpi-label"> ⭐ En vedette</div>
+        <div class="kpi-label"> En vedette</div>
     </div>
 </div>
 

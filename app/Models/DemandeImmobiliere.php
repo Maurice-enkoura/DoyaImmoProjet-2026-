@@ -42,7 +42,8 @@ class DemandeImmobiliere extends Model
         'date_publication',
         'slug',
     ];
-     protected $slugSource = 'titre';
+    
+    protected $slugSource = 'description';
 
     protected $casts = [
         'type_operation' => TypeOperationEnum::class,
@@ -95,7 +96,6 @@ class DemandeImmobiliere extends Model
 
     // ==================== ACCESSORS ====================
 
-    // Accesseurs pour les libellés des enums
     public function getTypeOperationLabelAttribute()
     {
         return is_object($this->type_operation) ? $this->type_operation->label() : $this->type_operation;
@@ -122,35 +122,93 @@ class DemandeImmobiliere extends Model
         return $labels[$this->statut] ?? (string) $this->statut;
     }
 
-    // ✅ CORRECTION : Accesseur pour la valeur du statut
     public function getStatutValueAttribute()
     {
         if (is_object($this->statut) && method_exists($this->statut, 'value')) {
             return $this->statut->value;
         }
-        
-        // Si c'est une chaîne, la retourner directement
         if (is_string($this->statut)) {
             return $this->statut;
         }
-        
-        // Fallback
         return 'en_attente';
     }
 
-    // Accesseur pour le nom du quartier
     public function getQuartierNameAttribute(): string
     {
         return $this->quartier ? $this->quartier->nom : $this->zone_recherchee;
     }
 
-    // Accesseur pour le nombre de propositions
     public function getPropositionsCountAttribute()
     {
         return $this->propositions()->count();
     }
 
-    // Accesseur pour la liste des équipements sous forme de tableau
+    /**
+     * ✅ Budget formaté selon le type d'opération
+     */
+    public function getBudgetFormateAttribute(): string
+    {
+        if ($this->type_operation instanceof TypeOperationEnum && $this->type_operation->value === 'location') {
+            return number_format($this->budget_maximum ?? 0, 0, ',', ' ') . ' F/mois';
+        }
+        return number_format($this->budget_maximum ?? 0, 0, ',', ' ') . ' F';
+    }
+
+    /**
+     * ✅ Label du budget selon le type d'opération
+     */
+    public function getBudgetLabelAttribute(): string
+    {
+        if ($this->type_operation instanceof TypeOperationEnum && $this->type_operation->value === 'location') {
+            return 'Loyer max / mois';
+        }
+        return "Budget d'achat";
+    }
+
+    /**
+     * ✅ Vérifie si la date d'entrée est pertinente (seulement pour la location)
+     */
+    public function getAfficherDateEntreeAttribute(): bool
+    {
+        return $this->type_operation instanceof TypeOperationEnum && 
+               $this->type_operation->value === 'location' && 
+               !empty($this->date_entree_souhaitee);
+    }
+
+    /**
+     * ✅ Récupère les critères spécifiques selon le type
+     */
+    public function getCriteresSpecifiquesAttribute(): array
+    {
+        $criteres = [];
+        
+        if ($this->type_operation instanceof TypeOperationEnum) {
+            if ($this->type_operation->value === 'location') {
+                $criteres = [
+                    'type' => 'location',
+                    'budget_label' => 'Loyer max / mois',
+                    'budget' => number_format($this->budget_maximum ?? 0, 0, ',', ' ') . ' F/mois',
+                    'date_entree' => $this->date_entree_souhaitee ? $this->date_entree_souhaitee->format('d/m/Y') : null,
+                ];
+            } else {
+                $criteres = [
+                    'type' => 'achat',
+                    'budget_label' => "Budget d'achat",
+                    'budget' => number_format($this->budget_maximum ?? 0, 0, ',', ' ') . ' F',
+                    'surface' => $this->surface_minimum ? $this->surface_minimum . ' m²' : null,
+                    'chambres' => $this->nombre_chambres,
+                ];
+            }
+        }
+        
+        return $criteres;
+    }
+
+    // ==================== ✅ ÉQUIPEMENTS COMPLETS ====================
+
+    /**
+     * Récupère la liste complète des équipements demandés
+     */
     public function getEquipementsAttribute(): array
     {
         $equipements = [];
@@ -165,22 +223,40 @@ class DemandeImmobiliere extends Model
         return $equipements;
     }
 
-    // Accesseur pour les équipements avec leurs statuts (pour l'affichage)
+    /**
+     * Vérifie si la demande a un équipement spécifique
+     */
+    public function hasEquipement(string $equipement): bool
+    {
+        return in_array($equipement, $this->equipements);
+    }
+
+    /**
+     * Récupère le nombre d'équipements demandés
+     */
+    public function getEquipementsCountAttribute(): int
+    {
+        return count($this->equipements);
+    }
+
+    /**
+     * Récupère les équipements avec leurs statuts (pour l'affichage)
+     */
     public function getEquipementsWithStatusAttribute(): array
     {
         return [
-            'parking' => ['label' => ' Parking', 'value' => $this->parking ?? false],
-            'meuble' => ['label' => ' Meublé', 'value' => $this->meuble ?? false],
-            'climatisation' => ['label' => ' Climatisation', 'value' => $this->climatisation ?? false],
-            'balcon' => ['label' => ' Balcon', 'value' => $this->balcon ?? false],
-            'jardin' => ['label' => ' Jardin', 'value' => $this->jardin ?? false],
-            'piscine' => ['label' => ' Piscine', 'value' => $this->piscine ?? false],
-            'ascenseur' => ['label' => ' Ascenseur', 'value' => $this->ascenseur ?? false],
-            'securite' => ['label' => ' Sécurité 24h/24', 'value' => $this->securite ?? false],
+            'parking' => ['label' => '🚗 Parking', 'value' => $this->parking ?? false],
+            'meuble' => ['label' => '🛋️ Meublé', 'value' => $this->meuble ?? false],
+            'climatisation' => ['label' => '❄️ Climatisation', 'value' => $this->climatisation ?? false],
+            'balcon' => ['label' => '🌅 Balcon', 'value' => $this->balcon ?? false],
+            'jardin' => ['label' => '🌿 Jardin', 'value' => $this->jardin ?? false],
+            'piscine' => ['label' => '🏊 Piscine', 'value' => $this->piscine ?? false],
+            'ascenseur' => ['label' => '🛗 Ascenseur', 'value' => $this->ascenseur ?? false],
+            'securite' => ['label' => '🛡️ Sécurité 24h/24', 'value' => $this->securite ?? false],
         ];
     }
 
-    // ==================== MÉTHODES ====================
+    // ==================== MÉTHODE DE MATCHING COMPLÈTE ====================
 
     /**
      * Calcule le score de matching entre une demande et un bien
@@ -191,137 +267,188 @@ class DemandeImmobiliere extends Model
         $details = [];
         $criteres = [];
 
-        // === CRITÈRES OBLIGATOIRES ===
-
-        // 1. Type d'opération (OBLIGATOIRE - 18 points)
+        // === 1. TYPE D'OPÉRATION (OBLIGATOIRE - 20 points) ===
         $typeOperation = $this->type_operation instanceof \UnitEnum ? $this->type_operation->value : $this->type_operation;
         $typeContrat = $bien->type_contrat instanceof \UnitEnum ? $bien->type_contrat->value : $bien->type_contrat;
         
         if ($typeOperation === $typeContrat) {
-            $score += 18;
+            $score += 20;
             $criteres['type_operation'] = true;
-            $details['type_operation'] = ' Type d\'opération: ' . $typeOperation;
+            $details['type_operation'] = '✅ Type d\'opération: ' . $typeOperation;
         } else {
-            return ['score' => 0, 'niveau' => 'Incompatible', 'details' => ['Type d\'opération ne correspond pas']];
+            return ['score' => 0, 'niveau' => 'Incompatible', 'details' => ['❌ Type d\'opération ne correspond pas']];
         }
 
-        // 2. Type de bien (OBLIGATOIRE - 18 points)
+        // === 2. TYPE DE BIEN (OBLIGATOIRE - 20 points) ===
         $typeBien = $this->type_bien instanceof \UnitEnum ? $this->type_bien->value : $this->type_bien;
         $typeBienBien = $bien->type_bien instanceof \UnitEnum ? $bien->type_bien->value : $bien->type_bien;
         
         if ($typeBien === $typeBienBien) {
-            $score += 18;
+            $score += 20;
             $criteres['type_bien'] = true;
-            $details['type_bien'] = ' Type de bien: ' . $typeBien;
+            $details['type_bien'] = '✅ Type de bien: ' . $typeBien;
         } else {
-            return ['score' => 0, 'niveau' => 'Incompatible', 'details' => ['Type de bien ne correspond pas']];
+            return ['score' => 0, 'niveau' => 'Incompatible', 'details' => ['❌ Type de bien ne correspond pas']];
         }
 
-        // 3. Zone géographique (OBLIGATOIRE - 18 points)
-        if (strtolower(trim($this->zone_recherchee)) === strtolower(trim($bien->quartier))) {
-            $score += 18;
+        // === 3. ZONE GÉOGRAPHIQUE (20 points - OPTIONNEL) ===
+        // ✅ Fonction pour normaliser les chaînes (supprimer les accents)
+        $normaliserChaine = function($str) {
+            $str = trim($str);
+            $str = strtolower($str);
+            // Supprimer les accents
+            $unwanted_array = array(
+                'Š'=>'s', 'š'=>'s', 'Ž'=>'z', 'ž'=>'z', 'À'=>'a', 'Á'=>'a', 'Â'=>'a', 'Ã'=>'a', 'Ä'=>'a', 'Å'=>'a', 'Æ'=>'a',
+                'Ç'=>'c', 'È'=>'e', 'É'=>'e', 'Ê'=>'e', 'Ë'=>'e', 'Ì'=>'i', 'Í'=>'i', 'Î'=>'i', 'Ï'=>'i', 'Ñ'=>'n',
+                'Ò'=>'o', 'Ó'=>'o', 'Ô'=>'o', 'Õ'=>'o', 'Ö'=>'o', 'Ø'=>'o', 'Ù'=>'u', 'Ú'=>'u', 'Û'=>'u', 'Ü'=>'u',
+                'Ý'=>'y', 'Þ'=>'b', 'ß'=>'s', 'à'=>'a', 'á'=>'a', 'â'=>'a', 'ã'=>'a', 'ä'=>'a', 'å'=>'a', 'æ'=>'a',
+                'ç'=>'c', 'è'=>'e', 'é'=>'e', 'ê'=>'e', 'ë'=>'e', 'ì'=>'i', 'í'=>'i', 'î'=>'i', 'ï'=>'i', 'ð'=>'o',
+                'ñ'=>'n', 'ò'=>'o', 'ó'=>'o', 'ô'=>'o', 'õ'=>'o', 'ö'=>'o', 'ø'=>'o', 'ù'=>'u', 'ú'=>'u', 'û'=>'u',
+                'ý'=>'y', 'ý'=>'y', 'þ'=>'b', 'ÿ'=>'y'
+            );
+            return strtr($str, $unwanted_array);
+        };
+
+        $zoneDemande = $normaliserChaine($this->zone_recherchee ?? '');
+        $zoneBien = $normaliserChaine($bien->quartier ?? '');
+
+        $zoneMatch = false;
+        if (!empty($zoneDemande) && !empty($zoneBien)) {
+            if ($zoneDemande === $zoneBien || 
+                strpos($zoneBien, $zoneDemande) !== false || 
+                strpos($zoneDemande, $zoneBien) !== false) {
+                $zoneMatch = true;
+            }
+        }
+
+        // ✅ La zone est maintenant OPTIONNELLE (pas bloquante)
+        if ($zoneMatch) {
+            $score += 20;
             $criteres['zone'] = true;
-            $details['zone'] = ' Zone: ' . $this->zone_recherchee;
+            $details['zone'] = '✅ Zone: ' . $this->zone_recherchee;
         } else {
-            return ['score' => 0, 'niveau' => 'Incompatible', 'details' => ['Zone géographique ne correspond pas']];
+            $score += 0;
+            $criteres['zone'] = false;
+            $details['zone'] = '⚠️ Zone: ' . $this->zone_recherchee . ' (hors zone de l\'agence)';
+            // ✅ On ne bloque pas le matching
         }
 
-        // === CRITÈRES DE COMPATIBILITÉ ===
-
-        // 4. Budget (12 points avec tolérance ±20%)
-        $tolerance = 0.20;
+        // === 4. BUDGET (15 points) ===
         $prixBien = floatval($bien->prix);
         $budgetMax = floatval($this->budget_maximum);
-        $seuilMax = $budgetMax * (1 + $tolerance);
-
+        
         if ($prixBien <= $budgetMax) {
-            $score += 12;
+            $score += 15;
             $criteres['budget'] = true;
-            $details['budget'] = ' Budget: ' . number_format($prixBien, 0, ',', ' ') . ' F ≤ ' . number_format($budgetMax, 0, ',', ' ') . ' F';
-        } elseif ($prixBien <= $seuilMax) {
-            $score += 7;
-            $criteres['budget'] = 'partiel';
-            $details['budget'] = ' Budget: ' . number_format($prixBien, 0, ',', ' ') . ' F (tolérance +20%)';
+            $details['budget'] = '✅ Budget: ' . number_format($prixBien, 0, ',', ' ') . ' F ≤ ' . number_format($budgetMax, 0, ',', ' ') . ' F';
         } else {
             $score += 0;
             $criteres['budget'] = false;
-            $details['budget'] = ' Budget: ' . number_format($prixBien, 0, ',', ' ') . ' F > ' . number_format($budgetMax, 0, ',', ' ') . ' F';
+            $details['budget'] = '❌ Budget: ' . number_format($prixBien, 0, ',', ' ') . ' F > ' . number_format($budgetMax, 0, ',', ' ') . ' F';
         }
 
-        // 5. Surface (8 points avec tolérance ±20%)
-        if ($this->surface_minimum) {
-            $surfaceMin = floatval($this->surface_minimum);
-            $surfaceBien = floatval($bien->surface);
-            $surfaceMinTolere = $surfaceMin * 0.8;
+        // === 5. CRITÈRES SPÉCIFIQUES SELON LE TYPE D'OPÉRATION ===
 
-            if ($surfaceMin <= $surfaceBien) {
-                $score += 8;
+        if ($typeOperation === 'location') {
+            // --- LOCATION ---
+
+            // 5a. Date d'entrée (5 points)
+            if ($this->date_entree_souhaitee) {
+                $score += 5;
+                $criteres['date_entree'] = true;
+                $details['date_entree'] = '✅ Entrée: ' . $this->date_entree_souhaitee->format('d/m/Y');
+            }
+
+            // 5b. Meublé (5 points)
+            if (isset($this->meuble) && $bien->est_meuble === (bool)$this->meuble) {
+                $score += 5;
+                $criteres['meuble'] = true;
+                $details['meuble'] = $this->meuble ? '✅ Meublé' : '✅ Non meublé';
+            } else {
+                $criteres['meuble'] = false;
+                $details['meuble'] = '❌ Meublé ne correspond pas';
+            }
+
+            // 5c. Surface (optionnelle - 5 points)
+            if ($this->surface_minimum && $bien->surface >= $this->surface_minimum) {
+                $score += 5;
                 $criteres['surface'] = true;
-                $details['surface'] = ' Surface: ' . $surfaceMin . ' m² ≤ ' . $surfaceBien . ' m²';
-            } elseif ($surfaceMinTolere <= $surfaceBien) {
-                $score += 5;
-                $criteres['surface'] = 'partiel';
-                $details['surface'] = ' Surface: ' . $surfaceMin . ' m² (tolérance -20%)';
+                $details['surface'] = '✅ Surface: ' . $this->surface_minimum . ' m² ≤ ' . $bien->surface . ' m²';
             } else {
-                $score += 0;
+                $criteres['surface'] = 'non_applicable';
+                $details['surface'] = '⏭️ Surface non applicable pour la location';
+            }
+
+        } else {
+            // --- ACHAT ---
+
+            // 5a. Surface (10 points)
+            if ($this->surface_minimum && $bien->surface >= $this->surface_minimum) {
+                $score += 10;
+                $criteres['surface'] = true;
+                $details['surface'] = '✅ Surface: ' . $this->surface_minimum . ' m² ≤ ' . $bien->surface . ' m²';
+            } else {
                 $criteres['surface'] = false;
-                $details['surface'] = ' Surface: ' . $surfaceMin . ' m² > ' . $surfaceBien . ' m²';
+                $details['surface'] = '❌ Surface: ' . $this->surface_minimum . ' m² > ' . $bien->surface . ' m²';
             }
-        }
 
-        // 6. Nombre de chambres (8 points avec tolérance -1)
-        if ($this->nombre_chambres) {
-            $chambresDemande = intval($this->nombre_chambres);
-            $chambresBien = intval($bien->nombre_chambres);
-
-            if ($chambresDemande <= $chambresBien) {
-                $score += 8;
+            // 5b. Nombre de chambres (10 points)
+            if ($this->nombre_chambres && $bien->nombre_chambres >= $this->nombre_chambres) {
+                $score += 10;
                 $criteres['chambres'] = true;
-                $details['chambres'] = ' Chambres: ' . $chambresDemande . ' ≤ ' . $chambresBien;
-            } elseif ($chambresDemande - 1 <= $chambresBien) {
-                $score += 5;
-                $criteres['chambres'] = 'partiel';
-                $details['chambres'] = ' Chambres: ' . $chambresDemande . ' (tolérance -1)';
+                $details['chambres'] = '✅ Chambres: ' . $this->nombre_chambres . ' ≤ ' . $bien->nombre_chambres;
             } else {
-                $score += 0;
                 $criteres['chambres'] = false;
-                $details['chambres'] = ' Chambres: ' . $chambresDemande . ' > ' . $chambresBien;
+                $details['chambres'] = '❌ Chambres: ' . $this->nombre_chambres . ' > ' . $bien->nombre_chambres;
             }
-        }
 
-        // 7. Nombre de salles de bain (8 points avec tolérance -1)
-        if ($this->nombre_salles_bain) {
-            $sdbDemande = intval($this->nombre_salles_bain);
-            $sdbBien = intval($bien->nombre_salles_bain);
-
-            if ($sdbDemande <= $sdbBien) {
-                $score += 8;
-                $criteres['sdb'] = true;
-                $details['sdb'] = ' Salles de bain: ' . $sdbDemande . ' ≤ ' . $sdbBien;
-            } elseif ($sdbDemande - 1 <= $sdbBien) {
+            // 5c. Salles de bain (5 points)
+            if ($this->nombre_salles_bain && $bien->nombre_salles_bain >= $this->nombre_salles_bain) {
                 $score += 5;
-                $criteres['sdb'] = 'partiel';
-                $details['sdb'] = ' Salles de bain: ' . $sdbDemande . ' (tolérance -1)';
+                $criteres['sdb'] = true;
+                $details['sdb'] = '✅ SDB: ' . $this->nombre_salles_bain . ' ≤ ' . $bien->nombre_salles_bain;
             } else {
-                $score += 0;
                 $criteres['sdb'] = false;
-                $details['sdb'] = ' Salles de bain: ' . $sdbDemande . ' > ' . $sdbBien;
+                $details['sdb'] = '❌ SDB: ' . $this->nombre_salles_bain . ' > ' . $bien->nombre_salles_bain;
             }
         }
 
-        // 8. Équipements (8 points bonus)
+        // === 6. ✅ ÉQUIPEMENTS (10 points - OPTIONNELS) ===
         $equipementsDemande = $this->equipements;
-        $equipementsBien = $this->getEquipementsBien($bien);
+        $equipementsBien = $bien->equipements;
+
+        // Filtrer "Meublé" des équipements pour éviter le double comptage
+        $equipementsDemande = array_filter($equipementsDemande, function($item) {
+            return $item !== 'Meublé';
+        });
+        $equipementsBien = array_filter($equipementsBien, function($item) {
+            return $item !== 'Meublé';
+        });
+
         $equipementsCommuns = array_intersect($equipementsDemande, $equipementsBien);
-        $equipementsScore = count($equipementsCommuns) > 0 ? min(8, count($equipementsCommuns) * 2) : 0;
+
+        if (count($equipementsDemande) === 0) {
+            // L'utilisateur n'a pas demandé d'équipements spécifiques
+            $equipementsScore = 10;
+            $details['equipements'] = '✅ Aucun équipement demandé (flexibilité totale)';
+            $criteres['equipements'] = true;
+        } elseif (count($equipementsCommuns) > 0) {
+            // L'utilisateur a demandé des équipements ET le bien en a certains
+            $equipementsScore = min(10, count($equipementsCommuns) * 2);
+            $details['equipements'] = '✅ ' . count($equipementsCommuns) . ' équipement(s) correspondant(s): ' . implode(', ', $equipementsCommuns);
+            $criteres['equipements'] = true;
+        } else {
+            // L'utilisateur a demandé des équipements MAIS le bien n'en a aucun
+            $equipementsScore = 0;
+            $equipementsManquants = implode(', ', $equipementsDemande);
+            $details['equipements'] = '⚠️ Équipements demandés non disponibles: ' . $equipementsManquants;
+            $criteres['equipements'] = false;
+        }
+
         $score += $equipementsScore;
-        $criteres['equipements'] = $equipementsScore > 0 ? true : false;
-        $details['equipements'] = $equipementsScore > 0 ? ' ' . count($equipementsCommuns) . ' équipement(s) correspondant(s)' : '❌ Aucun équipement correspondant';
 
-        // Score maximum 100
+        // === SCORE FINAL ===
         $scoreTotal = min(100, $score);
-
-        // Niveau de correspondance
         $niveau = $this->getNiveau($scoreTotal);
 
         return [
@@ -332,27 +459,53 @@ class DemandeImmobiliere extends Model
         ];
     }
 
-    private function getEquipementsBien(BienImmobilier $bien): array
-    {
-        $equipements = [];
-        if ($bien->parking_disponible) $equipements[] = 'Parking';
-        if ($bien->est_meuble) $equipements[] = 'Meublé';
-        return $equipements;
-    }
-
     private function getNiveau(int $score): string
     {
-        if ($score >= 80) return 'Excellent';
-        if ($score >= 60) return 'Bon';
-        if ($score >= 40) return 'Moyen';
+        if ($score >= 80) return 'Excellent ';
+        if ($score >= 60) return 'Bon ';
+        if ($score >= 40) return 'Moyen ';
         if ($score >= 20) return 'Faible';
         return 'Minimal';
     }
-    /**
- * Get the route key for the model.
+
+    // ==================== ROUTE KEY ====================
+    
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    // ==================== MÉTHODES DE NETTOYAGE ====================
+
+/**
+ * Supprime automatiquement les demandes expirées (plus de 30 jours)
  */
-public function getRouteKeyName(): string
+public static function supprimerDemandesExpirees(): int
 {
-    return 'slug';
+    $count = 0;
+    
+    // Récupérer les demandes en attente de plus de 30 jours
+    $demandesExpirees = self::where('statut', StatutDemandeEnum::EN_ATTENTE)
+        ->where('created_at', '<', now()->subDays(30))
+        ->get();
+    
+    foreach ($demandesExpirees as $demande) {
+        // Supprimer les propositions liées
+        $demande->propositions()->delete();
+        // Supprimer la demande
+        $demande->delete();
+        $count++;
+    }
+    
+    return $count;
+}
+
+/**
+ * Vérifie si une demande est expirée
+ */
+public function estExpiree(): bool
+{
+    return $this->statut->value === StatutDemandeEnum::EN_ATTENTE->value 
+        && $this->created_at->diffInDays(now()) > 30;
 }
 }

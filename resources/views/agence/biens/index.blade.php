@@ -9,17 +9,33 @@
     <div class="section-head">
         <div>
             <h2>Mes biens</h2>
-            <p>Gérez vos biens immobiliers</p>
+            <p>Gérez vos biens immobiliers · <strong>{{ $biens->total() }}</strong> bien(s) au total</p>
         </div>
         @if($peutPublier ?? false)
             <a href="{{ route('agence.biens.create') }}" class="btn btn-rust btn-sm">
                 <i class="fa-solid fa-plus"></i> Nouveau bien
             </a>
         @else
-            <a href="{{ route('agence.abonnement') }}" class="btn btn-ghost btn-sm" style="border-color:#D4AF37;color:#D4AF37;">
+            <a href="{{ route('agence.abonnement') }}" class="btn btn-gold btn-sm">
                 <i class="fa-solid fa-crown"></i> Passer à Pro
             </a>
         @endif
+    </div>
+
+    <!-- ✅ Filtres rapides -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+        <a href="{{ route('agence.biens.index') }}" class="filter-btn {{ !request('statut') ? 'active' : '' }}">
+            <i class="fa-solid fa-list"></i> Tous
+        </a>
+        <a href="{{ route('agence.biens.index', ['statut' => 'disponible']) }}" class="filter-btn {{ request('statut') == 'disponible' ? 'active' : '' }}">
+            <i class="fa-solid fa-check-circle" style="color:#1E7A47;"></i> Disponibles
+        </a>
+        <a href="{{ route('agence.biens.index', ['statut' => 'indisponible']) }}" class="filter-btn {{ request('statut') == 'indisponible' ? 'active' : '' }}">
+            <i class="fa-solid fa-eye-slash" style="color:#757575;"></i> Indisponibles
+        </a>
+        <a href="{{ route('agence.biens.index', ['vedette' => 'true']) }}" class="filter-btn {{ request('vedette') == 'true' ? 'active' : '' }}">
+            <i class="fa-solid fa-star" style="color:#F5A623;"></i> Vedettes
+        </a>
     </div>
 
     <!-- ✅ Message si l'agence n'a pas l'abonnement Pro -->
@@ -69,7 +85,7 @@
                     $videosCount = $bien->medias->where('type_media', 'video')->count();
                 @endphp
                 @if($image)
-                    <img src="{{ asset('storage/' . $image->fichier) }}" alt="{{ $bien->titre }}">
+                    <img src="{{ asset('storage/' . $image->fichier) }}" alt="{{ $bien->titre }}" loading="lazy">
                 @else
                     <div class="bien-image-placeholder">
                         <i class="fa-solid fa-image"></i>
@@ -130,19 +146,16 @@
                     <!-- Actions principales -->
                     <div class="actions-primary">
                         @if($peutPublier ?? false)
-                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
                             <a href="{{ route('agence.biens.edit', $bien->slug) }}" class="btn btn-ghost btn-sm">
                                 <i class="fa-solid fa-pen"></i> Modifier
                             </a>
-                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
                             <a href="{{ route('agence.biens.show', $bien->slug) }}" class="btn btn-ghost btn-sm">
                                 <i class="fa-solid fa-eye"></i> Voir
                             </a>
                         @else
-                            <a href="#" class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed;" title="Abonnement Pro requis">
+                            <a href="#" class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed;" title="Abonnement Pro requis" onclick="return false;">
                                 <i class="fa-solid fa-pen"></i> Modifier
                             </a>
-                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
                             <a href="{{ route('agence.biens.show', $bien->slug) }}" class="btn btn-ghost btn-sm">
                                 <i class="fa-solid fa-eye"></i> Voir
                             </a>
@@ -153,7 +166,6 @@
                     <div class="actions-management">
                         @if($peutPublier ?? false)
                             @if($bien->statut)
-                                <!-- ✅ CORRIGÉ : Utilisation du slug -->
                                 <form action="{{ route('agence.biens.desactiver', $bien->slug) }}" method="POST" style="display:inline;">
                                     @csrf
                                     @method('POST')
@@ -163,7 +175,6 @@
                                     </button>
                                 </form>
                             @else
-                                <!-- ✅ CORRIGÉ : Utilisation du slug -->
                                 <form action="{{ route('agence.biens.activer', $bien->slug) }}" method="POST" style="display:inline;">
                                     @csrf
                                     @method('POST')
@@ -175,8 +186,7 @@
                             @endif
 
                             @if(!$bien->est_vedette)
-                                <!-- ✅ CORRIGÉ : Utilisation du slug -->
-                                <a href="{{ route('agence.biens.vedette.demander', $bien->slug) }}" class="btn btn-ghost btn-sm" style="border-color:#D4AF37;color:#D4AF37;">
+                                <a href="{{ route('agence.biens.vedette.demander', $bien->slug) }}" class="btn btn-gold btn-sm">
                                     <i class="fa-solid fa-star"></i> Vedette
                                 </a>
                             @else
@@ -185,7 +195,6 @@
                                 </span>
                             @endif
 
-                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
                             <form action="{{ route('agence.biens.destroy', $bien->slug) }}" method="POST" style="display:inline;">
                                 @csrf
                                 @method('DELETE')
@@ -195,10 +204,13 @@
                                 </button>
                             </form>
                         @else
-                            <button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed;" title="Abonnement Pro requis">
-                                <i class="fa-solid fa-eye-slash"></i> Gérer
+                            <button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed;" title="Abonnement Pro requis" disabled>
+                                <i class="fa-solid fa-eye-slash"></i> Désactiver
                             </button>
-                            <button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed;" title="Abonnement Pro requis">
+                            <button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed;" title="Abonnement Pro requis" disabled>
+                                <i class="fa-solid fa-star"></i> Vedette
+                            </button>
+                            <button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed;" title="Abonnement Pro requis" disabled>
                                 <i class="fa-solid fa-trash-can"></i> Supprimer
                             </button>
                         @endif
@@ -218,12 +230,12 @@
         <p>Aucun bien publié.</p>
         @if($peutPublier ?? false)
             <a href="{{ route('agence.biens.create') }}" class="btn btn-rust">
-                Publier un bien
+                <i class="fa-solid fa-plus"></i> Publier un bien
             </a>
         @else
             <div style="margin-top:12px;">
                 <p style="font-size:14px;color:var(--muted);">Publiez des biens avec l'abonnement Pro</p>
-                <a href="{{ route('agence.abonnement') }}" class="btn btn-gold" style="background:#D4AF37;color:#fff;border:none;padding:8px 24px;border-radius:10px;font-weight:600;text-decoration:none;display:inline-block;">
+                <a href="{{ route('agence.abonnement') }}" class="btn btn-gold" style="display:inline-flex;padding:8px 24px;border-radius:10px;font-weight:600;text-decoration:none;">
                     <i class="fa-solid fa-crown"></i> Passer à Pro
                 </a>
             </div>
@@ -235,18 +247,74 @@
 
 @push('styles')
 <style>
+    /* ===================== SECTION HEAD ===================== */
+    .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .section-head h2 {
+        font-family: var(--display);
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .section-head p {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 4px 0 0;
+    }
+
+    /* ===================== FILTRES ===================== */
+    .filter-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 16px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-soft);
+        background: #fff;
+        border: 1px solid var(--border);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .filter-btn:hover {
+        background: var(--border);
+    }
+
+    .filter-btn.active {
+        background: var(--rust);
+        color: #fff;
+        border-color: var(--rust);
+    }
+
+    .filter-btn.active i {
+        color: #fff !important;
+    }
+
+    /* ===================== GRID ===================== */
     .biens-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         gap: 20px;
     }
 
+    /* ===================== CARTE ===================== */
     .bien-card {
         background: #fff;
         border: 1px solid var(--border);
         border-radius: var(--radius);
         overflow: hidden;
         transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
     }
 
     .bien-card:hover {
@@ -257,7 +325,6 @@
     .bien-card.vedette-card {
         border-color: #F5A623;
         border-width: 2px;
-        position: relative;
     }
 
     .bien-card.vedette-card::before {
@@ -273,6 +340,7 @@
         z-index: 0;
     }
 
+    /* ===================== IMAGE ===================== */
     .bien-image {
         height: 180px;
         background: #F0F2F5;
@@ -284,6 +352,11 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
+        transition: transform 0.3s;
+    }
+
+    .bien-card:hover .bien-image img {
+        transform: scale(1.03);
     }
 
     .bien-image-placeholder {
@@ -297,6 +370,7 @@
         opacity: 0.3;
     }
 
+    /* ===================== BADGES ===================== */
     .badge-vedette {
         position: absolute;
         top: 12px;
@@ -371,6 +445,7 @@
         gap: 4px;
     }
 
+    /* ===================== BODY ===================== */
     .bien-body {
         padding: 14px 16px 16px;
         position: relative;
@@ -448,6 +523,7 @@
         color: #F5A623;
     }
 
+    /* ===================== ACTIONS ===================== */
     .bien-actions {
         display: flex;
         flex-direction: column;
@@ -470,6 +546,7 @@
         padding-top: 2px;
     }
 
+    /* ===================== BOUTONS ===================== */
     .btn {
         display: inline-flex;
         align-items: center;
@@ -560,6 +637,7 @@
         cursor: not-allowed;
     }
 
+    /* ===================== EMPTY STATE ===================== */
     .empty-state {
         text-align: center;
         padding: 60px 20px;
@@ -581,6 +659,21 @@
         margin-bottom: 16px;
     }
 
+    .empty-state .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 24px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+
+    /* ===================== PAGINATION ===================== */
     .pagination {
         display: flex;
         gap: 6px;
@@ -610,6 +703,7 @@
         border-color: var(--rust);
     }
 
+    /* ===================== ALERTS ===================== */
     .alert {
         display: flex;
         align-items: center;
@@ -638,6 +732,7 @@
         border-left-color: #F5A623;
     }
 
+    /* ===================== RESPONSIVE ===================== */
     @media (max-width: 768px) {
         .bien-header {
             flex-direction: column;
@@ -690,6 +785,11 @@
             width: 100%;
             text-align: center;
         }
+
+        .filter-btn {
+            font-size: 12px;
+            padding: 5px 12px;
+        }
     }
 
     @media (max-width: 640px) {
@@ -736,6 +836,16 @@
         .bien-price {
             font-size: 16px;
         }
+
+        .section-head {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .section-head .btn {
+            width: 100%;
+            justify-content: center;
+        }
     }
 
     @media (max-width: 480px) {
@@ -766,15 +876,13 @@
             padding: 5px 12px;
         }
 
-        .section-head {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 10px;
+        .filter-btn {
+            font-size: 11px;
+            padding: 4px 10px;
         }
 
-        .section-head .btn {
-            width: 100%;
-            justify-content: center;
+        .filter-btn i {
+            font-size: 10px;
         }
     }
 </style>

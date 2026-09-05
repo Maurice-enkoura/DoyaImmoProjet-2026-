@@ -7,6 +7,8 @@
 @section('content')
 @php
     $ongletActif = request()->get('onglet', 'infos');
+    
+    // ✅ Récupérer le planning type depuis la SESSION
     $planningType = session()->get('planning_type_' . $agence->id, []);
     $joursFr = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
     $planningParJour = [];
@@ -15,8 +17,15 @@
         if (!isset($planningParJour[$jour])) {
             $planningParJour[$jour] = [];
         }
-        $planningParJour[$jour][] = $p;
+        $planningParJour[$jour][] = [
+            'heure_debut' => $p['heure_debut'],
+            'heure_fin' => $p['heure_fin'],
+        ];
     }
+    
+    // ✅ Récupérer la semaine avec les créneaux (depuis la variable $creneaux passée par le contrôleur)
+    $semaine = isset($creneaux['semaine']) ? $creneaux['semaine'] : [];
+    $creneauxParJour = isset($creneaux['creneaux']) ? $creneaux['creneaux'] : [];
 @endphp
 <div class="view active">
     <!-- En-tête de la section -->
@@ -202,7 +211,7 @@
             </div>
         </div>
 
-        <!-- ✅ PLANNING TYPE ACTUEL -->
+        <!-- ✅ PLANNING TYPE ACTUEL (depuis la SESSION) - SANS RÉPÉTITIONS -->
         @if(!empty($planningParJour))
         <div style="margin-bottom:16px;padding:12px 16px;background:#E8F5E9;border-radius:8px;border-left:4px solid #1E7A47;">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
@@ -211,7 +220,7 @@
                         <i class="fa-solid fa-arrows-rotate"></i> Planning type actif
                     </strong>
                     <span style="font-size:12px;color:var(--muted);margin-left:8px;">
-                        Les créneaux sont générés automatiquement
+                        Les créneaux sont générés automatiquement chaque semaine
                     </span>
                 </div>
                 <form action="{{ route('agence.creneaux.generer-auto') }}" method="POST" style="display:inline;">
@@ -224,14 +233,31 @@
             <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
                 @foreach($joursFr as $index => $jour)
                     @if(isset($planningParJour[$index]))
+                        @php
+                            $creneauxText = [];
+                            foreach($planningParJour[$index] as $p) {
+                                $creneauxText[] = substr($p['heure_debut'], 0, 5) . '-' . substr($p['heure_fin'], 0, 5);
+                            }
+                        @endphp
                         <span style="font-size:12px;background:#fff;padding:2px 10px;border-radius:4px;border:1px solid #C8E6C9;">
                             <strong>{{ $jour }}</strong> 
-                            @foreach($planningParJour[$index] as $p)
-                                {{ substr($p['heure_debut'], 0, 5) }}-{{ substr($p['heure_fin'], 0, 5) }}
-                            @endforeach
+                            {{ implode(' · ', $creneauxText) }}
                         </span>
                     @endif
                 @endforeach
+            </div>
+        </div>
+        @else
+        <div style="margin-bottom:16px;padding:12px 16px;background:#FFF8E1;border-radius:8px;border-left:4px solid #F5A623;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <i class="fa-solid fa-info-circle" style="color:#E65100;font-size:18px;"></i>
+                <div>
+                    <strong style="font-size:13px;color:#E65100;">Aucun planning type configuré</strong>
+                    <span style="font-size:12px;color:var(--muted);display:block;">
+                        Utilisez le bouton "Générer des créneaux" ci-dessous pour créer votre planning type.
+                        Les créneaux seront ensuite générés automatiquement chaque semaine.
+                    </span>
+                </div>
             </div>
         </div>
         @endif
@@ -260,87 +286,94 @@
                 $aujourdhui = \Carbon\Carbon::today()->format('Y-m-d');
             @endphp
 
-            @foreach($semaine as $date)
-                @php
-                    $dateObj = \Carbon\Carbon::parse($date);
-                    $jourSemaine = $dateObj->format('l');
-                    $estAujourdhui = $date === $aujourdhui;
-                    $estPasse = $dateObj->isPast() && !$estAujourdhui;
-                    $creneauxDuJour = $creneaux[$date] ?? collect();
-                @endphp
+            @if(count($semaine) > 0)
+                @foreach($semaine as $date)
+                    @php
+                        $dateObj = \Carbon\Carbon::parse($date);
+                        $jourSemaine = $dateObj->format('l');
+                        $estAujourdhui = $date === $aujourdhui;
+                        $estPasse = $dateObj->isPast() && !$estAujourdhui;
+                        $creneauxDuJour = isset($creneauxParJour[$date]) ? $creneauxParJour[$date] : collect();
+                    @endphp
 
-                <div class="slot-card {{ $estAujourdhui ? 'today' : '' }} {{ $estPasse ? 'past' : '' }}">
-                    <div class="slot-card-header">
-                        <div class="slot-day">
-                            <span class="day-name">{{ $joursMap[$jourSemaine] ?? $jourSemaine }}</span>
-                            <span class="day-date">{{ $dateObj->format('d/m/Y') }}</span>
+                    <div class="slot-card {{ $estAujourdhui ? 'today' : '' }} {{ $estPasse ? 'past' : '' }}">
+                        <div class="slot-card-header">
+                            <div class="slot-day">
+                                <span class="day-name">{{ $joursMap[$jourSemaine] ?? $jourSemaine }}</span>
+                                <span class="day-date">{{ $dateObj->format('d/m/Y') }}</span>
+                            </div>
+                            @if($estAujourdhui)
+                                <span class="today-badge">Aujourd'hui</span>
+                            @endif
+                            @if($estPasse)
+                                <span class="past-badge">Passé</span>
+                            @endif
                         </div>
-                        @if($estAujourdhui)
-                            <span class="today-badge">Aujourd'hui</span>
-                        @endif
-                        @if($estPasse)
-                            <span class="past-badge">Passé</span>
-                        @endif
-                    </div>
 
-                    <div class="slot-card-body">
-                        @if($creneauxDuJour->count() > 0)
-                            <div class="slots-list">
-                                @foreach($creneauxDuJour as $creneau)
-                                    <div class="slot-item {{ $creneau->est_disponible ? 'disponible' : 'indisponible' }}">
-                                        <span class="slot-time">
-                                            {{ substr($creneau->heure_debut, 0, 5) }} - {{ substr($creneau->heure_fin, 0, 5) }}
-                                        </span>
-                                        <span class="slot-status">
-                                            @if($creneau->est_disponible)
-                                                <i class="fa-solid fa-circle-check"></i> Disponible
-                                            @else
-                                                <i class="fa-solid fa-circle-xmark"></i> Indisponible
+                        <div class="slot-card-body">
+                            @if($creneauxDuJour->count() > 0)
+                                <div class="slots-list">
+                                    @foreach($creneauxDuJour as $creneau)
+                                        <div class="slot-item {{ $creneau->est_disponible ? 'disponible' : 'indisponible' }}">
+                                            <span class="slot-time">
+                                                {{ substr($creneau->heure_debut, 0, 5) }} - {{ substr($creneau->heure_fin, 0, 5) }}
+                                            </span>
+                                            <span class="slot-status">
+                                                @if($creneau->est_disponible)
+                                                    <i class="fa-solid fa-circle-check"></i> Disponible
+                                                @else
+                                                    <i class="fa-solid fa-circle-xmark"></i> Indisponible
+                                                @endif
+                                            </span>
+                                            @if(!$estPasse)
+                                                <form action="{{ route('agence.creneaux.toggle', $creneau) }}" method="POST" class="slot-form">
+                                                    @csrf
+                                                    <button type="submit" class="slot-toggle" title="Basculer la disponibilité">
+                                                        <i class="fa-solid {{ $creneau->est_disponible ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
+                                                    </button>
+                                                </form>
+                                                <form action="{{ route('agence.creneaux.supprimer', $creneau) }}" method="POST" class="slot-form">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="slot-delete" title="Supprimer ce créneau" onclick="return confirm('Supprimer ce créneau ?')">
+                                                        <i class="fa-solid fa-xmark"></i>
+                                                    </button>
+                                                </form>
                                             @endif
-                                        </span>
-                                        @if(!$estPasse)
-                                            <form action="{{ route('agence.creneaux.toggle', $creneau) }}" method="POST" class="slot-form">
-                                                @csrf
-                                                <button type="submit" class="slot-toggle" title="Basculer la disponibilité">
-                                                    <i class="fa-solid {{ $creneau->est_disponible ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
-                                                </button>
-                                            </form>
-                                            <form action="{{ route('agence.creneaux.supprimer', $creneau) }}" method="POST" class="slot-form">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="slot-delete" title="Supprimer ce créneau" onclick="return confirm('Supprimer ce créneau ?')">
-                                                    <i class="fa-solid fa-xmark"></i>
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                @endforeach
-                            </div>
-                        @else
-                            <div class="no-slots">
-                                <i class="fa-regular fa-clock"></i>
-                                <span>Aucun créneau</span>
-                            </div>
-                        @endif
-                    </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="no-slots">
+                                    <i class="fa-regular fa-clock"></i>
+                                    <span>Aucun créneau</span>
+                                </div>
+                            @endif
+                        </div>
 
-                    <div class="slot-card-footer">
-                        <span class="slot-count">
-                            <i class="fa-regular fa-clock"></i>
-                            {{ $creneauxDuJour->count() }} créneau(x)
-                        </span>
-                        @if($creneauxDuJour->count() > 0 && !$estPasse)
-                            <form action="{{ route('agence.creneaux.supprimerDatePost') }}" method="POST" class="slot-form" onsubmit="return confirm('Supprimer tous les créneaux de cette date ?')">
-                                @csrf
-                                <input type="hidden" name="date" value="{{ $date }}">
-                                <button type="submit" class="btn btn-ghost btn-sm" style="color:#C62828;border-color:#FFCDD2;">
-                                    <i class="fa-solid fa-trash-can"></i> Supprimer tout
-                                </button>
-                            </form>
-                        @endif
+                        <div class="slot-card-footer">
+                            <span class="slot-count">
+                                <i class="fa-regular fa-clock"></i>
+                                {{ $creneauxDuJour->count() }} créneau(x)
+                            </span>
+                            @if($creneauxDuJour->count() > 0 && !$estPasse)
+                                <form action="{{ route('agence.creneaux.supprimerDatePost') }}" method="POST" class="slot-form" onsubmit="return confirm('Supprimer tous les créneaux de cette date ?')">
+                                    @csrf
+                                    <input type="hidden" name="date" value="{{ $date }}">
+                                    <button type="submit" class="btn btn-ghost btn-sm" style="color:#C62828;border-color:#FFCDD2;">
+                                        <i class="fa-solid fa-trash-can"></i> Supprimer tout
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
                     </div>
+                @endforeach
+            @else
+                <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted);background:#F7F9FC;border-radius:10px;border:1px dashed var(--border);">
+                    <i class="fa-regular fa-calendar" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.3;"></i>
+                    <span>Aucune semaine disponible</span>
                 </div>
-            @endforeach
+            @endif
         </div>
     </div>
 </div>
@@ -399,7 +432,8 @@
                     <span>
                         <strong>Sauvegarder comme planning type</strong>
                         <span style="display:block;font-weight:normal;color:var(--muted);font-size:12px;margin-top:2px;">
-                            Les créneaux seront générés automatiquement chaque semaine
+                            Les créneaux seront générés automatiquement chaque semaine.
+                            Une fois sauvegardé, vous n'aurez plus besoin de revenir ici.
                         </span>
                     </span>
                 </label>

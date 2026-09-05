@@ -26,6 +26,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 
 // ===== NOTIFICATIONS =====
 use App\Notifications\NouvelleDemandeCompatibleNotification;
@@ -102,14 +103,12 @@ class AgenceController extends Controller
         $limiteOffres = 0;
         if ($abonnementActuel) {
             try {
-                // Vérifier si la formule existe et est valide
                 if ($abonnementActuel->formule) {
                     $limiteOffres = $abonnementActuel->formule->limiteOffres();
                 } else {
-                    $limiteOffres = 5; // Valeur par défaut pour Basic
+                    $limiteOffres = 5;
                 }
             } catch (\Exception $e) {
-                // Si l'ENUM est invalide, on traite comme Basic
                 $limiteOffres = 5;
                 \Log::warning('Formule d\'abonnement invalide pour l\'agence ID: ' . $agence->id);
             }
@@ -129,17 +128,12 @@ class AgenceController extends Controller
 
         // Statistiques
         $stats = [
-            // ✅ Besoins disponibles : UNIQUEMENT les demandes en attente
             'besoins_disponibles' => DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE->value)->count(),
-
-            // ✅ Offres envoyées : UNIQUEMENT sur besoins actifs ET ce mois-ci
             'offres_envoyees' => $agence->propositions()
                 ->whereIn('demande_id', $besoinsActifsIds)
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
                 ->count(),
-
-            // ✅ Rendez-vous à venir : planifié ou confirmé
             'rendezvous_a_venir' => $agence->rendezVous()
                 ->whereIn('statut', [
                     StatutRendezVousEnum::PLANIFIE->value,
@@ -147,8 +141,6 @@ class AgenceController extends Controller
                 ])
                 ->where('date_visite', '>=', now()->toDateString())
                 ->count(),
-
-            // ✅ Note moyenne
             'note_moyenne' => $agence->evaluations()->avg('note') ?? 0,
         ];
 
@@ -431,16 +423,20 @@ class AgenceController extends Controller
      */
     public function demandes(Request $request)
     {
+        // ✅ Supprimer automatiquement les demandes expirées
+        DemandeImmobiliere::supprimerDemandesExpirees();
+
         $agence = Auth::user()->agence;
         $onglet = $request->get('onglet', 'compatibles');
 
+        // ✅ Récupérer uniquement les zones des demandes non expirées
         $zones = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)
             ->distinct()
             ->pluck('zone_recherchee')
             ->toArray();
 
         if ($onglet === 'compatibles') {
-            $biens = $agence->biens()->where('statut', true)->get();
+            $biens = $agence->biens()->get();
 
             if ($biens->isEmpty()) {
                 $perPage = 12;
@@ -458,6 +454,8 @@ class AgenceController extends Controller
                 $compteurTotal = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count();
             } else {
                 $demandesCollection = collect();
+
+                // ✅ Récupérer les demandes en attente (non expirées car déjà supprimées)
                 $toutesDemandes = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->get();
 
                 foreach ($toutesDemandes as $demande) {
@@ -504,32 +502,61 @@ class AgenceController extends Controller
                 );
             }
         } else {
+            // ✅ Onglet "toutes"
             $query = DemandeImmobiliere::with(['particulier.user', 'propositions'])
                 ->where('statut', StatutDemandeEnum::EN_ATTENTE);
 
-            if ($request->filled('zone')) {
-                $query->where('zone_recherchee', $request->zone);
-            }
-
-            if ($request->filled('type_bien')) {
-                $query->where('type_bien', $request->type_bien);
-            }
-
-            if ($request->filled('type_operation')) {
-                $query->where('type_operation', $request->type_operation);
-            }
-
-            if ($request->filled('search')) {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('description', 'like', "%{$search}%")
-                        ->orWhere('zone_recherchee', 'like', "%{$search}%")
-                        ->orWhere('criteres_particuliers', 'like', "%{$search}%");
-                });
-            }
+            // ... filtres ...
 
             $demandes = $query->orderBy('created_at', 'desc')->paginate(12);
-            $compteurCompatibles = $this->countDemandesCompatibles($agence);
+
+            // ✅ Ajouter le score de compatibilité
+            $biens = $agence->biens()->get();
+            $demandes->getCollection()->transform(function ($demande) use ($biens) {
+                $meilleurScore = 0;
+                $meilleurBien = null;
+
+                foreach ($biens as $bien) {
+                    $match = $demande->calculerScore($bien);
+                    if ($match['score'] > $meilleurScore) {
+                        $meilleurScore = $match['score'];
+                        $meilleurBien = $bien;
+                    }
+                }
+
+                $demande->score = $meilleurScore;
+                $demande->niveau = $meilleurScore > 0 ? $this->getNiveau($meilleurScore) : 'Aucune correspondance';
+                $demande->bien = $meilleurBien;
+
+                return $demande;
+            });
+
+            // ✅ Séparer compatibles et non compatibles
+            $compatibles = $demandes->getCollection()->filter(function ($demande) {
+                return $demande->score > 0;
+            });
+
+            $nonCompatibles = $demandes->getCollection()->filter(function ($demande) {
+                return $demande->score == 0;
+            });
+
+            $demandesCollection = $compatibles->concat($nonCompatibles);
+
+            $perPage = 12;
+            $currentPage = $request->get('page', 1);
+            $offset = ($currentPage - 1) * $perPage;
+            $items = $demandesCollection->slice($offset, $perPage)->values();
+            $total = $demandesCollection->count();
+
+            $demandes = new \Illuminate\Pagination\LengthAwarePaginator(
+                $items,
+                $total,
+                $perPage,
+                $currentPage,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
+
+            $compteurCompatibles = $compatibles->count();
             $compteurTotal = $demandes->total();
         }
 
@@ -550,21 +577,26 @@ class AgenceController extends Controller
 
     private function getNiveau(int $score): string
     {
-        if ($score >= 80) return 'Excellent';
+        if ($score >= 80) return 'Excellent ';
         if ($score >= 60) return 'Bon';
-        if ($score >= 40) return 'Moyen';
+        if ($score >= 40) return 'Moyen ';
         if ($score >= 20) return 'Faible';
         return 'Minimal';
     }
 
     private function countDemandesCompatibles($agence): int
     {
-        $biens = $agence->biens()->where('statut', true)->get();
+        // ✅ Récupérer TOUS les biens de l'agence
+        $biens = $agence->biens()->get();
+
         if ($biens->isEmpty()) {
             return 0;
         }
 
-        $demandes = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->get();
+        $demandes = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)
+            ->where('created_at', '>', now()->subDays(30)) // ✅ Ignorer les expirées
+            ->get();
+
         $count = 0;
 
         foreach ($demandes as $demande) {
@@ -595,50 +627,58 @@ class AgenceController extends Controller
     /**
      * Profil de l'agence
      */
-    public function profil()
-    {
-        $agence = Auth::user()->agence;
-        $documents = $agence->documents;
+   public function profil()
+{
+    $agence = Auth::user()->agence;
+    $documents = $agence->documents;
 
-        $abonnementActuel = $agence->abonnements()
-            ->where('statut', true)
-            ->where('date_fin', '>', now())
-            ->first();
+    $abonnementActuel = $agence->abonnements()
+        ->where('statut', true)
+        ->where('date_fin', '>', now())
+        ->first();
 
-        $besoinsDisponibles = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count();
+    $besoinsDisponibles = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count();
 
-        $rendezvousAVenir = $agence->rendezVous()
-            ->whereIn('statut', [StatutRendezVousEnum::PLANIFIE, StatutRendezVousEnum::CONFIRME])
-            ->where('date_visite', '>=', now()->toDateString())
-            ->count();
+    $rendezvousAVenir = $agence->rendezVous()
+        ->whereIn('statut', [StatutRendezVousEnum::PLANIFIE, StatutRendezVousEnum::CONFIRME])
+        ->where('date_visite', '>=', now()->toDateString())
+        ->count();
 
-        $quartiers = Quartier::orderBy('nom')->get();
+    $quartiers = Quartier::orderBy('nom')->get();
 
-        $semaine = $this->getSemaine();
-        $creneaux = [];
-        foreach ($semaine as $date) {
-            $creneaux[$date] = CreneauRendezVous::where('agence_id', $agence->id)
-                ->where('date', $date)
-                ->orderBy('heure_debut')
-                ->get();
-        }
-
-        $zonesIntervention = $agence->zones_intervention ?? [];
-
-        $notifData = $this->getNotifications();
-
-        return view('agence.profil', array_merge(compact(
-            'agence',
-            'documents',
-            'abonnementActuel',
-            'besoinsDisponibles',
-            'rendezvousAVenir',
-            'quartiers',
-            'creneaux',
-            'semaine',
-            'zonesIntervention'
-        ), $notifData));
+    // ✅ Générer la semaine
+    $semaine = $this->getSemaine();
+    
+    // ✅ Récupérer les créneaux pour chaque jour
+    $creneauxParJour = [];
+    foreach ($semaine as $date) {
+        $creneauxParJour[$date] = CreneauRendezVous::where('agence_id', $agence->id)
+            ->where('date', $date)
+            ->orderBy('heure_debut')
+            ->get();
     }
+
+    // ✅ Structure pour la vue
+    $creneaux = [
+        'semaine' => $semaine,
+        'creneaux' => $creneauxParJour,
+    ];
+
+    $zonesIntervention = $agence->zones_intervention ?? [];
+
+    $notifData = $this->getNotifications();
+
+    return view('agence.profil', array_merge(compact(
+        'agence',
+        'documents',
+        'abonnementActuel',
+        'besoinsDisponibles',
+        'rendezvousAVenir',
+        'quartiers',
+        'creneaux',        // ✅ Passer la structure complète
+        'zonesIntervention'
+    ), $notifData));
+}
 
     /**
      * Met à jour le profil de l'agence
@@ -676,103 +716,116 @@ class AgenceController extends Controller
     /**
      * Sauvegarder le planning type (créneaux récurrents) dans la session
      */
-    public function sauvegarderPlanning(Request $request)
-    {
-        $agence = Auth::user()->agence;
+    /**
+ * Sauvegarder le planning type (créneaux récurrents) en base de données
+ */
+public function sauvegarderPlanning(Request $request)
+{
+    $agence = Auth::user()->agence;
 
-        $request->validate([
-            'plannings' => 'required|array',
-            'plannings.*.jour' => 'required|integer|min:0|max:6',
-            'plannings.*.heure_debut' => 'required|date_format:H:i',
-            'plannings.*.heure_fin' => 'required|date_format:H:i|after:plannings.*.heure_debut',
+    $request->validate([
+        'plannings' => 'required|array',
+        'plannings.*.jour' => 'required|integer|min:0|max:6',
+        'plannings.*.heure_debut' => 'required|date_format:H:i',
+        'plannings.*.heure_fin' => 'required|date_format:H:i|after:plannings.*.heure_debut',
+    ]);
+
+    // ✅ Supprimer les anciens plannings
+    \App\Models\PlanningType::where('agence_id', $agence->id)->delete();
+
+    // ✅ Enregistrer les nouveaux plannings
+    foreach ($request->plannings as $planning) {
+        \App\Models\PlanningType::create([
+            'agence_id' => $agence->id,
+            'jour' => $planning['jour'],
+            'heure_debut' => $planning['heure_debut'],
+            'heure_fin' => $planning['heure_fin'],
         ]);
-
-        // Sauvegarder dans la session ou base de données (vous pouvez créer une table planning_types)
-        session()->put('planning_type_' . $agence->id, $request->plannings);
-
-        // Générer les créneaux pour la semaine en cours
-        $this->genererCreneauxDepuisPlanning($agence);
-
-        return redirect()->route('agence.profil', ['onglet' => 'creneaux'])
-            ->with('success', 'Planning type sauvegardé avec succès ! Les créneaux ont été générés pour la semaine.');
     }
+
+    // ✅ Générer les créneaux pour la semaine
+    $this->genererCreneauxDepuisPlanning($agence);
+
+    return redirect()->route('agence.profil', ['onglet' => 'creneaux'])
+        ->with('success', 'Planning type sauvegardé avec succès ! Les créneaux ont été générés pour la semaine.');
+}
 
     /**
      * Générer les créneaux pour la semaine à partir du planning type
      */
-    private function genererCreneauxDepuisPlanning($agence)
-    {
-        // Récupérer le planning type de la session
-        $planningType = session()->get('planning_type_' . $agence->id, []);
+  /**
+ * Générer les créneaux pour la semaine à partir du planning type
+ */
+private function genererCreneauxDepuisPlanning($agence)
+{
+    // Récupérer le planning type de la session
+    $planningType = session()->get('planning_type_' . $agence->id, []);
 
-        if (empty($planningType)) {
-            return 0;
-        }
+    if (empty($planningType)) {
+        return 0;
+    }
 
-        $creneauxCrees = 0;
-        $joursMap = [
-            0 => 'Lun',
-            1 => 'Mar',
-            2 => 'Mer',
-            3 => 'Jeu',
-            4 => 'Ven',
-            5 => 'Sam',
-            6 => 'Dim'
-        ];
+    $creneauxCrees = 0;
+    $joursMap = [
+        0 => 'Lun',
+        1 => 'Mar',
+        2 => 'Mer',
+        3 => 'Jeu',
+        4 => 'Ven',
+        5 => 'Sam',
+        6 => 'Dim'
+    ];
 
-        // Générer pour les 7 prochains jours
-        for ($i = 0; $i < 7; $i++) {
-            $date = Carbon::today()->addDays($i);
-            $jourSemaine = $date->dayOfWeek; // 0=Lundi, 6=Dimanche (Carbon)
+    // Générer pour les 7 prochains jours
+    for ($i = 0; $i < 7; $i++) {
+        $date = Carbon::today()->addDays($i);
+        $jourSemaine = $date->dayOfWeek;
+        $jourSemaineCarbon = $jourSemaine === 0 ? 6 : $jourSemaine - 1;
 
-            // Ajuster pour que 0=Lundi (Carbon: 0=Dimanche, 1=Lundi, ...)
-            $jourSemaineCarbon = $jourSemaine === 0 ? 6 : $jourSemaine - 1;
+        $planningsJour = array_filter($planningType, function ($p) use ($jourSemaineCarbon) {
+            return $p['jour'] == $jourSemaineCarbon;
+        });
 
-            // Récupérer les plannings pour ce jour
-            $planningsJour = array_filter($planningType, function ($p) use ($jourSemaineCarbon) {
-                return $p['jour'] == $jourSemaineCarbon;
-            });
+        foreach ($planningsJour as $planning) {
+            $existe = CreneauRendezVous::where('agence_id', $agence->id)
+                ->where('date', $date->format('Y-m-d'))
+                ->where('heure_debut', $planning['heure_debut'])
+                ->exists();
 
-            foreach ($planningsJour as $planning) {
-                // Vérifier si le créneau existe déjà
-                $existe = CreneauRendezVous::where('agence_id', $agence->id)
-                    ->where('date', $date->format('Y-m-d'))
-                    ->where('heure_debut', $planning['heure_debut'])
-                    ->exists();
-
-                if (!$existe) {
-                    CreneauRendezVous::create([
-                        'agence_id' => $agence->id,
-                        'date' => $date->format('Y-m-d'),
-                        'heure_debut' => $planning['heure_debut'],
-                        'heure_fin' => $planning['heure_fin'],
-                        'est_disponible' => true,
-                    ]);
-                    $creneauxCrees++;
-                }
+            if (!$existe) {
+                CreneauRendezVous::create([
+                    'agence_id' => $agence->id,
+                    'date' => $date->format('Y-m-d'),
+                    'heure_debut' => $planning['heure_debut'],
+                    'heure_fin' => $planning['heure_fin'],
+                    'est_disponible' => true,
+                ]);
+                $creneauxCrees++;
             }
         }
-
-        return $creneauxCrees;
     }
+
+    return $creneauxCrees;
+}
+
 
     /**
      * Générer automatiquement les créneaux pour la semaine
      */
-    public function genererCreneauxAuto(Request $request)
-    {
-        $agence = Auth::user()->agence;
+   public function genererCreneauxAuto(Request $request)
+{
+    $agence = Auth::user()->agence;
 
-        $creneauxCrees = $this->genererCreneauxDepuisPlanning($agence);
+    $creneauxCrees = $this->genererCreneauxDepuisPlanning($agence);
 
-        if ($creneauxCrees === 0) {
-            return redirect()->route('agence.profil', ['onglet' => 'creneaux'])
-                ->with('warning', 'Aucun créneau généré. Vérifiez que vous avez un planning type configuré.');
-        }
-
+    if ($creneauxCrees === 0) {
         return redirect()->route('agence.profil', ['onglet' => 'creneaux'])
-            ->with('success', "{$creneauxCrees} créneaux générés automatiquement pour la semaine.");
+            ->with('warning', 'Aucun créneau généré. Vérifiez que vous avez un planning type configuré.');
     }
+
+    return redirect()->route('agence.profil', ['onglet' => 'creneaux'])
+        ->with('success', "{$creneauxCrees} créneaux générés automatiquement pour la semaine.");
+}
 
     /**
      * Modifier la méthode genererCreneaux existante pour intégrer la récurrence
@@ -803,7 +856,6 @@ class AgenceController extends Controller
         $estRecurrent = $request->boolean('est_recurrent', false);
 
         if ($estRecurrent) {
-            // Créer le planning type
             $planningType = [];
             foreach ($joursSelectionnes as $jourFr) {
                 $jourNum = $joursMap[$jourFr] ?? 0;
@@ -819,16 +871,12 @@ class AgenceController extends Controller
                 }
             }
 
-            // Sauvegarder le planning type
             session()->put('planning_type_' . $agence->id, $planningType);
-
-            // Générer les créneaux pour la semaine
             $this->genererCreneauxDepuisPlanning($agence);
 
             return redirect()->route('agence.profil', ['onglet' => 'creneaux'])
                 ->with('success', 'Planning type sauvegardé et créneaux générés pour la semaine.');
         } else {
-            // Génération ponctuelle (comportement existant)
             $dates = [];
             for ($i = 0; $i < 7; $i++) {
                 $date = Carbon::today()->addDays($i);
@@ -919,7 +967,6 @@ class AgenceController extends Controller
 
         $creneau->delete();
 
-        // Rediriger vers le profil avec l'onglet "creneaux" actif
         return redirect()->route('agence.profil', ['onglet' => 'creneaux'])
             ->with('success', 'Créneau supprimé avec succès.');
     }
@@ -1080,19 +1127,16 @@ class AgenceController extends Controller
         }
 
         try {
-            // ✅ Mettre à jour le statut du rendez-vous
             $rendezVous->update([
                 'statut' => StatutRendezVousEnum::TERMINE->value
             ]);
 
-            // ✅ Mettre à jour la proposition
             $proposition = $rendezVous->proposition;
             if ($proposition) {
                 $proposition->update([
                     'statut' => StatutPropositionEnum::TERMINEE->value
                 ]);
 
-                // ✅ Mettre à jour la demande (besoin)
                 $demande = $proposition->demande;
                 if ($demande && $demande->statut === StatutDemandeEnum::EN_COURS->value) {
                     $demande->update([
@@ -1225,25 +1269,22 @@ class AgenceController extends Controller
                 'plans' => [],
                 'abonnementGratuitExpire' => false,
                 'estNonValidee' => $estNonValidee,
-                'aDejaEuGratuit' => false, // ✅ Ajouté
-                'isBasicActif' => false, // ✅ Ajouté
-                'isProActif' => false, // ✅ Ajouté
+                'aDejaEuGratuit' => false,
+                'isBasicActif' => false,
+                'isProActif' => false,
             ], $notifData));
         }
 
-        // ✅ Vérifier l'abonnement actuel
         $abonnementActuel = $agence->abonnements()
             ->where('statut', true)
             ->where('date_fin', '>', now())
             ->first();
 
-        // ✅ Vérifier si l'agence a déjà eu un abonnement gratuit (Basic) terminé
         $aDejaEuGratuit = $agence->abonnements()
             ->where('formule', 'basic')
             ->where('statut', false)
             ->exists();
 
-        // ✅ Vérifier si Basic est actif
         $isBasicActif = false;
         $isProActif = false;
 
@@ -1271,7 +1312,6 @@ class AgenceController extends Controller
             ->limit(10)
             ->get();
 
-        // ✅ Utilisation de l'Enum pour générer les plans
         $plans = [];
         $formules = ['basic', 'pro'];
 
@@ -1291,7 +1331,6 @@ class AgenceController extends Controller
             ];
         }
 
-        // ✅ Tarifs de mise en vedette
         $tarifsVedette = [
             1 => 1000,
             3 => 1500,
@@ -1310,9 +1349,9 @@ class AgenceController extends Controller
             'agence',
             'estNonValidee',
             'tarifsVedette',
-            'aDejaEuGratuit', // ✅ Ajouté
-            'isBasicActif', // ✅ Ajouté
-            'isProActif' // ✅ Ajouté
+            'aDejaEuGratuit',
+            'isBasicActif',
+            'isProActif'
         ), $notifData));
     }
 
@@ -1341,7 +1380,6 @@ class AgenceController extends Controller
             $formule = FormuleAbonnementEnum::from($request->formule);
             $montant = $formule->prix();
 
-            // ✅ Vérifier si l'agence a déjà un abonnement actif
             $abonnementActuel = $agence->abonnements()
                 ->where('statut', true)
                 ->where('date_fin', '>', now())
@@ -1351,18 +1389,14 @@ class AgenceController extends Controller
                 $formuleActuelle = $abonnementActuel->formule->value;
                 $formuleDemandee = $request->formule;
 
-                // ✅ Si l'utilisateur a déjà un abonnement Basic actif
                 if ($formuleActuelle === $formuleDemandee) {
                     return redirect()->route('agence.abonnement')
                         ->with('error', 'Vous avez déjà un abonnement ' . $formule->label() . ' actif jusqu\'au ' . $abonnementActuel->date_fin->format('d/m/Y') . '.');
                 }
 
-                // ✅ Basic → peut passer à Pro (on désactive l'ancien)
                 if ($formuleActuelle === 'basic' && $formuleDemandee === 'pro') {
                     $abonnementActuel->update(['statut' => false]);
-                }
-                // ✅ Pro → bloquer tout changement
-                elseif ($formuleActuelle === 'pro') {
+                } elseif ($formuleActuelle === 'pro') {
                     return redirect()->route('agence.abonnement')
                         ->with('error', 'Vous avez déjà un abonnement Pro actif jusqu\'au ' . $abonnementActuel->date_fin->format('d/m/Y') . '.');
                 } else {
@@ -1371,7 +1405,6 @@ class AgenceController extends Controller
                 }
             }
 
-            // ✅ Vérifier si l'agence a déjà eu un abonnement gratuit (Basic) terminé
             if ($montant == 0) {
                 $aDejaEuGratuit = $agence->abonnements()
                     ->where('formule', 'basic')
@@ -1384,22 +1417,19 @@ class AgenceController extends Controller
                 }
             }
 
-            // ✅ Créer l'abonnement
             $abonnement = Abonnement::create([
                 'agence_id' => $agence->id,
                 'formule' => $formule,
                 'montant' => $montant,
                 'date_debut' => now(),
                 'date_fin' => now()->addMonth(),
-                'statut' => $montant == 0, // Si gratuit, activé immédiatement
+                'statut' => $montant == 0,
             ]);
 
-            // ✅ Si payant, rediriger vers PayDunya
             if ($montant > 0) {
                 return redirect()->route('paydunya.pay', ['abonnement' => $abonnement->id]);
             }
 
-            // ✅ Si gratuit, activer et rediriger
             return redirect()->route('agence.abonnement')
                 ->with('success', '🎉 Abonnement gratuit activé avec succès !');
         } catch (\Exception $e) {
@@ -1408,7 +1438,7 @@ class AgenceController extends Controller
                 ->with('error', 'Erreur lors de la souscription: ' . $e->getMessage());
         }
     }
-    
+
     /**
      * Mettre à jour/Changer d'abonnement
      */
@@ -1522,7 +1552,7 @@ class AgenceController extends Controller
                         'Budget client' => number_format($item->demande->budget_maximum, 0, ',', ' ') . ' FCFA',
                     ],
                     'link' => route('agence.propositions.show', $item),
-                    'demande_link' => route('agence.demandes.show', ['demande' => $item->demande->slug]), // ✅ SLUG
+                    'demande_link' => route('agence.demandes.show', ['demande' => $item->demande->slug]),
                 ];
             });
 
@@ -1554,7 +1584,7 @@ class AgenceController extends Controller
                 ];
             });
 
-        // ✅ Évaluations (avis reçus) - UNIQUEMENT terminées (toutes les évaluations sont considérées comme terminées)
+        // ✅ Évaluations (avis reçus)
         $evaluations = $agence->evaluations()
             ->with(['particulier.user', 'proposition.bien.medias', 'proposition.demande'])
             ->orderBy('created_at', 'desc')

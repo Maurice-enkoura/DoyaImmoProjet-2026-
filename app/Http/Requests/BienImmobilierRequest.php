@@ -60,6 +60,14 @@ class BienImmobilierRequest extends FormRequest
             'videos.*.file' => 'Le fichier doit être une vidéo.',
             'videos.*.mimes' => 'Format de vidéo accepté: MP4, MOV, AVI.',
             'videos.*.max' => 'Chaque vidéo ne doit pas dépasser 20 Mo.',
+            'parking_disponible' => 'nullable|boolean',
+            'est_meuble' => 'nullable|boolean',
+            'climatisation' => 'nullable|boolean',
+            'balcon' => 'nullable|boolean',
+            'jardin' => 'nullable|boolean',
+            'piscine' => 'nullable|boolean',
+            'ascenseur' => 'nullable|boolean',
+            'securite' => 'nullable|boolean',
         ];
     }
 
@@ -74,7 +82,7 @@ class BienImmobilierRequest extends FormRequest
                 'est_meuble' => false,
             ]);
         }
-        
+
         // Si surface est vide, la mettre à null
         if ($this->has('surface') && $this->surface === '') {
             $this->merge(['surface' => null]);

@@ -101,7 +101,7 @@
                 </div>
             @endif
 
-            <!-- Informations du bien -->
+            <!-- ✅ Informations du bien avec affichage conditionnel -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;">
                 <div style="padding:10px 14px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
                     <span style="color:var(--muted);font-size:13px;">Type</span>
@@ -119,22 +119,23 @@
                     <span style="color:var(--muted);font-size:13px;">Surface</span>
                     <span style="font-weight:500;font-size:13px;">{{ $bien->surface }} m²</span>
                 </div>
+                
+                <!-- Chambres (affiché uniquement si > 0) -->
+                @if($bien->nombre_chambres > 0)
                 <div style="padding:10px 14px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
                     <span style="color:var(--muted);font-size:13px;">Chambres</span>
                     <span style="font-weight:500;font-size:13px;">{{ $bien->nombre_chambres }}</span>
                 </div>
+                @endif
+                
+                <!-- Salles de bain (affiché uniquement si > 0) -->
+                @if($bien->nombre_salles_bain > 0)
                 <div style="padding:10px 14px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
                     <span style="color:var(--muted);font-size:13px;">Salles de bain</span>
                     <span style="font-weight:500;font-size:13px;">{{ $bien->nombre_salles_bain }}</span>
                 </div>
-                <div style="padding:10px 14px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
-                    <span style="color:var(--muted);font-size:13px;">Parking</span>
-                    <span style="font-weight:500;font-size:13px;">{{ $bien->parking_disponible ? ' Disponible' : ' Non disponible' }}</span>
-                </div>
-                <div style="padding:10px 14px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
-                    <span style="color:var(--muted);font-size:13px;">Meublé</span>
-                    <span style="font-weight:500;font-size:13px;">{{ $bien->est_meuble ? ' Oui' : ' Non' }}</span>
-                </div>
+                @endif
+                
                 <div style="padding:10px 14px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
                     <span style="color:var(--muted);font-size:13px;">Vues</span>
                     <span style="font-weight:500;font-size:13px;">{{ $bien->vues ?? 0 }}</span>
@@ -143,13 +144,95 @@
                     <span style="color:var(--muted);font-size:13px;">Publié le</span>
                     <span style="font-weight:500;font-size:13px;">{{ $bien->created_at->format('d/m/Y') }}</span>
                 </div>
+                
+                <!-- ✅ ÉQUIPEMENTS (affichage compact) -->
+                @php
+                    $equipements = $bien->equipements;
+                @endphp
+                @if(count($equipements) > 0)
+                <div style="padding:10px 14px;background:#E8F5E9;border-radius:8px;display:flex;justify-content:space-between;grid-column:span 2;border:1px solid #C8E6C9;">
+                    <span style="color:#1E7A47;font-size:13px;font-weight:600;">
+                        <i class="fa-solid fa-check-circle" style="color:#1E7A47;"></i> Équipements
+                    </span>
+                    <span style="font-weight:500;font-size:13px;color:#1E7A47;text-align:right;">
+                        {{ implode(' · ', $equipements) }}
+                    </span>
+                </div>
+                @else
+                <div style="padding:10px 14px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;grid-column:span 2;border:1px dashed var(--border);">
+                    <span style="color:var(--muted);font-size:13px;">
+                        <i class="fa-regular fa-circle" style="color:var(--muted);"></i> Équipements
+                    </span>
+                    <span style="font-weight:400;font-size:13px;color:var(--muted);">
+                        Aucun équipement
+                    </span>
+                </div>
+                @endif
+
+                <!-- Parking -->
+                <div style="padding:10px 14px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
+                    <span style="color:var(--muted);font-size:13px;">Parking</span>
+                    <span style="font-weight:500;font-size:13px;">{{ $bien->parking_disponible ? ' Disponible' : ' Non disponible' }}</span>
+                </div>
+
+                <!-- Meublé -->
+                <div style="padding:10px 14px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
+                    <span style="color:var(--muted);font-size:13px;">Meublé</span>
+                    <span style="font-weight:500;font-size:13px;">{{ $bien->est_meuble ? ' Oui' : ' Non' }}</span>
+                </div>
+
+                <!-- ✅ ÉQUIPEMENTS SUPPLEMENTAIRES (affichés seulement si disponibles) -->
+                @if($bien->climatisation || $bien->balcon || $bien->jardin || $bien->piscine || $bien->ascenseur || $bien->securite)
+                    <div style="padding:10px 14px;background:#E3F2FD;border-radius:8px;display:flex;flex-wrap:wrap;gap:8px;grid-column:span 2;border:1px solid #BBDEFB;">
+                        <span style="color:#0D47A1;font-size:13px;font-weight:600;width:100%;">
+                            <i class="fa-solid fa-cogs" style="color:#0D47A1;"></i> Autres équipements
+                        </span>
+                        <div style="display:flex;flex-wrap:wrap;gap:6px;width:100%;">
+                            @if($bien->climatisation)
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;background:#E3F2FD;border-radius:999px;font-size:12px;color:#0D47A1;border:1px solid #BBDEFB;">
+                                    <i class="fa-solid fa-snowflake"></i> Climatisation
+                                </span>
+                            @endif
+                            @if($bien->balcon)
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;background:#E3F2FD;border-radius:999px;font-size:12px;color:#0D47A1;border:1px solid #BBDEFB;">
+                                    <i class="fa-solid fa-umbrella"></i> Balcon
+                                </span>
+                            @endif
+                            @if($bien->jardin)
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;background:#E3F2FD;border-radius:999px;font-size:12px;color:#0D47A1;border:1px solid #BBDEFB;">
+                                    <i class="fa-solid fa-tree"></i> Jardin
+                                </span>
+                            @endif
+                            @if($bien->piscine)
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;background:#E3F2FD;border-radius:999px;font-size:12px;color:#0D47A1;border:1px solid #BBDEFB;">
+                                    <i class="fa-solid fa-water"></i> Piscine
+                                </span>
+                            @endif
+                            @if($bien->ascenseur)
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;background:#E3F2FD;border-radius:999px;font-size:12px;color:#0D47A1;border:1px solid #BBDEFB;">
+                                    <i class="fa-solid fa-elevator"></i> Ascenseur
+                                </span>
+                            @endif
+                            @if($bien->securite)
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;background:#E3F2FD;border-radius:999px;font-size:12px;color:#0D47A1;border:1px solid #BBDEFB;">
+                                    <i class="fa-solid fa-shield-halved"></i> Sécurité 24h/24
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Vedette -->
                 @if($bien->est_vedette)
-                    <div style="padding:10px 14px;background:#FFF8E1;border-radius:8px;display:flex;justify-content:space-between;grid-column:span 2;">
+                    <div style="padding:10px 14px;background:#FFF8E1;border-radius:8px;display:flex;justify-content:space-between;grid-column:span 2;border:1px solid #FFE0B2;">
                         <span style="color:#E65100;font-size:13px;font-weight:600;">
                             <i class="fa-solid fa-star" style="color:#F5A623;"></i> En vedette
                         </span>
                         <span style="font-weight:500;font-size:13px;color:#E65100;">
                             Jusqu'au {{ $bien->vedette_fin ? $bien->vedette_fin->format('d/m/Y') : 'Illimité' }}
+                            @if($bien->vedette_jours_restants > 0)
+                                <span style="font-size:11px;font-weight:400;opacity:0.8;">({{ $bien->vedette_jours_restants }} jour(s) restant(s))</span>
+                            @endif
                         </span>
                     </div>
                 @endif
@@ -167,11 +250,9 @@
 
             <!-- Actions -->
             <div style="display:flex;gap:10px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--border);">
-                <!-- ✅ CORRIGÉ : Utilisation du slug -->
                 <a href="{{ route('agence.biens.edit', $bien->slug) }}" class="btn btn-ghost btn-sm">
                     <i class="fa-solid fa-pen"></i> Modifier
                 </a>
-                <!-- ✅ CORRIGÉ : Utilisation du slug -->
                 <form action="{{ route('agence.biens.activer', $bien->slug) }}" method="POST" style="display:inline;">
                     @csrf
                     <button type="submit" class="btn btn-sm {{ $bien->statut ? 'btn-ghost' : 'btn-rust' }}">
@@ -235,38 +316,20 @@
         const nextBtn = document.getElementById('lightboxNext');
         const counter = document.getElementById('lightboxCounter');
         
-        // Mettre à jour l'image
         image.src = lightboxImages[currentLightboxIndex];
-        
-        // Mettre à jour le compteur
         counter.textContent = (currentLightboxIndex + 1) + ' / ' + lightboxImages.length;
-        
-        // Afficher/masquer les flèches
         prevBtn.style.display = currentLightboxIndex === 0 ? 'none' : 'flex';
         nextBtn.style.display = currentLightboxIndex === lightboxImages.length - 1 ? 'none' : 'flex';
         
-        // Afficher la lightbox
         lightbox.style.display = 'flex';
         document.body.style.overflow = 'hidden';
     }
 
     function closeLightbox(event) {
-        // Fermer uniquement si on clique sur le fond ou sur la croix
         if (event) {
             const target = event.target;
-            if (target.id !== 'lightbox' && target.id !== 'lightboxImage' && 
-                target.tagName !== 'BUTTON' && !target.closest('button')) {
-                // Si on clique sur l'image, ne pas fermer
-                if (target.id === 'lightboxImage') return;
-            }
-            if (target.id !== 'lightbox' && target.id !== 'lightboxImage' && 
-                target.tagName !== 'BUTTON' && !target.closest('button')) {
-                // Si on clique sur le fond ou la croix
-                if (target.id === 'lightbox' || target.tagName === 'SPAN') {
-                    // Fermer
-                } else {
-                    return;
-                }
+            if (target.id === 'lightboxImage' || target.closest('button')) {
+                return;
             }
         }
         
@@ -277,7 +340,6 @@
 
     function navigateLightbox(direction) {
         const newIndex = currentLightboxIndex + direction;
-        
         if (newIndex < 0 || newIndex >= lightboxImages.length) return;
         
         currentLightboxIndex = newIndex;
@@ -286,17 +348,13 @@
         const nextBtn = document.getElementById('lightboxNext');
         const counter = document.getElementById('lightboxCounter');
         
-        // Mettre à jour l'image avec animation
         image.style.opacity = '0.5';
         setTimeout(() => {
             image.src = lightboxImages[currentLightboxIndex];
             image.style.opacity = '1';
         }, 150);
         
-        // Mettre à jour le compteur
         counter.textContent = (currentLightboxIndex + 1) + ' / ' + lightboxImages.length;
-        
-        // Afficher/masquer les flèches
         prevBtn.style.display = currentLightboxIndex === 0 ? 'none' : 'flex';
         nextBtn.style.display = currentLightboxIndex === lightboxImages.length - 1 ? 'none' : 'flex';
     }

@@ -227,6 +227,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/propositions', [ParticulierPropositionController::class, 'index'])->name('propositions.index');
     Route::get('/propositions/{proposition}', [ParticulierPropositionController::class, 'show'])->name('propositions.show');
     Route::post('/propositions/{proposition}/selectionner', [ParticulierPropositionController::class, 'selectionner'])->name('propositions.selectionner');
+    
+    // ✅ AJOUTER CETTE ROUTE POUR REFUSER UNE PROPOSITION
+    Route::post('/propositions/{proposition}/refuser', [ParticulierPropositionController::class, 'refuser'])->name('propositions.refuser');
 
     // Rendez-vous - ON GARDE L'ID
     Route::get('/rendezvous', [ParticulierRendezVousController::class, 'index'])->name('rendezvous.index');
@@ -236,9 +239,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/rendezvous/{rendezVous}/confirmer', [ParticulierRendezVousController::class, 'confirmer'])->name('rendezvous.confirmer');
     Route::post('/rendezvous/{rendezVous}/annuler', [ParticulierRendezVousController::class, 'annuler'])->name('rendezvous.annuler');
 
-    // ✅ Évaluations - CORRIGÉ : Utilisation de proposition pour la création
+    // ✅ Évaluations
     Route::get('/evaluations', [ParticulierEvaluationController::class, 'index'])->name('evaluations.index');
-    Route::get('/evaluations/create/{proposition}', [ParticulierEvaluationController::class, 'create'])->name('evaluations.create'); // ✅ MODIFIÉ : proposition au lieu de agence
+    Route::get('/evaluations/create/{proposition}', [ParticulierEvaluationController::class, 'create'])->name('evaluations.create');
     Route::post('/evaluations', [ParticulierEvaluationController::class, 'store'])->name('evaluations.store');
     Route::get('/evaluations/{evaluation}', [ParticulierEvaluationController::class, 'show'])->name('evaluations.show');
     Route::get('/evaluations/{evaluation}/edit', [ParticulierEvaluationController::class, 'edit'])->name('evaluations.edit');
@@ -253,7 +256,7 @@ Route::middleware(['auth'])->group(function () {
     // Historique
     Route::get('/historique', [HistoriqueController::class, 'index'])->name('historique');
 
-    // Signalements - ON GARDE L'ID
+    // Signalements
     Route::get('/signalements/mes', [ParticulierSignalementController::class, 'mesSignalements'])->name('signalements.mes');
     Route::get('/signalements/create/bien/{bien}', [ParticulierSignalementController::class, 'createBien'])->name('signalements.create-bien');
     Route::get('/signalements/create/proposition/{proposition}', [ParticulierSignalementController::class, 'createProposition'])->name('signalements.create-proposition');

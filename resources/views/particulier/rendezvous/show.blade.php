@@ -124,8 +124,26 @@
                         {{ number_format($rendezVous->agence->note_moyenne, 1) }} / 5
                         <span class="agency-reviews">({{ $rendezVous->agence->evaluations->count() }} avis)</span>
                     </div>
+                    <!-- ✅ Numéro de téléphone - Visible UNIQUEMENT si confirmé ou terminé -->
                     <div class="agency-phone">
-                        <i class="fa-solid fa-phone"></i> {{ $rendezVous->agence->user->telephone ?? 'Non renseigné' }}
+                        <i class="fa-solid fa-phone"></i>
+                        @if($rendezVous->statut->value === 'confirme' || $rendezVous->statut->value === 'termine')
+                            @if($rendezVous->agence->user && $rendezVous->agence->user->telephone)
+                                <a href="tel:{{ $rendezVous->agence->user->telephone }}" style="color:var(--ink);text-decoration:none;font-weight:500;">
+                                    {{ $rendezVous->agence->user->telephone }}
+                                </a>
+                                <span style="font-size:10px;color:#1E7A47;margin-left:4px;">
+                                    <i class="fa-solid fa-check-circle"></i>
+                                </span>
+                            @else
+                                <span style="color:var(--muted);">Non renseigné</span>
+                            @endif
+                        @else
+                            <span style="color:var(--muted);">
+                                <i class="fa-solid fa-lock" style="font-size:10px;"></i> 
+                                En attente de confirmation
+                            </span>
+                        @endif
                     </div>
                 </div>
                 <div class="agency-price">
@@ -187,29 +205,58 @@
         <!-- Footer -->
         <div class="rdv-detail-footer">
             @if($rendezVous->statut->value === 'planifie')
-                <form action="{{ route('particulier.rendezvous.confirmer', $rendezVous) }}" method="POST" class="action-form">
-                    @csrf
-                    <button type="submit" class="btn btn-rust">
-                        <i class="fa-solid fa-check"></i> Confirmer le rendez-vous
-                    </button>
-                </form>
+                <!-- ❌ SUPPRIMER le bouton "Confirmer" pour le particulier -->
+                <!-- Le particulier ne peut que ANNULER -->
+                <div style="padding:8px 16px;background:#FFF8E1;border-radius:10px;color:#E65100;font-size:13px;display:flex;align-items:center;gap:8px;border:1px solid #FFE0B2;">
+                    <i class="fa-solid fa-clock"></i>
+                    En attente de confirmation de l'agence
+                </div>
                 <form action="{{ route('particulier.rendezvous.annuler', $rendezVous) }}" method="POST" class="action-form">
                     @csrf
                     <button type="submit" class="btn btn-ghost btn-danger" onclick="return confirm('Annuler ce rendez-vous ?')">
-                        <i class="fa-solid fa-xmark"></i> Annuler
+                        <i class="fa-solid fa-xmark"></i> Annuler le rendez-vous
                     </button>
                 </form>
             @elseif($rendezVous->statut->value === 'confirme')
+                <!-- ✅ Bouton Appeler - UNIQUEMENT si confirmé -->
+                @if($rendezVous->agence->user && $rendezVous->agence->user->telephone)
+                    <a href="tel:{{ $rendezVous->agence->user->telephone }}" class="btn btn-success">
+                        <i class="fa-solid fa-phone"></i> Appeler l'agence
+                    </a>
+                @endif
                 <form action="{{ route('particulier.rendezvous.annuler', $rendezVous) }}" method="POST" class="action-form">
                     @csrf
                     <button type="submit" class="btn btn-ghost btn-danger" onclick="return confirm('Annuler ce rendez-vous ?')">
-                        <i class="fa-solid fa-xmark"></i> Annuler
+                        <i class="fa-solid fa-xmark"></i> Annuler le rendez-vous
                     </button>
                 </form>
             @elseif($rendezVous->statut->value === 'termine')
-                <a href="{{ route('particulier.evaluations.create', $rendezVous->agence) }}" class="btn btn-rust">
-                    <i class="fa-solid fa-star"></i> Évaluer l'agence
-                </a>
+                @php
+                    $dejaEvalue = \App\Models\Evaluation::where('particulier_id', Auth::user()->particulier->id)
+                        ->where('agence_id', $rendezVous->agence_id)
+                        ->exists();
+                @endphp
+                @if(!$dejaEvalue)
+                    <a href="{{ route('particulier.evaluations.create', $rendezVous->agence) }}" class="btn btn-rust">
+                        <i class="fa-solid fa-star"></i> Évaluer l'agence
+                    </a>
+                @else
+                    <span style="padding:8px 16px;background:#E8F5E9;border-radius:10px;color:#1E7A47;font-size:13px;display:flex;align-items:center;gap:8px;border:1px solid #C8E6C9;">
+                        <i class="fa-solid fa-check-circle"></i>
+                        Déjà évalué
+                    </span>
+                @endif
+                <!-- ✅ Bouton Appeler - UNIQUEMENT si terminé -->
+                @if($rendezVous->agence->user && $rendezVous->agence->user->telephone)
+                    <a href="tel:{{ $rendezVous->agence->user->telephone }}" class="btn btn-success">
+                        <i class="fa-solid fa-phone"></i> Appeler l'agence
+                    </a>
+                @endif
+            @elseif($rendezVous->statut->value === 'annule')
+                <span style="padding:8px 16px;background:#FFEBEE;border-radius:10px;color:#C62828;font-size:13px;display:flex;align-items:center;gap:8px;border:1px solid #FFCDD2;">
+                    <i class="fa-solid fa-ban"></i>
+                    Rendez-vous annulé
+                </span>
             @endif
             <a href="{{ route('particulier.rendezvous.index') }}" class="btn btn-ghost btn-sm" style="margin-left:auto;">
                 <i class="fa-solid fa-list"></i> Tous mes rendez-vous
@@ -562,6 +609,17 @@
     .agency-phone {
         font-size: 12px;
         color: var(--muted);
+        margin-top: 2px;
+    }
+
+    .agency-phone a {
+        color: var(--ink);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .agency-phone a:hover {
+        color: var(--rust);
     }
 
     .agency-price {
@@ -717,6 +775,25 @@
         border-color: #EF9A9A;
     }
 
+    .btn-success {
+        background: #25D366;
+        color: #fff;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 12px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        transition: background 0.2s;
+    }
+
+    .btn-success:hover {
+        background: #1DA851;
+        color: #fff;
+    }
+
     .btn-sm {
         padding: 6px 14px;
         font-size: 12.5px;
@@ -869,6 +946,23 @@
 
         .security-notice i {
             font-size: 28px;
+        }
+
+        .btn-success {
+            font-size: 12px;
+            padding: 8px 16px;
+        }
+
+        .rdv-detail-footer .btn {
+            width: 100%;
+        }
+
+        .rdv-detail-footer form {
+            width: 100%;
+        }
+
+        .rdv-detail-footer form .btn {
+            width: 100%;
         }
     }
 </style>

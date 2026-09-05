@@ -12,6 +12,20 @@
         </a>
     </div>
 
+    @if(session('success'))
+        <div style="padding:12px 16px;background:#E8F5E9;border-radius:10px;border:1px solid #C8E6C9;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <i class="fa-solid fa-check-circle" style="color:#1E7A47;"></i>
+            <span style="color:#1E7A47;font-size:13px;">{{ session('success') }}</span>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div style="padding:12px 16px;background:#FFEBEE;border-radius:10px;border:1px solid #FFCDD2;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <i class="fa-solid fa-exclamation-circle" style="color:#C62828;"></i>
+            <span style="color:#C62828;font-size:13px;">{{ session('error') }}</span>
+        </div>
+    @endif
+
     <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;{{ $proposition->bien && $proposition->bien->est_vedette ? 'border-color:#F5A623;border-width:2px;' : '' }}">
         <!-- En-tête -->
         <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;background:#FAFBFC;">
@@ -27,16 +41,31 @@
                     @endif
                 </div>
                 <div style="font-size:13px;color:var(--muted);margin-top:4px;">
-                    Budget max : {{ number_format($proposition->demande->budget_maximum, 0, ',', ' ') }} F/mois
+                    Budget max : {{ number_format($proposition->demande->budget_maximum, 0, ',', ' ') }}
+                    @if($proposition->demande->type_operation->value === 'location')
+                        F/mois
+                    @else
+                        F
+                    @endif
                 </div>
                 <div style="font-size:12px;color:var(--muted);margin-top:2px;">
                     <i class="fa-regular fa-calendar"></i> Envoyée le {{ $proposition->created_at->format('d/m/Y à H:i') }}
                 </div>
             </div>
-            <span class="status-pill status-{{ $proposition->statut->value }}">
-                <i class="fa-solid fa-circle" style="font-size:8px;"></i>
-                {{ $proposition->statut->label() }}
-            </span>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+                <span class="status-pill status-{{ $proposition->statut->value }}">
+                    <i class="fa-solid fa-circle" style="font-size:8px;"></i>
+                    {{ $proposition->statut->label() }}
+                </span>
+                @if($proposition->score_matching)
+                    <span style="font-size:11px;color:var(--muted);">
+                        Score de compatibilité : 
+                        <span style="font-weight:700;color:{{ $proposition->score_matching >= 80 ? '#1E7A47' : ($proposition->score_matching >= 60 ? '#E65100' : '#C62828') }};">
+                            {{ $proposition->score_matching }}%
+                        </span>
+                    </span>
+                @endif
+            </div>
         </div>
 
         <!-- Corps -->
@@ -91,11 +120,12 @@
                 <div style="margin-bottom:24px;">
                     <h4 style="font-family:var(--display);font-size:14px;margin-bottom:12px;color:var(--text-soft);">
                         <i class="fa-regular fa-image" style="color:var(--rust);"></i> Photos ajoutées à la proposition
+                        <span style="font-size:12px;color:var(--muted);font-weight:400;">({{ $images->count() }} photo(s))</span>
                     </h4>
                     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;">
                         @foreach($images->take(6) as $index => $media)
                             @if($index === 0)
-                                <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:#F7F9FC;cursor:pointer;border:1px solid var(--border);grid-column:span 2;grid-row:span 2;" 
+                                <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:#F7F9FC;cursor:pointer;border:1px solid var(--border);grid-column:span 2;grid-row:span 2;position:relative;" 
                                      onclick="openLightbox('{{ asset('storage/' . $media->fichier) }}')">
                                     <img src="{{ asset('storage/' . $media->fichier) }}" 
                                          alt="Photo du bien" 
@@ -107,11 +137,16 @@
                                     @endif
                                 </div>
                             @elseif($index < 6)
-                                <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:#F7F9FC;cursor:pointer;border:1px solid var(--border);" 
+                                <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:#F7F9FC;cursor:pointer;border:1px solid var(--border);position:relative;" 
                                      onclick="openLightbox('{{ asset('storage/' . $media->fichier) }}')">
                                     <img src="{{ asset('storage/' . $media->fichier) }}" 
                                          alt="Photo du bien" 
                                          style="width:100%;height:100%;object-fit:cover;">
+                                    @if($proposition->bien && $proposition->bien->est_vedette)
+                                        <div style="position:absolute;top:8px;left:8px;padding:2px 10px;border-radius:999px;font-size:9px;font-weight:600;color:#fff;background:#F5A623;z-index:3;display:flex;align-items:center;gap:3px;">
+                                            <i class="fa-solid fa-star"></i> Vedette
+                                        </div>
+                                    @endif
                                 </div>
                             @endif
                         @endforeach
@@ -162,6 +197,7 @@
                 <div style="margin-bottom:24px;">
                     <h4 style="font-family:var(--display);font-size:14px;margin-bottom:12px;color:var(--text-soft);">
                         <i class="fa-regular fa-image" style="color:var(--rust);"></i> Photos du bien sur la plateforme
+                        <span style="font-size:12px;color:var(--muted);font-weight:400;">({{ $bienImages->count() }} photo(s))</span>
                     </h4>
                     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;">
                         @foreach($bienImages->take(6) as $index => $media)
@@ -178,11 +214,16 @@
                                     @endif
                                 </div>
                             @elseif($index < 6)
-                                <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:#F7F9FC;cursor:pointer;border:1px solid var(--border);" 
+                                <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:#F7F9FC;cursor:pointer;border:1px solid var(--border);position:relative;" 
                                      onclick="openLightbox('{{ asset('storage/' . $media->fichier) }}')">
                                     <img src="{{ asset('storage/' . $media->fichier) }}" 
                                          alt="Photo du bien" 
                                          style="width:100%;height:100%;object-fit:cover;">
+                                    @if($proposition->bien && $proposition->bien->est_vedette)
+                                        <div style="position:absolute;top:8px;left:8px;padding:2px 10px;border-radius:999px;font-size:9px;font-weight:600;color:#fff;background:#F5A623;z-index:3;display:flex;align-items:center;gap:3px;">
+                                            <i class="fa-solid fa-star"></i> Vedette
+                                        </div>
+                                    @endif
                                 </div>
                             @endif
                         @endforeach
@@ -235,45 +276,64 @@
                         </span>
                     @endif
                 </h4>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
-                    <div style="padding:10px 16px;background:#FAFBFC;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+                    <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
                         <span style="color:var(--muted);font-size:13px;">Titre</span>
                         <span style="font-weight:500;font-size:13px;">{{ $proposition->bien->titre }}</span>
                     </div>
-                    <div style="padding:10px 16px;background:#fff;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
+                    <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
                         <span style="color:var(--muted);font-size:13px;">Type</span>
                         <span style="font-weight:500;font-size:13px;">{{ $proposition->bien->type_bien->label() }}</span>
                     </div>
-                    <div style="padding:10px 16px;background:#FAFBFC;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
+                    <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
                         <span style="color:var(--muted);font-size:13px;">Contrat</span>
                         <span style="font-weight:500;font-size:13px;">{{ $proposition->bien->type_contrat->label() }}</span>
                     </div>
-                    <div style="padding:10px 16px;background:#fff;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
+                    <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
                         <span style="color:var(--muted);font-size:13px;">Surface</span>
                         <span style="font-weight:500;font-size:13px;">{{ $proposition->bien->surface }} m²</span>
                     </div>
-                    <div style="padding:10px 16px;background:#FAFBFC;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
+                    <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
                         <span style="color:var(--muted);font-size:13px;">Chambres</span>
                         <span style="font-weight:500;font-size:13px;">{{ $proposition->bien->nombre_chambres }}</span>
                     </div>
-                    <div style="padding:10px 16px;background:#fff;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
+                    <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
                         <span style="color:var(--muted);font-size:13px;">Salles de bain</span>
                         <span style="font-weight:500;font-size:13px;">{{ $proposition->bien->nombre_salles_bain }}</span>
                     </div>
-                    <div style="padding:10px 16px;background:#FAFBFC;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
+                    <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
                         <span style="color:var(--muted);font-size:13px;">Parking</span>
-                        <span style="font-weight:500;font-size:13px;">{{ $proposition->bien->parking_disponible ? ' Disponible' : '❌ Non' }}</span>
+                        <span style="font-weight:500;font-size:13px;">{{ $proposition->bien->parking_disponible ? ' Disponible' : ' Non' }}</span>
                     </div>
-                    <div style="padding:10px 16px;background:#fff;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
+                    <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
                         <span style="color:var(--muted);font-size:13px;">Meublé</span>
                         <span style="font-weight:500;font-size:13px;">{{ $proposition->bien->est_meuble ? ' Oui' : ' Non' }}</span>
                     </div>
-                    <div style="padding:10px 16px;background:#FAFBFC;grid-column:1/3;display:flex;justify-content:space-between;border-bottom:none;">
+                    <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
                         <span style="color:var(--muted);font-size:13px;">Adresse</span>
                         <span style="font-weight:500;font-size:13px;text-align:right;max-width:60%;">{{ $proposition->bien->adresse }}</span>
                     </div>
                 </div>
             </div>
+
+            <!-- ✅ Équipements du bien -->
+            @php
+                $equipementsBien = $proposition->bien->equipements ?? [];
+            @endphp
+            @if(count($equipementsBien) > 0)
+                <div style="margin-bottom:24px;">
+                    <h4 style="font-family:var(--display);font-size:14px;margin-bottom:8px;color:var(--text-soft);">
+                        <i class="fa-solid fa-cogs" style="margin-right:8px;"></i>Équipements du bien
+                    </h4>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;padding:12px 14px;background:#F7F9FC;border-radius:8px;border:1px solid var(--border);">
+                        @foreach($equipementsBien as $equipement)
+                            <span class="meta-pill" style="background:#E3F2FD;color:#0D47A1;border:1px solid #BBDEFB;">
+                                <i class="fa-solid fa-check-circle" style="color:#0D47A1;"></i> {{ $equipement }}
+                            </span>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
 
             <!-- Description -->
             @if($proposition->bien->description)
@@ -341,6 +401,7 @@
 
 @push('styles')
 <style>
+    /* ===================== STATUS PILL ===================== */
     .status-pill {
         display: inline-flex;
         align-items: center;
@@ -362,7 +423,12 @@
         background: #FFEBEE;
         color: #C62828;
     }
+    .status-terminee {
+        background: #E3F2FD;
+        color: #0D47A1;
+    }
 
+    /* ===================== VEDETTE BADGES ===================== */
     .vedette-badge-header {
         display: inline-flex;
         align-items: center;
@@ -398,6 +464,50 @@
         font-size: 9px;
     }
 
+    /* ===================== META PILL ===================== */
+    .meta-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--border);
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        color: var(--text-soft);
+    }
+
+    /* ===================== BOUTONS ===================== */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-size: 12.5px;
+        font-weight: 600;
+        text-decoration: none;
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.2s;
+    }
+
+    .btn-ghost {
+        background: transparent;
+        color: var(--text-soft);
+        border-color: var(--border);
+    }
+
+    .btn-ghost:hover {
+        background: var(--border);
+    }
+
+    .btn-sm {
+        padding: 6px 14px;
+        font-size: 12.5px;
+    }
+
+    /* ===================== RESPONSIVE ===================== */
     @media (max-width: 1024px) {
         [style*="grid-template-columns: repeat(6,1fr)"] {
             grid-template-columns: repeat(4, 1fr) !important;
@@ -416,7 +526,7 @@
             grid-column: span 1 !important;
             grid-row: span 1 !important;
         }
-        [style*="grid-template-columns: 1fr 1fr"] {
+        [style*="grid-template-columns: 1fr 1fr;gap:4px;"] {
             grid-template-columns: 1fr !important;
         }
         .vedette-badge-header {
@@ -427,11 +537,27 @@
             font-size: 9px;
             padding: 1px 8px;
         }
+        [style*="max-width:60%"] {
+            max-width: 100% !important;
+            text-align: left !important;
+            margin-top: 4px;
+        }
     }
 
     @media (max-width: 480px) {
         [style*="grid-template-columns: repeat(3,1fr)"] {
             grid-template-columns: repeat(2, 1fr) !important;
+        }
+        [style*="width:240px"] {
+            width: 100% !important;
+        }
+        .status-pill {
+            font-size: 10px;
+            padding: 3px 10px;
+        }
+        .btn-sm {
+            font-size: 11px;
+            padding: 5px 10px;
         }
     }
 </style>

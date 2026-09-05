@@ -13,6 +13,17 @@
     </div>
 
     <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:24px;">
+        @if($errors->any())
+            <div style="padding:12px 16px;background:#FFEBEE;border-radius:10px;border:1px solid #FFCDD2;margin-bottom:16px;">
+                <strong style="color:#C62828;">Veuillez corriger les erreurs suivantes :</strong>
+                <ul style="margin:8px 0 0;padding:0 0 0 16px;color:#C62828;font-size:13px;">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         @if($demande->statut->value !== 'en_attente')
             <div style="padding:12px 16px;background:#FFF8E1;border-radius:10px;border:1px solid #FFE0B2;margin-bottom:16px;">
                 <div style="display:flex;align-items:center;gap:10px;">
@@ -28,8 +39,7 @@
             </div>
         @endif
 
-        <!-- ✅ CORRIGÉ : Utilisation du slug -->
-        <form method="POST" action="{{ route('particulier.demandes.update', $demande->slug) }}">
+        <form method="POST" action="{{ route('particulier.demandes.update', $demande->slug) }}" id="demandeForm">
             @csrf
             @method('PUT')
 
@@ -47,7 +57,7 @@
                         <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
                             Type d'opération <span style="color:#C62828;">*</span>
                         </label>
-                        <select name="type_operation" class="form-control @error('type_operation') is-invalid @enderror" 
+                        <select name="type_operation" id="typeOperation" class="form-control @error('type_operation') is-invalid @enderror" 
                                 style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;background:#fff;"
                                 {{ $demande->statut->value !== 'en_attente' ? 'disabled' : '' }} required>
                             <option value="">Sélectionnez une opération</option>
@@ -63,6 +73,10 @@
                         @error('type_operation')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
+                        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                            <i class="fa-regular fa-info-circle"></i> 
+                            Location = vous cherchez un logement à louer. Achat = vous cherchez un bien à acheter.
+                        </div>
                     </div>
 
                     <div>
@@ -85,6 +99,10 @@
                         @error('type_bien')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
+                        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                            <i class="fa-regular fa-info-circle"></i> 
+                            Exemples : Appartement, Maison, Villa, Terrain, Local commercial...
+                        </div>
                     </div>
                 </div>
 
@@ -110,9 +128,9 @@
 
                     <div>
                         <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
-                            Budget maximum (F/mois) <span style="color:#C62828;">*</span>
+                            <span id="budgetLabel">Budget <span style="color:#C62828;">*</span></span>
                         </label>
-                        <input type="number" name="budget_maximum" value="{{ old('budget_maximum', $demande->budget_maximum) }}" 
+                        <input type="number" name="budget_maximum" id="budgetInput" value="{{ old('budget_maximum', $demande->budget_maximum) }}" 
                                placeholder="Ex: 500000" 
                                style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;"
                                {{ $demande->statut->value !== 'en_attente' ? 'disabled' : '' }} required>
@@ -123,13 +141,14 @@
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
                         <div style="font-size:11px;color:var(--muted);margin-top:4px;">
-                            <i class="fa-regular fa-info-circle"></i> Votre budget maximum par mois.
+                            <i class="fa-regular fa-info-circle"></i>
+                            <span id="budgetHint">Votre budget maximum</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Critères de compatibilité -->
+            <!-- ✅ Critères de compatibilité avec affichage conditionnel -->
             <div style="margin-bottom:20px;padding-top:16px;border-top:1px solid var(--border);">
                 <h4 style="font-family:var(--display);font-size:15px;margin-bottom:12px;color:var(--text-soft);">
                     <i class="fa-solid fa-sliders-h" style="color:var(--rust);"></i> Critères de compatibilité
@@ -138,78 +157,170 @@
                     Ces critères sont utilisés pour le calcul du score de compatibilité avec les biens des agences.
                 </p>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
-                    <div>
-                        <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
-                            Nombre de chambres
-                        </label>
-                        <input type="number" name="nombre_chambres" value="{{ old('nombre_chambres', $demande->nombre_chambres) }}" 
-                               placeholder="Ex: 3" min="0"
-                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;"
-                               {{ $demande->statut->value !== 'en_attente' ? 'disabled' : '' }}>
-                        @if($demande->statut->value !== 'en_attente')
-                            <input type="hidden" name="nombre_chambres" value="{{ $demande->nombre_chambres }}">
-                        @endif
-                        @error('nombre_chambres')
-                            <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
-                        @enderror
-                    </div>
+                <!-- ✅ Section ACHAT (affichée par défaut) -->
+                <div id="achatFields">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+                        <div>
+                            <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
+                                Nombre de chambres
+                            </label>
+                            <input type="number" name="nombre_chambres" value="{{ old('nombre_chambres', $demande->nombre_chambres) }}" 
+                                   placeholder="Ex: 3" min="0"
+                                   style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;"
+                                   {{ $demande->statut->value !== 'en_attente' ? 'disabled' : '' }}>
+                            @if($demande->statut->value !== 'en_attente')
+                                <input type="hidden" name="nombre_chambres" value="{{ $demande->nombre_chambres }}">
+                            @endif
+                            @error('nombre_chambres')
+                                <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
+                            @enderror
+                            <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                                <i class="fa-regular fa-info-circle"></i> 
+                                Nombre de chambres souhaité.
+                            </div>
+                        </div>
 
-                    <div>
-                        <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
-                            Salles de bain
-                        </label>
-                        <input type="number" name="nombre_salles_bain" value="{{ old('nombre_salles_bain', $demande->nombre_salles_bain) }}" 
-                               placeholder="Ex: 2" min="0"
-                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;"
-                               {{ $demande->statut->value !== 'en_attente' ? 'disabled' : '' }}>
-                        @if($demande->statut->value !== 'en_attente')
-                            <input type="hidden" name="nombre_salles_bain" value="{{ $demande->nombre_salles_bain }}">
-                        @endif
-                        @error('nombre_salles_bain')
-                            <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
-                        @enderror
-                    </div>
+                        <div>
+                            <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
+                                Salles de bain
+                            </label>
+                            <input type="number" name="nombre_salles_bain" value="{{ old('nombre_salles_bain', $demande->nombre_salles_bain) }}" 
+                                   placeholder="Ex: 2" min="0"
+                                   style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;"
+                                   {{ $demande->statut->value !== 'en_attente' ? 'disabled' : '' }}>
+                            @if($demande->statut->value !== 'en_attente')
+                                <input type="hidden" name="nombre_salles_bain" value="{{ $demande->nombre_salles_bain }}">
+                            @endif
+                            @error('nombre_salles_bain')
+                                <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
+                            @enderror
+                            <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                                <i class="fa-regular fa-info-circle"></i> 
+                                Nombre de salles de bain souhaité.
+                            </div>
+                        </div>
 
-                    <div>
-                        <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
-                            Surface minimum (m²)
-                        </label>
-                        <input type="number" step="0.01" name="surface_minimum" value="{{ old('surface_minimum', $demande->surface_minimum) }}" 
-                               placeholder="Ex: 100" min="0"
-                               style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;"
-                               {{ $demande->statut->value !== 'en_attente' ? 'disabled' : '' }}>
-                        @if($demande->statut->value !== 'en_attente')
-                            <input type="hidden" name="surface_minimum" value="{{ $demande->surface_minimum }}">
-                        @endif
-                        @error('surface_minimum')
-                            <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
-                        @enderror
+                        <div>
+                            <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
+                                Surface minimum (m²)
+                            </label>
+                            <input type="number" step="0.01" name="surface_minimum" id="surfaceInput" value="{{ old('surface_minimum', $demande->surface_minimum) }}" 
+                                   placeholder="Ex: 100" min="0"
+                                   style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;"
+                                   {{ $demande->statut->value !== 'en_attente' ? 'disabled' : '' }}>
+                            @if($demande->statut->value !== 'en_attente')
+                                <input type="hidden" name="surface_minimum" value="{{ $demande->surface_minimum }}">
+                            @endif
+                            @error('surface_minimum')
+                                <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
+                            @enderror
+                            <!-- ✅ Explications claires pour la surface -->
+                            <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                                <i class="fa-regular fa-info-circle"></i> 
+                                Surface habitable minimale que vous recherchez (en m²).
+                                <br>
+                                <span style="font-size:10px;color:var(--text-soft);display:block;margin-top:4px;padding:6px 10px;background:#F7F9FC;border-radius:6px;border:1px solid var(--border);">
+                                    📐 <strong>Ordres de grandeur :</strong><br>
+                                    <span id="surfaceHint">
+                                        • Studio : 20-30 m²<br>
+                                        • T1 (1 chambre) : 40-50 m²<br>
+                                        • T2 (2 chambres) : 55-70 m²<br>
+                                        • T3 (3 chambres) : 75-95 m²<br>
+                                        • T4+ (4 chambres+) : 100 m² et plus
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
-                    <div>
+                <!-- ✅ Section LOCATION (cachée par défaut) -->
+                <div id="locationFields" style="display:none;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                        <div>
+                            <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
+                                Date d'entrée souhaitée
+                            </label>
+                            <input type="date" name="date_entree_souhaitee" id="dateEntree" value="{{ old('date_entree_souhaitee', $demande->date_entree_souhaitee ? $demande->date_entree_souhaitee->format('Y-m-d') : '') }}" 
+                                   min="{{ date('Y-m-d') }}"
+                                   style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;"
+                                   {{ $demande->statut->value !== 'en_attente' ? 'disabled' : '' }}>
+                            @if($demande->statut->value !== 'en_attente')
+                                <input type="hidden" name="date_entree_souhaitee" value="{{ $demande->date_entree_souhaitee ? $demande->date_entree_souhaitee->format('Y-m-d') : '' }}">
+                            @endif
+                            @error('date_entree_souhaitee')
+                                <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
+                            @enderror
+                            <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                                <i class="fa-regular fa-info-circle"></i> 
+                                Date à partir de laquelle vous souhaitez emménager.
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
+                                Meublé ?
+                            </label>
+                            <div style="display:flex;align-items:center;gap:12px;padding-top:6px;">
+                                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
+                                    <input type="radio" name="meuble" value="1" {{ old('meuble', $demande->meuble) == '1' ? 'checked' : '' }}
+                                           {{ $demande->statut->value !== 'en_attente' ? 'disabled' : '' }}> Oui
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
+                                    <input type="radio" name="meuble" value="0" {{ old('meuble', $demande->meuble) == '0' ? 'checked' : '' }}
+                                           {{ $demande->statut->value !== 'en_attente' ? 'disabled' : '' }}> Non
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
+                                    <input type="radio" name="meuble" value="" {{ old('meuble', $demande->meuble) === '' ? 'checked' : '' }}
+                                           {{ $demande->statut->value !== 'en_attente' ? 'disabled' : '' }}> Indifférent
+                                </label>
+                            </div>
+                            @if($demande->statut->value !== 'en_attente')
+                                <input type="hidden" name="meuble" value="{{ $demande->meuble }}">
+                            @endif
+                            @error('meuble')
+                                <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
+                            @enderror
+                            <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                                <i class="fa-regular fa-info-circle"></i> 
+                                Préférez-vous un logement meublé ou non meublé ?
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ✅ Surface minimum pour la location (optionnelle) -->
+                    <div style="margin-top:16px;">
                         <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
-                            Date d'entrée souhaitée
+                            Surface minimum (m²) <span style="color:#8A91A0;font-weight:400;">(optionnel)</span>
                         </label>
-                        <input type="date" name="date_entree_souhaitee" value="{{ old('date_entree_souhaitee', $demande->date_entree_souhaitee ? $demande->date_entree_souhaitee->format('Y-m-d') : '') }}" 
+                        <input type="number" step="0.01" name="surface_minimum_location" id="surfaceInputLocation" value="{{ old('surface_minimum_location', $demande->surface_minimum) }}" 
+                               placeholder="Ex: 60" min="0"
                                style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;"
                                {{ $demande->statut->value !== 'en_attente' ? 'disabled' : '' }}>
                         @if($demande->statut->value !== 'en_attente')
-                            <input type="hidden" name="date_entree_souhaitee" value="{{ $demande->date_entree_souhaitee ? $demande->date_entree_souhaitee->format('Y-m-d') : '' }}">
+                            <input type="hidden" name="surface_minimum_location" value="{{ $demande->surface_minimum }}">
                         @endif
-                        @error('date_entree_souhaitee')
+                        @error('surface_minimum_location')
                             <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                         @enderror
                         <div style="font-size:11px;color:var(--muted);margin-top:4px;">
-                            <i class="fa-regular fa-info-circle"></i> Date à partir de laquelle vous souhaitez emménager.
+                            <i class="fa-regular fa-info-circle"></i> 
+                            Surface habitable minimale que vous recherchez (en m²).
+                            <br>
+                            <span style="font-size:10px;color:var(--text-soft);display:block;margin-top:4px;padding:6px 10px;background:#F7F9FC;border-radius:6px;border:1px solid var(--border);">
+                                📐 <strong>Ordres de grandeur :</strong><br>
+                                • Studio : 20-30 m²<br>
+                                • T1 (1 chambre) : 40-50 m²<br>
+                                • T2 (2 chambres) : 55-70 m²<br>
+                                • T3 (3 chambres) : 75-95 m²<br>
+                                • T4+ (4 chambres+) : 100 m² et plus
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Équipements souhaités -->
+            <!-- ✅ Équipements souhaités COMPLETS -->
             <div style="margin-bottom:20px;padding-top:16px;border-top:1px solid var(--border);">
                 <h4 style="font-family:var(--display);font-size:15px;margin-bottom:12px;color:var(--text-soft);">
                     <i class="fa-solid fa-cogs" style="color:var(--rust);"></i> Équipements souhaités
@@ -221,34 +332,50 @@
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;">
                     @php
                         $equipements = [
-                            'parking' => ['label' => 'Parking', 'icon' => 'fa-solid fa-car'],
-                            'meuble' => ['label' => 'Meublé', 'icon' => 'fa-solid fa-couch'],
-                            'climatisation' => ['label' => 'Climatisation', 'icon' => 'fa-solid fa-snowflake'],
-                            'balcon' => ['label' => 'Balcon', 'icon' => 'fa-solid fa-umbrella'],
-                            'jardin' => ['label' => 'Jardin', 'icon' => 'fa-solid fa-tree'],
-                            'piscine' => ['label' => 'Piscine', 'icon' => 'fa-solid fa-swimmer'],
-                            'ascenseur' => ['label' => 'Ascenseur', 'icon' => 'fa-solid fa-elevator'],
-                            'securite' => ['label' => 'Sécurité 24h/24', 'icon' => 'fa-solid fa-shield-halved'],
+                            'parking' => ['label' => '🚗 Parking', 'icon' => 'fa-solid fa-car'],
+                            'meuble' => ['label' => '🛋️ Meublé', 'icon' => 'fa-solid fa-couch'],
+                            'climatisation' => ['label' => '❄️ Climatisation', 'icon' => 'fa-solid fa-snowflake'],
+                            'balcon' => ['label' => '🌅 Balcon', 'icon' => 'fa-solid fa-umbrella'],
+                            'jardin' => ['label' => '🌿 Jardin', 'icon' => 'fa-solid fa-tree'],
+                            'piscine' => ['label' => '🏊 Piscine', 'icon' => 'fa-solid fa-water'],
+                            'ascenseur' => ['label' => '🛗 Ascenseur', 'icon' => 'fa-solid fa-elevator'],
+                            'securite' => ['label' => '🛡️ Sécurité 24h/24', 'icon' => 'fa-solid fa-shield-halved'],
                         ];
                     @endphp
 
                     @foreach($equipements as $key => $equipement)
-                        <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s;{{ old($key, $demande->$key) ? 'background:var(--rust-soft);border-color:var(--rust);' : '' }}">
-                            <input type="checkbox" name="{{ $key }}" value="1" {{ old($key, $demande->$key) ? 'checked' : '' }}
-                                   {{ $demande->statut->value !== 'en_attente' ? 'disabled' : '' }}>
-                            <i class="{{ $equipement['icon'] }}" style="color:{{ old($key, $demande->$key) ? 'var(--rust)' : 'var(--muted)' }};"></i>
+                        @php
+                            $isChecked = old($key, $demande->$key) ? true : false;
+                            $isDisabled = $demande->statut->value !== 'en_attente';
+                            // Gestion spéciale pour "meuble" car c'est un champ différent
+                            if ($key === 'meuble') {
+                                $isChecked = old('meuble', $demande->meuble) == '1' ? true : false;
+                            }
+                        @endphp
+                        <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:{{ $isDisabled ? 'not-allowed' : 'pointer' }};font-size:13px;transition:all 0.2s;{{ $isChecked ? 'background:var(--rust-soft);border-color:var(--rust);' : '' }}{{ $isDisabled ? 'opacity:0.6;' : '' }}">
+                            <input type="checkbox" name="{{ $key }}" value="1" {{ $isChecked ? 'checked' : '' }}
+                                   {{ $isDisabled ? 'disabled' : '' }}>
+                            <i class="{{ $equipement['icon'] }}" style="color:{{ $isChecked ? 'var(--rust)' : 'var(--muted)' }};"></i>
                             {{ $equipement['label'] }}
                         </label>
                     @endforeach
                 </div>
                 @if($demande->statut->value !== 'en_attente')
                     @foreach(array_keys($equipements) as $key)
-                        <input type="hidden" name="{{ $key }}" value="{{ $demande->$key ? 1 : 0 }}">
+                        @if($key === 'meuble')
+                            <input type="hidden" name="meuble" value="{{ $demande->meuble ? 1 : 0 }}">
+                        @else
+                            <input type="hidden" name="{{ $key }}" value="{{ $demande->$key ? 1 : 0 }}">
+                        @endif
                     @endforeach
                 @endif
                 @error('parking')
                     <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
                 @enderror
+                <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+                    <i class="fa-regular fa-info-circle"></i> 
+                    <strong>Note :</strong> Meublé est également disponible dans la section "Critères de compatibilité" pour la location.
+                </div>
             </div>
 
             <!-- Critères particuliers (texte libre) -->
@@ -258,7 +385,7 @@
                 </h4>
                 <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">
                     Informations complémentaires pour les agences. 
-                    <span style="color:#C62828;">(Non pris en compte dans le matching automatique)</span>
+                    <span style="color:#8A91A0;font-size:11px;">(Non pris en compte dans le matching automatique)</span>
                 </p>
                 <textarea name="criteres_particuliers" rows="2" 
                           placeholder="Ex: Je préfère un appartement calme, proche des écoles..."
@@ -275,7 +402,7 @@
                 </div>
             </div>
 
-            <!-- Description -->
+            <!-- ✅ Description avec compteur de caractères -->
             <div style="margin-bottom:20px;padding-top:16px;border-top:1px solid var(--border);">
                 <h4 style="font-family:var(--display);font-size:15px;margin-bottom:8px;color:var(--text-soft);">
                     <i class="fa-solid fa-align-left" style="color:var(--rust);"></i> Description <span style="color:#C62828;">*</span>
@@ -284,17 +411,22 @@
                     Décrivez votre recherche en détail. Plus votre description est précise, meilleures seront les propositions.
                 </p>
                 <textarea name="description" rows="4" 
-                          placeholder="Décrivez précisément ce que vous recherchez..."
+                          placeholder="Ex: Je recherche un appartement F3 de 100m² minimum à Liberté 6, avec parking, climatisé, proche des transports..."
                           style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;resize:vertical;min-height:100px;"
                           {{ $demande->statut->value !== 'en_attente' ? 'disabled' : '' }} required>{{ old('description', $demande->description) }}</textarea>
                 @if($demande->statut->value !== 'en_attente')
                     <input type="hidden" name="description" value="{{ $demande->description }}">
                 @endif
                 @error('description')
-                    <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
+                    <small style="color:#C62828;font-size:12px;display:block;margin-top:4px;">
+                        <i class="fa-solid fa-exclamation-circle"></i> {{ $message }}
+                    </small>
                 @enderror
-                <div style="font-size:11px;color:var(--muted);margin-top:4px;">
-                    <i class="fa-regular fa-info-circle"></i> Minimum 20 caractères
+                <div style="font-size:11px;color:var(--muted);margin-top:4px;display:flex;justify-content:space-between;align-items:center;">
+                    <span><i class="fa-regular fa-info-circle"></i> Minimum 20 caractères</span>
+                    <span id="descriptionCounter" style="font-weight:500;">
+                        <span id="charCount" style="color:{{ strlen(old('description', $demande->description)) >= 20 ? '#1E7A47' : '#C62828' }};">{{ strlen(old('description', $demande->description)) }}</span> / 20 caractères
+                    </span>
                 </div>
             </div>
 
@@ -304,7 +436,6 @@
                     <button type="submit" class="btn btn-rust" id="submitBtn">
                         <i class="fa-solid fa-save"></i> Mettre à jour
                     </button>
-                    <!-- ✅ CORRIGÉ : Utilisation du slug -->
                     <a href="{{ route('particulier.demandes.show', $demande->slug) }}" class="btn btn-ghost">
                         <i class="fa-solid fa-eye"></i> Voir la demande
                     </a>
@@ -312,7 +443,6 @@
                         <i class="fa-solid fa-times"></i> Annuler
                     </a>
                 @else
-                    <!-- ✅ CORRIGÉ : Utilisation du slug -->
                     <a href="{{ route('particulier.demandes.show', $demande->slug) }}" class="btn btn-ghost">
                         <i class="fa-solid fa-eye"></i> Voir la demande
                     </a>
@@ -326,33 +456,125 @@
 </div>
 
 <script>
-    // Effet visuel sur les cases à cocher
-    document.querySelectorAll('label:has(input[type="checkbox"])').forEach(label => {
-        const checkbox = label.querySelector('input[type="checkbox"]');
-        const icon = label.querySelector('i');
-        
-        if (checkbox && !checkbox.disabled) {
-            checkbox.addEventListener('change', function() {
-                if (this.checked) {
+    // ============================================
+    // AFFICHAGE CONDITIONNEL SELON LE TYPE D'OPÉRATION
+    // ============================================
+    document.addEventListener('DOMContentLoaded', function() {
+        const typeOperation = document.getElementById('typeOperation');
+        const achatFields = document.getElementById('achatFields');
+        const locationFields = document.getElementById('locationFields');
+        const budgetLabel = document.getElementById('budgetLabel');
+        const budgetInput = document.getElementById('budgetInput');
+        const budgetHint = document.getElementById('budgetHint');
+        const surfaceInput = document.getElementById('surfaceInput');
+        const surfaceHint = document.getElementById('surfaceHint');
+        const dateInput = document.getElementById('dateEntree');
+
+        function toggleFields() {
+            const value = typeOperation.value;
+
+            if (value === 'achat') {
+                achatFields.style.display = 'block';
+                locationFields.style.display = 'none';
+                budgetLabel.innerHTML = 'Budget d\'achat <span style="color:#C62828;">*</span>';
+                budgetInput.placeholder = 'Ex: 50000000';
+                budgetHint.textContent = 'Votre budget total d\'achat (en FCFA)';
+                surfaceInput.setAttribute('required', 'required');
+                surfaceHint.innerHTML = `
+                    • Studio : 25-35 m²<br>
+                    • T1 (1 chambre) : 50-60 m²<br>
+                    • T2 (2 chambres) : 65-80 m²<br>
+                    • T3 (3 chambres) : 85-110 m²<br>
+                    • Maison : 120-180 m²<br>
+                    • Villa : 200 m² et plus
+                `;
+                if (dateInput) dateInput.removeAttribute('required');
+            } else if (value === 'location') {
+                achatFields.style.display = 'none';
+                locationFields.style.display = 'block';
+                budgetLabel.innerHTML = 'Loyer max / mois <span style="color:#C62828;">*</span>';
+                budgetInput.placeholder = 'Ex: 500000';
+                budgetHint.textContent = 'Votre loyer maximum par mois';
+                surfaceInput.removeAttribute('required');
+                surfaceHint.innerHTML = `
+                    • Studio : 20-30 m²<br>
+                    • T1 (1 chambre) : 40-50 m²<br>
+                    • T2 (2 chambres) : 55-70 m²<br>
+                    • T3 (3 chambres) : 75-95 m²<br>
+                    • T4+ (4 chambres+) : 100 m² et plus
+                `;
+                if (dateInput) dateInput.setAttribute('required', 'required');
+            } else {
+                achatFields.style.display = 'block';
+                locationFields.style.display = 'none';
+                budgetLabel.innerHTML = 'Budget <span style="color:#C62828;">*</span>';
+                budgetInput.placeholder = 'Ex: 500000';
+                budgetHint.textContent = 'Votre budget maximum';
+                surfaceInput.removeAttribute('required');
+                if (dateInput) dateInput.removeAttribute('required');
+            }
+        }
+
+        // Si le type d'opération est déjà sélectionné, appliquer immédiatement
+        if (typeOperation) {
+            toggleFields();
+        }
+
+        typeOperation.addEventListener('change', toggleFields);
+
+        // Effet visuel sur les cases à cocher
+        document.querySelectorAll('label:has(input[type="checkbox"])').forEach(label => {
+            const checkbox = label.querySelector('input[type="checkbox"]');
+            const icon = label.querySelector('i');
+            
+            if (checkbox) {
+                // Appliquer l'état initial
+                if (checkbox.checked) {
                     label.style.background = 'var(--rust-soft)';
                     label.style.borderColor = 'var(--rust)';
                     if (icon) icon.style.color = 'var(--rust)';
-                } else {
-                    label.style.background = 'transparent';
-                    label.style.borderColor = 'var(--border)';
-                    if (icon) icon.style.color = 'var(--muted)';
                 }
-            });
-        }
-    });
+                
+                if (!checkbox.disabled) {
+                    checkbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            label.style.background = 'var(--rust-soft)';
+                            label.style.borderColor = 'var(--rust)';
+                            if (icon) icon.style.color = 'var(--rust)';
+                        } else {
+                            label.style.background = 'transparent';
+                            label.style.borderColor = 'var(--border)';
+                            if (icon) icon.style.color = 'var(--muted)';
+                        }
+                    });
+                }
+            }
+        });
 
-    // Gestion du bouton de soumission
-    document.querySelector('form')?.addEventListener('submit', function(e) {
-        const btn = document.getElementById('submitBtn');
-        if (btn) {
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mise à jour...';
-            btn.disabled = true;
+        // ✅ Compteur de caractères pour la description
+        const descriptionTextarea = document.querySelector('textarea[name="description"]');
+        const charCount = document.getElementById('charCount');
+        
+        if (descriptionTextarea && charCount) {
+            function updateCharCount() {
+                const length = descriptionTextarea.value.length;
+                const color = length >= 20 ? '#1E7A47' : '#C62828';
+                charCount.textContent = length;
+                charCount.style.color = color;
+            }
+            
+            descriptionTextarea.addEventListener('input', updateCharCount);
+            updateCharCount();
         }
+
+        // Gestion du bouton de soumission
+        document.getElementById('demandeForm')?.addEventListener('submit', function(e) {
+            const btn = document.getElementById('submitBtn');
+            if (btn) {
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mise à jour...';
+                btn.disabled = true;
+            }
+        });
     });
 </script>
 @endsection
@@ -369,7 +591,7 @@
         user-select: none;
     }
 
-    label:has(input[type="checkbox"]:hover) {
+    label:has(input[type="checkbox"]:hover):not(:has(input[type="checkbox"]:disabled)) {
         border-color: var(--rust);
     }
 
@@ -396,6 +618,15 @@
 
     label:has(input[type="checkbox"]:disabled):hover {
         border-color: var(--border);
+    }
+
+    #achatFields, #locationFields {
+        transition: all 0.3s ease;
+    }
+
+    #charCount {
+        font-weight: 700;
+        transition: color 0.2s;
     }
 
     @media (max-width: 768px) {

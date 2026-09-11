@@ -26,9 +26,13 @@ class MiseEnVedette extends Model
     ];
 
     protected $casts = [
+        'montant' => 'integer',              
+        'duree' => 'integer',
         'date_debut' => 'datetime',
         'date_fin' => 'datetime',
         'validee_par_admin_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     public function bien()

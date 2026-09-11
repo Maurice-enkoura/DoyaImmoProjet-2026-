@@ -6,9 +6,11 @@
 <div class="auth-shell" style="opacity:0;">
     <!-- Section gauche - Visuelle -->
     <div class="auth-visual">
-        <div class="brand">
-            <div class="brand-mark">D</div>
-            <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--gold)">Immo</span></div>
+        <div class="brand" style="display:flex; justify-content:space-between; align-items:center;">
+            <a href="{{ route('home') }}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
+                <div class="brand-mark">D</div>
+                <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--rust)">Immo</span></div>
+            </a>
         </div>
         
         <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px;">
@@ -44,9 +46,16 @@
     <!-- Section droite - Formulaire -->
     <div class="auth-form-side">
         <div class="auth-box">
-            <div class="brand">
-                <div class="brand-mark">D</div>
-                <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
+            <div class="brand" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <a href="{{ route('home') }}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
+                    <div class="brand-mark">D</div>
+                    <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
+                </a>
+                
+                <!-- Bouton Accueil -->
+                <a href="{{ route('home') }}" class="btn btn-ghost btn-sm" style="display:inline-flex; align-items:center; gap:6px;">
+                    <i class="fa-solid fa-house"></i> Accueil
+                </a>
             </div>
             
             <div class="role-toggle">

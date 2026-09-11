@@ -13,10 +13,11 @@ Route::prefix('search')->group(function () {
     Route::get('/autocomplete', [SearchController::class, 'autocomplete'])->name('api.search.autocomplete');
 });
 
+// ==================== PAGE NOTIFICATIONS ====================
 Route::middleware(['auth'])->group(function () {
-    Route::get('/notifications/count', [NotificationController::class, 'count'])->name('api.notifications.count');
-    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('api.notifications.read');
-    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('api.notifications.read-all');
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{notification}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
 });
 
 // AJOUTER CETTE ROUTE (sans middleware auth pour que les particuliers puissent y accéder)

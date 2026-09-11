@@ -335,6 +335,17 @@
             font-size: 18px;
         }
 
+        .brand-name span {
+            color: var(--rust);
+        }
+
+        /* Sur le fond sombre (.auth-visual), le texte "Doya" doit être
+           blanc pour rester lisible — sinon il hérite de var(--ink)
+           (sombre) et devient quasi invisible sur fond sombre. */
+        .auth-visual .brand-name {
+            color: #fff;
+        }
+
         /* ==================== ROLE TOGGLE ==================== */
         .role-toggle {
             display: flex;

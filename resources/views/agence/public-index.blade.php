@@ -1,6 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'Agences immobilières — DoyaImmo')
+@section('title', 'Agences immobilières à Dakar — DoyaImmo')
+@section('meta_description', 'Découvrez les agences immobilières partenaires à Dakar. Trouvez un professionnel de confiance pour vous accompagner dans votre recherche immobilière.')
+@section('canonical', 'https://doyaimmo.com/agences')
+@section('og_title', 'Agences immobilières à Dakar — DoyaImmo')
+@section('og_description', 'Découvrez les agences immobilières partenaires à Dakar. Trouvez un professionnel de confiance pour vous accompagner dans votre recherche immobilière.')
+@section('robots', 'index, follow')
 
 @section('content')
 <style>

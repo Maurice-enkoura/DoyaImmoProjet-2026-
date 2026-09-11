@@ -25,7 +25,7 @@ class Proposition extends Model
     ];
 
     protected $casts = [
-        'prix_propose' => 'decimal:2',
+        'prix_propose' => 'integer',
         'date_proposition' => 'datetime',
         'statut' => StatutPropositionEnum::class,
     ];

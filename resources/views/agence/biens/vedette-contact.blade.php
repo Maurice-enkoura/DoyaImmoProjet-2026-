@@ -90,18 +90,18 @@
                     </div>
                     <div style="flex:1;min-width:120px;">
                         <div style="font-weight:600;font-size:clamp(13px, 0.9vw, 14px);">Appelez-nous</div>
-                        <div style="font-size:clamp(12px, 0.8vw, 13px);color:var(--muted);">+221 78 123 45 67</div>
+                        <div style="font-size:clamp(12px, 0.8vw, 13px);color:var(--muted);">+221 774612082</div>
                     </div>
                     <i class="fa-solid fa-chevron-right" style="color:var(--muted);font-size:14px;margin-left:auto;"></i>
                 </a>
 
-                <a href="https://wa.me/221781234567?text=Bonjour%2C%20je%20souhaite%20finaliser%20ma%20demande%20de%20mise%20en%20vedette%20%23{{ $mise->id }}%20pour%20le%20bien%20%3A%20{{ urlencode($bien->titre) }}" target="_blank" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#E8F5E9;border-radius:8px;text-decoration:none;color:var(--ink);border:1px solid #C8E6C9;transition:background 0.2s;flex-wrap:wrap;">
+                <a href="https://wa.me/221774612082?text=Bonjour%2C%20je%20souhaite%20finaliser%20ma%20demande%20de%20mise%20en%20vedette%20%23{{ $mise->id }}%20pour%20le%20bien%20%3A%20{{ urlencode($bien->titre) }}" target="_blank" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#E8F5E9;border-radius:8px;text-decoration:none;color:var(--ink);border:1px solid #C8E6C9;transition:background 0.2s;flex-wrap:wrap;">
                     <div style="width:clamp(36px, 3vw, 40px);height:clamp(36px, 3vw, 40px);border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                         <i class="fa-brands fa-whatsapp" style="font-size:clamp(18px, 1.2vw, 20px);"></i>
                     </div>
                     <div style="flex:1;min-width:120px;">
                         <div style="font-weight:600;font-size:clamp(13px, 0.9vw, 14px);">WhatsApp</div>
-                        <div style="font-size:clamp(12px, 0.8vw, 13px);color:var(--muted);">+221 78 123 45 67</div>
+                        <div style="font-size:clamp(12px, 0.8vw, 13px);color:var(--muted);">+221 774612082</div>
                     </div>
                     <i class="fa-solid fa-chevron-right" style="color:var(--muted);font-size:14px;margin-left:auto;"></i>
                 </a>

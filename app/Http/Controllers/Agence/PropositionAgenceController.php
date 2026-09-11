@@ -20,26 +20,46 @@ use Illuminate\Validation\ValidationException;
 
 class PropositionAgenceController extends Controller
 {
-    public function index()
+    /**
+     * Liste des propositions - UNIQUEMENT en_attente et acceptee
+     */
+    public function index(Request $request)
     {
         $agence = Auth::user()->agence;
         
-        $propositions = Proposition::with(['demande.particulier.user', 'bien'])
+        $query = Proposition::with(['demande.particulier.user', 'bien'])
             ->where('agence_id', $agence->id)
             ->whereIn('statut', [
                 StatutPropositionEnum::EN_ATTENTE->value,
                 StatutPropositionEnum::ACCEPTEE->value
-            ])
-            ->orderBy('created_at', 'desc')
+            ]);
+
+        // ✅ Filtre par statut (si spécifié)
+        if ($request->filled('statut')) {
+            $query->where('statut', $request->statut);
+        }
+
+        $propositions = $query->orderBy('created_at', 'desc')
             ->paginate(10);
             
         return view('agence.propositions.index', compact('propositions'));
     }
 
+    /**
+     * Formulaire de création d'une proposition
+     */
     public function create(DemandeImmobiliere $demande)
     {
         $agence = Auth::user()->agence;
 
+        // ✅ Vérification simplifiée en mode gratuit
+        if (!config('abonnement.actif', false) || config('abonnement.mode_gratuit', true)) {
+            // ✅ Mode gratuit : tout est autorisé
+            $biens = $agence->biens()->where('statut', true)->get();
+            return view('agence.propositions.create', compact('demande', 'biens'));
+        }
+
+        // ✅ Mode normal avec abonnement
         if (!$agence->estValidee()) {
             return redirect()->route('agence.dashboard')
                 ->with('error', 'Votre agence doit être validée pour faire des propositions.');
@@ -55,6 +75,9 @@ class PropositionAgenceController extends Controller
         return view('agence.propositions.create', compact('demande', 'biens'));
     }
 
+    /**
+     * Enregistrer une nouvelle proposition
+     */
     public function store(Request $request)
     {
         try {
@@ -228,6 +251,9 @@ class PropositionAgenceController extends Controller
         }
     }
 
+    /**
+     * Détail d'une proposition
+     */
     public function show(Proposition $proposition)
     {
         if ($proposition->agence_id !== Auth::user()->agence->id) {
@@ -243,6 +269,9 @@ class PropositionAgenceController extends Controller
         return view('agence.propositions.show', compact('proposition'));
     }
 
+    /**
+     * Annuler une proposition (uniquement si elle est en attente)
+     */
     public function annuler(Proposition $proposition)
     {
         if ($proposition->agence_id !== Auth::user()->agence->id) {

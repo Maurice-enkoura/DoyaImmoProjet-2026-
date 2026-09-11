@@ -2,7 +2,7 @@
 
 @section('title', 'Détail du signalement — Administration DoyaImmo')
 @section('page_title', 'Détail du signalement')
-@section('page_sub', $signalement->motif_label ?? 'N/A')
+@section('page_sub', $signalement->motif ?? 'N/A')
 
 @section('content')
 <style>
@@ -10,6 +10,80 @@
     .statut-contenu_inapproprie { background: #FFF3E0; color: #E65100; }
     .statut-fausse_annonce { background: #F3E5F5; color: #6A1B9A; }
     .statut-comportement_inapproprié { background: #FFE0B2; color: #BF360C; }
+    .statut-fraude { background: #FFEBEE; color: #C62828; }
+    
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 14px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .status-en_attente {
+        background: #FFF8E1;
+        color: #E65100;
+    }
+    
+    .status-traite {
+        background: #E8F5E9;
+        color: #1E7A47;
+    }
+    
+    .status-rejete {
+        background: #FFEBEE;
+        color: #C62828;
+    }
+    
+    .status-active {
+        background: #E8F5E9;
+        color: #1E7A47;
+    }
+    
+    .status-annule {
+        background: #FFEBEE;
+        color: #C62828;
+    }
+    
+    .btn-danger {
+        background: #C62828;
+        color: #fff;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: center;
+    }
+    
+    .btn-danger:hover {
+        background: #B71C1C;
+    }
+    
+    .btn-success {
+        background: #1E7A47;
+        color: #fff;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: center;
+    }
+    
+    .btn-success:hover {
+        background: #156A3B;
+    }
 </style>
 
 <div style="margin-bottom:20px;">
@@ -24,16 +98,29 @@
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
             <div>
                 <h3 style="font-size:18px;font-weight:700;">
-                    <i class="fa-solid fa-flag" style="color:var(--red);"></i> 
-                    {{ $signalement->motif_label ?? 'N/A' }}
+                    <i class="fa-solid fa-flag" style="color:#C62828;"></i> 
+                    {{ is_object($signalement->motif) ? $signalement->motif->label() : $signalement->motif }}
                 </h3>
                 <div style="font-size:13px;color:var(--muted);margin-top:4px;">
                     <i class="fa-solid fa-calendar"></i> 
                     Signalé le {{ $signalement->created_at->format('d/m/Y H:i') }}
                 </div>
             </div>
-            <span class="status-pill status-{{ $signalement->statut }}">
-                {{ $signalement->statut_label ?? $signalement->statut }}
+            @php
+                // ✅ CORRECTION : Récupérer la valeur du statut
+                $statusValue = is_object($signalement->statut) ? $signalement->statut->value : $signalement->statut;
+                
+                $statusColors = [
+                    'en_attente' => ['class' => 'status-en_attente', 'label' => 'En attente'],
+                    'traite' => ['class' => 'status-traite', 'label' => 'Traité'],
+                    'rejete' => ['class' => 'status-rejete', 'label' => 'Rejeté'],
+                ];
+                
+                // ✅ Utiliser la valeur pour accéder au tableau
+                $statusInfo = $statusColors[$statusValue] ?? $statusColors['en_attente'];
+            @endphp
+            <span class="status-pill {{ $statusInfo['class'] }}">
+                {{ $statusInfo['label'] }}
             </span>
         </div>
 
@@ -46,13 +133,16 @@
             <div style="padding:8px 12px;background:#F7F9FC;border-radius:8px;">
                 <div style="font-size:11px;color:var(--muted);">Type signalé</div>
                 <div style="font-weight:600;">
-                    @if($signalement->signalable_type === 'App\\Models\\BienImmobilier')
-                        <i class="fa-solid fa-house"></i> Bien immobilier
-                    @elseif($signalement->signalable_type === 'App\\Models\\DemandeImmobiliere')
-                        <i class="fa-solid fa-file"></i> Demande
-                    @else
-                        <i class="fa-solid fa-building"></i> Agence
-                    @endif
+                    @php
+                        $type = class_basename($signalement->signalable_type);
+                        $icon = match($type) {
+                            'BienImmobilier' => 'fa-solid fa-house',
+                            'DemandeImmobiliere' => 'fa-solid fa-file',
+                            'Proposition' => 'fa-solid fa-handshake',
+                            default => 'fa-solid fa-flag'
+                        };
+                    @endphp
+                    <i class="{{ $icon }}"></i> {{ $type }}
                 </div>
             </div>
             <div style="padding:8px 12px;background:#F7F9FC;border-radius:8px;">
@@ -62,7 +152,7 @@
             @if($signalement->date_traitement)
                 <div style="padding:8px 12px;background:#F7F9FC;border-radius:8px;grid-column:span 2;">
                     <div style="font-size:11px;color:var(--muted);">Date de traitement</div>
-                    <div style="font-weight:600;">{{ $signalement->date_traitement->format('d/m/Y H:i') }}</div>
+                    <div style="font-weight:600;">{{ \Carbon\Carbon::parse($signalement->date_traitement)->format('d/m/Y H:i') }}</div>
                 </div>
             @endif
             @if($signalement->commentaire_admin)
@@ -187,7 +277,11 @@
         </div>
 
         <!-- ==================== BOUTONS D'ACTION ==================== -->
-        @if($signalement->statut === 'en_attente')
+        @php
+            $statusValue = is_object($signalement->statut) ? $signalement->statut->value : $signalement->statut;
+        @endphp
+        
+        @if($statusValue === 'en_attente')
             <div class="panel" style="border:2px solid #E65100;">
                 <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;color:#E65100;">
                     <i class="fa-solid fa-gavel"></i> Traiter le signalement
@@ -199,10 +293,10 @@
                     <div style="display:flex;flex-direction:column;gap:12px;">
                         <!-- Boutons d'action -->
                         <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                            <button type="submit" name="action" value="bloquer" class="btn btn-danger" onclick="return confirm('⚠️ Bloquer définitivement cette agence ? Cette action est irréversible.')" style="flex:1;">
+                            <button type="submit" name="action" value="bloquer" class="btn btn-danger" style="flex:1;" onclick="return confirm('⚠️ Bloquer définitivement cette agence ? Cette action est irréversible.')">
                                 <i class="fa-solid fa-ban"></i> Bloquer l'agence
                             </button>
-                            <button type="submit" name="action" value="rejeter" class="btn btn-success" onclick="return confirm('Rejeter ce signalement ?')" style="flex:1;">
+                            <button type="submit" name="action" value="rejeter" class="btn btn-success" style="flex:1;" onclick="return confirm('Rejeter ce signalement ?')">
                                 <i class="fa-solid fa-check"></i> Rejeter le signalement
                             </button>
                         </div>
@@ -210,23 +304,23 @@
                         <!-- Champ Motif (obligatoire pour rejet) -->
                         <div>
                             <label for="motif" style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">
-                                <i class="fa-solid fa-pen"></i> Motif du rejet <span style="color:var(--red);">*</span>
+                                <i class="fa-solid fa-pen"></i> Motif du rejet <span style="color:#C62828;">*</span>
                                 <span style="font-weight:400;color:var(--muted);font-size:11px;">(obligatoire pour un rejet)</span>
                             </label>
                             <textarea name="motif" id="motif" rows="3" 
-                                      style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;"
+                                      style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;"
                                       placeholder="Expliquez pourquoi vous rejetez ce signalement..."></textarea>
                         </div>
                         
-                        <!-- Champ Sanction (optionnel pour blocage) -->
+                        <!-- Champ Commentaire (optionnel) -->
                         <div>
-                            <label for="sanction" style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">
-                                <i class="fa-solid fa-gavel"></i> Sanction appliquée
-                                <span style="font-weight:400;color:var(--muted);font-size:11px;">(optionnel - pour un blocage)</span>
+                            <label for="commentaire" style="display:block;font-weight:600;font-size:13px;margin-bottom:4px;">
+                                <i class="fa-solid fa-comment"></i> Commentaire
+                                <span style="font-weight:400;color:var(--muted);font-size:11px;">(optionnel)</span>
                             </label>
-                            <input type="text" name="sanction" id="sanction" 
-                                   style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;"
-                                   placeholder="Ex: Suspension 30 jours, Avertissement, Exclusion définitive...">
+                            <input type="text" name="commentaire" id="commentaire" 
+                                   style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;"
+                                   placeholder="Ajoutez un commentaire sur ce traitement...">
                         </div>
                     </div>
                 </form>
@@ -241,11 +335,11 @@
                         </span>
                         <br>
                         <span style="font-size:12px;color:var(--muted);">
-                            {{ $signalement->date_traitement ? 'Le ' . $signalement->date_traitement->format('d/m/Y H:i') : '' }}
+                            {{ $signalement->date_traitement ? 'Le ' . \Carbon\Carbon::parse($signalement->date_traitement)->format('d/m/Y H:i') : '' }}
                         </span>
-                        @if($signalement->statut === 'traite')
+                        @if($statusValue === 'traite')
                             <span class="status-pill status-active" style="margin-left:8px;">Traité</span>
-                        @elseif($signalement->statut === 'rejete')
+                        @elseif($statusValue === 'rejete')
                             <span class="status-pill status-annule" style="margin-left:8px;">Rejeté</span>
                         @endif
                         @if($signalement->commentaire_admin)

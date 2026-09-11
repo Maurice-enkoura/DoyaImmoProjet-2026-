@@ -1,1768 +1,457 @@
 @extends('layouts.app')
 
-@section('title', 'DoyaImmo — Trouvez votre logement à Dakar, simplement')
+@section('title', 'DoyaImmo — Immobilier à Dakar')
+@section('meta_description', 'Trouvez un logement à Dakar. Publiez votre besoin, recevez des propositions d\'agences et choisissez en toute transparence.')
+@section('canonical', 'https://doyaimmo.com')
+@section('og_title', 'DoyaImmo — Immobilier à Dakar')
+@section('og_description', 'Trouvez un logement à Dakar. Publiez votre besoin, recevez des propositions d\'agences.')
+@section('robots', 'index, follow')
 
 @section('content')
-<!-- ==================== BANNIÈRES ==================== -->
+
+{{-- ═══════════════════════════════════════════════════════════
+     1. BANNIÈRE
+═══════════════════════════════════════════════════════════ --}}
 @if(isset($bannieres) && $bannieres->count() > 0)
-<section class="wrap banner-section">
-    <div class="banner-container">
-        <div id="bannerCarousel" class="carousel slide" data-bs-ride="carousel">
-            <div class="carousel-inner">
-                @foreach($bannieres as $index => $banniere)
-                <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
+<section class="banner-section">
+    <div class="banner-wrapper" id="bannerCarouselWrapper">
+        <div class="banner-carousel" id="bannerCarousel">
+            @foreach($bannieres as $index => $banniere)
+                <div class="banner-slide {{ $index === 0 ? 'active' : '' }}">
                     <div class="banner-item">
                         @if($banniere->image)
-                            <img src="{{ asset('storage/' . $banniere->image) }}" 
-                                 alt="{{ $banniere->titre }}" 
-                                 loading="lazy">
+                            <img src="{{ asset('storage/' . $banniere->image) }}" alt="{{ $banniere->titre }}" loading="lazy">
                         @endif
-                        <div class="banner-content {{ $banniere->position_texte ?? 'gauche' }}">
+                        <div class="banner-overlay"></div>
+
+                        <div class="banner-content banner-content--{{ $banniere->position_texte ?? 'gauche' }}">
                             <h2>{{ $banniere->titre }}</h2>
                             @if($banniere->sous_titre)
                                 <p>{{ $banniere->sous_titre }}</p>
                             @endif
                             @if($banniere->lien)
-                                <a href="{{ $banniere->lien }}" class="btn btn-rust">Découvrir</a>
+                                <a href="{{ $banniere->lien }}" class="btn btn-rust btn-sm">
+                                    Découvrir <i class="fa-solid fa-arrow-right"></i>
+                                </a>
                             @endif
                         </div>
                     </div>
                 </div>
+            @endforeach
+        </div>
+
+        @if($bannieres->count() > 1)
+            <button type="button" class="banner-nav banner-nav--prev" onclick="moveBannerCarousel(-1)" aria-label="Précédent">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <button type="button" class="banner-nav banner-nav--next" onclick="moveBannerCarousel(1)" aria-label="Suivant">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+
+            <div class="banner-dots" id="bannerDots">
+                @foreach($bannieres as $index => $banniere)
+                    <button type="button"
+                            class="banner-dot {{ $index === 0 ? 'active' : '' }}"
+                            onclick="goToBannerSlide({{ $index }})"
+                            aria-label="Bannière {{ $index + 1 }}"></button>
                 @endforeach
             </div>
-            @if($bannieres->count() > 1)
-            <button class="carousel-control-prev" type="button" data-bs-target="#bannerCarousel" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#bannerCarousel" data-bs-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            </button>
-            @endif
-        </div>
-    </div>
-</section>
-@endif
-
-<!-- ==================== HERO SECTION ==================== -->
-<section class="wrap hero">
-    <div class="hero-container">
-        <div class="hero-grid">
-            <div class="hero-content">
-                
-                <h1 class="h-hero">
-                    Trouvez un logement <br>
-                    <span style="color:var(--rust)">sans passer par 10 agences.</span>
-                </h1>
-                <p class="lead">
-                    Décrivez le logement que vous cherchez, les agences immobilières inscrites vous envoient leurs propositions. 
-                    Comparez, visitez, choisissez en toute transparence.
-                </p>
-                <div class="hero-actions">
-                    <a href="{{ route('register') }}" class="btn btn-rust btn-lg">
-                        <i class="fa-solid fa-pen-to-square"></i> Publier ma recherche
-                    </a>
-                    <a href="{{ route('besoins.index') }}" class="btn btn-ghost btn-lg">
-                        <i class="fa-solid fa-eye"></i> Parcourir les besoins
-                    </a>
-                </div>
-                <div class="hero-stats">
-                    <div class="stat-item">
-                        <span class="stat-number">{{ $stats['besoins'] ?? 0 }}+</span>
-                        <span class="stat-label">Besoins actifs</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">{{ $stats['biens'] ?? 0 }}+</span>
-                        <span class="stat-label">Biens disponibles</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">{{ $stats['agences'] ?? 0 }}+</span>
-                        <span class="stat-label">Agences partenaires</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number" style="color:#F5A623;">{{ $stats['en_vedette'] ?? 0 }}</span>
-                        <span class="stat-label"> En vedette</span>
-                    </div>
-                </div>
-            </div>
-            <div class="hero-illustration">
-                @forelse($demandesRecentes ?? [] as $demande)
-                <div class="mini-card">
-                    <div class="t">{{ is_object($demande->type_bien) && method_exists($demande->type_bien, 'label') ? $demande->type_bien->label() : $demande->type_bien }} — {{ $demande->zone_recherchee }}</div>
-                    <div class="s">
-                        <i class="fa-regular fa-message"></i> {{ $demande->propositions->count() }} proposition(s) · {{ number_format($demande->budget_maximum, 0, ',', ' ') }} F
-                    </div>
-                </div>
-                @empty
-                <div class="mini-card" style="padding:20px;text-align:center;color:#9AA1AB;">
-                    <div class="t" style="font-size:13px;font-weight:400;color:#9AA1AB;">
-                        <i class="fa-regular fa-inbox" style="font-size:20px;display:block;margin-bottom:8px;"></i>
-                        Aucune demande récente
-                    </div>
-                </div>
-                @endforelse
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ==================== BIENS EN VEDETTE (CARROUSEL) ==================== -->
-@if(isset($biensVedette) && $biensVedette->count() > 0)
-<section class="wrap section vedette-section">
-    <div class="biens-container">
-        <div class="section-header">
-            <div>
-                <span class="eyebrow"> À la une</span>
-                <h2 class="h-section">Biens en vedette</h2>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;">
-                <button class="carousel-btn prev-btn" onclick="moveVedetteCarousel(-1)" aria-label="Précédent">
-                    <i class="fa-solid fa-chevron-left"></i>
-                </button>
-                <button class="carousel-btn next-btn" onclick="moveVedetteCarousel(1)" aria-label="Suivant">
-                    <i class="fa-solid fa-chevron-right"></i>
-                </button>
-                <a href="{{ route('biens.index') }}" class="btn btn-ghost btn-sm">
-                    Voir tous →
-                </a>
-            </div>
-        </div>
-
-        <div class="vedette-carousel-wrapper">
-            <div class="vedette-carousel" id="vedetteCarousel">
-                @foreach($biensVedette as $bien)
-                    <div class="vedette-card">
-                        <div class="vedette-image">
-                            @if($bien->medias && $bien->medias->where('type_media', 'image')->first())
-                                <img src="{{ asset('storage/' . $bien->medias->where('type_media', 'image')->first()->fichier) }}" 
-                                     alt="{{ $bien->titre }}" loading="lazy">
-                            @else
-                                <div class="image-placeholder">
-                                    <i class="fa-regular fa-image"></i>
-                                </div>
-                            @endif
-                            <span class="badge-vedette">
-                                <i class="fa-solid fa-star"></i> Vedette
-                            </span>
-                            <span class="badge-status {{ $bien->statut ? 'disponible' : 'indisponible' }}">
-                                {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
-                            </span>
-                            <span class="badge-type">{{ is_object($bien->type_bien) && method_exists($bien->type_bien, 'label') ? $bien->type_bien->label() : $bien->type_bien }}</span>
-                        </div>
-                        <div class="vedette-body">
-                            <h3 class="vedette-title">{{ $bien->titre }}</h3>
-                            <div class="vedette-price">{{ number_format($bien->prix, 0, ',', ' ') }} FCFA</div>
-                            <div class="vedette-location">
-                                <i class="fa-solid fa-location-dot"></i> {{ $bien->quartier->nom ?? $bien->quartier }}
-                            </div>
-                            <div class="vedette-date">
-                                <i class="fa-regular fa-clock"></i>
-                                Publié {{ $bien->created_at->diffForHumans() }}
-                            </div>
-                            <div class="vedette-features">
-                                <span class="feature-pill"><i class="fa-regular fa-vector-square"></i> {{ $bien->surface }} m²</span>
-                                <span class="feature-pill"><i class="fa-regular fa-bed"></i> {{ $bien->nombre_chambres }} ch.</span>
-                                <span class="feature-pill"><i class="fa-regular fa-bath"></i> {{ $bien->nombre_salles_bain }} sdb</span>
-                            </div>
-                            <div class="vedette-agency">
-                                <i class="fa-regular fa-building-columns"></i>
-                                {{ $bien->agence->nom_agence ?? 'Agence' }}
-                            </div>
-                            <a href="{{ route('biens.show', $bien) }}" class="btn btn-rust btn-sm btn-block">
-                                <i class="fa-regular fa-eye"></i> Voir le bien
-                            </a>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-
-        {{-- Indicateurs de page --}}
-        @if($biensVedette->count() > 3)
-        <div class="carousel-dots" id="vedetteDots">
-            @php
-                $totalSlides = ceil($biensVedette->count() / 3);
-            @endphp
-            @for($i = 0; $i < $totalSlides; $i++)
-                <span class="dot {{ $i === 0 ? 'active' : '' }}" onclick="goToVedetteSlide({{ $i }})"></span>
-            @endfor
-        </div>
         @endif
     </div>
 </section>
 @endif
 
-<!-- ==================== QUARTIERS POPULAIRES ==================== -->
-<section class="wrap section">
-    <div class="quartiers-container">
-        <div class="section-header">
-            <div>
-                <span class="eyebrow">Quartiers recherchés</span>
-                <h2 class="h-section">Les quartiers les plus demandés</h2>
-            </div>
-            <a href="{{ route('besoins.index') }}" class="btn btn-ghost btn-sm">
-                Voir tous les besoins →
+{{-- ═══════════════════════════════════════════════════════════
+     2. HERO
+═══════════════════════════════════════════════════════════ --}}
+<section class="hero">
+    <div class="hero__content">
+        <h1 class="hero__title">
+            Trouvez un logement <br>
+            <span class="hero__title-accent">sans passer par 10 agences.</span>
+        </h1>
+
+        <p class="hero__sub">
+            Publiez votre recherche, recevez des propositions des agences de Dakar, choisissez en toute transparence.
+        </p>
+
+        <div class="hero__actions">
+            <a href="{{ route('register') }}" class="btn btn-rust btn-lg">
+                <i class="fa-solid fa-pen-to-square"></i> Publier ma recherche
+            </a>
+            <a href="{{ route('besoins.index') }}" class="btn btn-ghost btn-lg">
+                <i class="fa-solid fa-eye"></i> Voir les besoins
             </a>
         </div>
-        <div class="zone-row">
-            @forelse($quartiersPopulaires ?? [] as $quartier)
-            <div class="zone-chip">
-                <b>{{ $quartier->nom }}</b>
-                <span>{{ $quartier->demandes_count }} besoins</span>
+
+        <div class="hero__stats">
+            <div class="hero__stat">
+                <strong>{{ $stats['besoins'] ?? 0 }}</strong>
+                <span>besoins actifs</span>
             </div>
+            <span class="hero__stat-sep"></span>
+            <div class="hero__stat">
+                <strong>{{ $stats['biens'] ?? 0 }}</strong>
+                <span>biens disponibles</span>
+            </div>
+            <span class="hero__stat-sep"></span>
+            <div class="hero__stat">
+                <strong>{{ $stats['agences'] ?? 0 }}</strong>
+                <span>agences</span>
+            </div>
+        </div>
+    </div>
+
+    <aside class="hero__aside">
+        <div class="hero__aside-head">
+            <span class="hero__aside-dot"></span>
+            <span>Besoins en direct</span>
+        </div>
+
+        <div class="hero__aside-list">
+            @forelse($demandesRecentes ?? [] as $demande)
+                <div class="mini-card">
+                    <div class="mini-card__title">
+                        {{ is_object($demande->type_bien) && method_exists($demande->type_bien, 'label')
+                            ? $demande->type_bien->label()
+                            : $demande->type_bien }}
+                    </div>
+                    <div class="mini-card__loc">{{ $demande->zone_recherchee }}</div>
+                    <div class="mini-card__meta">
+                        <span><i class="fa-regular fa-message"></i> {{ $demande->propositions->count() }} proposition{{ $demande->propositions->count() > 1 ? 's' : '' }}</span>
+                        <span class="mini-card__budget">{{ number_format($demande->budget_maximum, 0, ',', ' ') }} F</span>
+                    </div>
+                </div>
             @empty
-            <div style="width:100%;padding:20px;text-align:center;color:var(--muted);">
-                Aucun quartier populaire pour le moment
-            </div>
+                <div class="mini-empty">
+                    <i class="fa-regular fa-inbox"></i>
+                    <p>Aucune demande pour l'instant</p>
+                </div>
             @endforelse
         </div>
-    </div>
+    </aside>
 </section>
 
-<!-- ==================== DERNIERS BIENS ==================== -->
-<section class="wrap section" style="padding-top:10px;">
-    <div class="biens-container">
-        <div class="section-header">
-            <div>
-                <span class="eyebrow">Nouveautés</span>
-                <h2 class="h-section">Derniers biens disponibles</h2>
-            </div>
+{{-- ═══════════════════════════════════════════════════════════
+     3. ⭐ BIENS EN VEDETTE — juste après le hero
+═══════════════════════════════════════════════════════════ --}}
+@if(isset($biensVedette) && $biensVedette->count() > 0)
+<section class="section vedette-section">
+    <header class="section-head">
+        <div>
+            <span class="eyebrow"> À la une</span>
+            <h2 class="h-section">Biens en vedette</h2>
+        </div>
+        <div class="section-head__actions">
+            <button type="button" class="carousel-btn" onclick="moveVedetteCarousel(-1)" aria-label="Précédent">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <button type="button" class="carousel-btn" onclick="moveVedetteCarousel(1)" aria-label="Suivant">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
             <a href="{{ route('biens.index') }}" class="btn btn-ghost btn-sm">
-                Voir tous les biens →
+                Voir tous
             </a>
         </div>
+    </header>
 
-        @if(isset($derniersBiens) && $derniersBiens->count() > 0)
-            <div class="biens-grid">
-                @foreach($derniersBiens as $bien)
-                    <div class="bien-card {{ $bien->est_vedette ? 'vedette-card' : '' }}">
-                        <div class="bien-image">
-                            @if($bien->medias && $bien->medias->where('type_media', 'image')->first())
-                                <img src="{{ asset('storage/' . $bien->medias->where('type_media', 'image')->first()->fichier) }}" 
-                                     alt="{{ $bien->titre }}" loading="lazy">
-                            @else
-                                <div class="image-placeholder">
-                                    <i class="fa-regular fa-image"></i>
-                                </div>
-                            @endif
-                            
-                            @if($bien->est_vedette)
-                                <span class="badge-vedette">
-                                    <i class="fa-solid fa-star"></i> Vedette
-                                </span>
-                            @endif
-                            
-                            <span class="badge-status {{ $bien->statut ? 'disponible' : 'indisponible' }}">
-                                {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
-                            </span>
-                            <span class="badge-type">{{ is_object($bien->type_bien) && method_exists($bien->type_bien, 'label') ? $bien->type_bien->label() : $bien->type_bien }}</span>
-                        </div>
-                        <div class="bien-body">
-                            <h3 class="bien-title">{{ $bien->titre }}</h3>
-                            <div class="bien-price">{{ number_format($bien->prix, 0, ',', ' ') }} FCFA</div>
-                            <div class="bien-location">
-                                <i class="fa-solid fa-location-dot"></i> {{ $bien->quartier->nom ?? $bien->quartier }}
+    <div class="vedette-carousel-wrapper">
+        <div class="vedette-carousel" id="vedetteCarousel">
+            @foreach($biensVedette as $bien)
+                @php $image = $bien->medias->where('type_media', 'image')->first(); @endphp
+                <article class="card">
+                    <div class="card__media">
+                        @if($image)
+                            <img src="{{ asset('storage/' . $image->fichier) }}" alt="{{ $bien->titre }}" loading="lazy">
+                        @else
+                            <div class="card__placeholder">
+                                <i class="fa-regular fa-image"></i>
                             </div>
-                            <div class="bien-date">
-                                <i class="fa-regular fa-clock"></i>
-                                Publié {{ $bien->created_at->diffForHumans() }}
-                            </div>
-                            <div class="bien-features">
-                                <span class="feature-pill"><i class="fa-regular fa-vector-square"></i> {{ $bien->surface }} m²</span>
-                                <span class="feature-pill"><i class="fa-regular fa-bed"></i> {{ $bien->nombre_chambres }} ch.</span>
-                                <span class="feature-pill"><i class="fa-regular fa-bath"></i> {{ $bien->nombre_salles_bain }} sdb</span>
-                            </div>
-                            <div class="bien-agency">
-                                <i class="fa-regular fa-building-columns"></i>
-                                {{ $bien->agence->nom_agence ?? 'Agence' }}
-                            </div>
-                            <a href="{{ route('biens.show', $bien) }}" class="btn btn-rust btn-sm btn-block">
-                                <i class="fa-regular fa-eye"></i> Voir le bien
-                            </a>
-                        </div>
+                        @endif
+                        <span class="card-badge card-badge--vedette">
+                            <i class="fa-solid fa-star"></i> Vedette
+                        </span>
+                        <span class="card-badge card-badge--status {{ $bien->statut ? 'is-dispo' : 'is-indispo' }}">
+                            <i class="fa-solid fa-circle"></i>
+                            {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
+                        </span>
                     </div>
-                @endforeach
-            </div>
-        @else
-            <div class="empty-state">
-                <i class="fa-regular fa-home"></i>
-                <p>Aucun bien disponible pour le moment.</p>
-            </div>
-        @endif
-    </div>
-</section>
 
-<!-- ==================== COMMENT ÇA MARCHE ==================== -->
-<section class="wrap section" id="comment">
-    <div class="how-container">
-        <div class="text-center">
-            <span class="eyebrow">Comment ça marche</span>
-            <h2 class="h-section">De la recherche à la visite, en 3 étapes</h2>
-        </div>
-        <div class="how-grid">
-            <div class="how-card">
-                <div class="how-num">1</div>
-                <h3>Publiez votre besoin</h3>
-                <p>Type de bien, budget, zone recherchée — décrivez ce que vous cherchez en quelques minutes.</p>
-            </div>
-            <div class="how-card">
-                <div class="how-num">2</div>
-                <h3>Recevez des propositions</h3>
-                <p>Les agences inscrites vous envoient des offres correspondant à vos critères. Vous comparez librement.</p>
-            </div>
-            <div class="how-card">
-                <div class="how-num">3</div>
-                <h3>Visitez et choisissez</h3>
-                <p>Fixez un rendez-vous de visite avec l'agence de votre choix, puis notez votre expérience.</p>
-            </div>
+                    <div class="card__body">
+                        <h3 class="card__title">{{ $bien->titre }}</h3>
+                        <div class="card__price">
+                            {{ number_format($bien->prix, 0, ',', ' ') }}
+                            <small>FCFA</small>
+                        </div>
+                        <div class="card__meta">
+                            <span><i class="fa-solid fa-location-dot"></i> {{ $bien->quartier->nom ?? $bien->quartier }}</span>
+                        </div>
+                        <div class="card__specs">
+                            <span><i class="fa-regular fa-square"></i> {{ $bien->surface }} m²</span>
+                            @if($bien->nombre_chambres)
+                                <span><i class="fa-solid fa-bed"></i> {{ $bien->nombre_chambres }} ch.</span>
+                            @endif
+                        </div>
+                        <a href="{{ route('biens.show', $bien) }}" class="btn btn-rust btn-sm card__cta">
+                            Voir le bien <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </article>
+            @endforeach
         </div>
     </div>
-</section>
 
-<!-- ==================== POURQUOI DOYAIMMO ==================== -->
-<section class="wrap section" style="padding-top:0;">
-    <div class="value-container">
-        <div class="text-center">
-            <span class="eyebrow">Pourquoi DoyaImmo</span>
-            <h2 class="h-section" style="margin-bottom:10px;">Un marché plus simple, pour tout le monde</h2>
+    @if($biensVedette->count() > 3)
+        <div class="carousel-dots" id="vedetteDots">
+            @php $totalSlides = ceil($biensVedette->count() / 3); @endphp
+            @for($i = 0; $i < $totalSlides; $i++)
+                <button type="button" class="dot {{ $i === 0 ? 'active' : '' }}"
+                        onclick="goToVedetteSlide({{ $i }})"
+                        aria-label="Page {{ $i + 1 }}"></button>
+            @endfor
         </div>
-        <div class="value-grid">
-            <div class="value-card">
-                <div class="value-ic" style="background:var(--teal-soft); color:var(--teal);">
-                    <i class="fa-solid fa-clock"></i>
-                </div>
-                <h3>Gain de temps</h3>
-                <p>Une seule demande envoyée à plusieurs agences à la fois, plus besoin de démarcher un par un.</p>
-            </div>
-            <div class="value-card">
-                <div class="value-ic" style="background:var(--gold-soft); color:#8A6414;">
-                    <i class="fa-solid fa-scale-balanced"></i>
-                </div>
-                <h3>Comparaison simple</h3>
-                <p>Recevez plusieurs devis et comparez-les au même endroit avant de vous décider.</p>
-            </div>
-            <div class="value-card">
-                <div class="value-ic" style="background:var(--green-soft); color:#1E7A47;">
-                    <i class="fa-solid fa-star"></i>
-                </div>
-                <h3>Agences notées</h3>
-                <p>Chaque agence est évaluée par les clients précédents, pour plus de confiance.</p>
-            </div>
-            <div class="value-card">
-                <div class="value-ic" style="background:var(--rust-soft); color:var(--rust);">
-                    <i class="fa-solid fa-location-dot"></i>
-                </div>
-                <h3>Ancré à Dakar</h3>
-                <p>Pensé pour le marché immobilier local, quartier par quartier.</p>
-            </div>
+    @endif
+</section>
+@endif
+
+{{-- ═══════════════════════════════════════════════════════════
+     4. COMMENT ÇA MARCHE
+═══════════════════════════════════════════════════════════ --}}
+<section class="section how-section">
+    <header class="section-head section-head--center">
+        <span class="eyebrow">Comment ça marche</span>
+        <h2 class="h-section">Simple et transparent</h2>
+    </header>
+
+    <div class="how-grid">
+        <div class="how-card">
+            <div class="how-card__num">1</div>
+            <h3>Publiez votre besoin</h3>
+            <p>Type de bien, budget, zone recherchée — en quelques minutes.</p>
+        </div>
+        <div class="how-card">
+            <div class="how-card__num">2</div>
+            <h3>Recevez des propositions</h3>
+            <p>Les agences inscrites vous envoient des offres adaptées à vos critères.</p>
+        </div>
+        <div class="how-card">
+            <div class="how-card__num">3</div>
+            <h3>Visitez et choisissez</h3>
+            <p>Prenez rendez-vous avec l'agence de votre choix, puis notez votre expérience.</p>
         </div>
     </div>
 </section>
 
-<!-- ==================== CTA ==================== -->
-<section class="wrap section" style="padding-top:0;">
-    <div class="cta-container">
-        <div class="cta-band">
-            <h2>Prêt à trouver votre prochain logement ?</h2>
-            <p>Publiez votre recherche gratuitement et recevez vos premières propositions sous 48h.</p>
-            <div class="cta-actions">
-                <a href="{{ route('register.particulier') }}" class="btn btn-rust btn-lg">
-                    <i class="fa-solid fa-user-plus"></i> Créer mon compte client
-                </a>
-                <a href="{{ route('register.agence') }}" class="btn btn-ghost btn-lg" style="background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.2); color:#fff;">
-                    <i class="fa-solid fa-building"></i> Je suis une agence
-                </a>
-            </div>
+{{-- ═══════════════════════════════════════════════════════════
+     5. BANDEAU AGENCES
+═══════════════════════════════════════════════════════════ --}}
+<section class="section agency-section">
+    <div class="agency-band">
+        <div class="agency-band__icon">
+            <i class="fa-solid fa-briefcase"></i>
+        </div>
+
+        <div class="agency-band__content">
+            <h3>Vous êtes une agence immobilière ?</h3>
+            <p>Recevez les demandes des particuliers et proposez vos biens en priorité.</p>
+        </div>
+
+        <a href="{{ route('register.agence') }}" class="btn btn-rust">
+            Créer mon compte <i class="fa-solid fa-arrow-right"></i>
+        </a>
+    </div>
+</section>
+
+{{-- ═══════════════════════════════════════════════════════════
+     6. DERNIERS BIENS
+═══════════════════════════════════════════════════════════ --}}
+@if(isset($derniersBiens) && $derniersBiens->count() > 0)
+<section class="section dernier-section">
+    <header class="section-head">
+        <div>
+            <span class="eyebrow">Nouveautés</span>
+            <h2 class="h-section">Derniers biens disponibles</h2>
+        </div>
+        <a href="{{ route('biens.index') }}" class="btn btn-ghost btn-sm">
+            Voir tous
+        </a>
+    </header>
+
+    <div class="biens-grid">
+        @foreach($derniersBiens as $bien)
+            @php $image = $bien->medias->where('type_media', 'image')->first(); @endphp
+            <article class="card {{ $bien->est_vedette ? 'is-vedette' : '' }}">
+                <div class="card__media">
+                    @if($image)
+                        <img src="{{ asset('storage/' . $image->fichier) }}" alt="{{ $bien->titre }}" loading="lazy">
+                    @else
+                        <div class="card__placeholder">
+                            <i class="fa-regular fa-image"></i>
+                        </div>
+                    @endif
+                    @if($bien->est_vedette)
+                        <span class="card-badge card-badge--vedette">
+                            <i class="fa-solid fa-star"></i> Vedette
+                        </span>
+                    @endif
+                    <span class="card-badge card-badge--status {{ $bien->statut ? 'is-dispo' : 'is-indispo' }}">
+                        <i class="fa-solid fa-circle"></i>
+                        {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
+                    </span>
+                </div>
+
+                <div class="card__body">
+                    <h3 class="card__title">{{ $bien->titre }}</h3>
+                    <div class="card__price">
+                        {{ number_format($bien->prix, 0, ',', ' ') }}
+                        <small>FCFA</small>
+                    </div>
+                    <div class="card__meta">
+                        <span><i class="fa-solid fa-location-dot"></i> {{ $bien->quartier->nom ?? $bien->quartier }}</span>
+                        <span><i class="fa-regular fa-building"></i> {{ $bien->agence->nom_agence ?? 'Agence' }}</span>
+                    </div>
+                    <div class="card__specs">
+                        <span><i class="fa-regular fa-square"></i> {{ $bien->surface }} m²</span>
+                        @if($bien->nombre_chambres)
+                            <span><i class="fa-solid fa-bed"></i> {{ $bien->nombre_chambres }} ch.</span>
+                        @endif
+                    </div>
+                    <a href="{{ route('biens.show', $bien) }}" class="btn btn-rust btn-sm card__cta">
+                        Voir le bien <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+            </article>
+        @endforeach
+    </div>
+</section>
+@endif
+
+{{-- ═══════════════════════════════════════════════════════════
+     7. CTA FINAL
+═══════════════════════════════════════════════════════════ --}}
+<section class="section cta-section">
+    <div class="cta-band">
+        <h2>Prêt à trouver votre logement ?</h2>
+        <p>Publiez votre recherche gratuitement et recevez vos premières propositions sous 48h.</p>
+
+        <div class="cta-band__actions">
+            <a href="{{ route('register.particulier') }}" class="btn btn-rust btn-lg">
+                <i class="fa-solid fa-user-plus"></i> Créer mon compte
+            </a>
+            <a href="{{ route('register.agence') }}" class="btn btn-ghost-on-dark btn-lg">
+                <i class="fa-solid fa-building"></i> Je suis une agence
+            </a>
         </div>
     </div>
 </section>
+
 @endsection
 
-@push('styles')
-<style>
-/* ==================== HERO ==================== */
-.hero-container,
-.banner-container,
-.quartiers-container,
-.biens-container,
-.how-container,
-.value-container,
-.cta-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-    width: 100%;
-}
-
-@media (min-width: 768px) {
-    .hero-container,
-    .banner-container,
-    .quartiers-container,
-    .biens-container,
-    .how-container,
-    .value-container,
-    .cta-container {
-        padding: 0 32px;
-    }
-}
-
-@media (min-width: 1200px) {
-    .hero-container,
-    .banner-container,
-    .quartiers-container,
-    .biens-container,
-    .how-container,
-    .value-container,
-    .cta-container {
-        padding: 0 40px;
-    }
-}
-
-.banner-section {
-    padding: 20px 0 0;
-}
-
-.banner-item {
-    position: relative;
-    height: 380px;
-    overflow: hidden;
-    border-radius: 16px;
-    background: #1A1D26;
-}
-
-.banner-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.6;
-}
-
-.banner-content {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    padding: 20px 40px;
-    color: #fff;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-    box-sizing: border-box;
-}
-
-.banner-content.gauche {
-    left: 10%;
-    right: 6%;
-    width: auto;
-    max-width: 600px;
-    text-align: left;
-}
-
-.banner-content.droite {
-    right: 10%;
-    left: 6%;
-    width: auto;
-    max-width: 600px;
-    text-align: right;
-    margin-left: auto;
-}
-
-.banner-content.centre {
-    left: 50%;
-    right: auto;
-    transform: translate(-50%, -50%);
-    width: min(600px, 88%);
-    text-align: center;
-}
-
-.banner-content h2 {
-    font-size: 32px;
-    font-weight: 800;
-    margin-bottom: 8px;
-}
-
-.banner-content p {
-    font-size: 17px;
-    opacity: 0.9;
-    margin-bottom: 16px;
-}
-
-.carousel-control-prev,
-.carousel-control-next {
-    width: 44px;
-    height: 44px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(0,0,0,0.4);
-    border-radius: 50%;
-    opacity: 0.7;
-}
-
-.carousel-control-prev:hover,
-.carousel-control-next:hover {
-    opacity: 1;
-}
-
-.carousel-control-prev {
-    left: 16px;
-}
-
-.carousel-control-next {
-    right: 16px;
-}
-
-.wrap {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0;
-}
-
-.section {
-    padding: 40px 0;
-}
-
-.vedette-section {
-    padding-top: 10px;
-}
-
-.hero {
-    padding: 30px 0 20px;
-    background: #F7F9FC;
-}
-
-.hero-grid {
-    display: grid;
-    grid-template-columns: 1fr 0.9fr;
-    gap: 48px;
-    align-items: center;
-}
-
-.hero-content {
-    min-width: 0;
-}
-
-.hero-content .lead {
-    margin: 16px 0 28px;
-    max-width: 500px;
-    font-size: 16px;
-    color: var(--text-soft);
-    line-height: 1.7;
-}
-
-.hero-actions {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 12px;
-}
-
-.hero-stats {
-    display: flex;
-    gap: 32px;
-    flex-wrap: wrap;
-    padding-top: 24px;
-}
-
-.hero-stats .stat-item {
-    display: flex;
-    flex-direction: column;
-}
-
-.hero-stats .stat-number {
-    font-family: var(--display);
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--ink);
-}
-
-.hero-stats .stat-label {
-    font-size: 13px;
-    color: var(--muted);
-}
-
-.hero-illustration {
-    min-width: 0;
-    width: 100%;
-    background: var(--ink);
-    border-radius: 16px;
-    padding: 20px;
-    color: #fff;
-    position: relative;
-    overflow: hidden;
-    box-sizing: border-box;
-}
-
-.hero-illustration::before {
-    content: "";
-    position: absolute;
-    left: -80px;
-    bottom: -80px;
-    width: 250px;
-    height: 250px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(14, 122, 122, 0.25), transparent 70%);
-    pointer-events: none;
-}
-
-.mini-card {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 12px 16px;
-    margin-bottom: 8px;
-    position: relative;
-    z-index: 2;
-    transition: background 0.2s;
-    min-width: 0;
-}
-
-.mini-card:hover {
-    background: rgba(255, 255, 255, 0.10);
-}
-
-.mini-card:last-child {
-    margin-bottom: 0;
-}
-
-.mini-card .t {
-    font-family: var(--display);
-    font-weight: 700;
-    font-size: 14px;
-    margin-bottom: 2px;
-    color: #fff;
-    word-break: break-word;
-}
-
-.mini-card .s {
-    font-size: 12px;
-    color: #9AA1AB;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-
-.mini-card .s i {
-    font-size: 11px;
-    color: #6A7280;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-.text-center {
-    text-align: center;
-}
-
-.zone-row {
-    display: flex;
-    gap: 12px;
-    overflow-x: auto;
-    padding: 4px 0 8px;
-    scrollbar-width: thin;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x proximity;
-}
-
-.zone-row::-webkit-scrollbar {
-    height: 3px;
-}
-
-.zone-row::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 10px;
-}
-
-.zone-chip {
-    flex-shrink: 0;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 20px;
-    text-align: center;
-    min-width: 110px;
-    transition: all 0.2s;
-    text-decoration: none;
-    color: inherit;
-    cursor: default;
-    scroll-snap-align: start;
-}
-
-.zone-chip b {
-    display: block;
-    font-family: var(--display);
-    font-size: 14px;
-    margin-bottom: 2px;
-}
-
-.zone-chip span {
-    font-size: 11px;
-    color: var(--muted);
-}
-
-/* ==================== VEDETTE CARROUSEL ==================== */
-.vedette-carousel-wrapper {
-    overflow: hidden;
-    position: relative;
-    border-radius: var(--radius);
-}
-
-.vedette-carousel {
-    display: flex;
-    gap: 16px;
-    transition: transform 0.5s ease-in-out;
-    will-change: transform;
-}
-
-.vedette-carousel .vedette-card {
-    flex: 0 0 calc(33.333% - 12px);
-    min-width: 0;
-    max-width: 280px;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    transition: transform 0.3s, box-shadow 0.3s;
-    display: flex;
-    flex-direction: column;
-}
-
-.vedette-carousel .vedette-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-}
-
-.vedette-carousel .vedette-card.vedette-card {
-    border-color: #F5A623;
-    border-width: 2px;
-}
-
-.vedette-image {
-    position: relative;
-    height: 150px;
-    background: #F0F2F5;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.vedette-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.vedette-image .badge-vedette {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 8px;
-    font-weight: 600;
-    color: #fff;
-    background: #D4AF37;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    z-index: 2;
-}
-
-.vedette-image .badge-vedette i {
-    font-size: 7px;
-}
-
-.vedette-image .badge-status {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 8px;
-    font-weight: 600;
-    color: #fff;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-.vedette-image .badge-status.disponible {
-    background: #2A9D8F;
-}
-
-.vedette-image .badge-status.indisponible {
-    background: #8A91A0;
-}
-
-.vedette-image .badge-type {
-    position: absolute;
-    bottom: 6px;
-    left: 6px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 8px;
-    font-weight: 600;
-    color: #fff;
-    background: #B85C3A;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-.vedette-body {
-    padding: 10px 12px 12px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.vedette-title {
-    font-weight: 600;
-    font-size: 13px;
-    margin-bottom: 2px;
-    color: var(--ink);
-    word-break: break-word;
-    line-height: 1.3;
-}
-
-.vedette-price {
-    font-weight: 700;
-    color: var(--rust);
-    font-size: 14px;
-    margin-bottom: 2px;
-}
-
-.vedette-location {
-    font-size: 10px;
-    color: var(--muted);
-    margin-bottom: 4px;
-    word-break: break-word;
-}
-
-.vedette-location i {
-    margin-right: 3px;
-    font-size: 9px;
-}
-
-.vedette-date {
-    font-size: 10px;
-    color: var(--muted);
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.vedette-date i {
-    font-size: 10px;
-    color: var(--muted);
-}
-
-.vedette-features {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-bottom: 4px;
-}
-
-.vedette-features .feature-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    background: var(--border);
-    padding: 1px 6px;
-    border-radius: 999px;
-    font-size: 8px;
-    color: var(--text-soft);
-    white-space: nowrap;
-}
-
-.vedette-features .feature-pill i {
-    font-size: 7px;
-}
-
-.vedette-agency {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 9px;
-    color: var(--muted);
-    margin-bottom: 6px;
-    word-break: break-word;
-}
-
-.vedette-agency i {
-    font-size: 10px;
-}
-
-.vedette-body .btn {
-    margin-top: auto;
-    font-size: 10px;
-    padding: 4px 10px;
-}
-
-/* ==================== BIENS GRID ==================== */
-.biens-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
-}
-
-.bien-card {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    transition: transform 0.3s, box-shadow 0.3s;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    max-width: 280px;
-}
-
-.bien-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-}
-
-.bien-card.vedette-card {
-    border-color: #F5A623;
-    border-width: 2px;
-}
-
-.bien-image {
-    position: relative;
-    height: 150px;
-    background: #F0F2F5;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.bien-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.image-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--muted);
-    font-size: 32px;
-    opacity: 0.3;
-}
-
-.badge-status {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 8px;
-    font-weight: 600;
-    color: #fff;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-.badge-status.disponible {
-    background: #2A9D8F;
-}
-
-.badge-status.indisponible {
-    background: #8A91A0;
-}
-
-.badge-vedette {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 8px;
-    font-weight: 600;
-    color: #fff;
-    background: #D4AF37;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    z-index: 2;
-}
-
-.badge-vedette i {
-    font-size: 7px;
-}
-
-.badge-type {
-    position: absolute;
-    bottom: 6px;
-    left: 6px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 8px;
-    font-weight: 600;
-    color: #fff;
-    background: #B85C3A;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-.bien-body {
-    padding: 10px 12px 12px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.bien-title {
-    font-weight: 600;
-    font-size: 13px;
-    margin-bottom: 2px;
-    color: var(--ink);
-    word-break: break-word;
-    line-height: 1.3;
-}
-
-.bien-price {
-    font-weight: 700;
-    color: var(--rust);
-    font-size: 14px;
-    margin-bottom: 2px;
-}
-
-.bien-location {
-    font-size: 10px;
-    color: var(--muted);
-    margin-bottom: 4px;
-    word-break: break-word;
-}
-
-.bien-location i {
-    margin-right: 3px;
-    font-size: 9px;
-}
-
-.bien-date {
-    font-size: 10px;
-    color: var(--muted);
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.bien-date i {
-    font-size: 10px;
-    color: var(--muted);
-}
-
-.bien-features {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-bottom: 4px;
-}
-
-.bien-features .feature-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    background: var(--border);
-    padding: 1px 6px;
-    border-radius: 999px;
-    font-size: 8px;
-    color: var(--text-soft);
-    white-space: nowrap;
-}
-
-.bien-features .feature-pill i {
-    font-size: 7px;
-}
-
-.bien-agency {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 9px;
-    color: var(--muted);
-    margin-bottom: 6px;
-    word-break: break-word;
-}
-
-.bien-agency i {
-    font-size: 10px;
-}
-
-.bien-body .btn {
-    margin-top: auto;
-    font-size: 10px;
-    padding: 4px 10px;
-}
-
-.how-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    margin-top: 32px;
-}
-
-.how-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    min-width: 0;
-    box-sizing: border-box;
-}
-
-.how-num {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: var(--rust-soft);
-    color: var(--rust);
-    font-family: var(--display);
-    font-weight: 800;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 12px;
-    flex-shrink: 0;
-}
-
-.how-card h3 {
-    font-family: var(--display);
-    font-size: 15px;
-    margin-bottom: 6px;
-}
-
-.how-card p {
-    font-size: 13px;
-    color: var(--text-soft);
-    line-height: 1.6;
-}
-
-.value-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-top: 24px;
-}
-
-.value-card {
-    padding: 16px 0;
-    min-width: 0;
-    box-sizing: border-box;
-}
-
-.value-ic {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 10px;
-    font-size: 16px;
-    flex-shrink: 0;
-}
-
-.value-card h3 {
-    font-family: var(--display);
-    font-size: 14px;
-    margin-bottom: 4px;
-}
-
-.value-card p {
-    font-size: 12px;
-    color: var(--text-soft);
-    line-height: 1.6;
-}
-
-.cta-band {
-    background: var(--ink);
-    border-radius: 16px;
-    padding: 36px 28px;
-    text-align: center;
-    color: #fff;
-}
-
-.cta-band h2 {
-    font-family: var(--display);
-    font-weight: 700;
-    font-size: 24px;
-    margin-bottom: 8px;
-}
-
-.cta-band p {
-    font-size: 13px;
-    color: #B9BFCC;
-    max-width: 480px;
-    margin: 0 auto 20px;
-}
-
-.cta-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-.cta-actions .btn {
-    flex: 1 1 auto;
-    min-width: 160px;
-    justify-content: center;
-}
-
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.2s;
-    border: 1px solid transparent;
-    cursor: pointer;
-    font-family: inherit;
-    white-space: nowrap;
-}
-
-.btn-rust {
-    background: var(--rust);
-    color: #fff;
-    border-color: var(--rust);
-}
-
-.btn-rust:hover {
-    background: #9A4523;
-    border-color: #9A4523;
-    color: #fff;
-}
-
-.btn-ghost {
-    background: transparent;
-    color: var(--text-soft);
-    border-color: var(--border);
-}
-
-.btn-ghost:hover {
-    background: var(--border);
-    color: var(--ink);
-}
-
-.btn-sm {
-    padding: 4px 12px;
-    font-size: 11px;
-}
-
-.btn-lg {
-    padding: 10px 20px;
-    font-size: 13px;
-}
-
-.btn-block {
-    width: 100%;
-    justify-content: center;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 28px;
-    background: #fff;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    color: var(--muted);
-}
-
-.empty-state i {
-    font-size: 28px;
-    display: block;
-    margin-bottom: 8px;
-    opacity: 0.3;
-}
-
-.empty-state p {
-    font-size: 12px;
-}
-
-.eyebrow {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--rust);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 8px;
-}
-
-.h-hero {
-    font-family: var(--display);
-    font-weight: 800;
-    font-size: clamp(28px, 4.5vw, 44px);
-    line-height: 1.15;
-}
-
-.h-section {
-    font-family: var(--display);
-    font-weight: 700;
-    font-size: clamp(22px, 3vw, 28px);
-    line-height: 1.2;
-}
-
-.lead {
-    font-size: clamp(14px, 1.1vw, 16px);
-    color: var(--text-soft);
-    line-height: 1.7;
-}
-
-.carousel-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 1px solid var(--border);
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-soft);
-    cursor: pointer;
-    transition: all 0.2s;
-    flex-shrink: 0;
-}
-
-.carousel-btn:hover {
-    border-color: var(--rust);
-    color: var(--rust);
-    background: var(--rust-soft);
-}
-
-.carousel-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-
-.carousel-dots {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 16px;
-}
-
-.carousel-dots .dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--border);
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.carousel-dots .dot.active {
-    background: var(--rust);
-    width: 28px;
-    border-radius: 6px;
-}
-
-.carousel-dots .dot:hover {
-    background: var(--rust);
-    opacity: 0.7;
-}
-
-/* ==================== RESPONSIVE ==================== */
-@media (max-width: 1200px) {
-    .vedette-carousel .vedette-card {
-        flex: 0 0 calc(33.333% - 12px);
-        max-width: none;
-    }
-}
-
-@media (max-width: 992px) {
-    .hero-grid {
-        gap: 32px;
-    }
-    .banner-item {
-        height: 300px;
-    }
-    .banner-content h2 {
-        font-size: 28px;
-    }
-    .banner-content p {
-        font-size: 15px;
-    }
-    .vedette-carousel .vedette-card {
-        flex: 0 0 calc(50% - 8px);
-        max-width: none;
-    }
-}
-
-@media (max-width: 900px) {
-    .hero-grid {
-        grid-template-columns: 1fr;
-        gap: 28px;
-    }
-    .hero-illustration {
-        order: 2;
-    }
-    .hero-content {
-        order: 1;
-    }
-    .hero-content .lead {
-        max-width: 100%;
-    }
-    .hero-stats {
-        gap: 20px;
-    }
-    .how-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-    .value-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-    .biens-grid {
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    }
-    .banner-item {
-        height: 260px;
-    }
-    .banner-content {
-        padding: 16px 24px;
-    }
-    .banner-content h2 {
-        font-size: 22px;
-    }
-    .banner-content p {
-        font-size: 13px;
-    }
-    .carousel-control-prev,
-    .carousel-control-next {
-        display: none !important;
-    }
-}
-
-@media (max-width: 768px) {
-    .vedette-carousel .vedette-card {
-        flex: 0 0 calc(50% - 8px);
-        max-width: none;
-    }
-}
-
-@media (max-width: 640px) {
-    .hero {
-        padding: 16px 0 10px;
-    }
-    .hero-grid {
-        gap: 20px;
-    }
-    .hero-illustration {
-        padding: 14px;
-        border-radius: 10px;
-    }
-    .mini-card {
-        padding: 8px 12px;
-        margin-bottom: 5px;
-    }
-    .mini-card .t {
-        font-size: 12px;
-    }
-    .mini-card .s {
-        font-size: 10px;
-    }
-    .hero-stats {
-        gap: 12px;
-        margin-top: 0;
-    }
-    .hero-stats .stat-number {
-        font-size: 16px;
-    }
-    .hero-stats .stat-label {
-        font-size: 10px;
-    }
-    .hero-actions {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .hero-actions .btn {
-        justify-content: center;
-        width: 100%;
-    }
-    .section {
-        padding: 24px 0;
-    }
-    .section-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    .how-grid {
-        grid-template-columns: 1fr;
-        gap: 14px;
-    }
-    .value-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-    }
-    .biens-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-    }
-    .bien-card {
-        max-width: none;
-    }
-    .cta-band {
-        padding: 24px 16px;
-    }
-    .cta-band h2 {
-        font-size: 20px;
-    }
-    .cta-band .cta-actions {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .cta-band .cta-actions .btn {
-        justify-content: center;
-        min-width: unset;
-    }
-    .zone-chip {
-        padding: 10px 14px;
-        min-width: 90px;
-    }
-    .zone-chip b {
-        font-size: 12px;
-    }
-    .zone-chip span {
-        font-size: 9px;
-    }
-    .h-hero {
-        font-size: 24px;
-    }
-    .btn-lg {
-        padding: 10px 16px;
-        font-size: 12px;
-    }
-    .hero-container,
-    .banner-container,
-    .quartiers-container,
-    .biens-container,
-    .how-container,
-    .value-container,
-    .cta-container {
-        padding: 0 12px;
-    }
-    .banner-section {
-        padding: 8px 0 0;
-    }
-    .banner-item {
-        height: 200px;
-        border-radius: 10px;
-    }
-    .banner-content {
-        padding: 12px 16px;
-    }
-    .banner-content.gauche,
-    .banner-content.droite {
-        left: 5%;
-        right: 5%;
-        width: auto;
-        max-width: none;
-        margin-left: 0;
-    }
-    .banner-content.centre {
-        width: 90%;
-    }
-    .banner-content h2 {
-        font-size: 17px;
-    }
-    .banner-content p {
-        font-size: 12px;
-        margin-bottom: 8px;
-    }
-    .banner-content .btn {
-        padding: 4px 12px;
-        font-size: 11px;
-    }
-    .vedette-carousel .vedette-card {
-        flex: 0 0 calc(100% - 0px);
-        max-width: none;
-    }
-    .carousel-btn {
-        width: 30px;
-        height: 30px;
-        font-size: 12px;
-    }
-}
-
-@media (max-width: 480px) {
-    .hero-container,
-    .banner-container,
-    .quartiers-container,
-    .biens-container,
-    .how-container,
-    .value-container,
-    .cta-container {
-        padding: 0 8px;
-    }
-    .hero-stats {
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-    .hero-stats .stat-item {
-        flex: 1;
-        min-width: 60px;
-    }
-    .h-hero {
-        font-size: 20px;
-    }
-    .biens-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-    }
-    .bien-image {
-        height: 130px;
-    }
-    .badge-status,
-    .badge-vedette,
-    .badge-type {
-        font-size: 7px;
-        padding: 1px 6px;
-    }
-    .bien-title {
-        font-size: 12px;
-    }
-    .bien-price {
-        font-size: 13px;
-    }
-    .value-grid {
-        grid-template-columns: 1fr;
-    }
-    .cta-band h2 {
-        font-size: 18px;
-    }
-    .btn {
-        font-size: 11px;
-        padding: 6px 12px;
-    }
-    .btn-lg {
-        padding: 8px 14px;
-        font-size: 11px;
-    }
-    .banner-item {
-        height: 170px;
-    }
-    .banner-content h2 {
-        font-size: 15px;
-    }
-    .banner-content p {
-        font-size: 11px;
-    }
-    .vedette-carousel .vedette-card {
-        flex: 0 0 calc(100% - 0px);
-        max-width: none;
-    }
-    .carousel-dots .dot {
-        width: 8px;
-        height: 8px;
-    }
-    .carousel-dots .dot.active {
-        width: 20px;
-    }
-}
-
-@media (max-width: 360px) {
-    .h-hero {
-        font-size: 18px;
-    }
-    .zone-chip {
-        min-width: 70px;
-        padding: 8px 10px;
-    }
-    .hero-stats .stat-number {
-        font-size: 14px;
-    }
-    .hero-stats .stat-label {
-        font-size: 9px;
-    }
-    .mini-card .t {
-        font-size: 11px;
-    }
-    .mini-card .s {
-        font-size: 9px;
-    }
-    .banner-item {
-        height: 150px;
-    }
-    .banner-content h2 {
-        font-size: 13px;
-    }
-    .banner-content p {
-        font-size: 10px;
-    }
-    .biens-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-    .bien-image {
-        height: 150px;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
-}
-</style>
-@endpush
 
 @push('scripts')
 <script>
-// ==================== VEDETTE CARROUSEL ====================
+/* ═══════════════════════════════════════════════════════════
+   BANNER CARROUSEL
+═══════════════════════════════════════════════════════════ */
+let bannerCurrentSlide = 0;
+let bannerTotalSlides = 0;
+let bannerAutoPlayInterval = null;
+const BANNER_AUTOPLAY_DELAY = 5000;
+
+document.addEventListener('DOMContentLoaded', function () {
+    const carousel = document.getElementById('bannerCarousel');
+    if (!carousel) return;
+
+    bannerTotalSlides = carousel.querySelectorAll('.banner-slide').length;
+    updateBannerDots();
+    startBannerAutoplay();
+
+    const wrapper = document.getElementById('bannerCarouselWrapper');
+    if (wrapper) {
+        wrapper.addEventListener('mouseenter', stopBannerAutoplay);
+        wrapper.addEventListener('mouseleave', startBannerAutoplay);
+    }
+});
+
+function moveBannerCarousel(direction) {
+    if (bannerTotalSlides <= 1) return;
+    bannerCurrentSlide = (bannerCurrentSlide + direction + bannerTotalSlides) % bannerTotalSlides;
+    updateBannerCarousel();
+    stopBannerAutoplay();
+    startBannerAutoplay();
+}
+
+function goToBannerSlide(index) {
+    if (index === bannerCurrentSlide || bannerTotalSlides === 0) return;
+    bannerCurrentSlide = index;
+    updateBannerCarousel();
+    stopBannerAutoplay();
+    startBannerAutoplay();
+}
+
+function updateBannerCarousel() {
+    const carousel = document.getElementById('bannerCarousel');
+    if (!carousel) return;
+    carousel.style.transform = `translateX(-${bannerCurrentSlide * 100}%)`;
+    const slides = carousel.querySelectorAll('.banner-slide');
+    slides.forEach((slide, i) => slide.classList.toggle('active', i === bannerCurrentSlide));
+    updateBannerDots();
+}
+
+function updateBannerDots() {
+    const dotsContainer = document.getElementById('bannerDots');
+    if (!dotsContainer) return;
+    const dots = dotsContainer.querySelectorAll('.banner-dot');
+    dots.forEach((dot, index) => dot.classList.toggle('active', index === bannerCurrentSlide));
+}
+
+function startBannerAutoplay() {
+    if (bannerAutoPlayInterval || bannerTotalSlides <= 1) return;
+    bannerAutoPlayInterval = setInterval(() => {
+        goToBannerSlide((bannerCurrentSlide + 1) % bannerTotalSlides);
+    }, BANNER_AUTOPLAY_DELAY);
+}
+
+function stopBannerAutoplay() {
+    if (bannerAutoPlayInterval) {
+        clearInterval(bannerAutoPlayInterval);
+        bannerAutoPlayInterval = null;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   VEDETTE CARROUSEL
+═══════════════════════════════════════════════════════════ */
 let vedetteCurrentSlide = 0;
 let vedetteTotalSlides = 0;
 let vedetteAutoPlayInterval = null;
-const VEDETTE_AUTOPLAY_DELAY = 4000;
+const VEDETTE_AUTOPLAY_DELAY = 4500;
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const carousel = document.getElementById('vedetteCarousel');
     if (!carousel) return;
-    
-    const cards = carousel.querySelectorAll('.vedette-card');
-    const totalCards = cards.length;
-    
+
+    const cards = carousel.querySelectorAll('.card');
     let cardsPerSlide = getVedetteCardsPerSlide();
-    vedetteTotalSlides = Math.ceil(totalCards / cardsPerSlide);
-    
+    vedetteTotalSlides = Math.ceil(cards.length / cardsPerSlide);
+
     updateVedetteDots();
     startVedetteAutoplay();
-    
+
     const wrapper = carousel.closest('.vedette-carousel-wrapper');
     if (wrapper) {
         wrapper.addEventListener('mouseenter', stopVedetteAutoplay);
         wrapper.addEventListener('mouseleave', startVedetteAutoplay);
     }
-    
+
     let resizeTimeout;
-    window.addEventListener('resize', function() {
+    window.addEventListener('resize', function () {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
             const newCardsPerSlide = getVedetteCardsPerSlide();
             if (newCardsPerSlide !== cardsPerSlide) {
                 cardsPerSlide = newCardsPerSlide;
-                vedetteTotalSlides = Math.ceil(totalCards / cardsPerSlide);
+                vedetteTotalSlides = Math.ceil(cards.length / cardsPerSlide);
                 vedetteCurrentSlide = 0;
                 updateVedetteCarousel();
                 updateVedetteDots();
@@ -1778,13 +467,10 @@ function getVedetteCardsPerSlide() {
 }
 
 function moveVedetteCarousel(direction) {
-    const totalSlides = vedetteTotalSlides;
-    if (totalSlides <= 1) return;
-    
-    vedetteCurrentSlide = (vedetteCurrentSlide + direction + totalSlides) % totalSlides;
+    if (vedetteTotalSlides <= 1) return;
+    vedetteCurrentSlide = (vedetteCurrentSlide + direction + vedetteTotalSlides) % vedetteTotalSlides;
     updateVedetteCarousel();
     updateVedetteDots();
-    
     stopVedetteAutoplay();
     startVedetteAutoplay();
 }
@@ -1794,7 +480,6 @@ function goToVedetteSlide(index) {
     vedetteCurrentSlide = index;
     updateVedetteCarousel();
     updateVedetteDots();
-    
     stopVedetteAutoplay();
     startVedetteAutoplay();
 }
@@ -1802,37 +487,25 @@ function goToVedetteSlide(index) {
 function updateVedetteCarousel() {
     const carousel = document.getElementById('vedetteCarousel');
     if (!carousel) return;
-    
-    const cardsPerSlide = getVedetteCardsPerSlide();
-    const cardWidth = carousel.querySelector('.vedette-card')?.offsetWidth || 0;
+    const firstCard = carousel.querySelector('.card');
+    if (!firstCard) return;
+    const cardWidth = firstCard.offsetWidth;
     const gap = 16;
-    const offset = vedetteCurrentSlide * (cardWidth + gap) * cardsPerSlide;
-    
+    const offset = vedetteCurrentSlide * (cardWidth + gap) * getVedetteCardsPerSlide();
     carousel.style.transform = `translateX(-${offset}px)`;
-    
-    const prevBtn = document.querySelector('.prev-btn');
-    const nextBtn = document.querySelector('.next-btn');
-    if (prevBtn) prevBtn.disabled = vedetteCurrentSlide === 0;
-    if (nextBtn) nextBtn.disabled = vedetteCurrentSlide >= vedetteTotalSlides - 1;
 }
 
 function updateVedetteDots() {
     const dotsContainer = document.getElementById('vedetteDots');
     if (!dotsContainer) return;
-    
     const dots = dotsContainer.querySelectorAll('.dot');
-    dots.forEach((dot, index) => {
-        dot.classList.toggle('active', index === vedetteCurrentSlide);
-    });
+    dots.forEach((dot, index) => dot.classList.toggle('active', index === vedetteCurrentSlide));
 }
 
 function startVedetteAutoplay() {
-    if (vedetteAutoPlayInterval) return;
-    if (vedetteTotalSlides <= 1) return;
-    
+    if (vedetteAutoPlayInterval || vedetteTotalSlides <= 1) return;
     vedetteAutoPlayInterval = setInterval(() => {
-        const nextSlide = (vedetteCurrentSlide + 1) % vedetteTotalSlides;
-        goToVedetteSlide(nextSlide);
+        goToVedetteSlide((vedetteCurrentSlide + 1) % vedetteTotalSlides);
     }, VEDETTE_AUTOPLAY_DELAY);
 }
 
@@ -1843,4 +516,896 @@ function stopVedetteAutoplay() {
     }
 }
 </script>
+@endpush
+
+
+@push('styles')
+<style>
+/* ═══════════════════════════════════════════════════════════
+   HOME — DoyaImmo
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+    --c-success:    #1E7A47;
+    --c-success-bg: #E8F5E9;
+    --c-info:       #0D47A1;
+    --c-info-bg:    #E3F2FD;
+    --c-gold:       #D4AF37;
+}
+
+/* ═══ SECTIONS ═══ */
+.section {
+    padding: 56px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 26px;
+}
+.section-head--center {
+    flex-direction: column;
+    text-align: center;
+    gap: 6px;
+}
+.section-head__actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.eyebrow {
+    display: inline-block;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--rust);
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    margin-bottom: 6px;
+}
+
+.h-section {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(22px, 2.8vw, 26px);
+    line-height: 1.2;
+    margin: 0;
+    color: var(--ink);
+    letter-spacing: -.02em;
+}
+
+/* ═══════════════════════════════════════════
+   BANNIÈRE
+═══════════════════════════════════════════ */
+.banner-section {
+    padding: 20px 24px 0;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.banner-wrapper {
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    box-shadow: 0 12px 32px rgba(20, 30, 50, .1);
+}
+
+.banner-carousel {
+    display: flex;
+    transition: transform .6s ease-in-out;
+}
+
+.banner-slide { flex: 0 0 100%; }
+
+.banner-item {
+    position: relative;
+    aspect-ratio: 24 / 9;
+    background: #EEF1F6;
+    overflow: hidden;
+}
+.banner-item img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    animation: bannerZoom 14s ease-in-out infinite alternate;
+}
+@keyframes bannerZoom {
+    from { transform: scale(1); }
+    to   { transform: scale(1.05); }
+}
+
+.banner-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(8, 10, 18, .78) 0%, rgba(8, 10, 18, .25) 50%, transparent 100%);
+    pointer-events: none;
+}
+
+.banner-content {
+    position: absolute;
+    bottom: 22px;
+    left: 26px;
+    max-width: 55%;
+    color: #fff;
+    z-index: 2;
+    opacity: 0;
+}
+.banner-slide.active .banner-content {
+    animation: bannerFadeInUp .7s ease .15s forwards;
+}
+@keyframes bannerFadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.banner-content--droite { left: auto; right: 26px; text-align: right; }
+.banner-content--centre { left: 50%; right: auto; transform: translateX(-50%); text-align: center; max-width: 70%; }
+.banner-slide.active .banner-content--centre {
+    animation: bannerFadeInUpCentre .7s ease .15s forwards;
+}
+@keyframes bannerFadeInUpCentre {
+    from { opacity: 0; transform: translate(-50%, 10px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.banner-content h2 {
+    font-family: var(--display);
+    font-size: clamp(20px, 2.4vw, 28px);
+    font-weight: 800;
+    margin: 0 0 6px;
+    color: #fff;
+    letter-spacing: -.02em;
+    line-height: 1.2;
+}
+.banner-content p {
+    font-size: clamp(13px, 1vw, 14.5px);
+    margin: 0 0 12px;
+    opacity: .92;
+    line-height: 1.5;
+}
+
+.banner-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .18);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, .25);
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    z-index: 3;
+    transition: all .2s;
+    display: flex; align-items: center; justify-content: center;
+}
+.banner-nav:hover {
+    background: rgba(255, 255, 255, .3);
+    transform: translateY(-50%) scale(1.06);
+}
+.banner-nav--prev { left: 14px; }
+.banner-nav--next { right: 14px; }
+
+.banner-dots {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    z-index: 3;
+}
+.banner-dot {
+    width: 8px; height: 8px;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .55);
+    cursor: pointer;
+    transition: all .3s;
+}
+.banner-dot.active {
+    background: #fff;
+    width: 22px;
+}
+
+/* ═══════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════ */
+.hero {
+    padding: 56px 24px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 48px;
+    align-items: center;
+}
+
+.hero__title {
+    font-family: var(--display);
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 800;
+    line-height: 1.15;
+    margin: 0 0 14px;
+    color: var(--ink);
+    letter-spacing: -.03em;
+}
+.hero__title-accent { color: var(--rust); }
+
+.hero__sub {
+    font-size: clamp(14px, 1.1vw, 16px);
+    color: var(--text-soft);
+    line-height: 1.65;
+    margin: 0 0 24px;
+    max-width: 500px;
+}
+
+.hero__actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+}
+
+.hero__stats {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    flex-wrap: wrap;
+}
+.hero__stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.hero__stat strong {
+    font-family: var(--display);
+    font-size: clamp(20px, 2.2vw, 24px);
+    font-weight: 800;
+    color: var(--ink);
+    line-height: 1;
+}
+.hero__stat span {
+    font-size: 11.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    font-weight: 600;
+}
+.hero__stat-sep {
+    width: 1px;
+    height: 30px;
+    background: var(--border);
+    flex-shrink: 0;
+}
+
+.hero__aside {
+    background: linear-gradient(135deg, var(--ink), #2A2F3D);
+    border-radius: 18px;
+    padding: 20px 22px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+}
+.hero__aside::before {
+    content: '';
+    position: absolute;
+    top: -40%; right: -20%;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(181, 80, 42, .25), transparent 65%);
+    pointer-events: none;
+}
+
+.hero__aside-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: #B9BFCC;
+    margin-bottom: 14px;
+    position: relative;
+}
+.hero__aside-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #4ADE80;
+    box-shadow: 0 0 0 4px rgba(74, 222, 128, .2);
+    animation: pulseDot 2s ease-in-out infinite;
+}
+@keyframes pulseDot {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.15); }
+}
+
+.hero__aside-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+}
+
+.mini-card {
+    background: rgba(255, 255, 255, .05);
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 11px;
+    padding: 11px 14px;
+    transition: background .2s;
+}
+.mini-card:hover { background: rgba(255, 255, 255, .09); }
+
+.mini-card__title {
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    color: #fff;
+}
+.mini-card__loc {
+    font-size: 12px;
+    color: #9AA1AB;
+    margin-bottom: 6px;
+}
+
+.mini-card__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 11px;
+    color: #9AA1AB;
+}
+.mini-card__meta i { font-size: 10px; }
+.mini-card__budget {
+    color: #F5A623;
+    font-weight: 700;
+    font-family: var(--display);
+}
+
+.mini-empty {
+    text-align: center;
+    padding: 28px 16px;
+    color: #8A91A0;
+}
+.mini-empty i {
+    font-size: 26px;
+    display: block;
+    margin-bottom: 6px;
+    opacity: .4;
+}
+.mini-empty p {
+    margin: 0;
+    font-size: 12px;
+}
+
+/* ═══════════════════════════════════════════
+   VEDETTE (juste après le hero)
+═══════════════════════════════════════════ */
+.vedette-section {
+    padding-top: 40px;
+    padding-bottom: 24px;
+    background: linear-gradient(180deg, transparent 0%, #FFFBEB 100%);
+    border-radius: 24px;
+}
+
+.vedette-carousel-wrapper {
+    overflow: hidden;
+    position: relative;
+    padding: 4px 4px 12px;
+}
+
+.vedette-carousel {
+    display: flex;
+    gap: 16px;
+    transition: transform .5s ease-in-out;
+    will-change: transform;
+}
+
+.carousel-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-soft);
+    cursor: pointer;
+    transition: all .2s;
+    font-family: inherit;
+}
+.carousel-btn:hover {
+    border-color: var(--rust);
+    color: var(--rust);
+    background: rgba(181, 80, 42, .06);
+}
+
+.carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 14px;
+}
+.carousel-dots .dot {
+    width: 8px; height: 8px;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: var(--border);
+    cursor: pointer;
+    transition: all .3s;
+}
+.carousel-dots .dot.active {
+    background: var(--rust);
+    width: 22px;
+}
+
+/* ═══════════════════════════════════════════
+   CARD (unifiée)
+═══════════════════════════════════════════ */
+.card {
+    flex: 0 0 calc((100% - 32px) / 3);
+    min-width: 0;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, .07);
+    border-color: #d8d8d8;
+}
+.card.is-vedette {
+    border-color: var(--c-gold);
+}
+
+.card__media {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background: #F0F2F5;
+    overflow: hidden;
+}
+.card__media img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform .3s;
+}
+.card:hover .card__media img { transform: scale(1.05); }
+
+.card__placeholder {
+    width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 32px;
+    opacity: .3;
+}
+
+.card-badge {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    white-space: nowrap;
+    z-index: 2;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .15);
+}
+.card-badge i { font-size: 8px; }
+
+.card-badge--vedette {
+    top: 10px; left: 10px;
+    background: linear-gradient(135deg, var(--c-gold), #E8901A);
+    color: #fff;
+}
+.card-badge--status {
+    top: 10px; right: 10px;
+    background: rgba(255, 255, 255, .95);
+}
+.card-badge--status i { font-size: 5px; }
+.card-badge--status.is-dispo   { color: var(--c-success); }
+.card-badge--status.is-indispo { color: var(--muted); }
+
+.card__body {
+    padding: 14px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.card__title {
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--ink);
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card__price {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--rust);
+    line-height: 1.1;
+}
+.card__price small {
+    font-size: 11px;
+    font-weight: 700;
+    opacity: .75;
+    margin-left: 3px;
+}
+
+.card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    font-size: 11.5px;
+    color: var(--muted);
+}
+.card__meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.card__meta i {
+    color: var(--rust);
+    font-size: 10px;
+    opacity: .8;
+}
+
+.card__specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 11.5px;
+    color: var(--text-soft);
+    padding-top: 8px;
+    border-top: 1px dashed var(--border);
+}
+.card__specs span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.card__specs i {
+    color: var(--rust);
+    font-size: 10px;
+    opacity: .8;
+}
+
+.card__cta { margin-top: auto; }
+
+.biens-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+}
+.biens-grid .card {
+    flex: none;
+    max-width: none;
+}
+
+/* ═══════════════════════════════════════════
+   HOW
+═══════════════════════════════════════════ */
+.how-section { padding-top: 32px; }
+
+.how-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 32px;
+}
+
+.how-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+    text-align: center;
+    transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+.how-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .05);
+    border-color: #d8d8d8;
+}
+
+.how-card__num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--rust), #d4754a);
+    color: #fff;
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
+}
+
+.how-card h3 {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    color: var(--ink);
+}
+.how-card p {
+    font-size: 13px;
+    color: var(--text-soft);
+    line-height: 1.55;
+    margin: 0;
+}
+
+/* ═══════════════════════════════════════════
+   AGENCY BAND
+═══════════════════════════════════════════ */
+.agency-section { padding-top: 24px; padding-bottom: 24px; }
+
+.agency-band {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 22px 26px;
+    background: linear-gradient(135deg, #F0F7FF 0%, #FFFBF7 100%);
+    border: 1px solid #BBDEFB;
+    border-radius: 18px;
+    flex-wrap: wrap;
+}
+
+.agency-band__icon {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--rust), #d4754a);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    box-shadow: 0 6px 16px rgba(181, 80, 42, .25);
+}
+
+.agency-band__content {
+    flex: 1;
+    min-width: 240px;
+}
+.agency-band__content h3 {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: var(--ink);
+}
+.agency-band__content p {
+    font-size: 13.5px;
+    color: var(--text-soft);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ═══════════════════════════════════════════
+   CTA FINAL
+═══════════════════════════════════════════ */
+.cta-section { padding-top: 24px; padding-bottom: 64px; }
+
+.cta-band {
+    background: linear-gradient(135deg, var(--ink) 0%, #2A2F3D 100%);
+    border-radius: 20px;
+    padding: 44px 32px;
+    text-align: center;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+}
+.cta-band::before {
+    content: '';
+    position: absolute;
+    top: -50%; right: -15%;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(181, 80, 42, .3), transparent 65%);
+    pointer-events: none;
+}
+
+.cta-band h2 {
+    font-family: var(--display);
+    font-size: clamp(22px, 2.6vw, 28px);
+    font-weight: 800;
+    margin: 0 0 8px;
+    color: #fff;
+    letter-spacing: -.02em;
+    position: relative;
+}
+.cta-band p {
+    font-size: clamp(13px, 1vw, 14.5px);
+    color: #B9BFCC;
+    max-width: 480px;
+    margin: 0 auto 22px;
+    line-height: 1.6;
+    position: relative;
+}
+.cta-band__actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    position: relative;
+}
+.btn-ghost-on-dark {
+    background: rgba(255, 255, 255, .1);
+    color: #fff;
+    border-color: rgba(255, 255, 255, .25);
+}
+.btn-ghost-on-dark:hover {
+    background: rgba(255, 255, 255, .18);
+    color: #fff;
+    border-color: rgba(255, 255, 255, .4);
+}
+
+/* ═══════════════════════════════════════════
+   BOUTONS
+═══════════════════════════════════════════ */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .2s ease;
+    white-space: nowrap;
+}
+.btn-rust {
+    background: var(--rust);
+    color: #fff;
+    border-color: var(--rust);
+}
+.btn-rust:hover {
+    background: #9A4523;
+    color: #fff;
+    border-color: #9A4523;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
+}
+.btn-ghost {
+    background: transparent;
+    color: var(--text-soft);
+    border-color: var(--border);
+}
+.btn-ghost:hover {
+    background: var(--surface);
+    border-color: var(--rust);
+    color: var(--rust);
+}
+.btn-sm { padding: 7px 13px; font-size: 12px; }
+.btn-lg { padding: 13px 22px; font-size: 14px; }
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+    .hero { gap: 32px; }
+}
+
+@media (max-width: 900px) {
+    .hero {
+        grid-template-columns: 1fr;
+        gap: 26px;
+    }
+    .hero__aside { order: 2; }
+    .hero__content { order: 1; }
+
+    .banner-item { aspect-ratio: 16 / 9; }
+    .banner-content { max-width: 75%; }
+
+    .how-grid { grid-template-columns: 1fr 1fr; }
+    .how-grid .how-card:last-child { grid-column: 1 / -1; }
+
+    .agency-band { padding: 20px; gap: 16px; }
+}
+
+@media (max-width: 768px) {
+    .section { padding: 40px 18px; }
+    .banner-section { padding: 16px 18px 0; }
+    .hero { padding: 40px 18px 20px; }
+
+    .hero__title { font-size: 26px; }
+    .hero__sub { font-size: 14px; }
+    .hero__actions { flex-direction: column; }
+    .hero__actions .btn { width: 100%; }
+
+    .how-grid { grid-template-columns: 1fr; }
+
+    .card { flex: 0 0 calc((100% - 16px) / 2); }
+    .biens-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+
+    .agency-band {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        padding: 22px 20px;
+    }
+    .agency-band__icon { margin: 0 auto; }
+    .agency-band .btn { width: 100%; }
+
+    .cta-band { padding: 32px 20px; }
+    .cta-band__actions { flex-direction: column; }
+    .cta-band__actions .btn { width: 100%; }
+
+    .banner-nav { width: 34px; height: 34px; font-size: 12px; }
+    .banner-nav--prev { left: 10px; }
+    .banner-nav--next { right: 10px; }
+}
+
+@media (max-width: 480px) {
+    .section { padding: 32px 14px; }
+    .banner-section { padding: 14px 14px 0; }
+    .hero { padding: 32px 14px 16px; }
+
+    .hero__title { font-size: 22px; }
+
+    .banner-item { aspect-ratio: 3 / 2; }
+    .banner-content { max-width: 88%; bottom: 14px; left: 14px; }
+    .banner-content h2 { font-size: 16px; }
+    .banner-content p { font-size: 11.5px; margin-bottom: 10px; }
+    .banner-dots { bottom: 12px; }
+
+    .card { flex: 0 0 100%; }
+    .biens-grid { grid-template-columns: 1fr; gap: 12px; }
+
+    .cta-band { padding: 28px 18px; }
+
+    .hero__aside { padding: 16px 18px; }
+    .mini-card { padding: 10px 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+    .banner-item img { animation: none !important; }
+    .hero__aside-dot { animation: none !important; }
+}
+</style>
 @endpush

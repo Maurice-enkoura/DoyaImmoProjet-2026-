@@ -52,8 +52,8 @@ class BienImmobilier extends Model
     protected $casts = [
         'type_bien' => TypeBienEnum::class,
         'type_contrat' => TypeContratEnum::class,
-        'prix' => 'decimal:2',
-        'surface' => 'decimal:2',
+        'prix' => 'integer',
+        'surface' => 'integer',
         'parking_disponible' => 'boolean',
         'est_meuble' => 'boolean',
         'climatisation' => 'boolean',

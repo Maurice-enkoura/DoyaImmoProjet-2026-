@@ -1,6 +1,11 @@
 @extends('layouts.app')
 
 @section('title', 'Conditions Générales d\'Utilisation — DoyaImmo')
+@section('meta_description', 'Consultez les Conditions Générales d\'Utilisation de DoyaImmo. Cadre légal, droits et obligations des utilisateurs de la plateforme immobilière.')
+@section('canonical', 'https://doyaimmo.com/cgu')
+@section('og_title', 'Conditions Générales d\'Utilisation — DoyaImmo')
+@section('og_description', 'Consultez les Conditions Générales d\'Utilisation de DoyaImmo. Cadre légal, droits et obligations des utilisateurs.')
+@section('robots', 'index, follow')
 
 @section('content')
 <div class="legal-wrap">

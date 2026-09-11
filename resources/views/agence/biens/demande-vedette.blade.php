@@ -91,9 +91,9 @@
             <p style="margin:0;font-size:13px;color:#0D47A1;">
                 <i class="fa-solid fa-phone" style="margin-right:8px;"></i>
                 Pour finaliser votre demande, contactez DoyaImmo au 
-                <strong>+221 78 000 00 00</strong> 
+                <strong>+221 774612082</strong> 
                 ou par WhatsApp au 
-                <strong>+221 78 000 00 00</strong>
+                <strong>+221 774612082</strong>
             </p>
         </div>
     @endif

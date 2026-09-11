@@ -83,143 +83,154 @@ class AgenceController extends Controller
     /**
      * Tableau de bord de l'agence
      */
-    public function dashboard()
-    {
-        $agence = Auth::user()->agence;
+public function dashboard()
+{
+    $agence = Auth::user()->agence;
 
-        // Abonnement
+    // ✅ Vérifier si le mode abonnement est actif
+    $abonnementActif = config('abonnement.actif', false);
+    $modeGratuit = config('abonnement.mode_gratuit', true);
+
+    // ✅ Abonnement - soit réel, soit factice en mode gratuit
+    if ($abonnementActif && !$modeGratuit) {
         $abonnementActuel = $agence->abonnements()
             ->where('statut', true)
             ->where('date_fin', '>', now())
             ->first();
 
-        // ✅ Calcul des offres restantes avec gestion d'erreur
         $offresUtilisees = $agence->propositions()
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->count();
 
-        // ✅ Sécuriser la récupération de la limite d'offres
-        $limiteOffres = 0;
-        if ($abonnementActuel) {
-            try {
-                if ($abonnementActuel->formule) {
-                    $limiteOffres = $abonnementActuel->formule->limiteOffres();
-                } else {
-                    $limiteOffres = 5;
-                }
-            } catch (\Exception $e) {
-                $limiteOffres = 5;
-                \Log::warning('Formule d\'abonnement invalide pour l\'agence ID: ' . $agence->id);
-            }
-        }
-
+        $limiteOffres = $abonnementActuel ? $abonnementActuel->formule->limiteOffres() : 0;
         $offresRestantes = $abonnementActuel ? max(0, $limiteOffres - $offresUtilisees) : 0;
         $pourcentageOffres = ($abonnementActuel && $limiteOffres !== PHP_INT_MAX && $limiteOffres > 0)
             ? round(($offresUtilisees / $limiteOffres) * 100)
             : 0;
         $peutEnvoyerOffres = $abonnementActuel && $offresRestantes > 0;
-
-        // ✅ Récupérer les IDs des besoins actifs (en_attente ou en_cours)
-        $besoinsActifsIds = DemandeImmobiliere::whereIn('statut', [
-            StatutDemandeEnum::EN_ATTENTE->value,
-            StatutDemandeEnum::EN_COURS->value
-        ])->pluck('id')->toArray();
-
-        // Statistiques
-        $stats = [
-            'besoins_disponibles' => DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE->value)->count(),
-            'offres_envoyees' => $agence->propositions()
-                ->whereIn('demande_id', $besoinsActifsIds)
-                ->whereMonth('created_at', now()->month)
-                ->whereYear('created_at', now()->year)
-                ->count(),
-            'rendezvous_a_venir' => $agence->rendezVous()
-                ->whereIn('statut', [
-                    StatutRendezVousEnum::PLANIFIE->value,
-                    StatutRendezVousEnum::CONFIRME->value
-                ])
-                ->where('date_visite', '>=', now()->toDateString())
-                ->count(),
-            'note_moyenne' => $agence->evaluations()->avg('note') ?? 0,
+        $estPro = $abonnementActuel && $abonnementActuel->formule->value === 'pro';
+    } else {
+        $abonnementActuel = (object) [
+            'formule' => (object) [
+                'value' => 'pro',
+                'label' => 'Pro (gratuit)',
+                'limiteOffres' => function() { return PHP_INT_MAX; },
+                'prixMensuel' => function() { return '0 FCFA (offert)'; },
+            ],
+            'date_fin' => now()->addYears(10),
+            'statut' => true,
         ];
 
-        // Derniers besoins disponibles
-        $derniersBesoins = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE->value)
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get()
-            ->map(function ($besoin) {
-                if (is_string($besoin->statut)) {
-                    $besoin->statut = StatutDemandeEnum::from($besoin->statut);
-                }
-                if (is_string($besoin->type_bien)) {
-                    $besoin->type_bien = TypeBienEnum::from($besoin->type_bien);
-                }
-                if (is_string($besoin->type_operation)) {
-                    $besoin->type_operation = TypeOperationEnum::from($besoin->type_operation);
-                }
-                return $besoin;
-            });
-
-        // Prochains rendez-vous
-        $prochainsRendezVous = $agence->rendezVous()
-            ->with(['proposition.bien', 'particulier.user'])
-            ->whereIn('statut', [
-                StatutRendezVousEnum::PLANIFIE->value,
-                StatutRendezVousEnum::CONFIRME->value
-            ])
-            ->where('date_visite', '>=', now()->toDateString())
-            ->orderBy('date_visite', 'asc')
-            ->limit(3)
-            ->get()
-            ->map(function ($rdv) {
-                if (is_string($rdv->statut)) {
-                    $rdv->statut = StatutRendezVousEnum::from($rdv->statut);
-                }
-                return $rdv;
-            });
-
-        // Derniers avis
-        $derniersAvis = $agence->evaluations()
-            ->with('particulier.user')
-            ->orderBy('created_at', 'desc')
-            ->limit(3)
-            ->get();
-
-        // Pour la sidebar
-        $besoinsDisponibles = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE->value)->count();
-        $rendezvousAVenir = $agence->rendezVous()
-            ->whereIn('statut', [
-                StatutRendezVousEnum::PLANIFIE->value,
-                StatutRendezVousEnum::CONFIRME->value
-            ])
-            ->where('date_visite', '>=', now()->toDateString())
+        $offresUtilisees = $agence->propositions()
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
             ->count();
 
-        // Notifications
-        $notifData = $this->getNotifications();
-
-        $messages = [];
-        $messagesCount = 0;
-
-        return view('agence.dashboard', array_merge(compact(
-            'stats',
-            'derniersBesoins',
-            'prochainsRendezVous',
-            'derniersAvis',
-            'besoinsDisponibles',
-            'rendezvousAVenir',
-            'abonnementActuel',
-            'offresUtilisees',
-            'offresRestantes',
-            'limiteOffres',
-            'pourcentageOffres',
-            'peutEnvoyerOffres',
-            'messages',
-            'messagesCount'
-        ), $notifData));
+        $limiteOffres = PHP_INT_MAX;
+        $offresRestantes = PHP_INT_MAX;
+        $pourcentageOffres = 0;
+        $peutEnvoyerOffres = true;
+        $estPro = true;
     }
+
+    // ✅ Statistiques
+    $stats = [
+        'besoins_disponibles' => DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE->value)->count(),
+        'offres_envoyees' => $agence->propositions()
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count(),
+        'rendezvous_a_venir' => $agence->rendezVous()
+            ->whereIn('statut', [
+                StatutRendezVousEnum::PLANIFIE->value,
+                StatutRendezVousEnum::CONFIRME->value
+            ])
+            ->where('date_visite', '>=', now()->toDateString())
+            ->count(),
+        'note_moyenne' => $agence->evaluations()->avg('note') ?? 0,
+    ];
+
+    // ✅ Dernières demandes
+    $derniersBesoins = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE->value)
+        ->orderBy('created_at', 'desc')
+        ->limit(6)
+        ->get()
+        ->map(function ($besoin) {
+            if (is_string($besoin->statut)) {
+                $besoin->statut = StatutDemandeEnum::from($besoin->statut);
+            }
+            if (is_string($besoin->type_bien)) {
+                $besoin->type_bien = TypeBienEnum::from($besoin->type_bien);
+            }
+            return $besoin;
+        });
+
+    // ✅ Prochains rendez-vous
+    $prochainsRendezVous = $agence->rendezVous()
+        ->with(['proposition.bien', 'particulier.user'])
+        ->whereIn('statut', [
+            StatutRendezVousEnum::PLANIFIE->value,
+            StatutRendezVousEnum::CONFIRME->value
+        ])
+        ->where('date_visite', '>=', now()->toDateString())
+        ->orderBy('date_visite', 'asc')
+        ->limit(3)
+        ->get();
+
+    // ✅ Derniers avis
+    $derniersAvis = $agence->evaluations()
+        ->with('particulier.user')
+        ->orderBy('created_at', 'desc')
+        ->limit(3)
+        ->get();
+
+    // ✅ BIENS EN VEDETTE ACTIVE UNIQUEMENT
+    $biensEnVedette = $agence->biens()
+        ->where('est_vedette', true)
+        ->where('vedette_fin', '>', now())  // ✅ Vedette non expirée
+        ->with('medias')
+        ->latest()
+        ->take(6)
+        ->get();
+
+    // ✅ Pour la sidebar
+    $besoinsDisponibles = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE->value)->count();
+    $rendezvousAVenir = $agence->rendezVous()
+        ->whereIn('statut', [
+            StatutRendezVousEnum::PLANIFIE->value,
+            StatutRendezVousEnum::CONFIRME->value
+        ])
+        ->where('date_visite', '>=', now()->toDateString())
+        ->count();
+
+    // ✅ Notifications
+    $notifData = $this->getNotifications();
+
+    $messages = [];
+    $messagesCount = 0;
+
+    return view('agence.dashboard', array_merge(compact(
+        'stats',
+        'derniersBesoins',
+        'prochainsRendezVous',
+        'derniersAvis',
+        'besoinsDisponibles',
+        'rendezvousAVenir',
+        'abonnementActuel',
+        'offresUtilisees',
+        'offresRestantes',
+        'limiteOffres',
+        'pourcentageOffres',
+        'peutEnvoyerOffres',
+        'messages',
+        'messagesCount',
+        'abonnementActif',
+        'modeGratuit',
+        'estPro',
+        'biensEnVedette'
+    ), $notifData));
+}
     
     // ==================== GESTION DES BIENS EN VEDETTE ====================
 
@@ -421,126 +432,104 @@ class AgenceController extends Controller
     /**
      * Liste des demandes disponibles avec score de compatibilité
      */
-    public function demandes(Request $request)
-    {
-        // ✅ Supprimer automatiquement les demandes expirées
-        DemandeImmobiliere::supprimerDemandesExpirees();
+   /**
+ * Liste des demandes disponibles avec score de compatibilité
+ */
+public function demandes(Request $request)
+{
+    // ✅ Supprimer automatiquement les demandes expirées
+    DemandeImmobiliere::supprimerDemandesExpirees();
 
-        $agence = Auth::user()->agence;
-        $onglet = $request->get('onglet', 'compatibles');
+    $agence = Auth::user()->agence;
+    $onglet = $request->get('onglet', 'compatibles');
 
-        // ✅ Récupérer uniquement les zones des demandes non expirées
-        $zones = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)
-            ->distinct()
-            ->pluck('zone_recherchee')
-            ->toArray();
+    // ✅ Récupérer les filtres
+    $filters = [
+        'zone' => $request->get('zone'),
+        'type_bien' => $request->get('type_bien'),
+        'type_operation' => $request->get('type_operation'),
+        'search' => $request->get('search'),
+    ];
 
-        if ($onglet === 'compatibles') {
-            $biens = $agence->biens()->get();
+    // ✅ Récupérer uniquement les zones des demandes non expirées (pour le filtre)
+    $zones = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)
+        ->distinct()
+        ->pluck('zone_recherchee')
+        ->toArray();
 
-            if ($biens->isEmpty()) {
-                $perPage = 12;
-                $currentPage = $request->get('page', 1);
+    // ✅ Appliquer les filtres sur la requête de base
+    $baseQuery = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE);
+    
+    if ($filters['zone']) {
+        $baseQuery->where('zone_recherchee', $filters['zone']);
+    }
+    
+    if ($filters['type_bien']) {
+        $baseQuery->where('type_bien', $filters['type_bien']);
+    }
+    
+    if ($filters['type_operation']) {
+        $baseQuery->where('type_operation', $filters['type_operation']);
+    }
+    
+    if ($filters['search']) {
+        $baseQuery->where(function($q) use ($filters) {
+            $q->where('zone_recherchee', 'like', '%' . $filters['search'] . '%')
+              ->orWhere('description', 'like', '%' . $filters['search'] . '%');
+        });
+    }
 
-                $demandes = new \Illuminate\Pagination\LengthAwarePaginator(
-                    collect(),
-                    0,
-                    $perPage,
-                    $currentPage,
-                    ['path' => $request->url(), 'query' => $request->query()]
-                );
+    // ✅ Récupérer les demandes filtrées
+    $toutesDemandesFiltrees = $baseQuery->get();
+    $compteurTotal = $toutesDemandesFiltrees->count();
 
-                $compteurCompatibles = 0;
-                $compteurTotal = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count();
-            } else {
-                $demandesCollection = collect();
+    if ($onglet === 'compatibles') {
+        $biens = $agence->biens()->get();
 
-                // ✅ Récupérer les demandes en attente (non expirées car déjà supprimées)
-                $toutesDemandes = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->get();
+        if ($biens->isEmpty()) {
+            $perPage = 12;
+            $currentPage = $request->get('page', 1);
 
-                foreach ($toutesDemandes as $demande) {
-                    $meilleurScore = 0;
-                    $meilleurBien = null;
-                    $meilleursDetails = [];
+            $demandes = new \Illuminate\Pagination\LengthAwarePaginator(
+                collect(),
+                0,
+                $perPage,
+                $currentPage,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
 
-                    foreach ($biens as $bien) {
-                        $match = $demande->calculerScore($bien);
-                        if ($match['score'] > $meilleurScore) {
-                            $meilleurScore = $match['score'];
-                            $meilleurBien = $bien;
-                            $meilleursDetails = $match['details'];
-                        }
-                    }
-
-                    if ($meilleurScore > 0) {
-                        $demandesCollection->push((object) [
-                            'demande' => $demande,
-                            'score' => $meilleurScore,
-                            'niveau' => $this->getNiveau($meilleurScore),
-                            'bien' => $meilleurBien,
-                            'details' => $meilleursDetails
-                        ]);
-                    }
-                }
-
-                $demandesCollection = $demandesCollection->sortByDesc('score')->values();
-                $compteurCompatibles = $demandesCollection->count();
-                $compteurTotal = $toutesDemandes->count();
-
-                $perPage = 12;
-                $currentPage = $request->get('page', 1);
-                $offset = ($currentPage - 1) * $perPage;
-                $items = $demandesCollection->slice($offset, $perPage)->values();
-                $total = $demandesCollection->count();
-
-                $demandes = new \Illuminate\Pagination\LengthAwarePaginator(
-                    $items,
-                    $total,
-                    $perPage,
-                    $currentPage,
-                    ['path' => $request->url(), 'query' => $request->query()]
-                );
-            }
+            $compteurCompatibles = 0;
         } else {
-            // ✅ Onglet "toutes"
-            $query = DemandeImmobiliere::with(['particulier.user', 'propositions'])
-                ->where('statut', StatutDemandeEnum::EN_ATTENTE);
+            $demandesCollection = collect();
 
-            // ... filtres ...
-
-            $demandes = $query->orderBy('created_at', 'desc')->paginate(12);
-
-            // ✅ Ajouter le score de compatibilité
-            $biens = $agence->biens()->get();
-            $demandes->getCollection()->transform(function ($demande) use ($biens) {
+            // ✅ Parcourir uniquement les demandes filtrées
+            foreach ($toutesDemandesFiltrees as $demande) {
                 $meilleurScore = 0;
                 $meilleurBien = null;
+                $meilleursDetails = [];
 
                 foreach ($biens as $bien) {
                     $match = $demande->calculerScore($bien);
                     if ($match['score'] > $meilleurScore) {
                         $meilleurScore = $match['score'];
                         $meilleurBien = $bien;
+                        $meilleursDetails = $match['details'];
                     }
                 }
 
-                $demande->score = $meilleurScore;
-                $demande->niveau = $meilleurScore > 0 ? $this->getNiveau($meilleurScore) : 'Aucune correspondance';
-                $demande->bien = $meilleurBien;
+                if ($meilleurScore > 0) {
+                    $demandesCollection->push((object) [
+                        'demande' => $demande,
+                        'score' => $meilleurScore,
+                        'niveau' => $this->getNiveau($meilleurScore),
+                        'bien' => $meilleurBien,
+                        'details' => $meilleursDetails
+                    ]);
+                }
+            }
 
-                return $demande;
-            });
-
-            // ✅ Séparer compatibles et non compatibles
-            $compatibles = $demandes->getCollection()->filter(function ($demande) {
-                return $demande->score > 0;
-            });
-
-            $nonCompatibles = $demandes->getCollection()->filter(function ($demande) {
-                return $demande->score == 0;
-            });
-
-            $demandesCollection = $compatibles->concat($nonCompatibles);
+            $demandesCollection = $demandesCollection->sortByDesc('score')->values();
+            $compteurCompatibles = $demandesCollection->count();
 
             $perPage = 12;
             $currentPage = $request->get('page', 1);
@@ -555,25 +544,87 @@ class AgenceController extends Controller
                 $currentPage,
                 ['path' => $request->url(), 'query' => $request->query()]
             );
-
-            $compteurCompatibles = $compatibles->count();
-            $compteurTotal = $demandes->total();
         }
+    } else {
+        // ✅ Onglet "toutes" - Utiliser la requête déjà filtrée
+        $query = $baseQuery->with(['particulier.user', 'propositions']);
 
-        $stats = [
-            'compatibles' => $compteurCompatibles ?? 0,
-            'total' => $compteurTotal ?? $demandes->total(),
-        ];
+        $demandes = $query->orderBy('created_at', 'desc')->paginate(12);
 
-        $notifData = $this->getNotifications();
+        // ✅ Ajouter le score de compatibilité
+        $biens = $agence->biens()->get();
+        $demandes->getCollection()->transform(function ($demande) use ($biens) {
+            $meilleurScore = 0;
+            $meilleurBien = null;
 
-        return view('agence.demandes.index', array_merge(compact(
-            'demandes',
-            'zones',
-            'onglet',
-            'stats'
-        ), $notifData));
+            foreach ($biens as $bien) {
+                $match = $demande->calculerScore($bien);
+                if ($match['score'] > $meilleurScore) {
+                    $meilleurScore = $match['score'];
+                    $meilleurBien = $bien;
+                }
+            }
+
+            $demande->score = $meilleurScore;
+            $demande->niveau = $meilleurScore > 0 ? $this->getNiveau($meilleurScore) : 'Aucune correspondance';
+            $demande->bien = $meilleurBien;
+
+            return $demande;
+        });
+
+        // ✅ Séparer compatibles et non compatibles sur la collection paginée
+        $compatibles = $demandes->getCollection()->filter(function ($demande) {
+            return $demande->score > 0;
+        });
+
+        $nonCompatibles = $demandes->getCollection()->filter(function ($demande) {
+            return $demande->score == 0;
+        });
+
+        // ✅ Pour les statistiques, compter sur TOUTES les demandes filtrées (pas seulement la page)
+        $compteurCompatibles = $toutesDemandesFiltrees->filter(function($demande) use ($biens) {
+            foreach ($biens as $bien) {
+                $match = $demande->calculerScore($bien);
+                if ($match['score'] > 0) {
+                    return true;
+                }
+            }
+            return false;
+        })->count();
+
+        // Réorganiser la collection paginée : compatibles en premier
+        $demandesCollection = $compatibles->concat($nonCompatibles);
+
+        $perPage = 12;
+        $currentPage = $request->get('page', 1);
+        $offset = ($currentPage - 1) * $perPage;
+        $items = $demandesCollection->slice($offset, $perPage)->values();
+        $total = $demandesCollection->count();
+
+        $demandes = new \Illuminate\Pagination\LengthAwarePaginator(
+            $items,
+            $total,
+            $perPage,
+            $currentPage,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
     }
+
+    // ✅ Statistiques avec les filtres appliqués
+    $stats = [
+        'compatibles' => $compteurCompatibles ?? 0,
+        'total' => $compteurTotal,
+    ];
+
+    $notifData = $this->getNotifications();
+
+    return view('agence.demandes.index', array_merge(compact(
+        'demandes',
+        'zones',
+        'onglet',
+        'stats'
+    ), $notifData));
+}
 
     private function getNiveau(int $score): string
     {
@@ -993,33 +1044,64 @@ private function genererCreneauxDepuisPlanning($agence)
     /**
      * Liste des rendez-vous
      */
-    public function rendezvous()
-    {
-        $agence = Auth::user()->agence;
-        $rendezVous = RendezVous::with(['proposition.demande', 'proposition.bien', 'particulier.user'])
-            ->where('agence_id', $agence->id)
-            ->orderBy('date_visite', 'asc')
-            ->paginate(10);
+   /**
+ * Liste des rendez-vous - UNIQUEMENT planifiés et confirmés
+ */
+public function rendezvous()
+{
+    $agence = Auth::user()->agence;
+    
+    // ✅ UNIQUEMENT les rendez-vous planifiés et confirmés
+    $rendezVous = RendezVous::with(['proposition.demande', 'proposition.bien', 'particulier.user'])
+        ->where('agence_id', $agence->id)
+        ->whereIn('statut', [
+            StatutRendezVousEnum::PLANIFIE->value,
+            StatutRendezVousEnum::CONFIRME->value
+        ])
+        ->orderBy('date_visite', 'asc')
+        ->paginate(10);
 
+    // ✅ Vérification du mode abonnement
+    $abonnementActif = config('abonnement.actif', false);
+    $modeGratuit = config('abonnement.mode_gratuit', true);
+
+    // ✅ Si mode gratuit, on simule un abonnement actif
+    if (!$abonnementActif || $modeGratuit) {
+        $abonnementActuel = (object) [
+            'formule' => (object) [
+                'value' => 'pro',
+                'label' => 'Pro (gratuit)',
+            ],
+            'date_fin' => now()->addYears(10),
+            'statut' => true,
+        ];
+    } else {
         $abonnementActuel = $agence->abonnements()
             ->where('statut', true)
             ->where('date_fin', '>', now())
             ->first();
-        $besoinsDisponibles = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count();
-        $rendezvousAVenir = $agence->rendezVous()
-            ->whereIn('statut', [StatutRendezVousEnum::PLANIFIE, StatutRendezVousEnum::CONFIRME])
-            ->where('date_visite', '>=', now()->toDateString())
-            ->count();
-
-        $notifData = $this->getNotifications();
-
-        return view('agence.rendezvous.index', array_merge(compact(
-            'rendezVous',
-            'abonnementActuel',
-            'besoinsDisponibles',
-            'rendezvousAVenir'
-        ), $notifData));
     }
+
+    $besoinsDisponibles = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count();
+    $rendezvousAVenir = $agence->rendezVous()
+        ->whereIn('statut', [
+            StatutRendezVousEnum::PLANIFIE,
+            StatutRendezVousEnum::CONFIRME
+        ])
+        ->where('date_visite', '>=', now()->toDateString())
+        ->count();
+
+    $notifData = $this->getNotifications();
+
+    return view('agence.rendezvous.index', array_merge(compact(
+        'rendezVous',
+        'abonnementActuel',
+        'besoinsDisponibles',
+        'rendezvousAVenir',
+        'abonnementActif',
+        'modeGratuit'
+    ), $notifData));
+}
 
     /**
      * Détail d'un rendez-vous
@@ -1514,157 +1596,222 @@ private function genererCreneauxDepuisPlanning($agence)
 
     // ==================== HISTORIQUE ====================
 
-    /**
-     * Historique des activités de l'agence
-     * Affiche uniquement les activités terminées ou annulées
-     */
-    public function historique()
-    {
-        $agence = Auth::user()->agence;
+  /**
+ * Historique des activités de l'agence
+ * Affiche UNIQUEMENT les activités terminées ou annulées
+ */
+public function historique()
+{
+    $agence = Auth::user()->agence;
 
-        $activites = collect();
+    $activites = collect();
 
-        // ✅ Propositions (offres envoyées) - UNIQUEMENT terminées ou annulées
-        $propositions = $agence->propositions()
-            ->with(['demande', 'bien.medias'])
-            ->whereIn('statut', [
-                StatutPropositionEnum::TERMINEE->value,
-                StatutPropositionEnum::REFUSEE->value
-            ])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'type' => 'proposition',
-                    'titre' => 'Offre envoyée',
-                    'description' => ($item->demande->type_bien->label() ?? 'Bien') . ' — ' . number_format($item->prix_propose, 0, ',', ' ') . ' FCFA',
-                    'date' => $item->created_at,
-                    'statut' => $item->statut->label(),
-                    'statut_class' => $this->getStatusClass($item->statut->value),
-                    'medias' => $item->bien ? $item->bien->medias : collect(),
-                    'details' => [
-                        'Bien' => $item->bien->titre ?? 'N/A',
-                        'Surface' => ($item->bien->surface ?? 0) . ' m²',
-                        'Prix proposé' => number_format($item->prix_propose, 0, ',', ' ') . ' FCFA',
-                        'Demande ID' => '#' . $item->demande_id,
-                        'Type de demande' => $item->demande->type_bien->label() ?? 'N/A',
-                        'Zone recherchée' => $item->demande->zone_recherchee ?? 'N/A',
-                        'Budget client' => number_format($item->demande->budget_maximum, 0, ',', ' ') . ' FCFA',
-                    ],
-                    'link' => route('agence.propositions.show', $item),
-                    'demande_link' => route('agence.demandes.show', ['demande' => $item->demande->slug]),
-                ];
-            });
+    // ✅ Propositions (offres envoyées) - UNIQUEMENT terminées ou annulées
+    $propositions = $agence->propositions()
+        ->with(['demande', 'bien.medias'])
+        ->whereIn('statut', [
+            StatutPropositionEnum::TERMINEE->value,
+            StatutPropositionEnum::REFUSEE->value
+        ])
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function ($item) {
+            return [
+                'type' => 'proposition',
+                'titre' => 'Offre envoyée',
+                'description' => ($item->demande->type_bien->label() ?? 'Bien') . ' — ' . number_format($item->prix_propose, 0, ',', ' ') . ' FCFA',
+                'date' => $item->created_at,
+                'statut' => $item->statut->label(),
+                'statut_class' => $this->getStatusClass($item->statut->value),
+                'medias' => $item->bien ? $item->bien->medias : collect(),
+                'details' => [
+                    'Bien' => $item->bien->titre ?? 'N/A',
+                    'Surface' => ($item->bien->surface ?? 0) . ' m²',
+                    'Prix proposé' => number_format($item->prix_propose, 0, ',', ' ') . ' FCFA',
+                    'Demande ID' => '#' . $item->demande_id,
+                    'Type de demande' => $item->demande->type_bien->label() ?? 'N/A',
+                    'Zone recherchée' => $item->demande->zone_recherchee ?? 'N/A',
+                    'Budget client' => number_format($item->demande->budget_maximum, 0, ',', ' ') . ' FCFA',
+                ],
+                'link' => route('agence.propositions.show', $item),
+                'demande_link' => route('agence.demandes.show', ['demande' => $item->demande->slug]),
+            ];
+        });
 
-        // ✅ Rendez-vous - UNIQUEMENT terminés ou annulés
-        $rendezVous = $agence->rendezVous()
-            ->with(['proposition.bien.medias', 'particulier.user', 'proposition.demande'])
-            ->whereIn('statut', [
-                StatutRendezVousEnum::TERMINE->value,
-                StatutRendezVousEnum::ANNULE->value
-            ])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'type' => 'rendezvous',
-                    'titre' => 'Rendez-vous',
-                    'description' => ($item->proposition->bien->titre ?? 'Bien') . ' — ' . ($item->particulier->user->prenom ?? 'Client'),
-                    'date' => $item->created_at,
-                    'statut' => $item->statut->label(),
-                    'statut_class' => $this->getStatusClass($item->statut->value),
-                    'medias' => $item->proposition->bien ? $item->proposition->bien->medias : collect(),
-                    'details' => [
-                        'Bien' => $item->proposition->bien->titre ?? 'N/A',
-                        'Date visite' => $item->date_visite->format('d/m/Y'),
-                        'Heure' => $item->heure_visite,
-                        'Client' => $item->particulier->user->prenom ?? 'N/A',
-                    ],
-                    'link' => route('agence.rendezvous.show', $item),
-                ];
-            });
+    // ✅ Rendez-vous - UNIQUEMENT terminés ou annulés
+    $rendezVous = $agence->rendezVous()
+        ->with(['proposition.bien.medias', 'particulier.user', 'proposition.demande'])
+        ->whereIn('statut', [
+            StatutRendezVousEnum::TERMINE->value,
+            StatutRendezVousEnum::ANNULE->value
+        ])
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function ($item) {
+            return [
+                'type' => 'rendezvous',
+                'titre' => 'Rendez-vous',
+                'description' => ($item->proposition->bien->titre ?? 'Bien') . ' — ' . ($item->particulier->user->prenom ?? 'Client'),
+                'date' => $item->created_at,
+                'statut' => $item->statut->label(),
+                'statut_class' => $this->getStatusClass($item->statut->value),
+                'medias' => $item->proposition->bien ? $item->proposition->bien->medias : collect(),
+                'details' => [
+                    'Bien' => $item->proposition->bien->titre ?? 'N/A',
+                    'Date visite' => $item->date_visite->format('d/m/Y'),
+                    'Heure' => $item->heure_visite,
+                    'Client' => $item->particulier->user->prenom ?? 'N/A',
+                ],
+                'link' => route('agence.rendezvous.show', $item),
+            ];
+        });
 
-        // ✅ Évaluations (avis reçus)
-        $evaluations = $agence->evaluations()
-            ->with(['particulier.user', 'proposition.bien.medias', 'proposition.demande'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'type' => 'evaluation',
-                    'titre' => 'Avis reçu',
-                    'description' => ($item->particulier->user->prenom ?? 'Client') . ' ' . ($item->particulier->user->nom ?? '') . ' — ' . $item->note . '/5',
-                    'date' => $item->created_at,
-                    'statut' => $item->note . '★',
-                    'statut_class' => $item->note >= 4 ? 'success' : 'default',
-                    'medias' => $item->proposition && $item->proposition->bien ? $item->proposition->bien->medias : collect(),
-                    'details' => [
-                        'Note' => $item->note . '/5',
-                        'Client' => $item->particulier->user->prenom ?? 'N/A',
-                        'Commentaire' => $item->commentaire ?? 'Aucun commentaire',
-                    ],
-                ];
-            });
+    // ✅ Évaluations (avis reçus)
+    $evaluations = $agence->evaluations()
+        ->with(['particulier.user', 'proposition.bien.medias', 'proposition.demande'])
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function ($item) {
+            return [
+                'type' => 'evaluation',
+                'titre' => 'Avis reçu',
+                'description' => ($item->particulier->user->prenom ?? 'Client') . ' ' . ($item->particulier->user->nom ?? '') . ' — ' . $item->note . '/5',
+                'date' => $item->created_at,
+                'statut' => $item->note . '★',
+                'statut_class' => $item->note >= 4 ? 'success' : 'default',
+                'medias' => $item->proposition && $item->proposition->bien ? $item->proposition->bien->medias : collect(),
+                'details' => [
+                    'Note' => $item->note . '/5',
+                    'Client' => $item->particulier->user->prenom ?? 'N/A',
+                    'Commentaire' => $item->commentaire ?? 'Aucun commentaire',
+                ],
+            ];
+        });
 
-        // Fusionner toutes les activités
-        $activites = $propositions->concat($rendezVous)->concat($evaluations)
-            ->sortByDesc('date')
-            ->values();
+    // Fusionner toutes les activités
+    $activites = $propositions->concat($rendezVous)->concat($evaluations)
+        ->sortByDesc('date')
+        ->values();
 
-        // Pagination
-        $perPage = request()->get('per_page', 15);
-        $currentPage = request()->get('page', 1);
-        $offset = ($currentPage - 1) * $perPage;
-        $items = $activites->slice($offset, $perPage)->values();
-        $total = $activites->count();
+    // Pagination
+    $perPage = request()->get('per_page', 15);
+    $currentPage = request()->get('page', 1);
+    $offset = ($currentPage - 1) * $perPage;
+    $items = $activites->slice($offset, $perPage)->values();
+    $total = $activites->count();
 
-        $activites = new \Illuminate\Pagination\LengthAwarePaginator(
-            $items,
-            $total,
-            $perPage,
-            $currentPage,
-            ['path' => request()->url(), 'query' => request()->query()]
-        );
+    $activites = new \Illuminate\Pagination\LengthAwarePaginator(
+        $items,
+        $total,
+        $perPage,
+        $currentPage,
+        ['path' => request()->url(), 'query' => request()->query()]
+    );
 
+    // ✅ Vérification du mode abonnement
+    $abonnementActif = config('abonnement.actif', false);
+    $modeGratuit = config('abonnement.mode_gratuit', true);
+
+    // ✅ Si mode gratuit, on simule un abonnement actif
+    if (!$abonnementActif || $modeGratuit) {
+        $abonnementActuel = (object) [
+            'formule' => (object) [
+                'value' => 'pro',
+                'label' => 'Pro (gratuit)',
+            ],
+            'date_fin' => now()->addYears(10),
+            'statut' => true,
+        ];
+    } else {
         $abonnementActuel = $agence->abonnements()
             ->where('statut', true)
             ->where('date_fin', '>', now())
             ->first();
-        $besoinsDisponibles = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count();
-        $rendezvousAVenir = $agence->rendezVous()
-            ->whereIn('statut', [StatutRendezVousEnum::PLANIFIE, StatutRendezVousEnum::CONFIRME])
-            ->where('date_visite', '>=', now()->toDateString())
-            ->count();
-
-        $notifData = $this->getNotifications();
-
-        return view('agence.historique', array_merge(compact(
-            'activites',
-            'abonnementActuel',
-            'besoinsDisponibles',
-            'rendezvousAVenir'
-        ), $notifData));
     }
 
-    /**
-     * Retourne la classe CSS selon le statut
-     */
-    private function getStatusClass($status)
-    {
-        $map = [
-            'en_attente' => 'warning',
-            'acceptee' => 'success',
-            'refusee' => 'danger',
-            'terminee' => 'success',
-            'annulee' => 'danger',
-            'planifie' => 'warning',
-            'confirme' => 'info',
-            'annule' => 'danger',
-            'termine' => 'success',
-        ];
+    $besoinsDisponibles = DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count();
+    $rendezvousAVenir = $agence->rendezVous()
+        ->whereIn('statut', [
+            StatutRendezVousEnum::PLANIFIE,
+            StatutRendezVousEnum::CONFIRME
+        ])
+        ->where('date_visite', '>=', now()->toDateString())
+        ->count();
 
-        return $map[$status] ?? 'default';
-    }
+    $notifData = $this->getNotifications();
+
+    return view('agence.historique', array_merge(compact(
+        'activites',
+        'abonnementActuel',
+        'besoinsDisponibles',
+        'rendezvousAVenir',
+        'abonnementActif',
+        'modeGratuit'
+    ), $notifData));
+}
+
+/**
+ * Retourne la classe CSS selon le statut
+ */
+private function getStatusClass($status)
+{
+    $map = [
+        'en_attente' => 'warning',
+        'acceptee' => 'success',
+        'refusee' => 'danger',
+        'terminee' => 'success',
+        'annulee' => 'danger',
+        'planifie' => 'warning',
+        'confirme' => 'info',
+        'annule' => 'danger',
+        'termine' => 'success',
+    ];
+
+    return $map[$status] ?? 'default';
+}
 
     // ==================== UTILITAIRES ====================
+
+
+    /**
+ * Vérifie si le système d'abonnement est actif
+ */
+private function abonnementActif(): bool
+{
+    return config('abonnement.actif', false);
+}
+
+/**
+ * Vérifie si le mode gratuit est activé
+ */
+private function modeGratuit(): bool
+{
+    return config('abonnement.mode_gratuit', true);
+}
+
+/**
+ * Récupère l'abonnement de l'agence (ou un abonnement factice en mode gratuit)
+ */
+private function getAbonnementActuel($agence)
+{
+    // Si les abonnements sont désactivés ou mode gratuit, retourner un abonnement factice
+    if (!$this->abonnementActif() || $this->modeGratuit()) {
+        return (object) [
+            'formule' => (object) [
+                'value' => 'pro',
+                'label' => 'Pro (gratuit)',
+                'limiteOffres' => function() { return PHP_INT_MAX; },
+                'prixMensuel' => function() { return '0 FCFA (offert)'; },
+            ],
+            'date_fin' => now()->addYears(10),
+            'statut' => true,
+            'formule' => 'pro',
+        ];
+    }
+
+    return $agence->abonnements()
+        ->where('statut', true)
+        ->where('date_fin', '>', now())
+        ->first();
+}
 }

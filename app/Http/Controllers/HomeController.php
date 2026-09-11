@@ -20,7 +20,7 @@ class HomeController extends Controller
     /**
      * Page d'accueil
      */
-    public function index()
+     public function index()
     {
         // ==================== BANNIÈRES ====================
         $bannieres = Banniere::actifs()

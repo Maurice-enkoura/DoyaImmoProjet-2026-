@@ -7,7 +7,7 @@
 @section('content')
 <div class="section-head">
     <div>
-        <h2>📋 Demandes</h2>
+        <h2>Demandes</h2>
         <p>{{ $demandes->total() }} demandes publiées sur la plateforme</p>
     </div>
 </div>
@@ -16,33 +16,33 @@
 <div class="kpi-grid">
     <div class="kpi-card">
         <div class="kpi-value">{{ $stats['total'] ?? 0 }}</div>
-        <div class="kpi-label">📊 Total</div>
+        <div class="kpi-label"> Total</div>
     </div>
     <div class="kpi-card">
         <div class="kpi-value" style="color:#E65100;">{{ $stats['en_attente'] ?? 0 }}</div>
-        <div class="kpi-label">⏳ En attente</div>
+        <div class="kpi-label"> En attente</div>
     </div>
     <div class="kpi-card">
         <div class="kpi-value" style="color:#0D47A1;">{{ $stats['en_cours'] ?? 0 }}</div>
-        <div class="kpi-label">🔄 En cours</div>
+        <div class="kpi-label"> En cours</div>
     </div>
     <div class="kpi-card">
         <div class="kpi-value" style="color:#1E7A47;">{{ $stats['terminees'] ?? 0 }}</div>
-        <div class="kpi-label">✅ Terminées</div>
+        <div class="kpi-label"> Terminées</div>
     </div>
     <div class="kpi-card">
         <div class="kpi-value" style="color:#C62828;">{{ $stats['annulees'] ?? 0 }}</div>
-        <div class="kpi-label">❌ Annulées</div>
+        <div class="kpi-label"> Annulées</div>
     </div>
 </div>
 
 <!-- Filtres -->
 <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <a href="{{ route('admin.demandes.index') }}" class="btn btn-sm {{ !request('filtre') ? 'btn-rust' : 'btn-ghost' }}">📋 Toutes</a>
-    <a href="{{ route('admin.demandes.index', ['filtre' => 'en_attente']) }}" class="btn btn-sm {{ request('filtre') === 'en_attente' ? 'btn-rust' : 'btn-ghost' }}">⏳ En attente</a>
-    <a href="{{ route('admin.demandes.index', ['filtre' => 'en_cours']) }}" class="btn btn-sm {{ request('filtre') === 'en_cours' ? 'btn-rust' : 'btn-ghost' }}">🔄 En cours</a>
-    <a href="{{ route('admin.demandes.index', ['filtre' => 'terminee']) }}" class="btn btn-sm {{ request('filtre') === 'terminee' ? 'btn-rust' : 'btn-ghost' }}">✅ Terminées</a>
-    <a href="{{ route('admin.demandes.index', ['filtre' => 'annulee']) }}" class="btn btn-sm {{ request('filtre') === 'annulee' ? 'btn-rust' : 'btn-ghost' }}">❌ Annulées</a>
+    <a href="{{ route('admin.demandes.index') }}" class="btn btn-sm {{ !request('filtre') ? 'btn-rust' : 'btn-ghost' }}"> Toutes</a>
+    <a href="{{ route('admin.demandes.index', ['filtre' => 'en_attente']) }}" class="btn btn-sm {{ request('filtre') === 'en_attente' ? 'btn-rust' : 'btn-ghost' }}"> En attente</a>
+    <a href="{{ route('admin.demandes.index', ['filtre' => 'en_cours']) }}" class="btn btn-sm {{ request('filtre') === 'en_cours' ? 'btn-rust' : 'btn-ghost' }}"> En cours</a>
+    <a href="{{ route('admin.demandes.index', ['filtre' => 'terminee']) }}" class="btn btn-sm {{ request('filtre') === 'terminee' ? 'btn-rust' : 'btn-ghost' }}"> Terminées</a>
+    <a href="{{ route('admin.demandes.index', ['filtre' => 'annulee']) }}" class="btn btn-sm {{ request('filtre') === 'annulee' ? 'btn-rust' : 'btn-ghost' }}"> Annulées</a>
     
     <!-- Recherche -->
     <form action="{{ route('admin.demandes.index') }}" method="GET" style="display:flex;gap:8px;margin-left:auto;">

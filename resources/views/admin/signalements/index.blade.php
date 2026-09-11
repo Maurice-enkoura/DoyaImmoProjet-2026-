@@ -67,14 +67,17 @@
                     <tr>
                         <td>
                             <div class="cell-main">
-                                @if($signalement->signalable_type === 'App\\Models\\BienImmobilier')
-                                    <i class="fa-solid fa-house"></i>
-                                @elseif($signalement->signalable_type === 'App\\Models\\DemandeImmobiliere')
-                                    <i class="fa-solid fa-file"></i>
-                                @else
-                                    <i class="fa-solid fa-building"></i>
-                                @endif
-                                {{ class_basename($signalement->signalable_type) }}
+                                @php
+                                    $type = class_basename($signalement->signalable_type);
+                                    $icon = match($type) {
+                                        'BienImmobilier' => 'fa-solid fa-house',
+                                        'DemandeImmobiliere' => 'fa-solid fa-file',
+                                        'Proposition' => 'fa-solid fa-handshake',
+                                        default => 'fa-solid fa-flag'
+                                    };
+                                @endphp
+                                <i class="{{ $icon }}"></i>
+                                {{ $type }}
                                 #{{ $signalement->signalable_id }}
                             </div>
                             <div class="cell-sub">{{ Str::limit($signalement->description, 60) }}</div>
@@ -113,30 +116,67 @@
                                 </span>
                             @endif
                         </td>
-                        <td><span class="meta-pill">{{ $signalement->motif_label ?? $signalement->motif }}</span></td>
                         <td>
-                            <span class="status-pill status-{{ $signalement->statut }}">
-                                {{ $signalement->statut_label ?? $signalement->statut }}
+                            <span class="meta-pill">
+                                @php
+                                    $motifColors = [
+                                        'fraude' => '#C62828',
+                                        'arnaque' => '#C62828',
+                                        'contenu_inapproprie' => '#E65100',
+                                        'fausse_annonce' => '#E65100',
+                                        'autre' => '#6A7280',
+                                    ];
+                                    $motifValue = is_object($signalement->motif) ? $signalement->motif->value : $signalement->motif;
+                                    $motifColor = $motifColors[$motifValue] ?? '#6A7280';
+                                @endphp
+                                <span style="color:{{ $motifColor }};font-weight:600;">
+                                    {{ is_object($signalement->motif) ? $signalement->motif->label() : $signalement->motif }}
+                                </span>
                             </span>
                         </td>
-                        <td>{{ $signalement->created_at->format('d/m/Y H:i') }}</td>
+                        <td>
+                            @php
+                                // ✅ CORRECTION : Récupérer la valeur du statut
+                                $statusValue = is_object($signalement->statut) ? $signalement->statut->value : $signalement->statut;
+                                
+                                $statusColors = [
+                                    'en_attente' => ['bg' => '#FFF8E1', 'color' => '#E65100', 'label' => 'En attente'],
+                                    'traite' => ['bg' => '#E8F5E9', 'color' => '#1E7A47', 'label' => 'Traité'],
+                                    'rejete' => ['bg' => '#FFEBEE', 'color' => '#C62828', 'label' => 'Rejeté'],
+                                ];
+                                
+                                // ✅ Utiliser la valeur pour accéder au tableau
+                                $colors = $statusColors[$statusValue] ?? $statusColors['en_attente'];
+                            @endphp
+                            <span class="status-pill" style="background:{{ $colors['bg'] }};color:{{ $colors['color'] }};border:1px solid {{ $colors['color'] }}20;">
+                                <i class="fa-solid fa-circle" style="font-size:6px;"></i>
+                                {{ $colors['label'] }}
+                            </span>
+                        </td>
+                        <td>
+                            <div style="font-size:12px;color:var(--text-soft);">
+                                {{ $signalement->created_at->format('d/m/Y H:i') }}
+                            </div>
+                        </td>
                         <td style="text-align:center;">
                             <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;">
                                 <a href="{{ route('admin.signalements.show', $signalement) }}" class="btn btn-sm btn-ghost" title="Voir">
                                     <i class="fa-solid fa-eye"></i>
                                 </a>
-                                @if($signalement->statut === 'en_attente')
+                                @if($statusValue === 'en_attente')
                                     <form action="{{ route('admin.signalements.traiter', $signalement) }}" method="POST" style="display:inline;">
                                         @csrf
                                         <input type="hidden" name="action" value="bloquer">
-                                        <button type="submit" class="btn btn-sm btn-danger" title="Bloquer l'agence" onclick="return confirm('Bloquer définitivement cette agence suite au signalement ?')">
+                                        <button type="submit" class="btn btn-sm" style="background:#C62828;color:#fff;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:12px;" 
+                                                onclick="return confirm('Bloquer définitivement cette agence suite au signalement ?')">
                                             <i class="fa-solid fa-ban"></i>
                                         </button>
                                     </form>
                                     <form action="{{ route('admin.signalements.traiter', $signalement) }}" method="POST" style="display:inline;">
                                         @csrf
                                         <input type="hidden" name="action" value="rejeter">
-                                        <button type="submit" class="btn btn-sm btn-success" title="Rejeter le signalement" onclick="return confirm('Rejeter ce signalement ?')">
+                                        <button type="submit" class="btn btn-sm" style="background:#1E7A47;color:#fff;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:12px;" 
+                                                onclick="return confirm('Rejeter ce signalement ?')">
                                             <i class="fa-solid fa-check"></i>
                                         </button>
                                     </form>
@@ -156,7 +196,283 @@
         </table>
     </div>
 
+    <!-- Pagination -->
     <div style="margin-top:16px;">
         {{ $signalements->appends(request()->query())->links() }}
     </div>
 @endsection
+
+@push('styles')
+<style>
+    /* ===== TABLE ===== */
+    .table-wrap {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: auto;
+    }
+
+    .table-wrap table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        min-width: 900px;
+    }
+
+    .table-wrap th {
+        padding: 12px 16px;
+        text-align: left;
+        background: #FAFBFC;
+        border-bottom: 1px solid var(--border);
+        font-weight: 600;
+        color: var(--text-soft);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .table-wrap td {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+    }
+
+    .table-wrap tr:last-child td {
+        border-bottom: none;
+    }
+
+    .table-wrap tr:hover td {
+        background: #F7F9FC;
+    }
+
+    /* ===== CELL ===== */
+    .cell-main {
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--ink);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .cell-main i {
+        color: var(--muted);
+        font-size: 13px;
+    }
+
+    .cell-sub {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+    }
+
+    /* ===== STATUS PILL ===== */
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    /* ===== META PILL ===== */
+    .meta-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        background: var(--border);
+        color: var(--text-soft);
+    }
+
+    /* ===== BOUTONS ===== */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-family: inherit;
+    }
+
+    .btn-sm {
+        padding: 4px 10px;
+        font-size: 11px;
+        border-radius: 6px;
+    }
+
+    .btn-rust {
+        background: var(--rust);
+        color: #fff;
+        border-color: var(--rust);
+    }
+
+    .btn-rust:hover {
+        background: #9A4523;
+        border-color: #9A4523;
+        color: #fff;
+    }
+
+    .btn-ghost {
+        background: transparent;
+        color: var(--text-soft);
+        border-color: var(--border);
+    }
+
+    .btn-ghost:hover {
+        background: var(--border);
+        color: var(--ink);
+    }
+
+    /* ===== KPI ===== */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .kpi-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px 20px;
+        text-align: center;
+    }
+
+    .kpi-value {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 28px;
+        color: var(--ink);
+    }
+
+    .kpi-label {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 4px;
+    }
+
+    /* ===== PAGINATION ===== */
+    .pagination {
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .pagination li {
+        display: inline;
+    }
+
+    .pagination a,
+    .pagination span {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        color: var(--text-soft);
+        text-decoration: none;
+        font-size: 13px;
+        transition: all 0.2s;
+        min-width: 36px;
+        text-align: center;
+    }
+
+    .pagination a:hover {
+        background: var(--border);
+    }
+
+    .pagination .active span {
+        background: var(--rust);
+        color: #fff;
+        border-color: var(--rust);
+    }
+
+    .pagination .disabled span {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+        .kpi-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .kpi-value {
+            font-size: 22px;
+        }
+
+        .table-wrap table {
+            font-size: 12px;
+            min-width: 750px;
+        }
+
+        .table-wrap th,
+        .table-wrap td {
+            padding: 8px 12px;
+        }
+
+        [style*="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"] {
+            flex-direction: column;
+            align-items: stretch !important;
+        }
+
+        [style*="display:flex;gap:8px;margin-left:auto;"] {
+            margin-left: 0 !important;
+            width: 100%;
+        }
+
+        [style*="display:flex;gap:8px;margin-left:auto;"] input {
+            min-width: unset !important;
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .kpi-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .kpi-card {
+            padding: 10px 12px;
+        }
+
+        .kpi-value {
+            font-size: 18px;
+        }
+
+        .btn-sm {
+            font-size: 10px;
+            padding: 3px 8px;
+        }
+
+        .table-wrap td,
+        .table-wrap th {
+            padding: 6px 8px;
+            font-size: 11px;
+        }
+
+        .status-pill {
+            font-size: 10px;
+            padding: 2px 8px;
+        }
+    }
+</style>
+@endpush

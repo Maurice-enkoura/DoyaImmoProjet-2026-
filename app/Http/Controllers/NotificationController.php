@@ -7,25 +7,25 @@ use Illuminate\Support\Facades\Auth;
 
 class NotificationController extends Controller
 {
-    public function index()
-    {
-        $user = auth()->user();
-        $notifications = $user->notifications()->paginate(20);
-        
-        // ✅ Déterminer le layout en fonction du rôle
-        $layout = 'layouts.dashboard';
+   public function index()
+{
+    $user = auth()->user();
+    $notifications = $user->notifications()->paginate(20);
+    
+    // ✅ Déterminer le layout en fonction du rôle
+    $layout = 'layouts.dashboard';
+    $view = 'notifications.index';
+    
+    if ($user->isAgence()) {
+        $layout = 'layouts.dashboard-agence';
         $view = 'notifications.index';
-        
-        if ($user->isAgence()) {
-            $layout = 'layouts.dashboard-agence';
-            $view = 'notifications.index';
-        } elseif ($user->isAdmin()) {
-            $layout = 'layouts.admin';
-            $view = 'notifications.index';
-        }
-        
-        return view($view, compact('notifications', 'layout'));
+    } elseif ($user->isAdmin()) {
+        $layout = 'layouts.admin';
+        $view = 'notifications.index';
     }
+    
+    return view($view, compact('notifications', 'layout'));
+}
 
     public function count()
     {

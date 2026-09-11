@@ -71,13 +71,13 @@
                         $rejetes = $agence->documents->filter(function($doc) { return $doc->est_rejete; })->count();
                     @endphp
                     @if($valides > 0)
-                        <span style="color:var(--green);font-size:12px;">({{ $valides }} ✅)</span>
+                        <span style="color:var(--green);font-size:12px;">({{ $valides }} )</span>
                     @endif
                     @if($enAttente > 0)
-                        <span style="color:#E65100;font-size:12px;">({{ $enAttente }} ⏳)</span>
+                        <span style="color:#E65100;font-size:12px;">({{ $enAttente }} )</span>
                     @endif
                     @if($rejetes > 0)
-                        <span style="color:var(--red);font-size:12px;">({{ $rejetes }} ❌)</span>
+                        <span style="color:var(--red);font-size:12px;">({{ $rejetes }} )</span>
                     @endif
                 </div>
             </div>

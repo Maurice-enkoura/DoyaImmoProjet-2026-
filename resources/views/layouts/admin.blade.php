@@ -43,6 +43,7 @@
             background: #F7F9FC;
             color: var(--ink);
             line-height: 1.6;
+            padding-bottom: 0;
         }
 
         .app {
@@ -65,6 +66,8 @@
             z-index: 100;
             transition: transform 0.3s ease;
             overflow-y: auto;
+            height: 100vh;          /* ✅ Prend toute la hauteur */
+            padding-bottom: 80px;   /* ✅ Espace pour la bottom-nav si ajoutée */
         }
 
         .sidebar .brand {
@@ -98,7 +101,7 @@
         }
 
         .sidebar .brand-name span {
-            color: var(--gold);
+            color: var(--rust);
         }
 
         .nav-group-label {
@@ -167,6 +170,7 @@
             margin-top: auto;
             padding-top: 16px;
             border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 20px;
         }
 
         .agency-mini {
@@ -781,6 +785,20 @@
         }
 
         /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 1024px) {
+            .main {
+                padding: 20px 24px 30px;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
         @media (max-width: 820px) {
             .sidebar {
                 transform: translateX(-100%);
@@ -793,7 +811,7 @@
 
             .main {
                 margin-left: 0;
-                padding: 16px 20px;
+                padding: 16px 20px 24px;
                 width: 100%;
             }
 
@@ -803,20 +821,148 @@
 
             .topbar {
                 flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .topbar-left {
+                flex: 1;
+                min-width: auto;
+            }
+
+            .top-actions {
+                flex: 1;
+                justify-content: flex-end;
+                min-width: auto;
             }
 
             .kpi-grid {
                 grid-template-columns: 1fr 1fr;
+                gap: 12px;
             }
 
-            .grid-2 {
-                grid-template-columns: 1fr;
+            .kpi-card {
+                padding: 16px 18px;
+            }
+
+            .kpi-value {
+                font-size: 22px;
+            }
+
+            .page-title {
+                font-size: 18px;
+            }
+
+            .section-head h2 {
+                font-size: 20px;
+            }
+
+            .panel {
+                padding: 16px 18px;
             }
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 600px) {
+            .main {
+                padding: 12px 14px 20px;
+            }
+
+            .topbar {
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 20px;
+                padding-bottom: 14px;
+            }
+
+            .topbar-left {
+                width: auto;
+                flex: 1;
+            }
+
+            .top-actions {
+                width: auto;
+                justify-content: flex-end;
+                flex-wrap: nowrap;
+                gap: 6px;
+            }
+
+            .home-btn {
+                padding: 5px 10px;
+                font-size: 11px;
+            }
+
+            .topbar-avatar {
+                width: 34px;
+                height: 34px;
+                font-size: 13px;
+            }
+
             .kpi-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            .kpi-card {
+                padding: 14px 16px;
+            }
+
+            .kpi-value {
+                font-size: 20px;
+            }
+
+            .kpi-label {
+                font-size: 12px;
+            }
+
+            .kpi-ic {
+                width: 30px;
+                height: 30px;
+                font-size: 14px;
+            }
+
+            .page-title {
+                font-size: 16px;
+            }
+
+            .page-sub {
+                font-size: 12px;
+            }
+
+            .section-head {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+
+            .section-head h2 {
+                font-size: 18px;
+            }
+
+            .section-head p {
+                font-size: 13px;
+            }
+
+            .panel {
+                padding: 14px 16px;
+            }
+
+            .panel-head h3 {
+                font-size: 14px;
+            }
+
+            .btn {
+                font-size: 12.5px;
+                padding: 6px 12px;
+            }
+
+            .btn-sm {
+                padding: 4px 8px;
+                font-size: 11.5px;
+            }
+
+            .flash-message {
+                font-size: 12px;
+                padding: 10px 14px;
             }
 
             .table-wrap table {
@@ -827,23 +973,127 @@
                 grid-template-columns: 1fr;
             }
 
-            .section-head {
-                flex-direction: column;
-                align-items: stretch;
+            .avis-card {
+                padding: 14px 16px;
+            }
+
+            .avis-seal {
+                width: 32px;
+                height: 32px;
+                font-size: 13px;
+            }
+
+            .stars {
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .main {
+                padding: 10px 10px 16px;
             }
 
             .topbar {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 12px;
+                gap: 6px;
+                margin-bottom: 16px;
+                padding-bottom: 10px;
+            }
+
+            .burger span {
+                width: 18px;
+                height: 2px;
+                margin: 3px 0;
+            }
+
+            .topbar-left .page-title {
+                font-size: 14px;
+            }
+
+            .topbar-left .page-sub {
+                font-size: 10px;
+            }
+
+            .home-btn {
+                display: none;
             }
 
             .top-actions {
-                justify-content: flex-start;
+                gap: 4px;
             }
 
+            .topbar-avatar {
+                width: 30px;
+                height: 30px;
+                font-size: 11px;
+            }
+
+            .kpi-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+
+            .kpi-card {
+                padding: 10px 12px;
+            }
+
+            .kpi-value {
+                font-size: 18px;
+            }
+
+            .kpi-label {
+                font-size: 11px;
+            }
+
+            .page-title {
+                font-size: 15px;
+            }
+
+            .section-head h2 {
+                font-size: 16px;
+            }
+
+            .btn {
+                font-size: 12px;
+                padding: 5px 10px;
+            }
+
+            .btn-sm {
+                font-size: 11px;
+                padding: 3px 6px;
+            }
+        }
+
+        @media (max-width: 480px) and (orientation: portrait) {
+            .kpi-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 820px) and (orientation: landscape) {
             .sidebar {
-                width: 260px;
+                width: 240px;
+            }
+
+            .main {
+                padding: 16px 24px;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (min-width: 1600px) {
+            .content {
+                max-width: 1400px;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(4, 1fr);
             }
         }
 

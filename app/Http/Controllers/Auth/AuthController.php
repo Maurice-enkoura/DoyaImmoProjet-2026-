@@ -46,7 +46,6 @@ class AuthController extends Controller
      */
     public function showRegisterParticulier()
     {
-          //dd('showRegisterParticulier appelée');
         $stats = [
             'besoins' => DemandeImmobiliere::where('statut', StatutDemandeEnum::EN_ATTENTE)->count(),
             'agences' => Agence::where('statut_validation', true)->count(),
@@ -110,21 +109,18 @@ class AuthController extends Controller
     }
 
     /**
-     * Traite la connexion - CORRIGÉ (sans Auth::attempt)
+     * Traite la connexion
      */
     public function login(LoginRequest $request)
     {
-        // ✅ Chercher l'utilisateur par email
         $user = User::where('email', $request->email)->first();
         
-        // ✅ Vérifier si l'utilisateur existe et si le mot de passe correspond
         if (!$user || !Hash::check($request->mot_de_passe, $user->mot_de_passe)) {
             throw ValidationException::withMessages([
                 'email' => 'Les identifiants fournis sont incorrects.',
             ]);
         }
 
-        // Vérifier le type de compte
         $type = $request->get('type', 'particulier');
         
         if ($type === 'agence' && !$user->isAgence()) {
@@ -139,19 +135,21 @@ class AuthController extends Controller
             ]);
         }
 
-        // ✅ Authentifier l'utilisateur manuellement
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        // Redirection selon le rôle
+        // ✅ Redirection après connexion
         if ($user->isAdmin()) {
             return redirect()->route('admin.dashboard');
         } elseif ($user->isAgence()) {
             $agence = $user->agence;
+            
+            // ✅ Si l'agence n'est pas validée, la rediriger vers une page d'attente
             if ($agence && !$agence->statut_validation) {
-                return redirect()->route('agence.dashboard')
-                    ->with('info', 'Votre agence est en attente de validation par un administrateur.');
+                return redirect()->route('agence.attente-validation')
+                    ->with('info', 'Votre agence est en cours de validation par nos équipes.');
             }
+            
             return redirect()->route('agence.dashboard');
         } else {
             return redirect()->route('particulier.dashboard');
@@ -164,7 +162,6 @@ class AuthController extends Controller
     public function registerParticulier(RegisterParticulierRequest $request)
     {
         try {
-            // Création de l'utilisateur
             $user = User::create([
                 'nom' => $request->nom,
                 'prenom' => $request->prenom,
@@ -174,27 +171,22 @@ class AuthController extends Controller
                 'role' => RoleEnum::PARTICULIER->value,
             ]);
 
-            // Création du particulier
             Particulier::create([
                 'user_id' => $user->id,
                 'profession' => $request->profession,
                 'adresse' => $request->adresse,
             ]);
 
-            Log::info(' Utilisateur créé avec succès : ' . $user->email);
+            Log::info('Utilisateur créé avec succès : ' . $user->email);
 
-            // Envoyer la notification de bienvenue
             $this->sendWelcomeNotification($user, RoleEnum::PARTICULIER->value);
-
-            // Connexion automatique
             Auth::login($user);
 
             return redirect()->route('particulier.dashboard')
                 ->with('success', 'Bienvenue sur DoyaImmo ! Votre compte a été créé avec succès.');
                 
         } catch (\Exception $e) {
-            Log::error(' Erreur inscription particulier : ' . $e->getMessage());
-            Log::error($e->getTraceAsString());
+            Log::error('Erreur inscription particulier : ' . $e->getMessage());
             return back()->withErrors(['error' => 'Une erreur est survenue lors de l\'inscription.'])->withInput();
         }
     }
@@ -205,7 +197,6 @@ class AuthController extends Controller
     public function registerAgence(RegisterAgenceRequest $request)
     {
         try {
-            // Création de l'utilisateur
             $user = User::create([
                 'nom' => $request->nom,
                 'prenom' => $request->prenom,
@@ -215,7 +206,6 @@ class AuthController extends Controller
                 'role' => RoleEnum::AGENCE->value,
             ]);
 
-            // Création de l'agence
             $agence = Agence::create([
                 'user_id' => $user->id,
                 'nom_agence' => $request->nom_agence,
@@ -225,9 +215,8 @@ class AuthController extends Controller
                 'statut_validation' => false,
             ]);
 
-            Log::info('✅ Agence créée avec succès : ' . $user->email);
+            Log::info('Agence créée avec succès : ' . $user->email);
 
-            // Upload des documents
             $documentMapping = [
                 'rccm' => TypeDocumentEnum::RCCM,
                 'ninea' => TypeDocumentEnum::NINEA,
@@ -254,18 +243,15 @@ class AuthController extends Controller
                 }
             }
 
-            // Envoyer la notification de bienvenue
             $this->sendWelcomeNotification($user, RoleEnum::AGENCE->value);
-
-            // Connexion automatique
             Auth::login($user);
 
-            return redirect()->route('agence.dashboard')
-                ->with('info', 'Votre compte a été créé. En attente de validation par un administrateur.');
-                
+            // ✅ Rediriger vers la page d'attente de validation
+            return redirect()->route('agence.attente-validation')
+                ->with('info', 'Votre agence a été créée. En attente de validation par un administrateur.');
+
         } catch (\Exception $e) {
-            Log::error(' Erreur inscription agence : ' . $e->getMessage());
-            Log::error($e->getTraceAsString());
+            Log::error('Erreur inscription agence : ' . $e->getMessage());
             return back()->withErrors(['error' => 'Une erreur est survenue lors de l\'inscription.'])->withInput();
         }
     }
@@ -276,17 +262,15 @@ class AuthController extends Controller
     protected function sendWelcomeNotification(User $user, string $role): void
     {
         try {
-            // Supprimer les anciennes notifications de bienvenue pour cet utilisateur
             $user->notifications()
                 ->where('type', 'App\Notifications\NouvelleUtilisateurNotification')
                 ->delete();
             
-            // Envoyer la nouvelle notification
             $user->notify(new NouvelleUtilisateurNotification($user, $role));
             
-            Log::info(' Notification de bienvenue envoyée à ' . $user->email . ' (rôle: ' . $role . ')');
+            Log::info('Notification de bienvenue envoyée à ' . $user->email);
         } catch (\Exception $e) {
-            Log::error(' Erreur envoi notification de bienvenue : ' . $e->getMessage());
+            Log::error('Erreur envoi notification de bienvenue : ' . $e->getMessage());
         }
     }
 
@@ -313,8 +297,8 @@ class AuthController extends Controller
         } elseif ($user->isAgence()) {
             $agence = $user->agence;
             if ($agence && !$agence->statut_validation) {
-                return redirect()->route('agence.dashboard')
-                    ->with('info', 'Votre agence est en attente de validation.');
+                return redirect()->route('agence.attente-validation')
+                    ->with('info', 'Votre agence est en cours de validation.');
             }
             return redirect()->route('agence.dashboard');
         }

@@ -37,7 +37,7 @@
 
 <div class="section-head">
     <div>
-        <h2>⭐ À la une</h2>
+        <h2> À la une</h2>
         <p>{{ $biens->total() }} biens en vedette</p>
     </div>
     <a href="{{ route('admin.biens.index') }}" class="btn btn-ghost btn-sm">
@@ -49,15 +49,15 @@
 <div class="kpi-grid">
     <div class="kpi-card">
         <div class="kpi-value">{{ $stats['en_vedette'] ?? 0 }}</div>
-        <div class="kpi-label">⭐ En vedette</div>
+        <div class="kpi-label"> En vedette</div>
     </div>
     <div class="kpi-card">
         <div class="kpi-value" style="color:#C62828;">{{ $stats['expirees'] ?? 0 }}</div>
-        <div class="kpi-label">⏳ Expirées</div>
+        <div class="kpi-label"> Expirées</div>
     </div>
     <div class="kpi-card">
         <div class="kpi-value">{{ $stats['total'] ?? 0 }}</div>
-        <div class="kpi-label">📦 Total des biens</div>
+        <div class="kpi-label"> Total des biens</div>
     </div>
 </div>
 

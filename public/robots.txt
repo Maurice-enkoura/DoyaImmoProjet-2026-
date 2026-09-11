@@ -1,2 +1,18 @@
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /login
+Disallow: /register
+Disallow: /password
+Disallow: /profile
+Disallow: /api/
+Disallow: /paydunya/
+Disallow: /particulier/
+Disallow: /agence/
+Disallow: /notifications/
+Disallow: /mot-de-passe-oublie
+Disallow: /reinitialiser-mot-de-passe
+Disallow: /force-update
+
+Sitemap: https://doyaimmo.com/sitemap.xml

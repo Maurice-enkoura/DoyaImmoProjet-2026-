@@ -28,7 +28,7 @@ class Abonnement extends Model
 
     protected $casts = [
         'formule' => FormuleAbonnementEnum::class,
-        'montant' => 'decimal:2',
+        'montant' => 'integer',
         'date_debut' => 'datetime',
         'date_fin' => 'datetime',
         'statut' => 'boolean',

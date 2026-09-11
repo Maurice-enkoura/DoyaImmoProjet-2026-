@@ -43,9 +43,17 @@
                     Choisissez un créneau horaire
                 </label>
 
-                @if($creneaux->count() > 0)
+                @php
+                    // ✅ CORRIGÉ : Utiliser setTimeFromTimeString au lieu de concaténer
+                    $creneauxDisponibles = $creneaux->filter(function($creneau) {
+                        $creneauDateTime = \Carbon\Carbon::parse($creneau->date)->setTimeFromTimeString($creneau->heure_debut);
+                        return !$creneauDateTime->isPast();
+                    });
+                @endphp
+
+                @if($creneauxDisponibles->count() > 0)
                     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
-                        @foreach($creneaux as $creneau)
+                        @foreach($creneauxDisponibles as $creneau)
                             <label style="display:flex;align-items:center;gap:10px;padding:12px 16px;border:2px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.2s;">
                                 <input type="radio" name="creneau_id" value="{{ $creneau->id }}" required>
                                 <div>
@@ -64,12 +72,12 @@
                     <div style="text-align:center;padding:40px 20px;color:var(--muted);background:#F7F9FC;border-radius:10px;">
                         <i class="fa-regular fa-calendar-xmark" style="font-size:32px;display:block;margin-bottom:12px;opacity:0.5;"></i>
                         <p>Aucun créneau disponible pour le moment.</p>
-                        <p style="font-size:13px;">Veuillez contacter l'agence directement.</p>
+                        <p style="font-size:13px;">Tous les créneaux sont passés. Veuillez contacter l'agence directement.</p>
                     </div>
                 @endif
             </div>
 
-            @if($creneaux->count() > 0)
+            @if($creneauxDisponibles->count() > 0)
                 <div style="display:flex;gap:10px;flex-wrap:wrap;">
                     <button type="submit" class="btn btn-rust">
                         <i class="fa-solid fa-calendar-check"></i> Planifier la visite

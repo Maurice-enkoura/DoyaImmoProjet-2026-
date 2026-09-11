@@ -8,7 +8,7 @@
         <div class="brand" style="display:flex; justify-content:space-between; align-items:center;">
             <a href="{{ route('home') }}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
                 <div class="brand-mark">D</div>
-                <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--gold)">Immo</span></div>
+                <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--rust)">Immo</span></div>
             </a>
             
             <!-- Bouton Accueil -->
@@ -53,6 +53,7 @@
 
     <div class="auth-form-side">
         <div class="auth-box">
+            <!-- En-tête avec marque et bouton Accueil -->
             <div class="brand" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <a href="{{ route('home') }}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
                     <div class="brand-mark">D</div>
@@ -173,7 +174,7 @@
             icon.classList.remove('fa-eye');
             icon.classList.add('fa-eye-slash');
         } else {
-            input.type = 'password';
+            passwordInput.type = 'password';
             icon.classList.remove('fa-eye-slash');
             icon.classList.add('fa-eye');
         }

@@ -5,405 +5,881 @@
 @section('page_sub', 'Informations complètes sur la demande du client')
 
 @section('content')
-<div class="view active">
-    <div style="margin-bottom:20px;">
+<div class="view active demande-show">
+
+    @php
+        $statutValue = $demande->statut->value;
+        $statutLabel = $demande->statut->label();
+        $client      = $demande->particulier->user ?? null;
+        $initial     = strtoupper(mb_substr($client->prenom ?? 'C', 0, 1));
+
+        $isLocation  = $demande->type_operation->value === 'location';
+        $budgetLabel = $isLocation ? 'F/mois' : 'F';
+
+        // Équipements souhaités
+        $equipements = collect();
+        if ($demande->parking)       $equipements->push(['icon' => 'fa-car',           'label' => 'Parking']);
+        if ($demande->meuble)        $equipements->push(['icon' => 'fa-couch',         'label' => 'Meublé']);
+        if ($demande->climatisation) $equipements->push(['icon' => 'fa-snowflake',     'label' => 'Climatisation']);
+        if ($demande->balcon)        $equipements->push(['icon' => 'fa-door-open',     'label' => 'Balcon']);
+        if ($demande->jardin)        $equipements->push(['icon' => 'fa-tree',          'label' => 'Jardin']);
+        if ($demande->piscine)       $equipements->push(['icon' => 'fa-water',         'label' => 'Piscine']);
+        if ($demande->ascenseur)     $equipements->push(['icon' => 'fa-elevator',      'label' => 'Ascenseur']);
+        if ($demande->securite)      $equipements->push(['icon' => 'fa-shield-halved', 'label' => 'Sécurité 24h/24']);
+
+        $nbPropositions = $demande->propositions->count();
+        $dateEntree = $demande->date_entree_souhaitee;
+    @endphp
+
+    {{-- ═══════════════════════════════════════════
+         RETOUR
+    ═══════════════════════════════════════════ --}}
+    <div class="demande-show__back">
         <a href="{{ route('agence.demandes.index') }}" class="btn btn-ghost btn-sm">
             <i class="fa-solid fa-arrow-left"></i> Retour aux demandes
         </a>
     </div>
 
-    <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+    {{-- ═══════════════════════════════════════════
+         HERO
+    ═══════════════════════════════════════════ --}}
+    <header class="demande-hero demande-hero--{{ $statutValue }}">
 
-        <!-- En-tête -->
-        <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;background:#FAFBFC;">
-            <div>
-                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-                    <h3 style="font-family:var(--display);font-size:18px;font-weight:700;margin:0;">
-                        {{ $demande->type_bien->label() }}
-                    </h3>
-                    <span class="status-pill status-{{ $demande->statut->value }}">
-                        <i class="fa-solid fa-circle" style="font-size:8px;"></i>
-                        {{ $demande->statut->label() }}
+        <div class="demande-hero__main">
+            <div class="demande-hero__badges">
+                <span class="offre-status offre-status--{{ $statutValue }}">
+                    <i class="fa-solid fa-circle"></i> {{ $statutLabel }}
+                </span>
+                @if($nbPropositions > 0)
+                    <span class="propositions-badge">
+                        <i class="fa-regular fa-envelope"></i>
+                        <strong>{{ $nbPropositions }}</strong>
+                        offre{{ $nbPropositions > 1 ? 's' : '' }} déjà reçue{{ $nbPropositions > 1 ? 's' : '' }}
                     </span>
-                </div>
-                <div style="font-size:14px;color:var(--muted);margin-top:4px;">
-                    <i class="fa-solid fa-location-dot"></i> {{ $demande->zone_recherchee }}
-                </div>
-                <div style="font-size:12px;color:var(--muted);margin-top:2px;">
-                    <i class="fa-regular fa-calendar"></i> Publiée le {{ $demande->created_at->format('d/m/Y à H:i') }}
-                    @if($demande->updated_at != $demande->created_at)
-                        <span style="margin-left:8px;">
-                            <i class="fa-regular fa-pen-to-square"></i>
-                            Modifiée le {{ $demande->updated_at->format('d/m/Y à H:i') }}
-                        </span>
-                    @endif
-                </div>
+                @endif
             </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-                <div style="font-size:22px;font-weight:700;color:var(--rust);">
-                    {{ number_format($demande->budget_maximum, 0, ',', ' ') }}
-                    <span style="font-size:13px;font-weight:400;color:var(--muted);">
-                        @if($demande->type_operation->value === 'location')
-                            F/mois
-                        @else
-                            F
-                        @endif
+
+            <h1 class="demande-hero__title">
+                {{ $demande->type_bien->label() }}
+            </h1>
+
+            <div class="demande-hero__meta">
+                <span>
+                    <i class="fa-solid fa-location-dot"></i>
+                    <strong>{{ $demande->zone_recherchee }}</strong>
+                </span>
+                <span class="demande-hero__sep">•</span>
+                <span>
+                    <i class="fa-regular fa-calendar"></i>
+                    Publiée {{ $demande->created_at->diffForHumans() }}
+                </span>
+                @if($demande->updated_at != $demande->created_at)
+                    <span class="demande-hero__sep">•</span>
+                    <span class="demande-hero__updated">
+                        <i class="fa-regular fa-pen-to-square"></i>
+                        Modifiée le {{ $demande->updated_at->format('d/m/Y') }}
                     </span>
-                </div>
-                <span style="font-size:12px;color:var(--muted);">
-                    <i class="fa-solid fa-file-invoice"></i> {{ $demande->propositions->count() }} offre(s)
+                @endif
+            </div>
+        </div>
+
+        <div class="demande-hero__budget">
+            <span class="demande-hero__budget-label">
+                @if($isLocation) Loyer maximum @else Budget d'achat @endif
+            </span>
+            <span class="demande-hero__budget-value">
+                {{ number_format($demande->budget_maximum, 0, ',', ' ') }}
+                <small>{{ $budgetLabel }}</small>
+            </span>
+        </div>
+    </header>
+
+    {{-- ═══════════════════════════════════════════
+         CLIENT
+    ═══════════════════════════════════════════ --}}
+    <section class="client-card">
+        <div class="client-card__avatar">{{ $initial }}</div>
+
+        <div class="client-card__info">
+            <h3>{{ $client->prenom ?? '' }} {{ $client->nom ?? '' }}</h3>
+
+            <div class="client-card__contact">
+                @if($client->email ?? false)
+                    <span><i class="fa-solid fa-envelope"></i> {{ $client->email }}</span>
+                @endif
+                @if($client->telephone ?? false)
+                    <span><i class="fa-solid fa-phone"></i> {{ $client->telephone }}</span>
+                @else
+                    <span class="is-muted"><i class="fa-solid fa-phone"></i> Non renseigné</span>
+                @endif
+            </div>
+        </div>
+
+        <div class="client-card__meta">
+            <i class="fa-regular fa-clock"></i>
+            Membre depuis {{ $client->created_at->translatedFormat('F Y') }}
+        </div>
+    </section>
+
+    {{-- ═══════════════════════════════════════════
+         DÉTAILS
+    ═══════════════════════════════════════════ --}}
+    <section class="panel">
+        <header class="panel__head">
+            <span class="panel__icon">
+                <i class="fa-solid fa-list-ul"></i>
+            </span>
+            <h4>Détails de la demande</h4>
+        </header>
+
+        <div class="info-grid">
+            <div class="info-grid__item">
+                <span class="info-grid__label">Type de bien</span>
+                <span class="info-grid__value">{{ $demande->type_bien->label() }}</span>
+            </div>
+            <div class="info-grid__item">
+                <span class="info-grid__label">Opération</span>
+                <span class="info-grid__value">{{ $demande->type_operation->label() }}</span>
+            </div>
+            <div class="info-grid__item info-grid__item--accent">
+                <span class="info-grid__label">
+                    @if($isLocation) Loyer max @else Budget @endif
+                </span>
+                <span class="info-grid__value info-grid__value--prix">
+                    {{ number_format($demande->budget_maximum, 0, ',', ' ') }}
+                    <small>{{ $budgetLabel }}</small>
                 </span>
             </div>
+            <div class="info-grid__item">
+                <span class="info-grid__label">Zone recherchée</span>
+                <span class="info-grid__value">{{ $demande->zone_recherchee }}</span>
+            </div>
+            @if($demande->surface_minimum)
+                <div class="info-grid__item">
+                    <span class="info-grid__label">Surface minimum</span>
+                    <span class="info-grid__value">{{ $demande->surface_minimum }} m²</span>
+                </div>
+            @endif
+            @if($demande->nombre_chambres)
+                <div class="info-grid__item">
+                    <span class="info-grid__label">Chambres</span>
+                    <span class="info-grid__value">{{ $demande->nombre_chambres }}</span>
+                </div>
+            @endif
+            @if($demande->nombre_salles_bain)
+                <div class="info-grid__item">
+                    <span class="info-grid__label">Salles de bain</span>
+                    <span class="info-grid__value">{{ $demande->nombre_salles_bain }}</span>
+                </div>
+            @endif
+            @if($dateEntree)
+                <div class="info-grid__item">
+                    <span class="info-grid__label">Entrée souhaitée</span>
+                    <span class="info-grid__value">{{ $dateEntree->format('d/m/Y') }}</span>
+                </div>
+            @endif
+            @if($demande->meuble !== null)
+                <div class="info-grid__item">
+                    <span class="info-grid__label">Meublé</span>
+                    <span class="info-grid__value">
+                        <i class="fa-solid {{ $demande->meuble ? 'fa-circle-check is-yes' : 'fa-circle-xmark is-no' }}"></i>
+                        {{ $demande->meuble ? 'Oui' : 'Non' }}
+                    </span>
+                </div>
+            @endif
         </div>
+    </section>
 
-        <!-- Corps -->
-        <div style="padding:24px;">
+    {{-- ═══════════════════════════════════════════
+         ÉQUIPEMENTS SOUHAITÉS
+    ═══════════════════════════════════════════ --}}
+    <section class="panel">
+        <header class="panel__head">
+            <span class="panel__icon">
+                <i class="fa-solid fa-cogs"></i>
+            </span>
+            <h4>Équipements souhaités</h4>
+            @if($equipements->count() > 0)
+                <span class="panel__count">{{ $equipements->count() }}</span>
+            @endif
+        </header>
 
-            <!-- Client -->
-            <div style="display:flex;align-items:center;gap:16px;padding:14px 18px;background:#F7F9FC;border-radius:10px;border:1px solid var(--border);margin-bottom:24px;flex-wrap:wrap;">
-                <div style="width:48px;height:48px;border-radius:50%;background:var(--rust-soft);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--rust);flex-shrink:0;">
-                    {{ strtoupper(substr($demande->particulier->user->prenom ?? 'C', 0, 1)) }}
-                </div>
-                <div style="flex:1;min-width:120px;">
-                    <div style="font-weight:600;font-size:15px;">
-                        {{ $demande->particulier->user->prenom ?? '' }} {{ $demande->particulier->user->nom ?? '' }}
-                    </div>
-                    <div style="font-size:13px;color:var(--muted);">
-                        <i class="fa-solid fa-envelope"></i> {{ $demande->particulier->user->email ?? '' }}
-                    </div>
-                    <div style="font-size:13px;color:var(--muted);">
-                        <i class="fa-solid fa-phone"></i> {{ $demande->particulier->user->telephone ?? 'Non renseigné' }}
-                    </div>
-                </div>
-                <div style="text-align:right;flex-shrink:0;">
-                    <div style="font-size:13px;color:var(--muted);">
-                        <i class="fa-regular fa-clock"></i> Membre depuis {{ $demande->particulier->user->created_at->format('d/m/Y') }}
-                    </div>
-                </div>
+        @if($equipements->count() > 0)
+            <div class="equipements-grid">
+                @foreach($equipements as $equipement)
+                    <span class="equipement-pill">
+                        <i class="fa-solid {{ $equipement['icon'] }}"></i>
+                        {{ $equipement['label'] }}
+                    </span>
+                @endforeach
             </div>
-
-            <!-- Informations de la demande -->
-            <div style="margin-bottom:24px;">
-                <h4 style="font-family:var(--display);font-size:14px;margin-bottom:12px;color:var(--text-soft);">
-                    <i class="fa-solid fa-list-ul" style="margin-right:8px;"></i>Détails de la demande
-                </h4>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
-                    <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
-                        <span style="color:var(--muted);font-size:13px;">Type de bien</span>
-                        <span style="font-weight:500;font-size:13px;">{{ $demande->type_bien->label() }}</span>
-                    </div>
-                    <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
-                        <span style="color:var(--muted);font-size:13px;">Opération</span>
-                        <span style="font-weight:500;font-size:13px;">{{ $demande->type_operation->label() }}</span>
-                    </div>
-                    <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
-                        <span style="color:var(--muted);font-size:13px;">
-                            @if($demande->type_operation->value === 'location')
-                                Loyer max / mois
-                            @else
-                                Budget d'achat
-                            @endif
-                        </span>
-                        <span style="font-weight:700;font-size:13px;color:var(--rust);">
-                            {{ number_format($demande->budget_maximum, 0, ',', ' ') }}
-                            @if($demande->type_operation->value === 'location')
-                                F/mois
-                            @else
-                                F
-                            @endif
-                        </span>
-                    </div>
-                    <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
-                        <span style="color:var(--muted);font-size:13px;">Zone</span>
-                        <span style="font-weight:500;font-size:13px;">{{ $demande->zone_recherchee }}</span>
-                    </div>
-                    @if($demande->nombre_chambres)
-                        <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
-                            <span style="color:var(--muted);font-size:13px;">Chambres</span>
-                            <span style="font-weight:500;font-size:13px;">{{ $demande->nombre_chambres }}</span>
-                        </div>
-                    @endif
-                    @if($demande->nombre_salles_bain)
-                        <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
-                            <span style="color:var(--muted);font-size:13px;">Salles de bain</span>
-                            <span style="font-weight:500;font-size:13px;">{{ $demande->nombre_salles_bain }}</span>
-                        </div>
-                    @endif
-                    @if($demande->surface_minimum)
-                        <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
-                            <span style="color:var(--muted);font-size:13px;">Surface min.</span>
-                            <span style="font-weight:500;font-size:13px;">{{ $demande->surface_minimum }} m²</span>
-                        </div>
-                    @endif
-                    @if($demande->date_entree_souhaitee)
-                        <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
-                            <span style="color:var(--muted);font-size:13px;">Entrée souhaitée</span>
-                            <span style="font-weight:500;font-size:13px;">{{ $demande->date_entree_souhaitee->format('d/m/Y') }}</span>
-                        </div>
-                    @endif
-                    <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
-                        <span style="color:var(--muted);font-size:13px;">Statut</span>
-                        <span style="font-weight:500;font-size:13px;">{{ $demande->statut->label() }}</span>
-                    </div>
-                    @if($demande->meuble !== null)
-                        <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;display:flex;justify-content:space-between;">
-                            <span style="color:var(--muted);font-size:13px;">Meublé</span>
-                            <span style="font-weight:500;font-size:13px;">{{ $demande->meuble ? ' Oui' : ' Non' }}</span>
-                        </div>
-                    @endif
-                    @if($demande->criteres_particuliers)
-                        <div style="padding:10px 16px;background:#F7F9FC;border-radius:8px;grid-column:1/3;display:flex;justify-content:space-between;">
-                            <span style="color:var(--muted);font-size:13px;">Critères particuliers</span>
-                            <span style="font-weight:500;font-size:13px;text-align:right;max-width:60%;">{{ $demande->criteres_particuliers }}</span>
-                        </div>
-                    @endif
-                </div>
+        @else
+            <div class="empty-inline">
+                <i class="fa-regular fa-circle-question"></i>
+                <span>Aucun équipement spécifique demandé par le client</span>
             </div>
+        @endif
+    </section>
 
-            <!-- ✅ Équipements demandés -->
-            @php
-                $equipements = [];
-                if ($demande->parking) $equipements[] = ' Parking';
-                if ($demande->meuble) $equipements[] = ' Meublé';
-                if ($demande->climatisation) $equipements[] = ' Climatisation';
-                if ($demande->balcon) $equipements[] = ' Balcon';
-                if ($demande->jardin) $equipements[] = ' Jardin';
-                if ($demande->piscine) $equipements[] = ' Piscine';
-                if ($demande->ascenseur) $equipements[] = ' Ascenseur';
-                if ($demande->securite) $equipements[] = ' Sécurité 24h/24';
-            @endphp
+    {{-- ═══════════════════════════════════════════
+         CRITÈRES PARTICULIERS
+    ═══════════════════════════════════════════ --}}
+    @if($demande->criteres_particuliers)
+        <section class="panel">
+            <header class="panel__head">
+                <span class="panel__icon">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                </span>
+                <h4>Critères particuliers</h4>
+            </header>
+            <blockquote class="quote-block quote-block--info">
+                {{ $demande->criteres_particuliers }}
+            </blockquote>
+        </section>
+    @endif
 
-            @if(count($equipements) > 0)
-                <div style="margin-bottom:24px;">
-                    <h4 style="font-family:var(--display);font-size:14px;margin-bottom:8px;color:var(--text-soft);">
-                        <i class="fa-solid fa-cogs" style="margin-right:8px;"></i>Équipements souhaités
-                        <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:8px;">
-                            ({{ count($equipements) }} équipement(s))
-                        </span>
-                    </h4>
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;padding:12px 14px;background:#F7F9FC;border-radius:8px;border:1px solid var(--border);">
-                        @foreach($equipements as $equipement)
-                            <span class="meta-pill" style="background:#E8F5E9;color:#1E7A47;border:1px solid #C8E6C9;">
-                                <i class="fa-solid fa-check-circle" style="color:#1E7A47;"></i> {{ $equipement }}
+    {{-- ═══════════════════════════════════════════
+         DESCRIPTION
+    ═══════════════════════════════════════════ --}}
+    @if($demande->description)
+        <section class="panel">
+            <header class="panel__head">
+                <span class="panel__icon">
+                    <i class="fa-solid fa-align-left"></i>
+                </span>
+                <h4>Description du client</h4>
+            </header>
+            <blockquote class="quote-block quote-block--rust">
+                {{ $demande->description }}
+            </blockquote>
+        </section>
+    @endif
+
+    {{-- ═══════════════════════════════════════════
+         OFFRES DÉJÀ ENVOYÉES
+    ═══════════════════════════════════════════ --}}
+    @if($nbPropositions > 0)
+        <section class="panel panel--propositions">
+            <header class="panel__head">
+                <span class="panel__icon">
+                    <i class="fa-solid fa-handshake"></i>
+                </span>
+                <h4>Offres déjà envoyées</h4>
+                <span class="panel__count">{{ $nbPropositions }}</span>
+            </header>
+
+            <div class="props-list">
+                @foreach($demande->propositions as $proposition)
+                    @php
+                        $pStatutValue = is_object($proposition->statut)
+                            ? $proposition->statut->value
+                            : $proposition->statut;
+                        $pStatutLabel = is_object($proposition->statut)
+                            ? $proposition->statut->label()
+                            : ucfirst($proposition->statut);
+
+                        $pAgence = $proposition->agence;
+                        $pInitial = strtoupper(mb_substr($pAgence->nom_agence ?? 'A', 0, 1));
+
+                        // Est-ce l'agence actuelle ?
+                        $isMyAgency = Auth::user()->agence && Auth::user()->agence->id === $proposition->agence_id;
+                    @endphp
+
+                    <div class="prop-row {{ $isMyAgency ? 'prop-row--mine' : '' }}">
+                        <div class="prop-row__avatar">{{ $pInitial }}</div>
+
+                        <div class="prop-row__info">
+                            <strong>
+                                {{ $pAgence->nom_agence ?? 'Agence' }}
+                                @if($isMyAgency)
+                                    <span class="prop-row__mine-tag">Vous</span>
+                                @endif
+                            </strong>
+                            <span>
+                                {{ number_format($proposition->prix_propose, 0, ',', ' ') }} FCFA
+                                @if($proposition->bien)
+                                    · {{ $proposition->bien->titre ?? 'Bien' }}
+                                @endif
                             </span>
-                        @endforeach
-                    </div>
-                </div>
-            @else
-                <div style="margin-bottom:24px;">
-                    <h4 style="font-family:var(--display);font-size:14px;margin-bottom:8px;color:var(--text-soft);">
-                        <i class="fa-solid fa-cogs" style="margin-right:8px;"></i>Équipements souhaités
-                    </h4>
-                    <div style="padding:12px 16px;background:#F7F9FC;border-radius:8px;font-size:13px;color:var(--muted);text-align:center;border:1px dashed var(--border);">
-                        <i class="fa-regular fa-circle" style="margin-right:6px;"></i>
-                        Aucun équipement spécifique demandé
-                    </div>
-                </div>
-            @endif
-
-            <!-- Description -->
-            @if($demande->description)
-                <div style="margin-bottom:24px;">
-                    <h4 style="font-family:var(--display);font-size:14px;margin-bottom:8px;color:var(--text-soft);">
-                        <i class="fa-solid fa-align-left" style="margin-right:8px;"></i>Description
-                    </h4>
-                    <div style="padding:14px 18px;background:#F7F9FC;border-radius:10px;font-size:14px;color:var(--text-soft);line-height:1.7;border:1px solid var(--border);">
-                        {{ $demande->description }}
-                    </div>
-                </div>
-            @endif
-
-            <!-- Actions -->
-            <div style="display:flex;gap:12px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--border);">
-                <a href="{{ route('agence.propositions.create', $demande->slug) }}" class="btn btn-rust">
-                    <i class="fa-solid fa-paper-plane"></i> Faire une offre
-                </a>
-                <a href="{{ route('agence.demandes.index') }}" class="btn btn-ghost btn-sm" style="margin-left:auto;">
-                    <i class="fa-solid fa-list"></i> Toutes les demandes
-                </a>
-            </div>
-
-            <!-- Propositions existantes -->
-            @if($demande->propositions->count() > 0)
-                <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
-                    <h4 style="font-family:var(--display);font-size:14px;margin-bottom:12px;color:var(--text-soft);">
-                        <i class="fa-solid fa-handshake"></i> Propositions existantes ({{ $demande->propositions->count() }})
-                    </h4>
-                    @foreach($demande->propositions as $proposition)
-                        @php
-                            $statusColors = [
-                                'en_attente' => ['bg' => '#FFF8E1', 'color' => '#E65100'],
-                                'acceptee' => ['bg' => '#E8F5E9', 'color' => '#1E7A47'],
-                                'refusee' => ['bg' => '#FFEBEE', 'color' => '#C62828'],
-                                'terminee' => ['bg' => '#E3F2FD', 'color' => '#0D47A1'],
-                            ];
-                            $statusInfo = $statusColors[$proposition->statut->value] ?? $statusColors['en_attente'];
-                        @endphp
-                        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:#FAFBFC;transition:all 0.2s;">
-                            <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
-                                <div style="width:36px;height:36px;border-radius:50%;background:var(--rust-soft);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:var(--rust);flex-shrink:0;">
-                                    {{ strtoupper(substr($proposition->agence->nom_agence, 0, 1)) }}
-                                </div>
-                                <div style="min-width:0;">
-                                    <div style="font-weight:600;font-size:14px;">{{ $proposition->agence->nom_agence }}</div>
-                                    <div style="font-size:12px;color:var(--muted);">
-                                        {{ number_format($proposition->prix_propose, 0, ',', ' ') }} FCFA
-                                        @if($proposition->bien)
-                                            · {{ $proposition->bien->titre ?? 'Bien' }}
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                            <div>
-                                <span class="status-pill" style="font-size:11px;padding:2px 12px;background:{{ $statusInfo['bg'] }};color:{{ $statusInfo['color'] }};border:1px solid {{ $statusInfo['color'] }}20;">
-                                    {{ $proposition->statut->label() }}
-                                </span>
-                            </div>
                         </div>
-                    @endforeach
-                </div>
-            @endif
-        </div>
-    </div>
+
+                        <span class="offre-status offre-status--{{ $pStatutValue }}">
+                            {{ $pStatutLabel }}
+                        </span>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
+    {{-- ═══════════════════════════════════════════
+         ACTIONS
+    ═══════════════════════════════════════════ --}}
+    <footer class="demande-actions">
+        <a href="{{ route('agence.demandes.index') }}" class="btn btn-ghost">
+            <i class="fa-solid fa-list"></i> Toutes les demandes
+        </a>
+
+        <a href="{{ route('agence.propositions.create', $demande->slug) }}"
+           class="btn btn-rust demande-actions__cta">
+            <i class="fa-solid fa-paper-plane"></i> Faire une offre
+        </a>
+    </footer>
 </div>
 @endsection
 
+
 @push('styles')
 <style>
-    /* ===================== STATUS PILL ===================== */
-    .status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 14px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 600;
+/* ═══════════════════════════════════════════════════════════
+   PAGE DÉTAIL DEMANDE — Agence
+   ═══════════════════════════════════════════════════════════ */
+
+.demande-show {
+    --c-success:    #1E7A47;
+    --c-success-bg: #E8F5E9;
+    --c-warning:    #E65100;
+    --c-warning-bg: #FFF8E1;
+    --c-danger:     #C62828;
+    --c-danger-bg:  #FFEBEE;
+    --c-info:       #0D47A1;
+    --c-info-bg:    #E3F2FD;
+    --surface:      #F7F9FC;
+    --radius:       14px;
+}
+
+.demande-show__back { margin-bottom: 16px; }
+
+/* ═══ HERO ═══ */
+.demande-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 22px 26px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    position: relative;
+    overflow: hidden;
+}
+.demande-hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--muted);
+}
+.demande-hero--en_attente::before { background: var(--c-warning); }
+.demande-hero--en_cours::before   { background: var(--c-info); }
+.demande-hero--terminee::before   { background: var(--c-success); }
+.demande-hero--annulee::before    { background: var(--c-danger); }
+
+.demande-hero__main { flex: 1; min-width: 0; }
+
+.demande-hero__badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.demande-hero__title {
+    font-family: var(--display);
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 10px;
+    color: var(--text);
+    line-height: 1.2;
+}
+
+.demande-hero__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+}
+.demande-hero__meta i { font-size: 12px; margin-right: 5px; opacity: .8; }
+.demande-hero__meta strong { color: var(--text); font-weight: 600; }
+.demande-hero__sep { opacity: .4; }
+.demande-hero__updated { color: var(--c-info); }
+
+.demande-hero__budget {
+    text-align: right;
+    flex-shrink: 0;
+    padding-left: 24px;
+    border-left: 1px dashed var(--border);
+}
+.demande-hero__budget-label {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.demande-hero__budget-value {
+    font-family: var(--display);
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--rust);
+    line-height: 1.1;
+    white-space: nowrap;
+}
+.demande-hero__budget-value small {
+    font-size: 13px;
+    font-weight: 600;
+    opacity: .7;
+    margin-left: 3px;
+}
+
+/* ═══ STATUTS ═══ */
+.offre-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    white-space: nowrap;
+}
+.offre-status i { font-size: 5px; }
+.offre-status--en_attente { background: var(--c-warning-bg); color: var(--c-warning); }
+.offre-status--en_cours   { background: var(--c-info-bg);    color: var(--c-info); }
+.offre-status--terminee   { background: var(--c-success-bg); color: var(--c-success); }
+.offre-status--annulee    { background: var(--c-danger-bg);  color: var(--c-danger); }
+.offre-status--acceptee   { background: var(--c-success-bg); color: var(--c-success); }
+.offre-status--refusee    { background: var(--c-danger-bg);  color: var(--c-danger); }
+
+.propositions-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--c-success-bg);
+    color: var(--c-success);
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.propositions-badge i { font-size: 11px; }
+.propositions-badge strong {
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+/* ═══ CARTE CLIENT ═══ */
+.client-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--rust);
+    border-radius: var(--radius);
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+.client-card__avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--rust), #d4754a);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--display);
+    font-size: 20px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.client-card__info { flex: 1; min-width: 160px; }
+.client-card__info h3 {
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: var(--text);
+}
+.client-card__contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    font-size: 12.5px;
+    color: var(--muted);
+}
+.client-card__contact i {
+    margin-right: 5px;
+    font-size: 11px;
+    opacity: .8;
+}
+.client-card__contact .is-muted { opacity: .6; font-style: italic; }
+.client-card__meta {
+    font-size: 12px;
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: var(--surface);
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+.client-card__meta i { font-size: 11px; opacity: .8; }
+
+/* ═══ PANNEAUX ═══ */
+.panel {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 22px;
+    margin-bottom: 14px;
+}
+
+.panel__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+.panel__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: var(--c-warning-bg);
+    color: var(--rust);
+    font-size: 14px;
+    flex-shrink: 0;
+}
+.panel__head h4 {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text);
+    flex: 1;
+}
+.panel__count {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    background: var(--c-warning-bg);
+    color: var(--rust);
+    border-radius: 999px;
+}
+
+/* ═══ GRILLE INFOS ═══ */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+.info-grid__item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: border-color .2s;
+}
+.info-grid__item:hover { border-color: var(--border); }
+.info-grid__item--accent {
+    background: var(--c-warning-bg);
+    border-color: #FFE0B2;
+}
+.info-grid__label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    font-weight: 600;
+}
+.info-grid__value {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+}
+.info-grid__value--prix {
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--rust);
+}
+.info-grid__value--prix small {
+    font-size: 11px;
+    font-weight: 600;
+    opacity: .7;
+    margin-left: 2px;
+}
+.info-grid__value .is-yes { color: var(--c-success); margin-right: 4px; }
+.info-grid__value .is-no  { color: var(--c-danger);  margin-right: 4px; }
+
+/* ═══ ÉQUIPEMENTS ═══ */
+.equipements-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.equipement-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 13px;
+    background: var(--c-success-bg);
+    color: var(--c-success);
+    border: 1px solid #C8E6C9;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.equipement-pill i { font-size: 11px; }
+
+.empty-inline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    color: var(--muted);
+    font-size: 13px;
+    font-style: italic;
+}
+.empty-inline i { font-size: 15px; opacity: .6; }
+
+/* ═══ CITATIONS ═══ */
+.quote-block {
+    position: relative;
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    line-height: 1.75;
+    color: var(--text);
+    margin: 0;
+    border-left: 4px solid var(--muted);
+    background: var(--surface);
+}
+.quote-block--rust {
+    background: linear-gradient(135deg, rgba(180, 83, 42, .06), rgba(180, 83, 42, .02));
+    border-left-color: var(--rust);
+    font-style: italic;
+}
+.quote-block--info {
+    background: var(--c-info-bg);
+    border-left-color: var(--c-info);
+    color: var(--c-info);
+    font-weight: 500;
+}
+
+/* ═══ PROPOSITIONS ═══ */
+.props-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.prop-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: background .15s;
+}
+.prop-row--mine {
+    background: var(--c-warning-bg);
+    border-color: #FFE0B2;
+}
+
+.prop-row__avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--rust), #d4754a);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.prop-row__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.prop-row__info strong {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.prop-row__info span {
+    font-size: 12px;
+    color: var(--muted);
+}
+.prop-row__mine-tag {
+    display: inline-block;
+    padding: 1px 8px;
+    background: var(--rust);
+    color: #fff;
+    border-radius: 999px;
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
+
+/* ═══ ACTIONS ═══ */
+.demande-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    flex-wrap: wrap;
+}
+.demande-actions__cta { margin-left: auto; }
+
+/* ═══ BOUTONS ═══ */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .2s ease;
+    white-space: nowrap;
+}
+.btn-rust {
+    background: var(--rust);
+    color: #fff;
+    border-color: var(--rust);
+}
+.btn-rust:hover {
+    background: #9A4523;
+    color: #fff;
+    border-color: #9A4523;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(180, 83, 42, .25);
+}
+.btn-ghost {
+    background: transparent;
+    color: var(--text-soft);
+    border-color: var(--border);
+}
+.btn-ghost:hover {
+    background: var(--surface);
+    border-color: var(--rust);
+    color: var(--rust);
+}
+.btn-sm { padding: 7px 14px; font-size: 12px; }
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+    .info-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+    .demande-hero {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 18px;
+        gap: 14px;
+    }
+    .demande-hero__title { font-size: 20px; }
+    .demande-hero__budget {
+        width: 100%;
+        text-align: left;
+        padding-left: 0;
+        padding-top: 12px;
+        border-left: none;
+        border-top: 1px dashed var(--border);
+    }
+    .demande-hero__budget-value { font-size: 22px; }
+
+    .client-card {
+        padding: 14px 16px;
+        gap: 12px;
+    }
+    .client-card__meta {
+        width: 100%;
+        justify-content: center;
     }
 
-    .status-en_attente {
-        background: #FFF8E1;
-        color: #E65100;
-    }
-    .status-en_cours {
-        background: #E3F2FD;
-        color: #0D47A1;
-    }
-    .status-terminee {
-        background: #E8F5E9;
-        color: #1E7A47;
-    }
-    .status-annulee {
-        background: #FFEBEE;
-        color: #C62828;
-    }
-    .status-acceptee {
-        background: #E8F5E9;
-        color: #1E7A47;
-    }
-    .status-refusee {
-        background: #FFEBEE;
-        color: #C62828;
-    }
+    .panel { padding: 16px; }
 
-    /* ===================== META PILL ===================== */
-    .meta-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        background: var(--border);
-        padding: 2px 10px;
-        border-radius: 999px;
-        font-size: 11px;
-        color: var(--text-soft);
-    }
+    .info-grid { grid-template-columns: 1fr; }
 
-    /* ===================== BOUTONS ===================== */
-    .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 16px;
-        border-radius: 10px;
-        font-size: 12.5px;
-        font-weight: 600;
-        text-decoration: none;
-        border: 1px solid transparent;
-        cursor: pointer;
-        font-family: inherit;
-        transition: all 0.2s;
-    }
+    .prop-row { flex-wrap: wrap; gap: 10px; }
 
-    .btn-rust {
-        background: var(--rust);
-        color: #fff;
-        border-color: var(--rust);
-    }
+    .demande-actions { flex-direction: column; align-items: stretch; }
+    .demande-actions .btn { width: 100%; justify-content: center; }
+    .demande-actions__cta { margin-left: 0; }
+}
 
-    .btn-rust:hover {
-        background: #9A4523;
-        color: #fff;
-        border-color: #9A4523;
-    }
+@media (max-width: 480px) {
+    .demande-hero { padding: 14px; }
+    .demande-hero__title { font-size: 18px; }
+    .demande-hero__budget-value { font-size: 20px; }
 
-    .btn-ghost {
-        background: transparent;
-        color: var(--text-soft);
-        border-color: var(--border);
-    }
+    .client-card { padding: 12px 14px; }
+    .client-card__avatar { width: 42px; height: 42px; font-size: 17px; }
+    .client-card__info h3 { font-size: 14.5px; }
 
-    .btn-ghost:hover {
-        background: var(--border);
-    }
+    .panel { padding: 14px; }
+    .panel__head h4 { font-size: 14px; }
 
-    .btn-sm {
-        padding: 6px 14px;
-        font-size: 12.5px;
-    }
+    .quote-block { padding: 12px 14px; font-size: 13px; }
 
-    /* ===================== RESPONSIVE ===================== */
-    @media (max-width: 768px) {
-        [style*="display:grid;grid-template-columns:1fr 1fr;gap:4px;"] {
-            grid-template-columns: 1fr !important;
-        }
-        [style*="grid-column:1/3"] {
-            grid-column: 1 !important;
-        }
-        [style*="display:grid;grid-template-columns:1fr 1fr;gap:8px;border:1px solid var(--border);border-radius:10px;overflow:hidden;"] {
-            grid-template-columns: 1fr !important;
-        }
-        .besoin-foot {
-            flex-direction: column;
-            align-items: stretch;
-        }
-        .besoin-foot > div {
-            flex-direction: column;
-            gap: 6px;
-        }
-        .besoin-foot .btn {
-            width: 100%;
-            justify-content: center;
-        }
-    }
+    .prop-row { padding: 10px 12px; }
+    .prop-row__avatar { width: 34px; height: 34px; font-size: 13px; }
+    .prop-row__info strong { font-size: 12.5px; }
 
-    @media (max-width: 480px) {
-        .status-pill {
-            font-size: 10px;
-            padding: 3px 10px;
-        }
-        .meta-pill {
-            font-size: 10px;
-            padding: 1px 8px;
-        }
-        .btn-sm {
-            font-size: 11px;
-            padding: 5px 10px;
-        }
-        [style*="max-width:60%"] {
-            max-width: 100% !important;
-            text-align: left !important;
-            margin-top: 4px;
-        }
-    }
+    .btn { font-size: 12px; padding: 8px 14px; }
+}
 </style>
 @endpush

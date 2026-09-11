@@ -474,7 +474,7 @@
         }
         
         if (files.length > 10) {
-            alert('⚠️ Vous ne pouvez sélectionner que 10 photos maximum.');
+            alert(' Vous ne pouvez sélectionner que 10 photos maximum.');
             this.value = '';
             container.style.display = 'none';
             document.getElementById('imageCount').textContent = '0';
@@ -517,7 +517,7 @@
         }
         
         if (files.length > 1) {
-            alert('⚠️ Vous ne pouvez sélectionner qu\'1 vidéo maximum.');
+            alert(' Vous ne pouvez sélectionner qu\'1 vidéo maximum.');
             this.value = '';
             container.style.display = 'none';
             document.getElementById('videoCount').textContent = '0';

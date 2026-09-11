@@ -99,7 +99,7 @@
                 <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
                     Choisissez d'ajouter <strong>soit des photos, soit des vidéos</strong> (pas les deux).
                     <span style="display:block;font-size:11px;color:#E65100;margin-top:4px;">
-                        ⚠️ Cette option n'est disponible que si vous n'avez pas sélectionné de bien existant.
+                         Cette option n'est disponible que si vous n'avez pas sélectionné de bien existant.
                     </span>
                 </p>
 

@@ -5,454 +5,960 @@
 @section('page_sub', 'Consultez et gérez les propositions des agences')
 
 @section('content')
-<div class="view active">
-    <div class="section-head">
-        <div>
+<div class="view active offres-page">
+
+    @php
+        $current = request('statut', '');
+        $counts = [
+            ''           => $propositions->total(),
+            'en_attente' => $propositions->where('statut_value', 'en_attente')->count(),
+            'acceptee'   => $propositions->where('statut_value', 'acceptee')->count(),
+            'refusee'    => $propositions->where('statut_value', 'refusee')->count(),
+        ];
+        $tabs = [
+            ''           => ['label' => 'Toutes',      'icon' => 'fa-list'],
+            'en_attente' => ['label' => 'En attente',  'icon' => 'fa-clock'],
+            'acceptee'   => ['label' => 'Acceptées',   'icon' => 'fa-check-circle'],
+            'refusee'    => ['label' => 'Ignorées',    'icon' => 'fa-eye-slash'],
+        ];
+    @endphp
+
+    {{-- ═══════════════════════════════════════════
+         HEADER
+    ═══════════════════════════════════════════ --}}
+    <div class="page-header">
+        <div class="page-header__left">
             <h2>Offres reçues</h2>
             <p>Consultez et gérez les propositions des agences pour vos besoins actifs</p>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <a href="{{ route('particulier.historique') }}" class="btn btn-ghost btn-sm">
-                <i class="fa-solid fa-clock-rotate-left"></i> Voir historique
+        <a href="{{ route('particulier.historique') }}" class="btn btn-ghost btn-sm">
+            <i class="fa-solid fa-clock-rotate-left"></i> Voir l'historique
+        </a>
+    </div>
+
+    {{-- ═══════════════════════════════════════════
+         FILTRES AVEC COMPTEURS
+    ═══════════════════════════════════════════ --}}
+    <nav class="filter-tabs" aria-label="Filtrer par statut">
+        @foreach($tabs as $key => $meta)
+            <a href="{{ route('particulier.propositions.index', $key ? ['statut' => $key] : []) }}"
+               class="filter-tab {{ $current === $key ? 'is-active' : '' }}">
+                <i class="fa-solid {{ $meta['icon'] }}"></i>
+                <span>{{ $meta['label'] }}</span>
+                <span class="filter-tab__count">{{ $counts[$key] }}</span>
             </a>
-        </div>
-    </div>
+        @endforeach
+    </nav>
 
-    <!-- ✅ Filtres par statut -->
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
-        <a href="{{ route('particulier.propositions.index') }}" class="filter-btn {{ !request('statut') ? 'active' : '' }}">
-            <i class="fa-solid fa-list"></i> Toutes
-        </a>
-        <a href="{{ route('particulier.propositions.index', ['statut' => 'en_attente']) }}" class="filter-btn {{ request('statut') == 'en_attente' ? 'active' : '' }}">
-            <i class="fa-regular fa-clock" style="color:#E65100;"></i> En attente
-        </a>
-        <a href="{{ route('particulier.propositions.index', ['statut' => 'acceptee']) }}" class="filter-btn {{ request('statut') == 'acceptee' ? 'active' : '' }}">
-            <i class="fa-solid fa-check-circle" style="color:#1E7A47;"></i> Acceptées
-        </a>
-        <a href="{{ route('particulier.propositions.index', ['statut' => 'refusee']) }}" class="filter-btn {{ request('statut') == 'refusee' ? 'active' : '' }}">
-            <i class="fa-solid fa-times-circle" style="color:#C62828;"></i> Refusées
-        </a>
-    </div>
-
-
-
+    {{-- ═══════════════════════════════════════════
+         ALERTS
+    ═══════════════════════════════════════════ --}}
     @if(session('error'))
-        <div style="padding:12px 16px;background:#FFEBEE;border-radius:10px;border:1px solid #FFCDD2;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
-            <i class="fa-solid fa-exclamation-circle" style="color:#C62828;"></i>
-            <span style="color:#C62828;font-size:13px;">{{ session('error') }}</span>
+        <div class="alert alert-error">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>{{ session('error') }}</span>
         </div>
     @endif
 
+    @if(session('success'))
+        <div class="alert alert-success">
+            <i class="fa-solid fa-check-circle"></i>
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
+
+    {{-- ═══════════════════════════════════════════
+         LISTE DES OFFRES
+    ═══════════════════════════════════════════ --}}
     @forelse($propositions as $proposition)
+
         @php
             $statutValue = $proposition->statut_value;
             $statutLabel = $proposition->statut_label;
-            
-            // Déterminer le libellé du budget
-            $budgetLabel = is_object($proposition->demande->type_operation) && $proposition->demande->type_operation->value === 'location' ? 'F/mois' : 'F';
-            
-            // Couleurs des statuts
-            $statusColors = [
-                'en_attente' => ['class' => 'attente', 'icon' => 'fa-regular fa-clock'],
-                'acceptee' => ['class' => 'acceptee', 'icon' => 'fa-solid fa-check-circle'],
-                'refusee' => ['class' => 'refusee', 'icon' => 'fa-solid fa-times-circle'],
-                'terminee' => ['class' => 'terminee', 'icon' => 'fa-solid fa-circle-check'],
-            ];
-            $statusInfo = $statusColors[$statutValue] ?? $statusColors['en_attente'];
-        @endphp
-        <div class="compare-wrap" style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:24px;{{ $statutValue === 'en_attente' ? 'border-left:4px solid #F5A623;' : '' }}">
-            <div class="compare-head" style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-                <div>
-                    <h3 style="font-family:var(--display);font-size:16px;margin:0;">
-                        {{ $proposition->demande->type_bien->label() }} — {{ $proposition->demande->zone_recherchee }}
-                    </h3>
-                    <div class="sub" style="font-size:12.5px;color:var(--muted);margin-top:2px;">
-                        Budget max : {{ number_format($proposition->demande->budget_maximum, 0, ',', ' ') }} {{ $budgetLabel }}
-                        @if($proposition->demande->surface_minimum)
-                            <span style="margin-left:8px;">
-                                <i class="fa-regular fa-square"></i> {{ $proposition->demande->surface_minimum }} m²
-                            </span>
-                        @endif
-                    </div>
-                </div>
-                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                    @if($proposition->score_matching)
-                        <span style="font-size:12px;color:var(--muted);">
-                            Score : 
-                            <span style="font-weight:700;color:{{ $proposition->score_matching >= 80 ? '#1E7A47' : ($proposition->score_matching >= 60 ? '#E65100' : '#C62828') }};">
-                                {{ $proposition->score_matching }}%
-                            </span>
-                        </span>
-                    @endif
-                    <span class="status-pill status-{{ $statusInfo['class'] }}">
-                        <i class="{{ $statusInfo['icon'] }}" style="font-size:10px;"></i>
-                        {{ $statutLabel }}
-                    </span>
-                </div>
-            </div>
-            <div style="padding:16px 20px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-                    <div style="display:flex;align-items:center;gap:12px;">
-                        <div style="width:40px;height:40px;border-radius:50%;background:var(--rust-soft);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:var(--rust);flex-shrink:0;">
-                            {{ strtoupper(substr($proposition->agence->nom_agence, 0, 1)) }}
-                        </div>
-                        <div>
-                            <div style="font-weight:600;font-size:15px;">
-                                {{ $proposition->agence->nom_agence }}
-                            </div>
-                            <div style="font-size:13px;color:var(--muted);">
-                                <i class="fa-solid fa-star" style="color:#F5A623;"></i>
-                                {{ number_format($proposition->agence->note_moyenne, 1) }} / 5
-                                ({{ $proposition->agence->evaluations->count() }} avis)
-                            </div>
-                        </div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div style="font-weight:700;color:var(--rust);font-size:18px;">
-                            {{ number_format($proposition->prix_propose, 0, ',', ' ') }} FCFA
-                        </div>
-                        <div style="font-size:12px;color:var(--muted);">
-                            {{ $proposition->bien->titre ?? 'Bien' }}
-                            @if($proposition->bien && $proposition->bien->est_vedette)
-                                <span style="color:#F5A623;margin-left:4px;">
-                                    <i class="fa-solid fa-star"></i>
-                                </span>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- ✅ Équipements du bien -->
-                @php
-                    $equipementsBien = $proposition->bien->equipements ?? [];
-                @endphp
-                <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-                    <span class="meta-pill"><i class="fa-solid fa-vector-square"></i> {{ $proposition->bien->surface }} m²</span>
-                    <span class="meta-pill"><i class="fa-solid fa-bed"></i> {{ $proposition->bien->nombre_chambres }} ch.</span>
-                    <span class="meta-pill"><i class="fa-solid fa-bath"></i> {{ $proposition->bien->nombre_salles_bain }} sdb</span>
-                    @if($proposition->bien->parking_disponible)
-                        <span class="meta-pill"><i class="fa-solid fa-car"></i> Parking</span>
-                    @endif
-                    @if($proposition->bien->est_meuble)
-                        <span class="meta-pill"><i class="fa-solid fa-couch"></i> Meublé</span>
-                    @endif
-                    @if($proposition->bien->climatisation)
-                        <span class="meta-pill"><i class="fa-solid fa-snowflake"></i> Clim</span>
-                    @endif
-                    @if(count($equipementsBien) > 3)
-                        <span class="meta-pill" style="background:#E3F2FD;color:#0D47A1;">
-                            +{{ count($equipementsBien) - 3 }} équipements
-                        </span>
-                    @endif
-                </div>
+            $bien        = $proposition->bien;
+            $agence      = $proposition->agence;
 
-                <!-- Message de l'agence -->
-                @if($proposition->message)
-                    <div style="margin-top:10px;padding:8px 12px;background:#F7F9FC;border-radius:8px;font-size:13px;color:var(--text-soft);border-left:3px solid var(--rust);">
-                        <i class="fa-regular fa-message" style="color:var(--rust);margin-right:6px;"></i>
-                        {{ Str::limit($proposition->message, 120) }}
+            $isVedette   = $bien && $bien->est_vedette;
+            $isLocation  = is_object($proposition->demande->type_operation)
+                            && $proposition->demande->type_operation->value === 'location';
+            $budgetLabel = $isLocation ? 'F/mois' : 'F';
+
+            $score       = (int) ($proposition->score_matching ?? 0);
+            $scoreClass  = $score >= 80 ? 'excellent' : ($score >= 60 ? 'moyen' : 'faible');
+            $scoreLabel  = $score >= 80 ? 'Excellent match' : ($score >= 60 ? 'Bon match' : 'Match faible');
+
+            // Logique d'exclusivité (comme dans ta version)
+            $propositionAcceptee = \App\Models\Proposition::where('demande_id', $proposition->demande_id)
+                ->where('statut', 'acceptee')
+                ->exists();
+            $estPropositionAcceptee = $statutValue === 'acceptee';
+            $autrePropositionAcceptee = $propositionAcceptee && !$estPropositionAcceptee;
+
+            // Miniature (1ère image du bien)
+            $cover = $bien && $bien->medias->where('type_media', 'image')->first()
+                ? asset('storage/' . $bien->medias->where('type_media', 'image')->first()->fichier)
+                : null;
+
+            $equipementsBien = $bien->equipements ?? [];
+        @endphp
+
+        <article class="offre-card offre-card--{{ $statutValue }} {{ $isVedette ? 'is-vedette' : '' }} {{ $autrePropositionAcceptee ? 'is-cloturee' : '' }}">
+
+            {{-- Bandeau vedette --}}
+            @if($isVedette)
+                <div class="vedette-ribbon">
+                    <i class="fa-solid fa-star"></i> Bien en vedette
+                </div>
+            @endif
+
+            {{-- En-tête : statut + score --}}
+            <header class="offre-card__top">
+                <span class="offre-status offre-status--{{ $statutValue }}">
+                    <i class="fa-solid fa-circle"></i>
+                    {{ $statutLabel }}
+                </span>
+
+                @if($autrePropositionAcceptee)
+                    <span class="offre-lock">
+                        <i class="fa-solid fa-lock"></i> Offre clôturée
+                    </span>
+                @endif
+
+                @if($score)
+                    <div class="score-inline score-inline--{{ $scoreClass }}">
+                        <i class="fa-solid fa-bullseye"></i>
+                        <strong>{{ $score }}%</strong>
+                        <span>{{ $scoreLabel }}</span>
                     </div>
                 @endif
 
-                <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
-                    {{-- ✅ Pour les propositions en attente --}}
-                    @if($statutValue === 'en_attente')
-                        <form action="{{ route('particulier.propositions.selectionner', $proposition) }}" method="POST" style="display:inline;">
-                            @csrf
-                            <button type="submit" class="btn btn-rust btn-sm" onclick="return confirm('✅ Sélectionner cette offre ? Cela clôturera les autres offres en attente.')">
-                                <i class="fa-solid fa-check"></i> Choisir cette agence
-                            </button>
-                        </form>
-                        <a href="{{ route('particulier.rendezvous.create', $proposition) }}" class="btn btn-ghost btn-sm">
-                            <i class="fa-solid fa-calendar"></i> Planifier une visite
-                        </a>
+                <time class="offre-card__time"
+                      datetime="{{ $proposition->created_at->toIso8601String() }}"
+                      title="{{ $proposition->created_at->format('d/m/Y à H:i') }}">
+                    <i class="fa-regular fa-clock"></i>
+                    {{ $proposition->created_at->diffForHumans() }}
+                </time>
+            </header>
+
+            {{-- Corps : photo + infos --}}
+            <div class="offre-card__body">
+
+                {{-- Photo --}}
+                <div class="offre-card__media">
+                    @if($cover)
+                        <img src="{{ $cover }}" alt="{{ $bien->titre ?? 'Bien' }}" loading="lazy">
+                    @else
+                        <div class="offre-card__media-placeholder">
+                            <i class="fa-regular fa-image"></i>
+                        </div>
                     @endif
+                </div>
 
-                    {{-- ✅ Pour les propositions acceptées --}}
-                    @if($statutValue === 'acceptee')
-                        <a href="{{ route('particulier.rendezvous.create', $proposition) }}" class="btn btn-rust btn-sm">
-                            <i class="fa-solid fa-calendar-check"></i> Planifier la visite
-                        </a>
-                    @endif
+                {{-- Infos --}}
+                <div class="offre-card__content">
 
-                    <a href="{{ route('particulier.propositions.show', $proposition) }}" class="btn btn-ghost btn-sm">
-                        <i class="fa-solid fa-eye"></i> Détails
-                    </a>
+                    {{-- Prix + agence --}}
+                    <div class="offre-card__headline">
+                        <div class="offre-card__price">
+                            {{ number_format($proposition->prix_propose, 0, ',', ' ') }}
+                            <small>FCFA</small>
+                        </div>
 
-                    @if($statutValue === 'en_attente')
-                        <form action="{{ route('particulier.propositions.refuser', $proposition) }}" method="POST" style="display:inline;">
-                            @csrf
-                            <button type="submit" class="btn btn-ghost btn-sm" style="color:#C62828;border-color:#FFCDD2;" onclick="return confirm('❌ Refuser cette offre ?')">
-                                <i class="fa-solid fa-times"></i> Refuser
-                            </button>
-                        </form>
+                        <div class="offre-card__agency">
+                            <div class="agency-avatar">
+                                {{ strtoupper(mb_substr($agence->nom_agence ?? 'A', 0, 1)) }}
+                            </div>
+                            <div class="agency-info">
+                                <strong>{{ $agence->nom_agence ?? 'Agence' }}</strong>
+                                <span class="agency-rating">
+                                    <i class="fa-solid fa-star"></i>
+                                    {{ number_format($agence->note_moyenne ?? 0, 1) }}
+                                    <span class="agency-reviews">
+                                        ({{ $agence->evaluations->count() ?? 0 }} avis)
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Titre bien --}}
+                    <h3 class="offre-card__title">
+                        {{ $bien->titre ?? 'Bien sans titre' }}
+                        @if($bien && $bien->quartier)
+                            <span class="offre-card__title-loc">— {{ $bien->quartier }}</span>
+                        @endif
+                    </h3>
+
+                    {{-- Specs --}}
+                    <div class="offre-card__specs">
+                        @if($bien && $bien->surface)
+                            <span class="spec-pill"><i class="fa-solid fa-vector-square"></i> {{ $bien->surface }} m²</span>
+                        @endif
+                        @if($bien && $bien->nombre_chambres)
+                            <span class="spec-pill"><i class="fa-solid fa-bed"></i> {{ $bien->nombre_chambres }} ch.</span>
+                        @endif
+                        @if($bien && $bien->nombre_salles_bain)
+                            <span class="spec-pill"><i class="fa-solid fa-bath"></i> {{ $bien->nombre_salles_bain }} sdb</span>
+                        @endif
+                        @if($bien && $bien->parking_disponible)
+                            <span class="spec-pill"><i class="fa-solid fa-car"></i> Parking</span>
+                        @endif
+                        @if($bien && $bien->est_meuble)
+                            <span class="spec-pill"><i class="fa-solid fa-couch"></i> Meublé</span>
+                        @endif
+                        @if($bien && $bien->climatisation)
+                            <span class="spec-pill"><i class="fa-solid fa-snowflake"></i> Clim</span>
+                        @endif
+                        @if(count($equipementsBien) > 3)
+                            <span class="spec-pill spec-pill--info">
+                                +{{ count($equipementsBien) - 3 }} équipements
+                            </span>
+                        @endif
+                    </div>
+
+                    {{-- Message de l'agence --}}
+                    @if($proposition->message)
+                        <div class="offre-card__message">
+                            <i class="fa-regular fa-message"></i>
+                            <p>{{ Str::limit($proposition->message, 140) }}</p>
+                        </div>
                     @endif
                 </div>
             </div>
-        </div>
+
+            {{-- Actions --}}
+            <footer class="offre-card__actions">
+
+                {{-- Proposition acceptée --}}
+                @if($statutValue === 'acceptee')
+                    <span class="state-pill state-pill--success">
+                        <i class="fa-solid fa-circle-check"></i> Agence choisie
+                    </span>
+                    <a href="{{ route('particulier.rendezvous.create', $proposition) }}" class="btn btn-rust btn-sm">
+                        <i class="fa-solid fa-calendar-check"></i> Planifier la visite
+                    </a>
+
+                {{-- En attente, actionnable --}}
+                @elseif($statutValue === 'en_attente' && !$autrePropositionAcceptee)
+                    <form action="{{ route('particulier.propositions.selectionner', $proposition) }}"
+                          method="POST" class="inline-form">
+                        @csrf
+                        <button type="submit" class="btn btn-rust btn-sm"
+                                onclick="return confirm('✅ Sélectionner cette offre ? Cela clôturera les autres offres en attente.')">
+                            <i class="fa-solid fa-check"></i> Choisir cette agence
+                        </button>
+                    </form>
+
+                    <form action="{{ route('particulier.propositions.refuser', $proposition) }}"
+                          method="POST" class="inline-form">
+                        @csrf
+                        <button type="submit" class="btn btn-ghost-danger btn-sm"
+                                onclick="return confirm('❌ Ignorer cette offre ?')">
+                            <i class="fa-regular fa-eye-slash"></i> Ignorer
+                        </button>
+                    </form>
+
+                {{-- Clôturée --}}
+                @elseif($autrePropositionAcceptee && $statutValue === 'en_attente')
+                    <span class="state-pill state-pill--muted">
+                        <i class="fa-solid fa-lock"></i> Offre clôturée
+                    </span>
+                @endif
+
+                {{-- Détails toujours --}}
+                <a href="{{ route('particulier.propositions.show', $proposition) }}"
+                   class="btn btn-ghost btn-sm offre-card__details">
+                    <i class="fa-solid fa-eye"></i> Voir les détails
+                </a>
+            </footer>
+        </article>
+
     @empty
-        <div style="text-align:center;padding:60px 20px;color:var(--muted);background:#fff;border-radius:var(--radius);border:1px solid var(--border);">
-            <i class="fa-solid fa-inbox" style="font-size:40px;display:block;margin-bottom:16px;opacity:0.3;"></i>
+
+        {{-- ═══════════════════════════════════════════
+             EMPTY STATE
+        ═══════════════════════════════════════════ --}}
+        <div class="empty-state">
+            <div class="empty-state__icon">
+                <i class="fa-solid fa-inbox"></i>
+            </div>
+
             @if(request('statut'))
-                <p style="font-size:16px;font-weight:600;color:var(--text-soft);">
-                    Aucune offre avec le statut "{{ request('statut') }}"
-                </p>
-                <p style="font-size:13px;color:var(--muted);">Essayez de modifier vos filtres.</p>
-                <a href="{{ route('particulier.propositions.index') }}" class="btn btn-ghost" style="margin-top:12px;">
-                    <i class="fa-solid fa-rotate"></i> Réinitialiser les filtres
+                <h3>Aucune offre avec ce statut</h3>
+                <p>Essayez un autre filtre ou revenez à la vue complète.</p>
+                <a href="{{ route('particulier.propositions.index') }}" class="btn btn-ghost">
+                    <i class="fa-solid fa-rotate"></i> Voir toutes les offres
                 </a>
             @else
-                <p style="font-size:16px;">Aucune offre reçue pour vos besoins actifs.</p>
-                <p style="font-size:13px;color:var(--muted);">Les offres refusées ou terminées sont disponibles dans l'historique.</p>
-                <a href="{{ route('particulier.demandes.create') }}" class="btn btn-rust" style="margin-top:16px;display:inline-flex;align-items:center;gap:8px;">
+                <h3>Aucune offre reçue pour le moment</h3>
+                <p>Publiez un besoin pour recevoir des propositions d'agences.</p>
+                <a href="{{ route('particulier.demandes.create') }}" class="btn btn-rust">
                     <i class="fa-solid fa-plus"></i> Publier un besoin
                 </a>
             @endif
         </div>
     @endforelse
 
-    <div style="margin-top:30px;">
-        {{ $propositions->appends(request()->query())->links() }}
-    </div>
+    {{-- Pagination --}}
+    @if($propositions->count() > 0)
+        <div class="pagination-wrapper">
+            {{ $propositions->appends(request()->query())->links() }}
+        </div>
+    @endif
 </div>
 @endsection
 
+
 @push('styles')
 <style>
-    /* ===================== SECTION HEAD ===================== */
-    .section-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 16px;
-        margin-bottom: 20px;
-    }
+/* ═══════════════════════════════════════════════════════════
+   PAGE OFFRES REÇUES — Particulier
+   ═══════════════════════════════════════════════════════════ */
 
-    .section-head h2 {
-        font-family: var(--display);
-        font-size: 22px;
-        font-weight: 700;
-        margin: 0;
-    }
+.offres-page {
+    --c-warning:    #E65100;
+    --c-warning-bg: #FFF8E1;
+    --c-success:    #1E7A47;
+    --c-success-bg: #E8F5E9;
+    --c-danger:     #C62828;
+    --c-danger-bg:  #FFEBEE;
+    --c-info:       #0D47A1;
+    --c-info-bg:    #E3F2FD;
+    --c-gold:       #F5A623;
+    --surface:      #F7F9FC;
+    --radius:       14px;
+}
 
-    .section-head p {
-        font-size: 14px;
-        color: var(--muted);
-        margin: 4px 0 0;
-    }
+/* ═══ HEADER ═══ */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+.page-header__left h2 {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text);
+    line-height: 1.2;
+}
+.page-header__left p {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 4px 0 0;
+}
 
-    /* ===================== FILTRES ===================== */
-    .filter-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 16px;
+/* ═══ FILTRES ONGLETS ═══ */
+.filter-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+}
+.filter-tabs::-webkit-scrollbar { height: 4px; }
+.filter-tabs::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+}
+
+.filter-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 15px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-soft);
+    background: #fff;
+    border: 1.5px solid var(--border);
+    text-decoration: none;
+    transition: all .2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.filter-tab:hover {
+    border-color: var(--rust);
+    transform: translateY(-1px);
+}
+.filter-tab i { font-size: 12px; opacity: .85; }
+.filter-tab.is-active {
+    background: var(--rust);
+    color: #fff;
+    border-color: var(--rust);
+    box-shadow: 0 4px 12px rgba(180, 83, 42, .22);
+}
+.filter-tab.is-active i { color: #fff; opacity: 1; }
+
+.filter-tab__count {
+    background: rgba(0, 0, 0, .07);
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 22px;
+    text-align: center;
+}
+.filter-tab.is-active .filter-tab__count {
+    background: rgba(255, 255, 255, .25);
+    color: #fff;
+}
+
+/* ═══ ALERTS ═══ */
+.alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 16px;
+    border-radius: 10px;
+    margin-bottom: 14px;
+    border-left: 4px solid;
+    font-size: 13px;
+    font-weight: 500;
+}
+.alert-success { background: var(--c-success-bg); color: var(--c-success); border-left-color: var(--c-success); }
+.alert-error   { background: var(--c-danger-bg);  color: var(--c-danger);  border-left-color: var(--c-danger); }
+
+/* ═══════════════════════════════════════════
+   CARTE OFFRE
+   ═══════════════════════════════════════════ */
+.offre-card {
+    position: relative;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s;
+    overflow: hidden;
+}
+.offre-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .07);
+    border-color: #d8d8d8;
+}
+.offre-card.is-vedette {
+    border-color: var(--c-gold);
+    background: linear-gradient(135deg, #FFFDF5 0%, #fff 55%);
+}
+.offre-card.is-vedette:hover {
+    box-shadow: 0 10px 28px rgba(245, 166, 35, .15);
+}
+.offre-card.is-cloturee {
+    opacity: .82;
+}
+
+/* Ruban vedette */
+.vedette-ribbon {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border-radius: 0 var(--radius) 0 10px;
+    background: linear-gradient(135deg, var(--c-gold), #E8901A);
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    box-shadow: 0 4px 10px rgba(245, 166, 35, .3);
+    z-index: 2;
+}
+.vedette-ribbon i { font-size: 10px; }
+
+/* En-tête */
+.offre-card__top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-right: 130px;
+    flex-wrap: wrap;
+}
+.offre-card__time {
+    margin-left: auto;
+    font-size: 11.5px;
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+.offre-card__time i { font-size: 11px; opacity: .8; }
+
+/* Statut pill */
+.offre-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    white-space: nowrap;
+}
+.offre-status i { font-size: 5px; }
+.offre-status--en_attente { background: var(--c-warning-bg); color: var(--c-warning); }
+.offre-status--acceptee   { background: var(--c-success-bg); color: var(--c-success); }
+.offre-status--refusee    { background: var(--c-danger-bg);  color: var(--c-danger); }
+.offre-status--terminee   { background: var(--c-info-bg);    color: var(--c-info); }
+
+/* Lock pill */
+.offre-lock {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 11px;
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 10.5px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+}
+.offre-lock i { font-size: 9px; }
+
+/* Score inline */
+.score-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 11px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid;
+}
+.score-inline i { font-size: 11px; }
+.score-inline strong {
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 800;
+}
+.score-inline--excellent {
+    background: var(--c-success-bg);
+    color: var(--c-success);
+    border-color: #C8E6C9;
+}
+.score-inline--moyen {
+    background: var(--c-warning-bg);
+    color: var(--c-warning);
+    border-color: #FFE0B2;
+}
+.score-inline--faible {
+    background: var(--c-danger-bg);
+    color: var(--c-danger);
+    border-color: #FFCDD2;
+}
+
+/* ═══ Corps ═══ */
+.offre-card__body {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 18px;
+    margin-bottom: 14px;
+}
+
+/* Photo */
+.offre-card__media {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+}
+.offre-card__media img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.offre-card__media-placeholder {
+    width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 32px;
+    opacity: .4;
+}
+
+/* Contenu */
+.offre-card__content {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Headline : prix + agence */
+.offre-card__headline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.offre-card__price {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--rust);
+    line-height: 1.1;
+    white-space: nowrap;
+}
+.offre-card__price small {
+    font-size: 12px;
+    font-weight: 600;
+    opacity: .7;
+    margin-left: 2px;
+}
+
+.offre-card__agency {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+.agency-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--rust), #d4754a);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.agency-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+.agency-info strong {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.agency-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11.5px;
+    color: var(--text-soft);
+}
+.agency-rating i {
+    color: var(--c-gold);
+    font-size: 11px;
+}
+.agency-reviews {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+/* Titre bien */
+.offre-card__title {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text);
+    line-height: 1.3;
+}
+.offre-card__title-loc {
+    font-weight: 400;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+/* Specs */
+.offre-card__specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.spec-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-size: 11.5px;
+    color: var(--text-soft);
+    font-weight: 500;
+}
+.spec-pill i { font-size: 10px; color: var(--rust); opacity: .8; }
+.spec-pill--info {
+    background: var(--c-info-bg);
+    color: var(--c-info);
+    border-color: #BBDEFB;
+}
+.spec-pill--info i { color: var(--c-info); }
+
+/* Message */
+.offre-card__message {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border-radius: 10px;
+    border-left: 3px solid var(--rust);
+}
+.offre-card__message i {
+    color: var(--rust);
+    font-size: 13px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+.offre-card__message p {
+    font-size: 12.5px;
+    color: var(--text-soft);
+    line-height: 1.55;
+    margin: 0;
+    font-style: italic;
+}
+
+/* ═══ Actions ═══ */
+.offre-card__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--border);
+    flex-wrap: wrap;
+}
+.offre-card__details { margin-left: auto; }
+.inline-form { display: inline; }
+
+/* State pills */
+.state-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 13px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid;
+}
+.state-pill--success {
+    background: var(--c-success-bg);
+    color: var(--c-success);
+    border-color: #C8E6C9;
+}
+.state-pill--muted {
+    background: var(--surface);
+    color: var(--muted);
+    border-color: var(--border);
+}
+
+/* ═══ BOUTONS ═══ */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .2s ease;
+    white-space: nowrap;
+}
+.btn-rust {
+    background: var(--rust);
+    color: #fff;
+    border-color: var(--rust);
+}
+.btn-rust:hover {
+    background: #9A4523;
+    color: #fff;
+    border-color: #9A4523;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(180, 83, 42, .25);
+}
+.btn-ghost {
+    background: transparent;
+    color: var(--text-soft);
+    border-color: var(--border);
+}
+.btn-ghost:hover {
+    background: var(--surface);
+    border-color: var(--rust);
+    color: var(--rust);
+}
+.btn-ghost-danger {
+    background: transparent;
+    color: #8A91A0;
+    border-color: #E8ECF0;
+}
+.btn-ghost-danger:hover {
+    background: var(--c-danger-bg);
+    color: var(--c-danger);
+    border-color: #FFCDD2;
+}
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+/* ═══ EMPTY STATE ═══ */
+.empty-state {
+    text-align: center;
+    padding: 64px 20px;
+    background: #fff;
+    border-radius: var(--radius);
+    border: 1px dashed var(--border);
+}
+.empty-state__icon {
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--c-warning-bg);
+    border-radius: 50%;
+    color: var(--rust);
+    font-size: 30px;
+}
+.empty-state h3 {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    color: var(--text);
+}
+.empty-state p {
+    color: var(--muted);
+    font-size: 13.5px;
+    margin: 0 auto 18px;
+    max-width: 400px;
+}
+
+/* ═══ PAGINATION ═══ */
+.pagination-wrapper {
+    margin-top: 22px;
+    display: flex;
+    justify-content: center;
+}
+.pagination-wrapper .pagination,
+.pagination-wrapper nav {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex-wrap: wrap;
+}
+.pagination-wrapper a,
+.pagination-wrapper span:not(.sr-only) {
+    display: inline-block;
+    padding: 7px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    color: var(--text-soft);
+    text-decoration: none;
+    font-size: 12.5px;
+    transition: all .2s;
+    min-width: 36px;
+    text-align: center;
+    background: #fff;
+}
+.pagination-wrapper a:hover {
+    background: var(--border);
+    border-color: var(--rust);
+    color: var(--rust);
+}
+.pagination-wrapper .active span,
+.pagination-wrapper [aria-current="page"] span,
+.pagination-wrapper [aria-current="page"] {
+    background: var(--rust);
+    color: #fff;
+    border-color: var(--rust);
+}
+.pagination-wrapper .disabled span {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .page-header__left h2 { font-size: 19px; }
+    .page-header__left p  { font-size: 12.5px; }
+
+    .offre-card__top { padding-right: 0; }
+    .vedette-ribbon {
+        position: static;
+        margin-bottom: 10px;
+        align-self: flex-start;
         border-radius: 999px;
-        font-size: 13px;
-        font-weight: 500;
-        color: var(--text-soft);
-        background: #fff;
-        border: 1px solid var(--border);
-        text-decoration: none;
-        transition: all 0.2s;
+        width: fit-content;
+    }
+    .offre-card__time { margin-left: 0; }
+
+    .offre-card__body {
+        grid-template-columns: 1fr;
+    }
+    .offre-card__media {
+        aspect-ratio: 16 / 9;
     }
 
-    .filter-btn:hover {
-        background: var(--border);
+    .offre-card__headline {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
     }
 
-    .filter-btn.active {
-        background: var(--rust);
-        color: #fff;
-        border-color: var(--rust);
+    .offre-card__actions {
+        flex-direction: column;
+        align-items: stretch;
     }
-
-    .filter-btn.active i {
-        color: #fff !important;
-    }
-
-    /* ===================== STATUS PILL ===================== */
-    .status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 14px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-    .status-attente {
-        background: #FFF8E1;
-        color: #E65100;
-    }
-    .status-acceptee {
-        background: #E8F5E9;
-        color: #1E7A47;
-    }
-    .status-refusee {
-        background: #FFEBEE;
-        color: #C62828;
-    }
-    .status-terminee {
-        background: #E3F2FD;
-        color: #0D47A1;
-    }
-
-    /* ===================== PAGINATION ===================== */
-    .pagination {
-        display: flex;
-        gap: 6px;
+    .offre-card__actions .btn,
+    .offre-card__actions form,
+    .offre-card__actions .inline-form,
+    .offre-card__actions .state-pill {
+        width: 100%;
         justify-content: center;
-        list-style: none;
-        padding: 0;
     }
-    .pagination a, .pagination span {
-        display: inline-block;
-        padding: 8px 14px;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        color: var(--text-soft);
-        text-decoration: none;
-        font-size: 13px;
-        transition: all 0.2s;
-        min-width: 40px;
-        text-align: center;
-    }
-    .pagination a:hover {
-        background: var(--border);
-    }
-    .pagination .active span {
-        background: var(--rust);
-        color: #fff;
-        border-color: var(--rust);
-    }
-    .pagination .disabled span {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
+    .offre-card__details { margin-left: 0; }
+}
 
-    /* ===================== META PILL ===================== */
-    .meta-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        background: var(--border);
-        padding: 2px 12px;
-        border-radius: 999px;
-        font-size: 11.5px;
-        color: var(--text-soft);
-    }
-
-    /* ===================== BOUTONS ===================== */
-    .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 14px;
-        border-radius: 10px;
-        font-size: 12.5px;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.2s;
-        border: 1px solid transparent;
-        cursor: pointer;
-        font-family: inherit;
-    }
-    .btn-rust {
-        background: var(--rust);
-        color: #fff;
-        border-color: var(--rust);
-    }
-    .btn-rust:hover {
-        background: #9A4523;
-        color: #fff;
-    }
-    .btn-ghost {
-        background: transparent;
-        color: var(--text-soft);
-        border-color: var(--border);
-    }
-    .btn-ghost:hover {
-        background: var(--border);
-        color: var(--ink);
-    }
-    .btn-sm {
-        padding: 4px 12px;
-        font-size: 12px;
-    }
-
-    /* ===================== RESPONSIVE ===================== */
-    @media (max-width: 768px) {
-        .section-head {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        .filter-btn {
-            font-size: 12px;
-            padding: 5px 12px;
-        }
-
-        .compare-head {
-            flex-direction: column;
-            align-items: stretch !important;
-        }
-        .compare-head .status-pill {
-            align-self: flex-start;
-        }
-        [style*="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;"] {
-            flex-direction: column;
-            align-items: stretch !important;
-            text-align: left !important;
-        }
-        [style*="text-align:right;"] {
-            text-align: left !important;
-        }
-        [style*="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;"] {
-            flex-direction: column;
-            align-items: stretch !important;
-        }
-        [style*="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;"] .btn {
-            justify-content: center !important;
-        }
-        [style*="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;"] {
-            justify-content: center !important;
-        }
-        .pagination a, .pagination span {
-            padding: 6px 10px;
-            font-size: 12px;
-            min-width: 32px;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .filter-btn {
-            font-size: 11px;
-            padding: 4px 10px;
-        }
-        .filter-btn i {
-            font-size: 10px;
-        }
-        .status-pill {
-            font-size: 11px;
-            padding: 3px 10px;
-        }
-        .meta-pill {
-            font-size: 10px;
-            padding: 1px 8px;
-        }
-        .btn-sm {
-            font-size: 11px;
-            padding: 4px 10px;
-        }
-        [style*="display:flex;align-items:center;gap:12px;"] {
-            flex-direction: column;
-            align-items: center !important;
-        }
-        [style*="display:flex;align-items:center;gap:12px;"] .agency-avatar {
-            margin-bottom: 4px;
-        }
-    }
+@media (max-width: 480px) {
+    .offre-card { padding: 14px; }
+    .offre-card__price { font-size: 19px; }
+    .offre-card__title { font-size: 14px; }
+    .spec-pill { font-size: 11px; padding: 3px 9px; }
+    .filter-tab { font-size: 12px; padding: 8px 13px; }
+    .btn { font-size: 12px; padding: 7px 13px; }
+    .btn-sm { font-size: 11.5px; padding: 6px 11px; }
+}
 </style>
 @endpush

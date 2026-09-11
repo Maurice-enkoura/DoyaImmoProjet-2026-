@@ -9,13 +9,10 @@
         <div class="brand" style="display:flex; justify-content:space-between; align-items:center;">
             <a href="{{ route('home') }}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
                 <div class="brand-mark">D</div>
-                <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--gold)">Immo</span></div>
+                <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--rust)">Immo</span></div>
             </a>
             
-            <!-- Bouton Accueil -->
-            <a href="{{ route('home') }}" class="btn btn-ghost btn-sm" style="color:#fff; border-color:rgba(255,255,255,0.3);">
-                <i class="fa-solid fa-house"></i> Accueil
-            </a>
+            
         </div>
         
         <!-- Statistiques -->

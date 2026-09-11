@@ -31,12 +31,18 @@ class BienImmobilierRequest extends FormRequest
             'parking_disponible' => 'nullable|boolean',
             'est_meuble' => 'nullable|boolean',
             'description' => 'required|string|min:20|max:2000',
-            // ✅ IMPORTANT : Les images doivent être présentes mais pas obligatoires
+            // ✅ Les images sont OPTIONNELLES en édition
             'images' => 'nullable|array|max:10',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
-            // ✅ IMPORTANT : Les vidéos doivent être présentes mais pas obligatoires
             'videos' => 'nullable|array|max:1',
             'videos.*' => 'nullable|file|mimes:mp4,mov,avi|max:20480',
+            // ✅ Équipements
+            'climatisation' => 'nullable|boolean',
+            'balcon' => 'nullable|boolean',
+            'jardin' => 'nullable|boolean',
+            'piscine' => 'nullable|boolean',
+            'ascenseur' => 'nullable|boolean',
+            'securite' => 'nullable|boolean',
         ];
     }
 
@@ -53,27 +59,19 @@ class BienImmobilierRequest extends FormRequest
             'description.required' => 'La description est obligatoire.',
             'description.min' => 'La description doit contenir au moins 20 caractères.',
             'images.max' => 'Vous ne pouvez pas télécharger plus de 10 images par bien.',
-            'images.*.image' => 'Le fichier doit être une image.',
+            'images.*.image' => 'Le fichier doit être une image valide (JPEG, PNG, JPG, WEBP).',
             'images.*.mimes' => 'Format d\'image accepté: JPEG, PNG, JPG, WEBP.',
             'images.*.max' => 'Chaque image ne doit pas dépasser 5 Mo.',
             'videos.max' => 'Vous ne pouvez pas télécharger plus d\'1 vidéo par bien.',
-            'videos.*.file' => 'Le fichier doit être une vidéo.',
+            'videos.*.file' => 'Le fichier doit être une vidéo valide.',
             'videos.*.mimes' => 'Format de vidéo accepté: MP4, MOV, AVI.',
             'videos.*.max' => 'Chaque vidéo ne doit pas dépasser 20 Mo.',
-            'parking_disponible' => 'nullable|boolean',
-            'est_meuble' => 'nullable|boolean',
-            'climatisation' => 'nullable|boolean',
-            'balcon' => 'nullable|boolean',
-            'jardin' => 'nullable|boolean',
-            'piscine' => 'nullable|boolean',
-            'ascenseur' => 'nullable|boolean',
-            'securite' => 'nullable|boolean',
         ];
     }
 
     protected function prepareForValidation(): void
     {
-        // Si c'est un terrain, mettre à 0 les champs non pertinents
+        // ✅ Si c'est un terrain, mettre à 0 les champs non pertinents
         if ($this->type_bien === 'terrain') {
             $this->merge([
                 'nombre_chambres' => 0,
@@ -83,13 +81,27 @@ class BienImmobilierRequest extends FormRequest
             ]);
         }
 
-        // Si surface est vide, la mettre à null
+        // ✅ Si surface est vide, la mettre à null
         if ($this->has('surface') && $this->surface === '') {
             $this->merge(['surface' => null]);
         }
+
+        // ✅ Nettoyer les champs de fichiers vides
+        if ($this->has('images') && is_array($this->images)) {
+            $images = array_filter($this->images, function($image) {
+                return !empty($image) && $image instanceof \Illuminate\Http\UploadedFile;
+            });
+            $this->merge(['images' => $images]);
+        }
+
+        if ($this->has('videos') && is_array($this->videos)) {
+            $videos = array_filter($this->videos, function($video) {
+                return !empty($video) && $video instanceof \Illuminate\Http\UploadedFile;
+            });
+            $this->merge(['videos' => $videos]);
+        }
     }
 
-    // ✅ AJOUT : Pour voir les erreurs de validation
     protected function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(

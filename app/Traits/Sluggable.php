@@ -29,12 +29,23 @@ trait Sluggable
     {
         $source = $this->getSlugSource();
         
-        // ✅ SI LA SOURCE EST NULLE, UTILISER UNE VALEUR PAR DÉFAUT
-        if (empty($source)) {
-            $source = 'demande-' . uniqid();
+        // ✅ SI LA SOURCE EST NULLE OU VIDE, UTILISER UN ID UNIQUE
+        if (empty($source) || $source === '') {
+            $source = 'item-' . uniqid();
         }
         
+        // ✅ LIMITER LA LONGUEUR DU SLUG À 200 CARACTÈRES
         $slug = Str::slug($source);
+        
+        // ✅ SI LE SLUG EST TROP LONG, LE TRONQUER
+        if (strlen($slug) > 200) {
+            $slug = substr($slug, 0, 200);
+        }
+        
+        // ✅ SI LE SLUG EST VIDE APRÈS LE TRONCAGE, UTILISER UN ID
+        if (empty($slug)) {
+            $slug = 'item-' . uniqid();
+        }
 
         $count = 0;
         $newSlug = $slug;
@@ -59,7 +70,6 @@ trait Sluggable
 
     /**
      * Get the source field for slug generation.
-     * ✅ MODIFIÉ : Gère le cas où l'attribut n'existe pas encore
      */
     protected function getSlugSource(): string
     {
@@ -75,7 +85,22 @@ trait Sluggable
      */
     protected function getSlugSourceField(): string
     {
-        return $this->slugSource ?? 'titre';
+        // ✅ VÉRIFIER SI L'ATTRIBUT EXISTE
+        if (isset($this->slugSource)) {
+            return $this->slugSource;
+        }
+        
+        // ✅ LISTE DES CHAMPS POSSIBLES POUR LE SLUG
+        $possibleFields = ['titre', 'nom_agence', 'zone_recherchee', 'type_bien'];
+        
+        foreach ($possibleFields as $field) {
+            if (isset($this->$field) && !empty($this->$field)) {
+                return $field;
+            }
+        }
+        
+        // ✅ PAR DÉFAUT : RETOURNER UN ID
+        return 'id';
     }
 
     /**

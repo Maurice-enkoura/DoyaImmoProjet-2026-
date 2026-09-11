@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Signalement;
 use App\Enums\StatutSignalementEnum;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;                              
+use Illuminate\Support\Facades\DB;
 
 class AdminSignalementController extends Controller
 {
@@ -79,10 +79,10 @@ class AdminSignalementController extends Controller
         $request->validate([
             'action' => 'required|in:bloquer,rejeter',
             'motif' => 'required_if:action,rejeter|string|max:1000',
-            'sanction' => 'nullable|string|max:1000',
+            'commentaire' => 'nullable|string|max:1000',
         ]);
 
-        \DB::beginTransaction();
+        DB::beginTransaction();
 
         try {
             if ($request->action === 'bloquer') {
@@ -94,8 +94,7 @@ class AdminSignalementController extends Controller
                 $signalement->update([
                     'statut' => StatutSignalementEnum::TRAITE,
                     'date_traitement' => now(),
-                    'commentaire_admin' => $request->sanction ?? 'Agence bloquée suite à signalement',
-                    'sanction' => 'Agence bloquée',
+                    'commentaire_admin' => $request->commentaire ?? 'Agence bloquée suite à signalement',
                 ]);
 
                 $message = 'Agence bloquée avec succès suite au signalement.';
@@ -109,13 +108,13 @@ class AdminSignalementController extends Controller
                 $message = 'Signalement rejeté. Motif enregistré.';
             }
 
-            \DB::commit();
+            DB::commit();
 
             return redirect()->route('admin.signalements.index')
                 ->with('success', $message);
 
         } catch (\Exception $e) {
-            \DB::rollBack();
+            DB::rollBack();
             return redirect()->route('admin.signalements.index')
                 ->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
         }
@@ -135,22 +134,32 @@ class AdminSignalementController extends Controller
     public function sanctionner(Request $request, Signalement $signalement)
     {
         $request->validate([
-            'sanction' => 'required|string|max:1000',
+            'commentaire' => 'required|string|max:1000',
         ]);
 
-        $signalement->update([
-            'statut' => StatutSignalementEnum::TRAITE,
-            'date_traitement' => now(),
-            'sanction' => $request->sanction,
-            'commentaire_admin' => $request->sanction,
-        ]);
+        DB::beginTransaction();
 
-        $agence = $signalement->agence;
-        if ($agence) {
-            $agence->update(['bloque' => true]);
+        try {
+            $signalement->update([
+                'statut' => StatutSignalementEnum::TRAITE,
+                'date_traitement' => now(),
+                'commentaire_admin' => $request->commentaire,
+            ]);
+
+            $agence = $signalement->agence;
+            if ($agence) {
+                $agence->update(['bloque' => true]);
+            }
+
+            DB::commit();
+
+            return redirect()->route('admin.signalements.index')
+                ->with('success', 'Signalement traité et agence bloquée.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('admin.signalements.index')
+                ->with('error', 'Erreur: ' . $e->getMessage());
         }
-
-        return redirect()->route('admin.signalements.index')
-            ->with('success', 'Sanction appliquée et agence bloquée.');
     }
 }

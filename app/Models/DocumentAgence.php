@@ -24,6 +24,7 @@ class DocumentAgence extends Model
         'commentaire',
     ];
 
+    // ✅ Cast correct vers les Enums
     protected $casts = [
         'type_document' => TypeDocumentEnum::class,
         'statut_validation' => StatutDocumentEnum::class,
@@ -46,17 +47,17 @@ class DocumentAgence extends Model
 
     public function scopeEnAttente($query)
     {
-        return $query->where('statut_validation', StatutDocumentEnum::EN_ATTENTE);
+        return $query->where('statut_validation', StatutDocumentEnum::EN_ATTENTE->value);
     }
 
     public function scopeValides($query)
     {
-        return $query->where('statut_validation', StatutDocumentEnum::VALIDE);
+        return $query->where('statut_validation', StatutDocumentEnum::VALIDE->value);
     }
 
     public function scopeRejetes($query)
     {
-        return $query->where('statut_validation', StatutDocumentEnum::REJETE);
+        return $query->where('statut_validation', StatutDocumentEnum::REJETE->value);
     }
 
     // ==================== ACCESSORS ====================
@@ -64,76 +65,33 @@ class DocumentAgence extends Model
     /**
      * Accesseur pour le libellé du type de document
      */
-    public function getTypeDocumentLabelAttribute()
+    public function getTypeDocumentLabelAttribute(): string
     {
-        if (is_object($this->type_document) && method_exists($this->type_document, 'label')) {
-            return $this->type_document->label();
-        }
-        
-        // Définir les libellés des types de documents
-        $labels = [
-            'rccm' => 'Registre de Commerce (RCCM)',
-            'ninea' => 'NINEA',
-            'piece_identite' => 'Pièce d\'identité',
-            'logo' => 'Logo',
-        ];
-        
-        // Récupérer la valeur du type
-        $value = $this->getTypeDocumentValueAttribute();
-        
-        return $labels[$value] ?? ucfirst($value);
+        return $this->type_document->label() ?? ucfirst($this->type_document->value);
     }
 
     /**
      * Accesseur pour la valeur du type de document
      */
-    public function getTypeDocumentValueAttribute()
+    public function getTypeDocumentValueAttribute(): string
     {
-        if (is_object($this->type_document) && method_exists($this->type_document, 'value')) {
-            return $this->type_document->value;
-        }
-        // Si c'est déjà une chaîne
-        if (is_string($this->type_document)) {
-            return $this->type_document;
-        }
-        // Fallback
-        return 'unknown';
+        return $this->type_document->value ?? 'unknown';
     }
 
     /**
      * Accesseur pour le libellé du statut de validation
      */
-    public function getStatutValidationLabelAttribute()
+    public function getStatutValidationLabelAttribute(): string
     {
-        if (is_object($this->statut_validation) && method_exists($this->statut_validation, 'label')) {
-            return $this->statut_validation->label();
-        }
-        
-        $labels = [
-            'en_attente' => 'En attente',
-            'valide' => 'Validé',
-            'rejete' => 'Rejeté',
-        ];
-        
-        $value = $this->getStatutValidationValueAttribute();
-        
-        return $labels[$value] ?? ucfirst($value);
+        return $this->statut_validation->label() ?? ucfirst($this->statut_validation->value);
     }
 
     /**
      * Accesseur pour la valeur du statut de validation
      */
-    public function getStatutValidationValueAttribute()
+    public function getStatutValidationValueAttribute(): string
     {
-        if (is_object($this->statut_validation) && method_exists($this->statut_validation, 'value')) {
-            return $this->statut_validation->value;
-        }
-        // Si c'est déjà une chaîne
-        if (is_string($this->statut_validation)) {
-            return $this->statut_validation;
-        }
-        // Fallback
-        return 'en_attente';
+        return $this->statut_validation->value ?? 'en_attente';
     }
 
     /**
@@ -141,8 +99,7 @@ class DocumentAgence extends Model
      */
     public function getEstValideAttribute(): bool
     {
-        $value = $this->getStatutValidationValueAttribute();
-        return $value === 'valide';
+        return $this->statut_validation === StatutDocumentEnum::VALIDE;
     }
 
     /**
@@ -150,8 +107,7 @@ class DocumentAgence extends Model
      */
     public function getEstEnAttenteAttribute(): bool
     {
-        $value = $this->getStatutValidationValueAttribute();
-        return $value === 'en_attente';
+        return $this->statut_validation === StatutDocumentEnum::EN_ATTENTE;
     }
 
     /**
@@ -159,8 +115,7 @@ class DocumentAgence extends Model
      */
     public function getEstRejeteAttribute(): bool
     {
-        $value = $this->getStatutValidationValueAttribute();
-        return $value === 'rejete';
+        return $this->statut_validation === StatutDocumentEnum::REJETE;
     }
 
     /**
@@ -169,5 +124,13 @@ class DocumentAgence extends Model
     public function getFichierUrlAttribute(): string
     {
         return asset('storage/' . $this->nom_fichier);
+    }
+
+    /**
+     * Accesseur pour la classe CSS du statut
+     */
+    public function getStatutClassAttribute(): string
+    {
+        return $this->statut_validation->badge() ?? 'default';
     }
 }

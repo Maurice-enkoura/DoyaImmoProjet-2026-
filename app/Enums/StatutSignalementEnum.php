@@ -17,17 +17,12 @@ enum StatutSignalementEnum: string
         };
     }
 
-    public function badge(): string
+    public static function labels(): array
     {
-        return match($this) {
-            self::EN_ATTENTE => 'warning',
-            self::TRAITE => 'success',
-            self::REJETE => 'danger',
-        };
-    }
-
-    public static function values(): array
-    {
-        return array_column(self::cases(), 'value');
+        $labels = [];
+        foreach (self::cases() as $case) {
+            $labels[$case->value] = $case->label();
+        }
+        return $labels;
     }
 }

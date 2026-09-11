@@ -1,1253 +1,411 @@
 @extends('layouts.app')
 
-@section('title', 'Parcourir les biens — DoyaImmo')
+@section('title', 'Biens immobiliers à Dakar — DoyaImmo')
+@section('meta_description', 'Découvrez les biens immobiliers disponibles à Dakar : appartements, maisons, terrains et autres logements proposés sur DoyaImmo.')
+@section('canonical', 'https://doyaimmo.com/biens')
+@section('og_title', 'Biens immobiliers à Dakar — DoyaImmo')
+@section('og_description', 'Découvrez les biens immobiliers disponibles à Dakar.')
+@section('robots', 'index, follow')
 
 @section('content')
-<!-- ==================== PAGE HEAD ==================== -->
-<div class="wrap page-head">
-    <div class="page-head-inner">
-        <span class="eyebrow">Biens disponibles</span>
-        <h1 class="h-section">
-            Découvrez les biens immobiliers à Dakar
-        </h1>
-    </div>
-</div>
+<div class="biens-page">
 
-<div class="wrap section" style="padding-top:20px;">
-    <!-- ==================== BIENS EN VEDETTE ==================== -->
-    @if(isset($biensVedette) && $biensVedette->count() > 0)
-    <div class="vedette-section">
-        <div class="vedette-header">
-            <span class="eyebrow">⭐ À la une</span>
-            <h2 class="h-section" style="font-size: clamp(18px, 2vw, 22px);">Biens en vedette</h2>
+    {{-- ═══════════════════════════════════════════
+         HERO
+    ═══════════════════════════════════════════ --}}
+    <header class="biens-hero">
+        <div class="biens-hero__inner">
+            <span class="eyebrow">
+                <i class="fa-solid fa-building"></i> Biens disponibles
+            </span>
+            <h1 class="biens-hero__title">
+                Trouvez le bien qu'il vous faut <br>
+                <span>parmi {{ $biens->total() }} annonces</span>
+            </h1>
+            <p class="biens-hero__sub">
+                Appartements, villas, terrains, bureaux — partout à Dakar.
+            </p>
         </div>
-        <div class="vedette-grid">
-            @foreach($biensVedette as $bien)
-                <div class="vedette-card">
-                    <div class="vedette-image">
-                        @php
-                            $image = $bien->medias->where('type_media', 'image')->first();
-                        @endphp
-                        @if($image)
-                            <img src="{{ asset('storage/' . $image->fichier) }}" alt="{{ $bien->titre }}" loading="lazy">
-                        @else
-                            <div class="image-placeholder">
-                                <i class="fa-solid fa-image"></i>
-                            </div>
-                        @endif
-                        <!-- BADGE VEDETTE - en haut à GAUCHE -->
-                        <span class="vedette-badge">
-                            <i class="fa-solid fa-star"></i> Vedette
-                        </span>
-                        <!-- BADGE STATUS - en haut à DROITE -->
-                        <span class="bien-status {{ $bien->statut ? 'disponible' : 'indisponible' }}">
-                            {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
-                        </span>
-                    </div>
-                    <div class="vedette-body">
-                        <h3 class="vedette-title">{{ $bien->titre }}</h3>
-                        <div class="vedette-price">{{ number_format($bien->prix, 0, ',', ' ') }} FCFA</div>
-                        <div class="vedette-location">
-                            <i class="fa-solid fa-location-dot"></i> {{ $bien->quartier->nom ?? $bien->quartier }}
-                        </div>
-                        <div class="vedette-date">
-                            <i class="fa-regular fa-clock"></i>
-                            Publié {{ $bien->created_at->diffForHumans() }}
-                        </div>
-                        <div class="vedette-features">
-                            <span><i class="fa-solid fa-vector-square"></i> {{ $bien->surface }} m²</span>
-                            <span><i class="fa-solid fa-bed"></i> {{ $bien->nombre_chambres }} ch.</span>
-                            <span><i class="fa-solid fa-bath"></i> {{ $bien->nombre_salles_bain }} sdb</span>
-                        </div>
-                        <!-- ✅ CORRIGÉ : Utilisation du slug -->
-                        <a href="{{ route('biens.show', $bien->slug) }}" class="btn btn-rust btn-sm btn-block">
-                            <i class="fa-regular fa-eye"></i> Voir le bien
-                        </a>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
-    @endif
+    </header>
 
-    <!-- ==================== BARRE DE RECHERCHE + TOGGLE ==================== -->
-    <div class="search-container">
-        <!-- Barre supérieure avec recherche + toggle -->
-        <div class="search-top-bar">
-            <div class="search-main">
-                <div class="search-input-wrapper">
-                    <i class="fa-solid fa-search search-icon"></i>
-                    <input type="text" 
-                           name="search" 
-                           id="searchInput" 
-                           form="searchForm"
-                           value="{{ request('search') }}" 
-                           placeholder="Rechercher un bien..." 
-                           class="search-input"
-                           autocomplete="off">
-                    <div id="autocompleteResults" class="autocomplete-results"></div>
-                </div>
+    {{-- ═══════════════════════════════════════════
+         FILTRES STICKY
+    ═══════════════════════════════════════════ --}}
+    <div class="filters-bar" id="filtersBar">
+        <div class="filters-bar__inner">
+
+            {{-- Recherche --}}
+            <div class="search-input-wrapper">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text"
+                       name="search"
+                       id="searchInput"
+                       form="searchForm"
+                       value="{{ request('search') }}"
+                       placeholder="Rechercher un bien..."
+                       class="search-input"
+                       autocomplete="off">
+                <div id="autocompleteResults" class="autocomplete-results"></div>
             </div>
 
-            <!-- Toggle Liste / Grille -->
+            {{-- Filtres desktop --}}
+            <form action="{{ route('biens.index') }}" method="GET" id="searchForm" class="filters-form">
+                <select name="quartier" class="filter-select" onchange="this.form.submit()">
+                    <option value="">Tous les quartiers</option>
+                    @foreach($quartiers as $quartier)
+                        <option value="{{ $quartier->id }}" {{ request('quartier') == $quartier->id ? 'selected' : '' }}>
+                            {{ $quartier->nom }}
+                        </option>
+                    @endforeach
+                </select>
+
+                <select name="type_bien" class="filter-select" onchange="this.form.submit()">
+                    <option value="">Tous les types</option>
+                    @foreach($typesBien as $key => $label)
+                        <option value="{{ $key }}" {{ request('type_bien') == $key ? 'selected' : '' }}>
+                            {{ $label }}
+                        </option>
+                    @endforeach
+                </select>
+
+                <select name="type_contrat" class="filter-select" onchange="this.form.submit()">
+                    <option value="">Vente & Location</option>
+                    <option value="vente" {{ request('type_contrat') == 'vente' ? 'selected' : '' }}>Vente</option>
+                    <option value="location" {{ request('type_contrat') == 'location' ? 'selected' : '' }}>Location</option>
+                </select>
+
+                <select name="sort" class="filter-select" onchange="this.form.submit()">
+                    <option value="recent" {{ request('sort') == 'recent' ? 'selected' : '' }}>Plus récents</option>
+                    <option value="prix_asc" {{ request('sort') == 'prix_asc' ? 'selected' : '' }}>Prix croissant</option>
+                    <option value="prix_desc" {{ request('sort') == 'prix_desc' ? 'selected' : '' }}>Prix décroissant</option>
+                    <option value="surface_desc" {{ request('sort') == 'surface_desc' ? 'selected' : '' }}>Surface</option>
+                </select>
+            </form>
+
+            {{-- Toggle vue --}}
             <div class="view-toggle">
-                <button type="button" class="view-btn active" id="gridViewBtn" onclick="setView('grid')" title="Vue grille">
+                <button type="button" class="view-btn active" id="gridViewBtn" onclick="setView('grid')" aria-label="Vue grille">
                     <i class="fa-solid fa-table-cells-large"></i>
                 </button>
-                <button type="button" class="view-btn" id="listViewBtn" onclick="setView('list')" title="Vue liste">
+                <button type="button" class="view-btn" id="listViewBtn" onclick="setView('list')" aria-label="Vue liste">
                     <i class="fa-solid fa-list"></i>
                 </button>
             </div>
 
-            <!-- Bouton filtres mobile -->
-            <button type="button" class="btn-filters-toggle" id="filtersToggle" onclick="toggleFilters()">
-                <i class="fa-solid fa-sliders-h"></i> Filtres
-                <span class="filters-count" id="filtersCount">
-                    @php
-                        $count = 0;
-                        if(request('quartier')) $count++;
-                        if(request('type_bien')) $count++;
-                        if(request('type_contrat')) $count++;
-                        if(request('prix_min') || request('prix_max')) $count++;
-                        if(request('sort') && request('sort') != 'recent') $count++;
-                    @endphp
-                    @if($count > 0)
-                        ({{ $count }})
-                    @endif
-                </span>
-                <i class="fa-solid fa-chevron-down" id="filtersArrow"></i>
+            {{-- Bouton filtres mobile --}}
+            <button type="button" class="mobile-filters-btn" onclick="toggleMobileFilters()">
+                <i class="fa-solid fa-sliders"></i>
+                Filtres
+                @php
+                    $activeCount = 0;
+                    if(request('quartier')) $activeCount++;
+                    if(request('type_bien')) $activeCount++;
+                    if(request('type_contrat')) $activeCount++;
+                    if(request('prix_min') || request('prix_max')) $activeCount++;
+                @endphp
+                @if($activeCount > 0)
+                    <span class="mobile-filters-btn__count">{{ $activeCount }}</span>
+                @endif
             </button>
         </div>
 
-        <!-- Filtres -->
-        <form action="{{ route('biens.index') }}" method="GET" id="searchForm">
-            <div class="search-filters" id="searchFilters">
-                <div class="filter-group">
-                    <label class="filter-label">Quartier</label>
-                    <select name="quartier" class="filter-select">
-                        <option value="">Tous les quartiers</option>
-                        @foreach($quartiers as $quartier)
-                            <option value="{{ $quartier->id }}" {{ request('quartier') == $quartier->id ? 'selected' : '' }}>
-                                {{ $quartier->nom }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <label class="filter-label">Type de bien</label>
-                    <select name="type_bien" class="filter-select">
-                        <option value="">Tous les types</option>
-                        @foreach($typesBien as $key => $label)
-                            <option value="{{ $key }}" {{ request('type_bien') == $key ? 'selected' : '' }}>
-                                {{ $label }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <label class="filter-label">Contrat</label>
-                    <select name="type_contrat" class="filter-select">
-                        <option value="">Tous les contrats</option>
-                        <option value="vente" {{ request('type_contrat') == 'vente' ? 'selected' : '' }}>Vente</option>
-                        <option value="location" {{ request('type_contrat') == 'location' ? 'selected' : '' }}>Location</option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <label class="filter-label">Prix min</label>
-                    <input type="number" name="prix_min" value="{{ request('prix_min') }}" placeholder="Min" class="filter-input">
-                </div>
-
-                <div class="filter-group">
-                    <label class="filter-label">Prix max</label>
-                    <input type="number" name="prix_max" value="{{ request('prix_max') }}" placeholder="Max" class="filter-input">
-                </div>
-
-                <div class="filter-group">
-                    <label class="filter-label">Tri</label>
-                    <select name="sort" class="filter-select">
-                        <option value="recent" {{ request('sort') == 'recent' ? 'selected' : '' }}>Plus récents</option>
-                        <option value="prix_asc" {{ request('sort') == 'prix_asc' ? 'selected' : '' }}>Prix croissant</option>
-                        <option value="prix_desc" {{ request('sort') == 'prix_desc' ? 'selected' : '' }}>Prix décroissant</option>
-                        <option value="surface_desc" {{ request('sort') == 'surface_desc' ? 'selected' : '' }}>Plus grandes surfaces</option>
-                    </select>
-                </div>
-
-                <div class="filter-actions">
-                    <button type="submit" class="btn btn-rust btn-search">
-                        <i class="fa-solid fa-search"></i> Rechercher
-                    </button>
-                    @if(request()->anyFilled(['search', 'quartier', 'type_bien', 'type_contrat', 'prix_min', 'prix_max', 'sort']))
-                        <a href="{{ route('biens.index') }}" class="btn btn-ghost btn-reset">
-                            <i class="fa-solid fa-times"></i>
-                        </a>
-                    @endif
-                </div>
-            </div>
-        </form>
-
-        <!-- Filtres actifs -->
+        {{-- Filtres actifs --}}
         @if(request()->anyFilled(['search', 'quartier', 'type_bien', 'type_contrat', 'prix_min', 'prix_max']))
             <div class="active-filters">
-                <span class="active-filters-label">Filtres actifs :</span>
                 @if(request('search'))
-                    <span class="filter-tag">
-                        <i class="fa-solid fa-search"></i> {{ request('search') }}
-                        <a href="#" onclick="removeFilter('search')">&times;</a>
+                    <span class="tag">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        {{ request('search') }}
+                        <button type="button" onclick="removeFilter('search')" aria-label="Retirer">&times;</button>
                     </span>
                 @endif
                 @if(request('quartier'))
-                    @php
-                        $quartier = App\Models\Quartier::find(request('quartier'));
-                    @endphp
-                    <span class="filter-tag">
-                        <i class="fa-solid fa-location-dot"></i> {{ $quartier ? $quartier->nom : '' }}
-                        <a href="#" onclick="removeFilter('quartier')">&times;</a>
+                    @php $q = App\Models\Quartier::find(request('quartier')); @endphp
+                    <span class="tag">
+                        <i class="fa-solid fa-location-dot"></i>
+                        {{ $q->nom ?? '' }}
+                        <button type="button" onclick="removeFilter('quartier')" aria-label="Retirer">&times;</button>
                     </span>
                 @endif
                 @if(request('type_bien'))
-                    <span class="filter-tag">
-                        <i class="fa-solid fa-home"></i> {{ $typesBien[request('type_bien')] ?? '' }}
-                        <a href="#" onclick="removeFilter('type_bien')">&times;</a>
+                    <span class="tag">
+                        <i class="fa-solid fa-house"></i>
+                        {{ $typesBien[request('type_bien')] ?? '' }}
+                        <button type="button" onclick="removeFilter('type_bien')" aria-label="Retirer">&times;</button>
                     </span>
                 @endif
                 @if(request('type_contrat'))
-                    <span class="filter-tag">
-                        <i class="fa-solid fa-file-signature"></i> {{ request('type_contrat') == 'vente' ? 'Vente' : 'Location' }}
-                        <a href="#" onclick="removeFilter('type_contrat')">&times;</a>
+                    <span class="tag">
+                        <i class="fa-solid fa-file-signature"></i>
+                        {{ request('type_contrat') === 'vente' ? 'Vente' : 'Location' }}
+                        <button type="button" onclick="removeFilter('type_contrat')" aria-label="Retirer">&times;</button>
                     </span>
                 @endif
                 @if(request('prix_min') || request('prix_max'))
-                    <span class="filter-tag">
-                        <i class="fa-solid fa-money-bill"></i> 
-                        {{ request('prix_min') ? number_format(request('prix_min'), 0, ',', ' ') : '0' }} - 
+                    <span class="tag">
+                        <i class="fa-solid fa-money-bill"></i>
+                        {{ request('prix_min') ? number_format(request('prix_min'), 0, ',', ' ') : '0' }}
+                        –
                         {{ request('prix_max') ? number_format(request('prix_max'), 0, ',', ' ') : '∞' }} F
-                        <a href="#" onclick="removeFilter('prix_min');removeFilter('prix_max')">&times;</a>
+                        <button type="button" onclick="removeFilter('prix_min');removeFilter('prix_max')" aria-label="Retirer">&times;</button>
                     </span>
+                @endif
+                <a href="{{ route('biens.index') }}" class="tag tag--reset">
+                    <i class="fa-solid fa-rotate"></i> Réinitialiser
+                </a>
+            </div>
+        @endif
+    </div>
+
+    {{-- ═══════════════════════════════════════════
+         RÉSULTATS
+    ═══════════════════════════════════════════ --}}
+    <div class="biens-wrapper">
+
+        <div class="results-bar">
+            <span class="results-bar__count">
+                <strong>{{ $biens->total() }}</strong>
+                bien{{ $biens->total() > 1 ? 's' : '' }} trouvé{{ $biens->total() > 1 ? 's' : '' }}
+            </span>
+            <span class="results-bar__page">
+                Page {{ $biens->currentPage() }} / {{ $biens->lastPage() }}
+            </span>
+        </div>
+
+        @if($biens->count() > 0)
+            <div class="biens-grid" id="biensContainer">
+                @foreach($biens as $bien)
+                    @php
+                        $image = $bien->medias->where('type_media', 'image')->first();
+                        $isVedette = $bien->est_vedette && $bien->vedette_fin > now();
+                        $isNew = $bien->created_at->gt(now()->subHours(48));
+                        $imagesCount = $bien->medias->where('type_media', 'image')->count();
+                    @endphp
+
+                    <article class="bien-card {{ $isVedette ? 'is-vedette' : '' }}">
+
+                        {{-- Image --}}
+                        <a href="{{ route('biens.show', $bien->slug) }}" class="bien-card__media">
+                            @if($image)
+                                <img src="{{ asset('storage/' . $image->fichier) }}" alt="{{ $bien->titre }}" loading="lazy">
+                            @else
+                                <div class="bien-card__placeholder">
+                                    <i class="fa-regular fa-image"></i>
+                                </div>
+                            @endif
+
+                            {{-- Badge vedette OU nouveau (priorité vedette) --}}
+                            @if($isVedette)
+                                <span class="badge badge--vedette">
+                                    <i class="fa-solid fa-star"></i> Vedette
+                                </span>
+                            @elseif($isNew)
+                                <span class="badge badge--new">
+                                    <i class="fa-solid fa-bolt"></i> Nouveau
+                                </span>
+                            @endif
+
+                            {{-- Statut (toujours en haut à droite) --}}
+                            <span class="badge badge--status {{ $bien->statut ? 'is-dispo' : 'is-indispo' }}">
+                                {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
+                            </span>
+
+                            {{-- Overlay hover --}}
+                            <div class="bien-card__overlay">
+                                <span class="bien-card__cta">
+                                    <i class="fa-solid fa-eye"></i> Voir le bien
+                                </span>
+                            </div>
+
+                            {{-- Compteur photos --}}
+                            @if($imagesCount > 1)
+                                <span class="bien-card__photos">
+                                    <i class="fa-regular fa-images"></i> {{ $imagesCount }}
+                                </span>
+                            @endif
+                        </a>
+
+                        {{-- Corps --}}
+                        <div class="bien-card__body">
+
+                            <div class="bien-card__headline">
+                                <h3 class="bien-card__title">
+                                    <a href="{{ route('biens.show', $bien->slug) }}">
+                                        {{ $bien->titre }}
+                                    </a>
+                                </h3>
+                            </div>
+
+                            <div class="bien-card__price">
+                                {{ number_format($bien->prix, 0, ',', ' ') }}
+                                <small>FCFA</small>
+                            </div>
+
+                            <div class="bien-card__location">
+                                <i class="fa-solid fa-location-dot"></i>
+                                {{ $bien->quartier->nom ?? $bien->quartier }}
+                            </div>
+
+                            <div class="bien-card__specs">
+                                <span>
+                                    <i class="fa-regular fa-square"></i>
+                                    {{ $bien->surface }} m²
+                                </span>
+                                @if($bien->nombre_chambres)
+                                    <span>
+                                        <i class="fa-solid fa-bed"></i>
+                                        {{ $bien->nombre_chambres }} ch.
+                                    </span>
+                                @endif
+                                @if($bien->nombre_salles_bain)
+                                    <span>
+                                        <i class="fa-solid fa-bath"></i>
+                                        {{ $bien->nombre_salles_bain }} sdb
+                                    </span>
+                                @endif
+                            </div>
+
+                            <div class="bien-card__footer">
+                                <span class="bien-card__date">
+                                    <i class="fa-regular fa-clock"></i>
+                                    {{ $bien->created_at->diffForHumans() }}
+                                </span>
+                                <a href="{{ route('biens.show', $bien->slug) }}" class="bien-card__link">
+                                    Voir <i class="fa-solid fa-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </article>
+                @endforeach
+            </div>
+
+            {{-- PAGINATION --}}
+            @if($biens->hasPages())
+                <div class="pagination-wrapper" id="paginationWrapper"
+                     data-current-page="{{ $biens->currentPage() }}"
+                     data-last-page="{{ $biens->lastPage() }}"
+                     data-base-url="{{ $biens->url(1) }}"
+                     data-total="{{ $biens->total() }}"
+                     data-query="{{ http_build_query(request()->except('page')) }}">
+                </div>
+            @endif
+
+        @else
+            <div class="empty-state">
+                <div class="empty-state__icon">
+                    <i class="fa-regular fa-building"></i>
+                </div>
+                <h3>Aucun bien trouvé</h3>
+                <p>
+                    @if(request()->anyFilled(['search', 'quartier', 'type_bien', 'type_contrat', 'prix_min', 'prix_max']))
+                        Essayez de modifier vos filtres pour voir plus de résultats.
+                    @else
+                        Les biens publiés par les agences apparaîtront ici.
+                    @endif
+                </p>
+                @if(request()->anyFilled(['search', 'quartier', 'type_bien', 'type_contrat', 'prix_min', 'prix_max']))
+                    <a href="{{ route('biens.index') }}" class="btn btn-ghost">
+                        <i class="fa-solid fa-rotate"></i> Voir tous les biens
+                    </a>
                 @endif
             </div>
         @endif
     </div>
 
-    <p class="results-count">{{ $biens->total() }} biens disponibles</p>
-
-    <!-- ==================== LISTE DES BIENS (GRID / LIST) ==================== -->
-    <div class="biens-wrapper">
-        <div class="biens-grid" id="biensContainer">
-            @forelse($biens as $bien)
-                <div class="bien-card {{ $bien->est_vedette && $bien->vedette_fin > now() ? 'vedette-card' : '' }}">
-                    <div class="bien-image">
-                        @php
-                            $image = $bien->medias->where('type_media', 'image')->first();
-                        @endphp
-                        @if($image)
-                            <img src="{{ asset('storage/' . $image->fichier) }}" alt="{{ $bien->titre }}" loading="lazy">
-                        @else
-                            <div class="image-placeholder">
-                                <i class="fa-solid fa-image"></i>
-                                <span>Aucune image</span>
-                            </div>
-                        @endif
-                        
-                        <!-- BADGE VEDETTE - en haut à GAUCHE -->
-                        @if($bien->est_vedette && $bien->vedette_fin > now())
-                            <span class="badge-vedette">
-                                <i class="fa-solid fa-star"></i> Vedette
-                            </span>
-                        @endif
-                        
-                        <!-- BADGE TYPE - en bas à GAUCHE -->
-                        <div class="bien-type-badge">{{ is_object($bien->type_bien) && method_exists($bien->type_bien, 'label') ? $bien->type_bien->label() : $bien->type_bien }}</div>
-                        
-                        <!-- BADGE STATUS - en haut à DROITE (ne chevauche pas Vedette) -->
-                        <div class="bien-status {{ $bien->statut ? 'disponible' : 'indisponible' }}">
-                            {{ $bien->statut ? 'Disponible' : 'Indisponible' }}
-                        </div>
-                        
-                        <!-- MEDIA BADGE - en bas à DROITE -->
-                        <div class="media-badge">
-                            @php
-                                $imagesCount = $bien->medias->where('type_media', 'image')->count();
-                                $videosCount = $bien->medias->where('type_media', 'video')->count();
-                            @endphp
-                            @if($imagesCount > 0)
-                                <span><i class="fa-regular fa-image"></i> {{ $imagesCount }}</span>
-                            @endif
-                            @if($videosCount > 0)
-                                <span><i class="fa-regular fa-circle-play"></i> {{ $videosCount }}</span>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="bien-body">
-                        <div class="bien-title">{{ $bien->titre }}</div>
-                        <div class="bien-price">{{ number_format($bien->prix, 0, ',', ' ') }} FCFA</div>
-                        <div class="bien-location">
-                            <i class="fa-solid fa-location-dot"></i> {{ $bien->quartier->nom ?? $bien->quartier }}
-                        </div>
-                        <div class="bien-date">
-                            <i class="fa-regular fa-clock"></i>
-                            Publié {{ $bien->created_at->diffForHumans() }}
-                        </div>
-                        <div class="bien-type-tags">
-                            <span class="meta-pill">
-                                <i class="fa-solid fa-home"></i> {{ is_object($bien->type_bien) && method_exists($bien->type_bien, 'label') ? $bien->type_bien->label() : $bien->type_bien }}
-                            </span>
-                            <span class="meta-pill">
-                                <i class="fa-solid fa-tag"></i> {{ is_object($bien->type_contrat) && method_exists($bien->type_contrat, 'label') ? $bien->type_contrat->label() : $bien->type_contrat }}
-                            </span>
-                        </div>
-                        <div class="bien-infos">
-                            <span><i class="fa-solid fa-vector-square"></i> {{ $bien->surface }} m²</span>
-                            <span><i class="fa-solid fa-bed"></i> {{ $bien->nombre_chambres }} ch.</span>
-                            <span><i class="fa-solid fa-bath"></i> {{ $bien->nombre_salles_bain }} sdb</span>
-                        </div>
-                        <div class="bien-features">
-                            @if($bien->parking_disponible)
-                                <span class="meta-pill"><i class="fa-solid fa-car"></i> Parking</span>
-                            @endif
-                            @if($bien->est_meuble)
-                                <span class="meta-pill"><i class="fa-solid fa-couch"></i> Meublé</span>
-                            @endif
-                        </div>
-                        <div class="bien-action">
-                            <!-- ✅ CORRIGÉ : Utilisation du slug -->
-                            <a href="{{ route('biens.show', $bien->slug) }}" class="btn btn-rust btn-sm btn-block">Voir le détail</a>
-                        </div>
-                    </div>
+    {{-- CTA FINAL --}}
+    @if($biens->count() > 0)
+        <section class="final-cta">
+            <div class="final-cta__inner">
+                <div class="final-cta__icon">
+                    <i class="fa-solid fa-bell"></i>
                 </div>
-            @empty
-                <div class="empty-state">
-                    <i class="fa-solid fa-building"></i>
-                    <p>Aucun bien disponible pour le moment.</p>
+                <div class="final-cta__content">
+                    <h2>Vous ne trouvez pas votre bonheur ?</h2>
+                    <p>Publiez votre recherche gratuitement et recevez des propositions des agences de Dakar.</p>
                 </div>
-            @endforelse
-        </div>
-    </div>
-
-    <!-- ==================== PAGINATION ==================== -->
-    @if($biens->hasPages())
-    <div class="pagination-container">
-        <nav class="pagination-nav" aria-label="Pagination des biens">
-            <div class="pagination-info">
-                <span class="pagination-stats">
-                    Affichage de <strong>{{ $biens->firstItem() }}</strong> à <strong>{{ $biens->lastItem() }}</strong> 
-                    sur <strong>{{ $biens->total() }}</strong> biens
-                </span>
+                <div class="final-cta__actions">
+                    <a href="{{ route('register.particulier') }}" class="btn btn-rust">
+                        <i class="fa-solid fa-plus"></i> Publier ma recherche
+                    </a>
+                    <a href="{{ route('besoins.index') }}" class="btn btn-ghost">
+                        <i class="fa-solid fa-eye"></i> Voir les besoins
+                    </a>
+                </div>
             </div>
-
-            <ul class="pagination">
-                @if($biens->onFirstPage())
-                    <li class="disabled" aria-disabled="true">
-                        <span>&laquo; Précédent</span>
-                    </li>
-                @else
-                    <li>
-                        <a href="{{ $biens->previousPageUrl() }}" rel="prev" aria-label="Page précédente">
-                            &laquo; Précédent
-                        </a>
-                    </li>
-                @endif
-
-                @php
-                    $currentPage = $biens->currentPage();
-                    $lastPage = $biens->lastPage();
-                    $window = 2;
-                @endphp
-
-                @foreach(range(1, $lastPage) as $page)
-                    @if($page == 1 || $page == $lastPage || abs($page - $currentPage) <= $window)
-                        @if($page == $currentPage)
-                            <li class="active" aria-current="page">
-                                <span>{{ $page }}</span>
-                            </li>
-                        @else
-                            <li>
-                                <a href="{{ $biens->url($page) }}" aria-label="Page {{ $page }}">
-                                    {{ $page }}
-                                </a>
-                            </li>
-                        @endif
-                    @elseif($page == $currentPage - $window - 1 || $page == $currentPage + $window + 1)
-                        <li class="disabled" aria-disabled="true">
-                            <span>&hellip;</span>
-                        </li>
-                    @endif
-                @endforeach
-
-                @if($biens->hasMorePages())
-                    <li>
-                        <a href="{{ $biens->nextPageUrl() }}" rel="next" aria-label="Page suivante">
-                            Suivant &raquo;
-                        </a>
-                    </li>
-                @else
-                    <li class="disabled" aria-disabled="true">
-                        <span>Suivant &raquo;</span>
-                    </li>
-                @endif
-            </ul>
-
-            <div class="pagination-per-page">
-                <label for="perPage" class="per-page-label">Afficher :</label>
-                <select id="perPage" class="per-page-select" onchange="changePerPage(this.value)">
-                    <option value="12" {{ request('per_page') == 12 ? 'selected' : '' }}>12</option>
-                    <option value="24" {{ request('per_page') == 24 ? 'selected' : '' }}>24</option>
-                    <option value="48" {{ request('per_page') == 48 ? 'selected' : '' }}>48</option>
-                    <option value="96" {{ request('per_page') == 96 ? 'selected' : '' }}>96</option>
-                </select>
-                <span class="per-page-text">par page</span>
-            </div>
-        </nav>
-    </div>
+        </section>
     @endif
 </div>
+@endsection
 
-<style>
-/* ===== PAGE HEAD ===== */
-.page-head { padding: 20px 0 10px; }
-.page-head-inner { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
-@media (min-width: 768px) { .page-head-inner { padding: 0 24px; } }
-@media (min-width: 1200px) { .page-head-inner { padding: 0 40px; } }
 
-.h-section { font-family: var(--display); font-weight: 800; font-size: clamp(22px, 3vw, 30px); line-height: 1.2; }
-.eyebrow { display: inline-block; font-size: clamp(10px, 0.7vw, 11px); font-weight: 600; color: var(--rust); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-
-/* ===== SEARCH TOP BAR ===== */
-.search-top-bar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-.search-main { flex: 1; }
-.search-input-wrapper { position: relative; }
-.search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; pointer-events: none; z-index: 2; }
-.search-input { width: 100%; padding: 10px 16px 10px 42px; border: 1px solid var(--border); border-radius: 10px; font-size: clamp(13px, 0.9vw, 14px); font-family: inherit; background: #F7F9FC; transition: all 0.3s ease; -webkit-appearance: none; appearance: none; }
-.search-input:focus { outline: none; border-color: var(--rust); background: #fff; box-shadow: 0 0 0 3px rgba(184, 92, 58, 0.08); }
-.search-input::placeholder { color: var(--muted); font-size: clamp(12px, 0.8vw, 13px); }
-
-/* ===== VIEW TOGGLE ===== */
-.view-toggle {
-    display: flex;
-    gap: 4px;
-    background: #F7F9FC;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 4px;
-}
-
-.view-btn {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: transparent;
-    border-radius: 6px;
-    color: var(--muted);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 14px;
-}
-
-.view-btn:hover {
-    background: var(--border);
-    color: var(--ink);
-}
-
-.view-btn.active {
-    background: var(--rust);
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(184, 92, 58, 0.25);
-}
-
-/* ===== FILTERS TOGGLE ===== */
-.btn-filters-toggle {
-    display: none;
-    padding: 8px 16px;
-    background: #F7F9FC;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-soft);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font-family: inherit;
-}
-
-.btn-filters-toggle:hover { background: var(--border); }
-.btn-filters-toggle .filters-count { color: var(--rust); font-weight: 700; }
-.btn-filters-toggle .fa-chevron-down { transition: transform 0.3s ease; font-size: 12px; }
-.btn-filters-toggle .fa-chevron-down.open { transform: rotate(180deg); }
-
-/* ===== AUTOCOMPLETE ===== */
-.autocomplete-results { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--border); border-radius: 10px; margin-top: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 1000; display: none; max-height: 300px; overflow-y: auto; }
-.autocomplete-item { padding: 8px 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); transition: background 0.2s; }
-.autocomplete-item:last-child { border-bottom: none; }
-.autocomplete-item:hover { background: #F7F9FC; }
-.autocomplete-item .item-icon { color: var(--rust); width: 18px; font-size: 13px; flex-shrink: 0; }
-.autocomplete-item .item-content { flex: 1; min-width: 0; }
-.autocomplete-item .item-title { font-weight: 600; font-size: 13px; color: var(--ink); }
-.autocomplete-item .item-desc { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.autocomplete-item .item-type { font-size: 9px; text-transform: uppercase; color: var(--muted); background: var(--border); padding: 1px 8px; border-radius: 999px; flex-shrink: 0; font-weight: 600; }
-
-/* ===== FILTERS ===== */
-.search-filters { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; transition: all 0.3s ease; }
-.filter-group { display: flex; flex-direction: column; gap: 3px; }
-.filter-label { font-size: clamp(10px, 0.7vw, 11px); color: var(--muted); font-weight: 500; }
-.filter-select { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: clamp(12px, 0.8vw, 13px); background: #fff; font-family: inherit; color: var(--ink); -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%238A91A0' d='M5 7L1 3h8z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; cursor: pointer; transition: border-color 0.3s; padding-right: 28px; }
-.filter-select:focus { outline: none; border-color: var(--rust); }
-.filter-input { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: clamp(12px, 0.8vw, 13px); font-family: inherit; color: var(--ink); transition: border-color 0.3s; -webkit-appearance: none; appearance: none; }
-.filter-input:focus { outline: none; border-color: var(--rust); }
-.filter-input::placeholder { color: var(--muted); }
-.filter-actions { display: flex; align-items: flex-end; gap: 8px; }
-.btn-search { flex: 1; justify-content: center; min-width: 90px; padding: 8px 14px; }
-.btn-reset { flex-shrink: 0; padding: 8px 12px; }
-
-/* ===== ACTIVE FILTERS ===== */
-.active-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); align-items: center; }
-.active-filters-label { font-size: clamp(10px, 0.7vw, 11px); color: var(--muted); margin-right: 2px; }
-.filter-tag { display: inline-flex; align-items: center; gap: 4px; background: var(--rust-soft); color: var(--rust); padding: 3px 10px; border-radius: 999px; font-size: clamp(10px, 0.7vw, 11px); }
-.filter-tag a { color: var(--rust); text-decoration: none; font-weight: 700; margin-left: 2px; font-size: 14px; line-height: 1; }
-.filter-tag a:hover { color: #9A4523; }
-
-/* ===== RESULTS COUNT ===== */
-.results-count { font-size: clamp(12px, 0.8vw, 13px); color: var(--muted); margin-bottom: 16px; text-align: center; }
-
-/* ===== BIENS WRAPPER ===== */
-.biens-wrapper { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
-@media (min-width: 768px) { .biens-wrapper { padding: 0 24px; } }
-@media (min-width: 1200px) { .biens-wrapper { padding: 0; } }
-
-/* ===== BIENS GRID ===== */
-.biens-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 20px; margin: 0 auto; }
-.bien-card { background: #fff; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; position: relative; z-index: 1; }
-.bien-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
-
-/* ===== IMAGE CONTAINER ===== */
-.bien-image { 
-    position: relative;
-    height: clamp(160px, 22vw, 200px); 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    overflow: hidden; 
-    flex-shrink: 0; 
-    background: #F0F2F5;
-}
-
-.bien-image img { 
-    width: 100%; 
-    height: 100%; 
-    object-fit: cover; 
-    display: block; 
-}
-
-.image-placeholder { 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    color: var(--muted); 
-    opacity: 0.5; 
-}
-.image-placeholder i { font-size: 32px; margin-bottom: 4px; }
-.image-placeholder span { font-size: 11px; }
-
-/* ============================================================
-   BADGES SUR L'IMAGE - POSITIONNEMENT CORRIGÉ
-   ============================================================ */
-
-/* ✅ BADGE VEDETTE - en haut à GAUCHE */
-.badge-vedette { 
-    position: absolute; 
-    top: 10px; 
-    left: 10px; 
-    z-index: 6;
-    padding: 4px 12px; 
-    border-radius: 999px; 
-    font-size: 10px; 
-    font-weight: 700; 
-    color: #FFFFFF !important;
-    background: #D4AF37 !important;
-    display: flex; 
-    align-items: center; 
-    gap: 4px; 
-    text-transform: uppercase; 
-    letter-spacing: 0.5px; 
-    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3); 
-    animation: pulseVedette 2s ease-in-out infinite; 
-    border: 1px solid rgba(255,255,255,0.2);
-}
-.badge-vedette i { font-size: 10px; color: #FFFFFF !important; }
-
-/* ✅ BADGE TYPE - en bas à GAUCHE */
-.bien-type-badge { 
-    position: absolute; 
-    bottom: 10px; 
-    left: 10px; 
-    z-index: 5;
-    padding: 4px 12px; 
-    border-radius: 999px; 
-    font-size: clamp(9px, 0.7vw, 10px); 
-    font-weight: 700; 
-    color: #FFFFFF !important;
-    background: var(--rust) !important;
-    text-transform: uppercase; 
-    letter-spacing: 0.5px; 
-    border: 1px solid rgba(255,255,255,0.2);
-}
-
-/* ✅ BADGE STATUS - en haut à DROITE (ne chevauche pas Vedette) */
-.bien-status { 
-    position: absolute; 
-    top: 10px; 
-    right: 10px; 
-    z-index: 6;
-    padding: 4px 12px; 
-    border-radius: 999px; 
-    font-size: clamp(9px, 0.7vw, 10px); 
-    font-weight: 700; 
-    color: #FFFFFF !important;
-    text-transform: uppercase; 
-    letter-spacing: 0.5px; 
-    border: 1px solid rgba(255,255,255,0.2);
-}
-.bien-status.disponible { 
-    background: var(--teal) !important;
-}
-.bien-status.indisponible { 
-    background: #8A91A0 !important; 
-}
-
-/* ✅ MEDIA BADGE - en bas à DROITE */
-.media-badge { 
-    position: absolute; 
-    bottom: 10px; 
-    right: 10px; 
-    z-index: 5;
-    display: flex; 
-    gap: 6px; 
-    font-size: clamp(9px, 0.7vw, 10px); 
-    color: #FFFFFF !important;
-    background: rgba(0,0,0,0.6) !important;
-    padding: 3px 10px; 
-    border-radius: 999px; 
-    border: 1px solid rgba(255,255,255,0.15);
-}
-.media-badge span { display: flex; align-items: center; gap: 4px; }
-.media-badge span i { color: #FFFFFF !important; }
-
-/* ============================================================
-   FIN BADGES
-   ============================================================ */
-
-/* ===== BIEN BODY ===== */
-.bien-body { padding: 14px 16px 16px; flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; }
-.bien-title { font-weight: 700; font-size: clamp(14px, 1vw, 16px); margin-bottom: 2px; color: var(--ink); line-height: 1.3; word-break: break-word; }
-.bien-price { font-weight: 700; color: #B85C3A; font-size: clamp(15px, 1.1vw, 17px); margin-bottom: 3px; }
-.bien-location { font-size: clamp(12px, 0.8vw, 13px); color: var(--muted); margin-bottom: 6px; word-break: break-word; }
-.bien-location i { font-size: 11px; margin-right: 3px; }
-
-/* ===== DATE DE PUBLICATION ===== */
-.bien-date {
-    font-size: clamp(11px, 0.7vw, 12px);
-    color: var(--muted);
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-.bien-date i {
-    font-size: 11px;
-    color: var(--muted);
-}
-
-.bien-type-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
-.bien-infos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; font-size: clamp(12px, 0.8vw, 13px); color: var(--text-soft); }
-.bien-infos span { display: flex; align-items: center; gap: 4px; }
-.bien-infos span i { font-size: 11px; }
-.bien-features { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-.bien-action { margin-top: 12px; }
-.meta-pill { display: inline-flex; align-items: center; gap: 4px; background: var(--border); padding: 2px 10px; border-radius: 999px; font-size: clamp(9px, 0.7vw, 10px); color: var(--text-soft); }
-.meta-pill i { font-size: 10px; }
-
-/* ===== ANIMATION VEDETTE ===== */
-@keyframes pulseVedette { 
-    0%, 100% { opacity: 1; } 
-    50% { opacity: 0.85; } 
-}
-
-/* ============================================================
-   VUE LISTE - IMAGES AGRANDIES
-   ============================================================ */
-
-/* ===== VUE LISTE DESKTOP ===== */
-.biens-grid.list-view {
-    grid-template-columns: 1fr;
-    gap: 16px;
-}
-
-.biens-grid.list-view .bien-card {
-    flex-direction: row;
-    align-items: stretch;
-    height: auto;
-}
-
-.biens-grid.list-view .bien-image {
-    width: 380px;
-    min-width: 380px;
-    height: 280px;
-    min-height: 280px;
-}
-
-.biens-grid.list-view .bien-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.biens-grid.list-view .bien-body {
-    flex: 1;
-    padding: 16px 20px;
-}
-
-.biens-grid.list-view .bien-title {
-    font-size: 18px;
-}
-
-.biens-grid.list-view .bien-price {
-    font-size: 20px;
-}
-
-.biens-grid.list-view .bien-location {
-    font-size: 14px;
-}
-
-.biens-grid.list-view .bien-date {
-    font-size: 13px;
-}
-
-.biens-grid.list-view .bien-infos {
-    font-size: 14px;
-    gap: 12px;
-    margin-top: 8px;
-}
-
-.biens-grid.list-view .bien-action {
-    margin-top: auto;
-    display: flex;
-    justify-content: flex-end;
-}
-
-.biens-grid.list-view .bien-action .btn {
-    width: auto;
-    min-width: 160px;
-}
-
-/* ===== VUE LISTE TABLETTE ===== */
-@media (max-width: 768px) {
-    .biens-grid.list-view {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-
-    .biens-grid.list-view .bien-card {
-        flex-direction: row;
-        align-items: stretch;
-        height: auto;
-        padding: 0;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        background: #fff;
-        overflow: hidden;
-    }
-
-    .biens-grid.list-view .bien-image {
-        width: 180px;
-        min-width: 180px;
-        height: 180px;
-        min-height: 180px;
-        border-radius: 0;
-        overflow: hidden;
-        position: relative;
-        flex-shrink: 0;
-        margin: 0;
-    }
-
-    .biens-grid.list-view .bien-image img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-        position: absolute !important;
-        top: 0;
-        left: 0;
-    }
-
-    .biens-grid.list-view .bien-image .image-placeholder {
-        display: none !important;
-    }
-
-    .biens-grid.list-view .bien-type-badge {
-        position: absolute;
-        bottom: 6px;
-        left: 6px;
-        font-size: 7px;
-        padding: 3px 8px;
-        color: #FFFFFF !important;
-        background: #B85C3A !important;
-        border-radius: 4px;
-        z-index: 5;
-        display: block !important;
-        font-weight: 700;
-        letter-spacing: 0.3px;
-        border: 1px solid rgba(255,255,255,0.15);
-    }
-
-    .biens-grid.list-view .bien-status {
-        position: absolute;
-        top: 6px;
-        right: 6px;
-        font-size: 7px;
-        padding: 3px 8px;
-        border-radius: 4px;
-        z-index: 5;
-        display: block !important;
-        font-weight: 700;
-        letter-spacing: 0.3px;
-        border: 1px solid rgba(255,255,255,0.15);
-    }
-    .biens-grid.list-view .bien-status.disponible {
-        background: #2A9D8F !important;
-        color: #FFFFFF !important;
-    }
-    .biens-grid.list-view .bien-status.indisponible {
-        background: #8A91A0 !important;
-        color: #FFFFFF !important;
-    }
-
-    .biens-grid.list-view .media-badge {
-        position: absolute;
-        bottom: 6px;
-        right: 6px;
-        font-size: 7px;
-        padding: 3px 8px;
-        z-index: 5;
-        display: flex !important;
-        color: #FFFFFF !important;
-        background: rgba(0,0,0,0.6) !important;
-        border-radius: 4px;
-        border: 1px solid rgba(255,255,255,0.15);
-        gap: 4px;
-    }
-    .biens-grid.list-view .media-badge span i {
-        color: #FFFFFF !important;
-    }
-
-    .biens-grid.list-view .badge-vedette {
-        position: absolute;
-        top: 6px;
-        left: 6px;
-        font-size: 7px;
-        padding: 3px 8px;
-        border-radius: 4px;
-        z-index: 5;
-        display: flex !important;
-        color: #FFFFFF !important;
-        background: #D4AF37 !important;
-        border: 1px solid rgba(255,255,255,0.15);
-    }
-    .biens-grid.list-view .badge-vedette i {
-        color: #FFFFFF !important;
-    }
-
-    .biens-grid.list-view .bien-body {
-        flex: 1;
-        padding: 10px 12px 10px 14px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-height: 180px;
-        background: #fff;
-    }
-
-    .biens-grid.list-view .bien-title {
-        font-size: 13px;
-        font-weight: 700;
-        margin-bottom: 2px;
-        line-height: 1.2;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        color: var(--ink);
-    }
-
-    .biens-grid.list-view .bien-price {
-        font-size: 14px;
-        font-weight: 700;
-        color: #B85C3A;
-        margin-bottom: 2px;
-    }
-
-    .biens-grid.list-view .bien-location {
-        font-size: 11px;
-        color: var(--muted);
-        margin-bottom: 2px;
-    }
-
-    .biens-grid.list-view .bien-date {
-        font-size: 10px;
-        margin-bottom: 3px;
-    }
-
-    .biens-grid.list-view .bien-type-tags,
-    .biens-grid.list-view .bien-infos,
-    .biens-grid.list-view .bien-features {
-        display: none !important;
-    }
-
-    .biens-grid.list-view .bien-action {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        margin-top: 4px;
-    }
-
-    .biens-grid.list-view .bien-action .btn {
-        width: auto;
-        min-width: auto;
-        padding: 4px 12px;
-        font-size: 10px;
-        border-radius: 6px;
-    }
-}
-
-/* ===== VUE LISTE PETIT MOBILE ===== */
-@media (max-width: 480px) {
-    .biens-grid.list-view .bien-image {
-        width: 150px;
-        min-width: 150px;
-        height: 150px;
-        min-height: 150px;
-    }
-
-    .biens-grid.list-view .bien-body {
-        padding: 8px 10px 8px 12px;
-        min-height: 150px;
-    }
-
-    .biens-grid.list-view .bien-title {
-        font-size: 12px;
-    }
-
-    .biens-grid.list-view .bien-price {
-        font-size: 13px;
-    }
-
-    .biens-grid.list-view .bien-location {
-        font-size: 10px;
-    }
-
-    .biens-grid.list-view .bien-date {
-        font-size: 9px;
-    }
-
-    .biens-grid.list-view .bien-action .btn {
-        font-size: 9px;
-        padding: 3px 10px;
-    }
-
-    .biens-grid.list-view .bien-type-badge,
-    .biens-grid.list-view .bien-status,
-    .biens-grid.list-view .media-badge,
-    .biens-grid.list-view .badge-vedette {
-        font-size: 6px;
-        padding: 2px 6px;
-    }
-}
-
-/* ===== PAGINATION ===== */
-.pagination-container { max-width: 1200px; margin: 32px auto 0; padding: 0 16px; }
-@media (min-width: 768px) { .pagination-container { padding: 0 24px; } }
-@media (min-width: 1200px) { .pagination-container { padding: 0; } }
-.pagination-nav { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; align-items: center; }
-.pagination-info { width: 100%; text-align: center; }
-.pagination-stats { font-size: clamp(12px, 0.8vw, 14px); color: var(--text-soft); }
-.pagination-stats strong { color: var(--ink); font-weight: 700; }
-.pagination { display: flex; gap: 4px; list-style: none; padding: 0; margin: 0; flex-wrap: wrap; justify-content: center; }
-.pagination li { display: inline; }
-.pagination a, .pagination span { display: inline-flex; align-items: center; justify-content: center; padding: clamp(6px, 0.5vw, 8px) clamp(10px, 0.8vw, 14px); border-radius: 8px; border: 1px solid var(--border); color: var(--text-soft); text-decoration: none; font-size: clamp(11px, 0.8vw, 13px); transition: all 0.2s ease; min-width: clamp(32px, 3vw, 40px); min-height: clamp(32px, 3vw, 40px); text-align: center; background: #fff; font-weight: 500; }
-.pagination a:hover { background: var(--border); border-color: var(--border); color: var(--ink); transform: translateY(-1px); }
-.pagination .active span { background: #B85C3A; color: #fff; border-color: #B85C3A; box-shadow: 0 2px 8px rgba(184, 92, 58, 0.25); }
-.pagination .disabled span { opacity: 0.5; cursor: not-allowed; background: #f7f7f7; }
-.pagination .disabled span:hover { transform: none; }
-.pagination a[rel="prev"], .pagination a[rel="next"] { font-weight: 600; gap: 4px; }
-.pagination-per-page { display: flex; align-items: center; gap: 6px; font-size: clamp(12px, 0.8vw, 13px); color: var(--text-soft); border-top: 1px solid var(--border); padding-top: 14px; width: 100%; justify-content: center; flex-wrap: wrap; }
-.per-page-label { font-weight: 500; }
-.per-page-select { padding: 4px 24px 4px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: clamp(12px, 0.8vw, 13px); font-family: inherit; color: var(--ink); background: #fff; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%238A91A0' d='M5 7L1 3h8z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; cursor: pointer; -webkit-appearance: none; appearance: none; transition: border-color 0.3s; }
-.per-page-select:focus { outline: none; border-color: #B85C3A; }
-.per-page-text { color: var(--muted); }
-
-/* ===== BOUTONS ===== */
-.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: clamp(11px, 0.8vw, 12.5px); font-weight: 600; text-decoration: none; transition: all 0.2s; border: 1px solid transparent; cursor: pointer; font-family: inherit; white-space: nowrap; }
-.btn-rust { background: #B85C3A; color: #fff; border-color: #B85C3A; }
-.btn-rust:hover { background: #9A4523; border-color: #9A4523; color: #fff; }
-.btn-ghost { background: transparent; color: var(--text-soft); border-color: var(--border); }
-.btn-ghost:hover { background: var(--border); color: var(--ink); }
-.btn-sm { padding: 6px 12px; font-size: clamp(10px, 0.7vw, 11.5px); border-radius: 6px; }
-.btn-block { width: 100%; justify-content: center; }
-
-/* ===== BADGE VEDETTE SUR CARTE ===== */
-.bien-card.vedette-card { border: 2px solid #D4AF37; position: relative; }
-.bien-card.vedette-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-radius: 12px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.05), transparent); pointer-events: none; z-index: 0; }
-
-/* ===== VEDETTE SECTION ===== */
-.vedette-section { background: linear-gradient(135deg, #FDF5E6 0%, #FFF8E1 100%); border: 2px solid #D4AF37; border-radius: 16px; padding: 20px 20px 24px; margin-bottom: 24px; max-width: 1200px; margin-left: auto; margin-right: auto; }
-.vedette-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-.vedette-header .eyebrow { margin-bottom: 0; background: #D4AF37; color: #fff; padding: 4px 16px; border-radius: 999px; }
-.vedette-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
-
-/* ===== VEDETTE CARD ===== */
-.vedette-card { background: #fff; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; }
-.vedette-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
-
-/* ===== VEDETTE IMAGE ===== */
-.vedette-image { position: relative; height: 150px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; background: #F0F2F5; }
-.vedette-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.vedette-image .image-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 28px; opacity: 0.3; }
-
-/* ✅ BADGE VEDETTE - en haut à GAUCHE (section vedette) */
-.vedette-badge { 
-    position: absolute; 
-    top: 8px; 
-    left: 8px; 
-    z-index: 6;
-    padding: 2px 12px; 
-    border-radius: 999px; 
-    font-size: 10px; 
-    font-weight: 700; 
-    color: #fff; 
-    background: #D4AF37; 
-    display: flex; 
-    align-items: center; 
-    gap: 4px; 
-    animation: pulseVedette 2s ease-in-out infinite; 
-}
-.vedette-badge i { font-size: 10px; color: #fff; }
-
-/* ✅ BADGE STATUS - en haut à DROITE (section vedette) */
-.vedette-image .bien-status {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    z-index: 6;
-    padding: 2px 12px;
-    border-radius: 999px;
-    font-size: 10px;
-    font-weight: 700;
-    color: #fff;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-.vedette-image .bien-status.disponible {
-    background: #2A9D8F !important;
-}
-.vedette-image .bien-status.indisponible {
-    background: #8A91A0 !important;
-}
-
-.vedette-body { padding: 12px 14px 14px; flex: 1; display: flex; flex-direction: column; }
-.vedette-title { font-weight: 700; font-size: 14px; margin-bottom: 2px; color: var(--ink); line-height: 1.3; word-break: break-word; }
-.vedette-price { font-weight: 700; color: #B85C3A; font-size: 15px; margin-bottom: 3px; }
-.vedette-location { font-size: 12px; color: var(--muted); margin-bottom: 4px; word-break: break-word; }
-.vedette-location i { font-size: 11px; margin-right: 3px; }
-
-/* ===== DATE DE PUBLICATION - VEDETTE ===== */
-.vedette-date {
-    font-size: 11px;
-    color: var(--muted);
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-.vedette-date i {
-    font-size: 10px;
-    color: var(--muted);
-}
-
-.vedette-features { display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; color: var(--text-soft); margin-bottom: 10px; }
-.vedette-features span { display: flex; align-items: center; gap: 4px; }
-.vedette-features span i { font-size: 10px; }
-.vedette-body .btn { margin-top: auto; }
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 640px) { 
-    .vedette-section { padding: 16px; border-radius: 12px; } 
-    .vedette-grid { grid-template-columns: 1fr 1fr; gap: 12px; } 
-    .vedette-image { height: 120px; } 
-    .vedette-title { font-size: 13px; } 
-    .vedette-price { font-size: 14px; } 
-    .vedette-location { font-size: 11px; } 
-    .vedette-features { font-size: 10px; gap: 4px; } 
-}
-@media (max-width: 460px) { 
-    .vedette-grid { grid-template-columns: 1fr; } 
-    .vedette-image { height: 160px; } 
-    .vedette-title { font-size: 15px; } 
-    .vedette-price { font-size: 16px; } 
-}
-
-/* ===== RESPONSIVE GENERAL ===== */
-@media (max-width: 820px) {
-    .search-filters { grid-template-columns: 1fr 1fr; }
-    .filter-actions { grid-column: 1 / -1; }
-    .biens-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 16px; }
-    .pagination-nav { padding: 14px 16px; }
-}
-
-@media (max-width: 640px) {
-    .page-head { padding: 16px 0 8px; }
-    .search-container { padding: 12px; border-radius: 10px; }
-    .search-top-bar { flex-wrap: wrap; }
-    .btn-filters-toggle { display: flex; width: 100%; }
-    .search-filters { display: none; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
-    .search-filters.open { display: grid; }
-    .filter-actions { grid-column: 1 / -1; flex-direction: row; }
-    .btn-search { flex: 1; justify-content: center; padding: 8px 12px; font-size: 12px; }
-    .btn-reset { padding: 8px 12px; }
-    .active-filters { flex-direction: column; align-items: flex-start; gap: 4px; }
-    .biens-wrapper { padding: 0 12px; }
-    .biens-grid:not(.list-view) { grid-template-columns: 1fr 1fr; gap: 12px; }
-    .bien-image { height: 140px; }
-    .bien-body { padding: 10px 12px 12px; }
-    .bien-title { font-size: 13px; }
-    .bien-price { font-size: 14px; }
-    .bien-location { font-size: 11px; }
-    .bien-date { font-size: 10px; }
-    .bien-infos { font-size: 11px; gap: 6px; }
-    .meta-pill { font-size: 9px; padding: 1px 8px; }
-    .view-toggle { width: auto; }
-    .view-btn { width: 36px; height: 36px; }
-    .search-input { padding: 8px 12px 8px 36px; font-size: 14px; }
-    .search-icon { left: 12px; font-size: 13px; }
-    .filter-select, .filter-input { padding: 7px 10px; font-size: 13px; }
-    .filter-select { padding-right: 26px; }
-    .search-input::placeholder { font-size: 12px; }
-    .btn-filters-toggle { font-size: 13px; padding: 8px 14px; }
-}
-
-@media (max-width: 460px) {
-    .search-container { padding: 10px; }
-    .search-filters { grid-template-columns: 1fr; gap: 8px; }
-    .filter-actions { flex-direction: column; }
-    .btn-search { width: 100%; }
-    .btn-reset { width: 100%; justify-content: center; }
-    .biens-wrapper { padding: 0 8px; }
-    .biens-grid:not(.list-view) { grid-template-columns: 1fr; gap: 12px; }
-    .bien-image { height: 180px; }
-    .bien-body { padding: 12px 14px 14px; }
-    .bien-title { font-size: 15px; }
-    .bien-price { font-size: 16px; }
-    .bien-date { font-size: 11px; }
-    .btn-filters-toggle { font-size: 13px; padding: 8px 14px; }
-    .pagination a, .pagination span { padding: 3px 6px; font-size: 10px; min-width: 24px; min-height: 24px; border-radius: 6px; }
-    .pagination-nav { padding: 10px; gap: 10px; }
-    .pagination a[rel="prev"], .pagination a[rel="next"] { font-size: 10px; padding: 3px 8px; }
-    .per-page-select { font-size: 12px; padding: 3px 20px 3px 8px; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-    .badge-vedette { animation: none !important; }
-    .vedette-badge { animation: none !important; }
-}
-</style>
-
+@push('scripts')
 <script>
+/* ═══════════════════════════════════════════════════════════
+   VIEW TOGGLE
+═══════════════════════════════════════════════════════════ */
+function setView(view) {
+    const container = document.getElementById('biensContainer');
+    if (!container) return;
+    const gridBtn = document.getElementById('gridViewBtn');
+    const listBtn = document.getElementById('listViewBtn');
+
+    if (view === 'list') {
+        container.classList.add('list-view');
+        listBtn.classList.add('active');
+        gridBtn.classList.remove('active');
+        localStorage.setItem('biensView', 'list');
+    } else {
+        container.classList.remove('list-view');
+        gridBtn.classList.add('active');
+        listBtn.classList.remove('active');
+        localStorage.setItem('biensView', 'grid');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    setView(localStorage.getItem('biensView') === 'list' ? 'list' : 'grid');
+});
+
+/* ═══════════════════════════════════════════════════════════
+   FILTRES
+═══════════════════════════════════════════════════════════ */
 function removeFilter(name) {
     const url = new URL(window.location.href);
     url.searchParams.delete(name);
     window.location.href = url.toString();
 }
 
-function toggleFilters() {
-    const filters = document.getElementById('searchFilters');
-    const arrow = document.getElementById('filtersArrow');
-    filters.classList.toggle('open');
-    arrow.classList.toggle('open');
+function toggleMobileFilters() {
+    document.getElementById('filtersBar').classList.toggle('is-open-mobile');
 }
 
-function changePerPage(value) {
-    const url = new URL(window.location.href);
-    url.searchParams.set('per_page', value);
-    url.searchParams.set('page', 1);
-    window.location.href = url.toString();
-}
+/* ═══════════════════════════════════════════════════════════
+   AUTOCOMPLETE
+═══════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', function () {
+    const input = document.getElementById('searchInput');
+    const results = document.getElementById('autocompleteResults');
+    if (!input || !results) return;
 
-function setView(view) {
-    const container = document.getElementById('biensContainer');
-    const gridBtn = document.getElementById('gridViewBtn');
-    const listBtn = document.getElementById('listViewBtn');
-    
-    if (view === 'grid') {
-        container.classList.remove('list-view');
-        gridBtn.classList.add('active');
-        listBtn.classList.remove('active');
-        localStorage.setItem('biensView', 'grid');
-    } else {
-        container.classList.add('list-view');
-        listBtn.classList.add('active');
-        gridBtn.classList.remove('active');
-        localStorage.setItem('biensView', 'list');
-    }
-}
-
-// Charger la vue sauvegardée
-document.addEventListener('DOMContentLoaded', function() {
-    const savedView = localStorage.getItem('biensView');
-    if (savedView === 'list') {
-        setView('list');
-    } else {
-        setView('grid');
-    }
-});
-
-// Autocomplete
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('searchInput');
-    const resultsContainer = document.getElementById('autocompleteResults');
     let debounceTimer;
 
-    searchInput.addEventListener('input', function() {
+    input.addEventListener('input', function () {
         clearTimeout(debounceTimer);
-        const query = this.value.trim();
-        
-        if (query.length < 2) {
-            resultsContainer.style.display = 'none';
+        const q = this.value.trim();
+        if (q.length < 2) {
+            results.style.display = 'none';
             return;
         }
 
         debounceTimer = setTimeout(() => {
-            fetch(`/api/search/autocomplete?q=${encodeURIComponent(query)}`)
-                .then(response => response.json())
+            fetch(`/api/search/autocomplete?q=${encodeURIComponent(q)}`)
+                .then(r => r.json())
                 .then(data => {
-                    if (data.length === 0) {
-                        resultsContainer.style.display = 'none';
+                    if (!data.length) {
+                        results.style.display = 'none';
                         return;
                     }
-
-                    resultsContainer.innerHTML = data.map(item => `
+                    results.innerHTML = data.map(item => `
                         <div class="autocomplete-item" onclick="window.location.href='${item.url || '#'}'">
                             <i class="${item.icon || 'fa-solid fa-circle'} item-icon"></i>
                             <div class="item-content">
@@ -1257,30 +415,998 @@ document.addEventListener('DOMContentLoaded', function() {
                             <span class="item-type">${item.type || ''}</span>
                         </div>
                     `).join('');
-
-                    resultsContainer.style.display = 'block';
+                    results.style.display = 'block';
                 })
-                .catch(() => {
-                    resultsContainer.style.display = 'none';
-                });
+                .catch(() => results.style.display = 'none');
         }, 300);
     });
 
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         if (!e.target.closest('.search-input-wrapper')) {
-            resultsContainer.style.display = 'none';
+            results.style.display = 'none';
         }
     });
 });
 
-document.addEventListener('click', function(e) {
-    const filters = document.getElementById('searchFilters');
-    if (window.innerWidth <= 640) {
-        if (!e.target.closest('.search-container') && filters && filters.classList.contains('open')) {
-            filters.classList.remove('open');
-            document.getElementById('filtersArrow').classList.remove('open');
+/* ═══════════════════════════════════════════════════════════
+   PAGINATION JS
+═══════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', function () {
+    const wrapper = document.getElementById('paginationWrapper');
+    if (!wrapper) return;
+
+    const currentPage = parseInt(wrapper.dataset.currentPage, 10);
+    const lastPage    = parseInt(wrapper.dataset.lastPage, 10);
+    const baseUrl     = wrapper.dataset.baseUrl;
+    const queryString = wrapper.dataset.query;
+    const total       = parseInt(wrapper.dataset.total, 10) || 0;
+
+    if (lastPage <= 1) return;
+
+    const buildUrl = (page) => {
+        const url = new URL(baseUrl, window.location.origin);
+        url.searchParams.set('page', page);
+        if (queryString) {
+            const params = new URLSearchParams(queryString);
+            params.forEach((v, k) => { if (k !== 'page') url.searchParams.set(k, v); });
         }
+        return url.toString();
+    };
+
+    const pages = [];
+    const maxVisible = 5;
+    if (lastPage <= maxVisible + 2) {
+        for (let i = 1; i <= lastPage; i++) pages.push(i);
+    } else {
+        pages.push(1);
+        if (currentPage > 3) pages.push('...');
+        const start = Math.max(2, currentPage - 1);
+        const end   = Math.min(lastPage - 1, currentPage + 1);
+        for (let i = start; i <= end; i++) pages.push(i);
+        if (currentPage < lastPage - 2) pages.push('...');
+        pages.push(lastPage);
     }
+
+    let html = '<nav class="pagination" aria-label="Pagination">';
+    html += '<ul class="pagination-list">';
+
+    if (currentPage > 1) {
+        html += `<li><a href="${buildUrl(currentPage - 1)}" rel="prev" class="pagination-link">
+                    <i class="fa-solid fa-chevron-left"></i><span class="pagination-label">Précédent</span>
+                 </a></li>`;
+    } else {
+        html += `<li class="is-disabled"><span class="pagination-link">
+                    <i class="fa-solid fa-chevron-left"></i><span class="pagination-label">Précédent</span>
+                 </span></li>`;
+    }
+
+    pages.forEach(p => {
+        if (p === '...') {
+            html += `<li class="is-disabled"><span class="pagination-link pagination-link--dots">…</span></li>`;
+        } else if (p === currentPage) {
+            html += `<li class="is-active"><span class="pagination-link">${p}</span></li>`;
+        } else {
+            html += `<li><a href="${buildUrl(p)}" class="pagination-link">${p}</a></li>`;
+        }
+    });
+
+    if (currentPage < lastPage) {
+        html += `<li><a href="${buildUrl(currentPage + 1)}" rel="next" class="pagination-link">
+                    <span class="pagination-label">Suivant</span><i class="fa-solid fa-chevron-right"></i>
+                 </a></li>`;
+    } else {
+        html += `<li class="is-disabled"><span class="pagination-link">
+                    <span class="pagination-label">Suivant</span><i class="fa-solid fa-chevron-right"></i>
+                 </span></li>`;
+    }
+
+    html += '</ul>';
+
+    const firstItem = (currentPage - 1) * 12 + 1;
+    const lastItem  = Math.min(currentPage * 12, total);
+    if (total) {
+        html += `<div class="pagination-info">
+                    <strong>${firstItem}</strong> – <strong>${lastItem}</strong> sur <strong>${total}</strong>
+                 </div>`;
+    }
+
+    html += '</nav>';
+    wrapper.innerHTML = html;
 });
 </script>
-@endsection
+@endpush
+
+
+@push('styles')
+<style>
+/* ═══════════════════════════════════════════════════════════
+   PAGE BIENS
+   ═══════════════════════════════════════════════════════════ */
+
+.biens-page {
+    --c-success:    #1E7A47;
+    --c-warning:    #E65100;
+    --c-danger:     #C62828;
+    --c-info:       #0D47A1;
+    --c-gold:       #D4AF37;
+    --c-teal:       #0E7A7A;
+    --surface:      #F7F9FC;
+    --radius:       14px;
+    --container-max: 1440px;
+    --container-pad: clamp(20px, 3vw, 48px);
+}
+
+/* ═══ HERO ═══ */
+.biens-hero {
+    background: linear-gradient(135deg, #FFFBF7 0%, #fff 55%);
+    padding: 44px var(--container-pad) 36px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+}
+.biens-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%; right: -15%;
+    width: 480px; height: 480px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(181, 80, 42, .08), transparent 65%);
+    pointer-events: none;
+}
+.biens-hero__inner {
+    max-width: var(--container-max);
+    margin: 0 auto;
+    position: relative;
+}
+.eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--rust);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    background: rgba(181, 80, 42, .1);
+    padding: 5px 12px;
+    border-radius: 999px;
+    margin-bottom: 14px;
+}
+.eyebrow i { font-size: 10px; }
+
+.biens-hero__title {
+    font-family: var(--display);
+    font-size: clamp(24px, 3.6vw, 38px);
+    font-weight: 800;
+    line-height: 1.15;
+    color: var(--ink);
+    margin: 0 0 10px;
+    letter-spacing: -.02em;
+    max-width: 700px;
+}
+.biens-hero__title span { color: var(--rust); }
+.biens-hero__sub {
+    font-size: 14.5px;
+    color: var(--text-soft);
+    margin: 0;
+    max-width: 540px;
+}
+
+/* ═══ FILTRES STICKY ═══ */
+.filters-bar {
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    background: rgba(255, 255, 255, .96);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px var(--container-pad);
+    margin-bottom: 20px;
+}
+.filters-bar__inner {
+    max-width: var(--container-max);
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.search-input-wrapper {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+    max-width: 320px;
+}
+.search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 14px;
+    pointer-events: none;
+}
+.search-input {
+    width: 100%;
+    padding: 10px 16px 10px 40px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-family: inherit;
+    background: #fff;
+    transition: all .2s;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.search-input:focus {
+    outline: none;
+    border-color: var(--rust);
+    box-shadow: 0 0 0 4px rgba(181, 80, 42, .08);
+}
+.search-input::placeholder { color: var(--muted); }
+
+.filters-form {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    flex-wrap: wrap;
+}
+.filter-select {
+    padding: 10px 34px 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    color: var(--ink);
+    background: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%238A91A0' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color .2s;
+    min-width: 140px;
+    flex: 1;
+}
+.filter-select:hover { border-color: #d8d8d8; }
+.filter-select:focus {
+    outline: none;
+    border-color: var(--rust);
+    box-shadow: 0 0 0 4px rgba(181, 80, 42, .08);
+}
+
+.view-toggle {
+    display: flex;
+    gap: 2px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 3px;
+}
+.view-btn {
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: transparent;
+    border-radius: 7px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .2s;
+    font-size: 13px;
+}
+.view-btn:hover { background: var(--border); color: var(--ink); }
+.view-btn.active {
+    background: var(--rust);
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(181, 80, 42, .25);
+}
+
+.mobile-filters-btn {
+    display: none;
+    padding: 10px 16px;
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-soft);
+    cursor: pointer;
+    font-family: inherit;
+    align-items: center;
+    gap: 7px;
+    transition: all .2s;
+}
+.mobile-filters-btn:hover { border-color: var(--rust); color: var(--rust); }
+.mobile-filters-btn__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: var(--rust);
+    color: #fff;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.active-filters {
+    max-width: var(--container-max);
+    margin: 10px auto 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+.tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 4px 12px;
+    background: rgba(181, 80, 42, .1);
+    color: var(--rust);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.tag i { font-size: 10px; }
+.tag button {
+    background: rgba(181, 80, 42, .15);
+    border: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    color: var(--rust);
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+}
+.tag button:hover { background: rgba(181, 80, 42, .3); }
+.tag--reset {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--text-soft);
+    text-decoration: none;
+    padding: 4px 12px;
+    transition: all .2s;
+}
+.tag--reset:hover { border-color: var(--rust); color: var(--rust); }
+
+.autocomplete-results {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0; right: 0;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .1);
+    z-index: 1000;
+    display: none;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 6px;
+}
+.autocomplete-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 8px;
+    transition: background .15s;
+}
+.autocomplete-item:hover { background: var(--surface); }
+.autocomplete-item .item-icon { color: var(--rust); width: 18px; font-size: 13px; flex-shrink: 0; }
+.autocomplete-item .item-content { flex: 1; min-width: 0; }
+.autocomplete-item .item-title { font-weight: 600; font-size: 13px; color: var(--ink); }
+.autocomplete-item .item-desc { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.autocomplete-item .item-type {
+    font-size: 9.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--border);
+    padding: 2px 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+    font-weight: 700;
+    letter-spacing: .3px;
+}
+
+/* ═══ WRAPPER ═══ */
+.biens-wrapper {
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 0 var(--container-pad);
+}
+
+.results-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.results-bar__count {
+    font-size: 14px;
+    color: var(--text-soft);
+}
+.results-bar__count strong {
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--ink);
+}
+.results-bar__page {
+    font-size: 12.5px;
+    color: var(--muted);
+}
+
+/* ═══ GRILLE ═══ */
+.biens-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+    gap: 20px;
+}
+
+/* ═══ CARTE ═══ */
+.bien-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform .25s ease, box-shadow .25s ease, border-color .25s;
+}
+.bien-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, .08);
+    border-color: #d8d8d8;
+}
+.bien-card.is-vedette {
+    border-color: var(--c-gold);
+    box-shadow: 0 0 0 1px rgba(212, 175, 55, .15);
+}
+
+.bien-card__media {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background: var(--surface);
+    overflow: hidden;
+    display: block;
+    text-decoration: none;
+}
+.bien-card__media img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform .4s ease;
+}
+.bien-card:hover .bien-card__media img { transform: scale(1.06); }
+
+.bien-card__placeholder {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted);
+    font-size: 40px;
+    opacity: .25;
+}
+
+.badge {
+    position: absolute;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 11px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
+    backdrop-filter: blur(6px);
+}
+.badge i { font-size: 9px; }
+
+.badge--vedette {
+    top: 12px; left: 12px;
+    background: linear-gradient(135deg, var(--c-gold), #E8901A);
+    color: #fff;
+}
+.badge--new {
+    top: 12px; left: 12px;
+    background: linear-gradient(135deg, var(--rust), #d4754a);
+    color: #fff;
+}
+.badge--status {
+    top: 12px; right: 12px;
+    background: rgba(255, 255, 255, .95);
+    color: var(--c-success);
+}
+.badge--status.is-indispo { color: var(--muted); }
+
+.bien-card__photos {
+    position: absolute;
+    bottom: 12px; left: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    background: rgba(0, 0, 0, .7);
+    color: #fff;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    z-index: 3;
+    backdrop-filter: blur(4px);
+}
+
+.bien-card__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(181, 80, 42, .7), rgba(140, 60, 30, .5));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity .3s ease;
+    z-index: 2;
+}
+.bien-card:hover .bien-card__overlay { opacity: 1; }
+
+.bien-card__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    background: #fff;
+    color: var(--rust);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .2);
+    transform: translateY(8px);
+    transition: transform .3s ease;
+}
+.bien-card:hover .bien-card__cta { transform: translateY(0); }
+.bien-card__cta i { font-size: 12px; }
+
+.bien-card__body {
+    padding: 14px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.bien-card__headline { min-width: 0; }
+.bien-card__title {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.bien-card__title a {
+    color: var(--ink);
+    text-decoration: none;
+    transition: color .2s;
+}
+.bien-card__title a:hover { color: var(--rust); }
+
+.bien-card__price {
+    font-family: var(--display);
+    font-size: 19px;
+    font-weight: 800;
+    color: var(--rust);
+    line-height: 1.1;
+}
+.bien-card__price small {
+    font-size: 11.5px;
+    font-weight: 700;
+    opacity: .75;
+    margin-left: 3px;
+}
+
+.bien-card__location {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--muted);
+}
+.bien-card__location i {
+    color: var(--rust);
+    font-size: 11px;
+    opacity: .8;
+}
+
+.bien-card__specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+    font-size: 12px;
+    color: var(--text-soft);
+}
+.bien-card__specs span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.bien-card__specs i {
+    color: var(--rust);
+    font-size: 10px;
+    opacity: .8;
+}
+
+.bien-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 10px;
+}
+.bien-card__date {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    color: var(--muted);
+}
+.bien-card__date i { font-size: 10px; }
+
+.bien-card__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--rust);
+    text-decoration: none;
+    transition: gap .2s;
+}
+.bien-card__link:hover { gap: 9px; }
+.bien-card__link i { font-size: 10px; }
+
+/* ═══ VUE LISTE ═══ */
+.biens-grid.list-view {
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+.biens-grid.list-view .bien-card {
+    flex-direction: row;
+}
+.biens-grid.list-view .bien-card__media {
+    width: 260px;
+    min-width: 260px;
+    aspect-ratio: 1;
+}
+.biens-grid.list-view .bien-card__body {
+    padding: 16px 20px;
+}
+.biens-grid.list-view .bien-card__title { font-size: 17px; white-space: normal; }
+.biens-grid.list-view .bien-card__price { font-size: 21px; }
+.biens-grid.list-view .bien-card__footer {
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+}
+
+/* ═══ PAGINATION ═══ */
+.pagination-wrapper {
+    margin-top: 32px;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.pagination {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    max-width: 720px;
+}
+.pagination-list {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    list-style: none;
+    padding: 6px;
+    margin: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+}
+.pagination-list li { display: inline-flex; }
+
+.pagination-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 38px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-soft);
+    text-decoration: none;
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    transition: all .15s ease;
+    white-space: nowrap;
+}
+.pagination-link:hover {
+    background: var(--surface);
+    color: var(--rust);
+}
+li.is-active .pagination-link {
+    background: var(--rust);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
+    font-weight: 700;
+}
+li.is-disabled .pagination-link {
+    opacity: .4;
+    cursor: not-allowed;
+    color: var(--muted);
+}
+.pagination-link--dots {
+    pointer-events: none;
+    color: var(--muted);
+    min-width: 32px;
+}
+.pagination-link i { font-size: 11px; }
+
+.pagination-info {
+    font-size: 12.5px;
+    color: var(--muted);
+    text-align: center;
+}
+.pagination-info strong {
+    color: var(--ink);
+    font-weight: 700;
+    font-family: var(--display);
+}
+
+/* ═══ EMPTY STATE ═══ */
+.empty-state {
+    text-align: center;
+    padding: 70px 24px;
+    background: #fff;
+    border-radius: var(--radius);
+    border: 1px dashed var(--border);
+}
+.empty-state__icon {
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    background: rgba(181, 80, 42, .1);
+    color: var(--rust);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+}
+.empty-state h3 {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    color: var(--ink);
+}
+.empty-state p {
+    font-size: 13.5px;
+    color: var(--muted);
+    margin: 0 auto 18px;
+    max-width: 400px;
+}
+
+/* ═══ CTA FINAL ═══ */
+.final-cta {
+    max-width: var(--container-max);
+    margin: 48px auto 20px;
+    padding: 0 var(--container-pad);
+}
+.final-cta__inner {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 28px 32px;
+    background: linear-gradient(135deg, #F5E6DF 0%, #FFFBF7 100%);
+    border: 1px solid rgba(181, 80, 42, .2);
+    border-radius: 20px;
+    flex-wrap: wrap;
+}
+.final-cta__icon {
+    width: 56px; height: 56px;
+    border-radius: 16px;
+    background: #fff;
+    color: var(--rust);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    box-shadow: 0 6px 18px rgba(181, 80, 42, .15);
+}
+.final-cta__content {
+    flex: 1;
+    min-width: 240px;
+}
+.final-cta__content h2 {
+    font-family: var(--display);
+    font-size: 19px;
+    font-weight: 800;
+    margin: 0 0 4px;
+    color: var(--ink);
+    letter-spacing: -.02em;
+}
+.final-cta__content p {
+    font-size: 13.5px;
+    color: var(--text-soft);
+    margin: 0;
+    line-height: 1.5;
+}
+.final-cta__actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+/* ═══ BOUTONS ═══ */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .2s ease;
+    white-space: nowrap;
+}
+.btn-rust {
+    background: var(--rust);
+    color: #fff;
+    border-color: var(--rust);
+}
+.btn-rust:hover {
+    background: #9A4523;
+    color: #fff;
+    border-color: #9A4523;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
+}
+.btn-ghost {
+    background: transparent;
+    color: var(--text-soft);
+    border-color: var(--border);
+}
+.btn-ghost:hover {
+    background: #fff;
+    border-color: var(--rust);
+    color: var(--rust);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+    .filters-form { flex: 1 0 100%; order: 3; }
+    .search-input-wrapper { max-width: none; flex: 1; }
+}
+
+@media (max-width: 768px) {
+    .biens-page { --container-pad: 16px; }
+
+    .biens-hero { padding: 32px 16px 24px; }
+    .biens-hero__title { font-size: 22px; }
+    .biens-hero__sub { font-size: 13.5px; }
+
+    .filters-bar {
+        padding: 10px 16px;
+        top: 0;
+    }
+    .filters-bar__inner { gap: 8px; }
+
+    .filters-form { display: none; }
+    .filters-bar.is-open-mobile .filters-form {
+        display: flex;
+        flex: 1 0 100%;
+        flex-direction: column;
+    }
+    .filter-select { width: 100%; }
+
+    .search-input-wrapper { max-width: none; flex: 1; min-width: 0; }
+    .search-input { font-size: 14px; }
+
+    .mobile-filters-btn { display: inline-flex; }
+    .view-toggle { display: none; }
+
+    .biens-grid:not(.list-view) {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .biens-grid.list-view .bien-card__media {
+        width: 140px;
+        min-width: 140px;
+    }
+    .biens-grid.list-view .bien-card__title { font-size: 14px; }
+    .biens-grid.list-view .bien-card__price { font-size: 16px; }
+    .biens-grid.list-view .bien-card__specs { display: none; }
+
+    .final-cta__inner { padding: 22px 20px; flex-direction: column; text-align: center; }
+    .final-cta__icon { margin: 0 auto; }
+    .final-cta__actions { width: 100%; flex-direction: column; }
+    .final-cta__actions .btn { width: 100%; }
+
+    .pagination-list { padding: 5px; gap: 3px; }
+    .pagination-link {
+        min-width: 34px;
+        height: 34px;
+        padding: 0 9px;
+        font-size: 12px;
+    }
+    .pagination-label { display: none; }
+}
+
+@media (max-width: 480px) {
+    .biens-page { --container-pad: 14px; }
+
+    .biens-hero { padding: 26px 14px 20px; }
+    .biens-hero__title { font-size: 20px; }
+
+    .tag { font-size: 11px; padding: 3px 8px 3px 10px; }
+
+    .bien-card__title { font-size: 14px; }
+    .bien-card__price { font-size: 17px; }
+
+    .pagination-list { padding: 4px; gap: 2px; }
+    .pagination-link {
+        min-width: 30px;
+        height: 30px;
+        padding: 0 7px;
+        font-size: 11.5px;
+        border-radius: 8px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}
+</style>
+@endpush

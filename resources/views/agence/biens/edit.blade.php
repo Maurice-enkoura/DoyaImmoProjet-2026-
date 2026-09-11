@@ -288,14 +288,14 @@
                             <span style="font-size:11px;color:var(--muted);font-weight:400;">({{ $images->count() }}/10)</span>
                         </h4>
                     </div>
-                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:12px;">
+                    <div id="mediaContainer" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:12px;">
                         @foreach($images as $media)
-                            <div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border);aspect-ratio:1/1;background:#F0F2F5;">
+                            <div id="media-{{ $media->id }}" style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border);aspect-ratio:1/1;background:#F0F2F5;">
                                 <img src="{{ asset('storage/' . $media->fichier) }}" 
                                      alt="Photo" 
                                      style="width:100%;height:100%;object-fit:cover;">
                                 <button type="button" 
-                                        onclick="supprimerMedia('{{ $media->id }}', this)"
+                                        onclick="supprimerMedia({{ $media->id }}, this)"
                                         style="position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(0,0,0,0.7);color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
                                     <i class="fa-solid fa-times"></i>
                                 </button>
@@ -322,7 +322,7 @@
                     </div>
                     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;">
                         @foreach($videos as $media)
-                            <div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:#000;aspect-ratio:16/9;">
+                            <div id="media-{{ $media->id }}" style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:#000;aspect-ratio:16/9;">
                                 <video src="{{ asset('storage/' . $media->fichier) }}" 
                                        style="width:100%;height:100%;object-fit:cover;"
                                        muted>
@@ -331,7 +331,7 @@
                                     <i class="fa-solid fa-play"></i>
                                 </div>
                                 <button type="button" 
-                                        onclick="supprimerMedia('{{ $media->id }}', this)"
+                                        onclick="supprimerMedia({{ $media->id }}, this)"
                                         style="position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(0,0,0,0.7);color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
                                     <i class="fa-solid fa-times"></i>
                                 </button>
@@ -344,7 +344,7 @@
                 </div>
             @endif
 
-            <!-- Ajout de nouvelles photos avec prévisualisation -->
+            <!-- ✅ AJOUT DE NOUVELLES PHOTOS - SANS RÈGLES DE VALIDATION -->
             <div style="margin-top:16px;padding:clamp(14px, 1.5vw, 20px);background:#F7F9FC;border-radius:10px;border:2px dashed var(--border);">
                 <h4 style="font-family:var(--display);font-size:clamp(13px, 0.9vw, 14px);margin-bottom:8px;">
                     <i class="fa-regular fa-image" style="color:var(--rust);"></i> Ajouter des photos
@@ -358,15 +358,10 @@
                 
                 <div id="imagePreviewContainer" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-top:12px;display:none;"></div>
                 
-                @error('images.*')
-                    <small style="color:#C62828;font-size:12px;display:block;margin-top:4px;">{{ $message }}</small>
-                @enderror
-                @error('images')
-                    <small style="color:#C62828;font-size:12px;display:block;margin-top:4px;">{{ $message }}</small>
-                @enderror
+                <!-- ✅ Ne pas afficher d'erreurs de validation pour les images ici car le contrôleur les gère -->
             </div>
 
-            <!-- Ajout de nouvelles vidéos avec prévisualisation -->
+            <!-- ✅ AJOUT DE NOUVELLES VIDÉOS - SANS RÈGLES DE VALIDATION -->
             <div style="margin-top:16px;padding:clamp(14px, 1.5vw, 20px);background:#F7F9FC;border-radius:10px;border:2px dashed var(--border);">
                 <h4 style="font-family:var(--display);font-size:clamp(13px, 0.9vw, 14px);margin-bottom:8px;">
                     <i class="fa-regular fa-circle-play" style="color:var(--rust);"></i> Ajouter des vidéos
@@ -380,12 +375,7 @@
                 
                 <div id="videoPreviewContainer" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:12px;display:none;"></div>
                 
-                @error('videos.*')
-                    <small style="color:#C62828;font-size:12px;display:block;margin-top:4px;">{{ $message }}</small>
-                @enderror
-                @error('videos')
-                    <small style="color:#C62828;font-size:12px;display:block;margin-top:4px;">{{ $message }}</small>
-                @enderror
+                <!-- ✅ Ne pas afficher d'erreurs de validation pour les vidéos ici car le contrôleur les gère -->
             </div>
 
             <!-- Boutons -->
@@ -408,7 +398,6 @@
     document.getElementById('type_bien')?.addEventListener('change', function() {
         const type = this.value;
         
-        // Éléments DOM
         const equipementsContainer = document.getElementById('equipementsContainer');
         const terrainNote = document.getElementById('terrainNote');
         const chambresInput = document.getElementById('nombre_chambres');
@@ -423,29 +412,24 @@
         const equipLabel = document.getElementById('equipLabel');
         const prixHint = document.getElementById('prixHint');
         
-        // Réinitialiser les champs
         chambresInput.disabled = false;
         sdbInput.disabled = false;
         chambresInput.removeAttribute('required');
         sdbInput.removeAttribute('required');
         surfaceInput.setAttribute('required', 'required');
         
-        // Définir le comportement selon le type
         const isTerrain = type === 'terrain';
         const isLocal = type === 'local_commercial' || type === 'bureau';
         const isResidentiel = type === 'appartement' || type === 'maison' || type === 'villa' || type === 'immeuble';
         const isChambre = type === 'chambre' || type === 'studio';
         
         if (isTerrain) {
-            // ✅ TERRAIN
             equipementsContainer.style.display = 'none';
             terrainNote.style.display = 'block';
-            
             chambresInput.value = 0;
             chambresInput.disabled = true;
             sdbInput.value = 0;
             sdbInput.disabled = true;
-            
             chambresLabel.innerHTML = 'Chambres <span style="color:#8A91A0;font-weight:400;">(N/A)</span>';
             sdbLabel.innerHTML = 'Salles de bain <span style="color:#8A91A0;font-weight:400;">(N/A)</span>';
             chambresHint.textContent = 'Non applicable pour un terrain.';
@@ -453,18 +437,13 @@
             surfaceHint.textContent = 'Surface du terrain en m².';
             caracteristiquesLabel.textContent = 'Un terrain n\'a pas de chambres ni de salles de bain.';
             equipLabel.textContent = 'Les équipements ne sont pas applicables pour un terrain.';
-            
             surfaceInput.setAttribute('required', 'required');
             prixHint.textContent = 'Prix de vente du terrain.';
-            
         } else if (isLocal) {
-            // ✅ LOCAL COMMERCIAL / BUREAU
             equipementsContainer.style.display = 'grid';
             terrainNote.style.display = 'none';
-            
             chambresInput.disabled = false;
             sdbInput.disabled = false;
-            
             chambresLabel.innerHTML = 'Chambres <span style="color:#8A91A0;font-weight:400;">(optionnel)</span>';
             sdbLabel.innerHTML = 'Salles de bain <span style="color:#8A91A0;font-weight:400;">(optionnel)</span>';
             chambresHint.textContent = 'Peuvent être utiles pour un local avec logement.';
@@ -472,21 +451,15 @@
             surfaceHint.textContent = 'Surface du local en m².';
             caracteristiquesLabel.textContent = 'Renseignez les caractéristiques du local.';
             equipLabel.textContent = 'Sélectionnez les équipements disponibles.';
-            
             chambresInput.removeAttribute('required');
             sdbInput.removeAttribute('required');
             surfaceInput.setAttribute('required', 'required');
-            
             prixHint.textContent = 'Prix de vente ou loyer selon le contrat.';
-            
         } else if (isResidentiel || isChambre) {
-            // ✅ RÉSIDENTIEL (Appartement, Maison, Villa, Immeuble, Chambre, Studio)
             equipementsContainer.style.display = 'grid';
             terrainNote.style.display = 'none';
-            
             chambresInput.disabled = false;
             sdbInput.disabled = false;
-            
             chambresLabel.innerHTML = 'Chambres <span style="color:#C62828;">*</span>';
             sdbLabel.innerHTML = 'Salles de bain <span style="color:#C62828;">*</span>';
             chambresHint.textContent = 'Nombre de chambres du bien.';
@@ -494,21 +467,15 @@
             surfaceHint.textContent = 'Surface habitable en m².';
             caracteristiquesLabel.textContent = 'Renseignez les caractéristiques du bien.';
             equipLabel.textContent = 'Sélectionnez les équipements disponibles dans ce bien.';
-            
             chambresInput.setAttribute('required', 'required');
             sdbInput.setAttribute('required', 'required');
             surfaceInput.setAttribute('required', 'required');
-            
             prixHint.textContent = 'Prix de vente ou loyer selon le contrat.';
-            
         } else {
-            // ✅ AUTRES (cas par défaut)
             equipementsContainer.style.display = 'grid';
             terrainNote.style.display = 'none';
-            
             chambresInput.disabled = false;
             sdbInput.disabled = false;
-            
             chambresLabel.innerHTML = 'Chambres <span style="color:#C62828;">*</span>';
             sdbLabel.innerHTML = 'Salles de bain <span style="color:#C62828;">*</span>';
             chambresHint.textContent = 'Nombre de chambres.';
@@ -516,11 +483,9 @@
             surfaceHint.textContent = 'Surface en m².';
             caracteristiquesLabel.textContent = 'Renseignez les caractéristiques du bien.';
             equipLabel.textContent = 'Sélectionnez les équipements disponibles.';
-            
             chambresInput.setAttribute('required', 'required');
             sdbInput.setAttribute('required', 'required');
             surfaceInput.setAttribute('required', 'required');
-            
             prixHint.textContent = 'Prix de vente ou loyer selon le contrat.';
         }
     });
@@ -638,9 +603,13 @@
             return;
         }
 
-        const parent = element.closest('div[style*="position:relative;"]');
-        const originalHtml = parent.innerHTML;
+        const parent = element.closest('div[id^="media-"]');
+        if (!parent) {
+            alert('Erreur: impossible de trouver le média.');
+            return;
+        }
 
+        const originalHtml = parent.innerHTML;
         parent.style.opacity = '0.5';
         parent.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);"><i class="fa-solid fa-spinner fa-spin"></i></div>';
 
@@ -658,25 +627,11 @@
         .then(data => {
             if (data.success) {
                 parent.remove();
-                
-                // Mettre à jour le compteur
-                const container = parent.closest('div[style*="grid-template-columns:repeat(auto-fill,minmax(100px,1fr))"]') || 
-                                  parent.closest('div[style*="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))"]');
-                if (container) {
-                    const countSpan = container.previousElementSibling?.querySelector('span');
-                    if (countSpan) {
-                        const currentCount = parseInt(countSpan.textContent.match(/\d+/)?.[0] || 0);
-                        if (currentCount > 0) {
-                            countSpan.textContent = `(${currentCount - 1}/10)`;
-                        }
-                    }
-                }
-
                 showToast('Média supprimé avec succès', 'success');
             } else {
                 parent.innerHTML = originalHtml;
                 parent.style.opacity = '1';
-                alert('Erreur lors de la suppression du média : ' + (data.message || ''));
+                alert('Erreur: ' + (data.message || ''));
             }
         })
         .catch(error => {
@@ -688,15 +643,21 @@
     }
 
     // ============================================
-    // TOAST POUR LES NOTIFICATIONS
+    // TOAST UNIQUE
     // ============================================
     function showToast(message, type = 'success') {
         const toast = document.createElement('div');
+        const colors = {
+            success: '#1E7A47',
+            error: '#C62828',
+            warning: '#E65100',
+            info: '#0D47A1'
+        };
         toast.style.cssText = `
             position: fixed;
             bottom: 30px;
             right: 30px;
-            background: ${type === 'success' ? '#1E7A47' : '#C62828'};
+            background: ${colors[type] || colors.success};
             color: #fff;
             padding: 12px 24px;
             border-radius: 12px;
@@ -707,8 +668,14 @@
             max-width: 380px;
             width: 90%;
         `;
+        const icons = {
+            success: 'fa-check-circle',
+            error: 'fa-exclamation-circle',
+            warning: 'fa-triangle-exclamation',
+            info: 'fa-info-circle'
+        };
         toast.innerHTML = `
-            <i class="fa-solid ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}" style="margin-right:8px;"></i>
+            <i class="fa-solid ${icons[type] || icons.success}" style="margin-right:8px;"></i>
             ${message}
         `;
         document.body.appendChild(toast);
@@ -735,7 +702,6 @@
         document.getElementById('type_bien')?.dispatchEvent(new Event('change'));
         document.getElementById('type_contrat')?.dispatchEvent(new Event('change'));
         
-        // ✅ Initialiser le compteur de caractères
         const descriptionTextarea = document.querySelector('textarea[name="description"]');
         const charCount = document.getElementById('charCount');
         
@@ -823,7 +789,6 @@
         transition: color 0.2s;
     }
 
-    /* ✅ RESPONSIVE */
     @media (max-width: 768px) {
         [style*="display:grid;grid-template-columns:1fr 1fr;gap:16px;"] {
             grid-template-columns: 1fr !important;

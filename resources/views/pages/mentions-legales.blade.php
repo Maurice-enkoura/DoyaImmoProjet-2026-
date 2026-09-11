@@ -1,6 +1,11 @@
 @extends('layouts.app')
 
 @section('title', 'Mentions Légales — DoyaImmo')
+@section('meta_description', 'Consultez les mentions légales de DoyaImmo. Éditeur, hébergement, propriété intellectuelle et informations légales de la plateforme immobilière.')
+@section('canonical', 'https://doyaimmo.com/mentions-legales')
+@section('og_title', 'Mentions Légales — DoyaImmo')
+@section('og_description', 'Consultez les mentions légales de DoyaImmo. Éditeur, hébergement, propriété intellectuelle et informations légales de la plateforme.')
+@section('robots', 'index, follow')
 
 @section('content')
 <div class="legal-wrap">
@@ -12,7 +17,7 @@
         <p style="font-size:14px; line-height:1.75; color:var(--text-soft); margin-bottom:12px;">
             DoyaImmo — Plateforme de mise en relation immobilière<br>
             Dakar, Sénégal<br>
-            Email : contact@doyaimmo.sn
+            Email : <a href="mailto:contact@doyaimmo.sn" style="color:var(--rust);text-decoration:none;">contact@doyaimmo.sn</a>
         </p>
 
         <h2 style="font-family:var(--display); font-weight:700; font-size:17px; margin:32px 0 12px;">Hébergement</h2>

@@ -5,570 +5,763 @@
 @section('page_sub', 'Votre évaluation de l\'agence')
 
 @section('content')
-<div class="view active">
-    <!-- Bouton retour -->
-    <div class="back-action">
+<div class="view active avis-show">
+
+    @php
+        $note        = (int) $evaluation->note;
+        $sentiment   = $note >= 4 ? 'positif' : ($note === 3 ? 'neutre' : 'negatif');
+        $sentimentLabel = match (true) {
+            $note === 5 => 'Très satisfait 🤩',
+            $note === 4 => 'Satisfait 😊',
+            $note === 3 => 'Neutre 😐',
+            $note === 2 => 'Insatisfait 😕',
+            default     => 'Très insatisfait 😞',
+        };
+
+        $agence      = $evaluation->agence;
+        $initial     = strtoupper(mb_substr($agence->nom_agence ?? 'A', 0, 1));
+        $hasReponse  = !empty($evaluation->reponse_agence);
+        $proposition = $evaluation->proposition;
+        $bien        = $proposition->bien ?? null;
+
+        $noteMoyenne = $agence->evaluations->avg('note') ?? 0;
+        $nbAvis      = $agence->evaluations->count();
+    @endphp
+
+    {{-- ═══════════════════════════════════════════
+         RETOUR
+    ═══════════════════════════════════════════ --}}
+    <div class="avis-show__back">
         <a href="{{ route('particulier.evaluations.index') }}" class="btn btn-ghost btn-sm">
             <i class="fa-solid fa-arrow-left"></i> Retour à mes avis
         </a>
     </div>
 
-    <!-- Carte principale -->
-    <div class="evaluation-detail-card">
-        <!-- En-tête -->
-        <div class="evaluation-detail-header">
-            <div class="evaluation-agency">
-                <div class="agency-avatar">
-                    {{ strtoupper(substr($evaluation->agence->nom_agence, 0, 1)) }}
-                </div>
-                <div>
-                    <h3>{{ $evaluation->agence->nom_agence }}</h3>
-                    <p class="sub">
-                        <i class="fa-regular fa-calendar"></i>
-                        Évalué le {{ $evaluation->created_at->format('d/m/Y') }}
-                    </p>
-                </div>
-            </div>
-            <span class="status-pill status-published">
-                <i class="fa-solid fa-circle" style="font-size:8px;"></i>
-                Publié
-            </span>
+    {{-- ═══════════════════════════════════════════
+         HERO — NOTE EN GROS
+    ═══════════════════════════════════════════ --}}
+    <header class="note-hero note-hero--{{ $sentiment }}">
+
+        <div class="note-hero__stars">
+            @for($i = 1; $i <= 5; $i++)
+                <i class="fa-solid fa-star {{ $i <= $note ? 'is-on' : '' }}"></i>
+            @endfor
         </div>
 
-        <!-- Corps -->
-        <div class="evaluation-detail-body">
-            <!-- Note -->
-            <div class="rating-section">
-                <div class="rating-stars">
-                    @for($i = 1; $i <= 5; $i++)
-                        <i class="fa-solid fa-star {{ $i <= $evaluation->note ? 'active' : '' }}"></i>
-                    @endfor
-                </div>
-                <div class="rating-label">
-                    {{ $evaluation->note }} / 5
-                    <span class="rating-text">
-                        @if($evaluation->note >= 4)
-                            Très satisfait 🤩
-                        @elseif($evaluation->note >= 3)
-                            Satisfait 😊
-                        @elseif($evaluation->note >= 2)
-                            Insatisfait 😕
-                        @else
-                            Très insatisfait 😞
-                        @endif
+        <div class="note-hero__value">
+            {{ $note }}<small>/5</small>
+        </div>
+
+        <div class="note-hero__label">
+            {{ $sentimentLabel }}
+        </div>
+
+        <div class="note-hero__date">
+            <i class="fa-regular fa-calendar"></i>
+            Publié le {{ $evaluation->created_at->format('d F Y') }}
+        </div>
+    </header>
+
+    {{-- ═══════════════════════════════════════════
+         AGENCE
+    ═══════════════════════════════════════════ --}}
+    <section class="panel">
+        <header class="panel__head">
+            <span class="panel__icon">
+                <i class="fa-regular fa-building"></i>
+            </span>
+            <h4>Agence évaluée</h4>
+        </header>
+
+        <div class="agency-block">
+            <div class="agency-block__avatar">{{ $initial }}</div>
+
+            <div class="agency-block__info">
+                <h3 class="agency-block__name">{{ $agence->nom_agence }}</h3>
+
+                <div class="agency-block__rating">
+                    <span class="rating-stars">
+                        <i class="fa-solid fa-star"></i>
+                        <strong>{{ number_format($noteMoyenne, 1) }}</strong>
+                        <span class="rating-max">/ 5</span>
+                    </span>
+                    <span class="rating-reviews">
+                        ({{ $nbAvis }} avis)
                     </span>
                 </div>
-            </div>
 
-            <!-- Proposition associée -->
-            @if($evaluation->proposition)
-                <div class="proposition-section">
-                    <h4 class="section-title">
-                        <i class="fa-regular fa-file-lines" style="color:var(--rust);"></i>
-                        Proposition associée
-                    </h4>
-                    <div class="proposition-info">
-                        <div class="proposition-detail">
-                            <span class="proposition-label">Date de la proposition</span>
-                            <span class="proposition-value">{{ $evaluation->proposition->created_at->format('d/m/Y') }}</span>
-                        </div>
-                        <div class="proposition-detail">
-                            <span class="proposition-label">Prix proposé</span>
-                            <span class="proposition-value" style="color:var(--rust);font-weight:700;">
-                                {{ number_format($evaluation->proposition->prix_propose, 0, ',', ' ') }} FCFA
-                            </span>
-                        </div>
-                        @if($evaluation->proposition->bien)
-                            <div class="proposition-detail">
-                                <span class="proposition-label">Bien</span>
-                                <span class="proposition-value">{{ $evaluation->proposition->bien->titre ?? 'Non spécifié' }}</span>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            @endif
-
-            <!-- Commentaire -->
-            <div class="comment-section">
-                <h4 class="section-title">
-                    <i class="fa-regular fa-message" style="color:var(--rust);"></i>
-                    Mon avis
-                </h4>
-                <div class="comment-content">
-                    {{ $evaluation->commentaire }}
+                <div class="agency-block__meta">
+                    @if($agence->quartier)
+                        <span><i class="fa-solid fa-map-pin"></i> {{ $agence->quartier }}</span>
+                    @endif
+                    @if($agence->adresse)
+                        <span><i class="fa-solid fa-location-dot"></i> {{ $agence->adresse }}</span>
+                    @endif
                 </div>
             </div>
 
-            <!-- Informations sur l'agence -->
-            <div class="agency-info-section">
-                <h4 class="section-title">
-                    <i class="fa-regular fa-building-columns" style="color:var(--rust);"></i>
-                    Informations sur l'agence
-                </h4>
-                <div class="agency-info-grid">
-                    <div class="info-item">
-                        <span class="info-label">Nom</span>
-                        <span class="info-value">{{ $evaluation->agence->nom_agence }}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Quartier</span>
-                        <span class="info-value">{{ $evaluation->agence->quartier ?? 'Non spécifié' }}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Adresse</span>
-                        <span class="info-value">{{ $evaluation->agence->adresse ?? 'Non spécifiée' }}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Note moyenne</span>
-                        <span class="info-value" style="color:#F5A623;">
-                            <i class="fa-solid fa-star"></i>
-                            {{ number_format($evaluation->agence->evaluations->avg('note') ?? 0, 1) }} / 5
-                            ({{ $evaluation->agence->evaluations->count() }} avis)
+            <a href="{{ route('agences.public.show', $agence->slug) }}"
+               class="btn btn-ghost btn-sm agency-block__cta">
+                <i class="fa-solid fa-eye"></i> Voir le profil
+            </a>
+        </div>
+    </section>
+
+    {{-- ═══════════════════════════════════════════
+         MON AVIS
+    ═══════════════════════════════════════════ --}}
+    <section class="panel">
+        <header class="panel__head">
+            <span class="panel__icon">
+                <i class="fa-regular fa-message"></i>
+            </span>
+            <h4>Mon avis</h4>
+        </header>
+
+        @if($evaluation->commentaire)
+            <blockquote class="comment-block comment-block--{{ $sentiment }}">
+                {{ $evaluation->commentaire }}
+            </blockquote>
+        @else
+            <div class="comment-empty">
+                <i class="fa-regular fa-comment"></i>
+                <span>Vous n'avez pas laissé de commentaire.</span>
+            </div>
+        @endif
+    </section>
+
+    {{-- ═══════════════════════════════════════════
+         PROPOSITION ASSOCIÉE
+    ═══════════════════════════════════════════ --}}
+    @if($proposition)
+        <section class="panel">
+            <header class="panel__head">
+                <span class="panel__icon">
+                    <i class="fa-regular fa-file-lines"></i>
+                </span>
+                <h4>Proposition associée</h4>
+            </header>
+
+            <div class="proposition-grid">
+                <div class="proposition-grid__item">
+                    <span class="proposition-grid__label">Date</span>
+                    <span class="proposition-grid__value">
+                        {{ $proposition->created_at->format('d/m/Y') }}
+                    </span>
+                </div>
+                <div class="proposition-grid__item">
+                    <span class="proposition-grid__label">Prix proposé</span>
+                    <span class="proposition-grid__value proposition-grid__value--prix">
+                        {{ number_format($proposition->prix_propose, 0, ',', ' ') }}
+                        <small>FCFA</small>
+                    </span>
+                </div>
+                @if($bien)
+                    <div class="proposition-grid__item proposition-grid__item--wide">
+                        <span class="proposition-grid__label">Bien</span>
+                        <span class="proposition-grid__value">
+                            {{ $bien->titre ?? 'Non spécifié' }}
+                            @if($bien->adresse)
+                                <span class="proposition-grid__sub">— {{ $bien->adresse }}</span>
+                            @endif
                         </span>
                     </div>
+                @endif
+            </div>
+        </section>
+    @endif
+
+    {{-- ═══════════════════════════════════════════
+         RÉPONSE DE L'AGENCE
+    ═══════════════════════════════════════════ --}}
+    @if($hasReponse)
+        <section class="panel panel--reponse">
+            <header class="panel__head">
+                <span class="panel__icon panel__icon--info">
+                    <i class="fa-solid fa-reply"></i>
+                </span>
+                <h4>Réponse de l'agence</h4>
+                @if($evaluation->date_reponse)
+                    <span class="panel__date">
+                        {{ $evaluation->date_reponse->format('d F Y') }}
+                    </span>
+                @endif
+            </header>
+
+            <div class="reponse-block">
+                <div class="reponse-block__head">
+                    <div class="reponse-block__avatar">{{ $initial }}</div>
+                    <strong>{{ $agence->nom_agence }}</strong>
+                </div>
+                <p class="reponse-block__text">{{ $evaluation->reponse_agence }}</p>
+            </div>
+        </section>
+    @else
+        <section class="panel">
+            <header class="panel__head">
+                <span class="panel__icon">
+                    <i class="fa-regular fa-clock"></i>
+                </span>
+                <h4>Réponse de l'agence</h4>
+            </header>
+
+            <div class="reponse-empty">
+                <i class="fa-regular fa-hourglass-half"></i>
+                <div>
+                    <strong>Aucune réponse pour le moment</strong>
+                    <p>L'agence n'a pas encore répondu à votre avis.</p>
                 </div>
             </div>
+        </section>
+    @endif
 
-            <!-- Réponse de l'agence -->
-            @if($evaluation->reponse_agence)
-                <div class="response-section">
-                    <h4 class="section-title">
-                        <i class="fa-regular fa-reply" style="color:var(--rust);"></i>
-                        Réponse de l'agence
-                    </h4>
-                    <div class="response-content">
-                        <div class="response-header">
-                            <span class="response-agency">{{ $evaluation->agence->nom_agence }}</span>
-                            <span class="response-date">{{ $evaluation->date_reponse ? $evaluation->date_reponse->format('d/m/Y') : '' }}</span>
-                        </div>
-                        <p>{{ $evaluation->reponse_agence }}</p>
-                    </div>
-                </div>
-            @else
-                <div class="no-response">
-                    <i class="fa-regular fa-clock"></i>
-                    <span>L'agence n'a pas encore répondu à votre avis.</span>
-                </div>
-            @endif
-        </div>
+    {{-- ═══════════════════════════════════════════
+         FOOTER
+    ═══════════════════════════════════════════ --}}
+    <footer class="avis-actions">
+        <a href="{{ route('particulier.evaluations.index') }}" class="btn btn-ghost">
+            <i class="fa-solid fa-list"></i> Tous mes avis
+        </a>
 
-        <!-- Footer -->
-        <div class="evaluation-detail-footer">
-            <a href="{{ route('particulier.evaluations.index') }}" class="btn btn-ghost btn-sm">
-                <i class="fa-solid fa-list"></i> Tous mes avis
-            </a>
-            <!-- ✅ CORRIGÉ : Utilisation du slug pour l'agence -->
-            <a href="{{ route('agences.public.show', $evaluation->agence->slug) }}" class="btn btn-rust btn-sm" style="margin-left:auto;">
-                <i class="fa-solid fa-eye"></i> Voir le profil de l'agence
-            </a>
-        </div>
-    </div>
+        <a href="{{ route('agences.public.show', $agence->slug) }}"
+           class="btn btn-rust avis-actions__right">
+            <i class="fa-solid fa-building"></i> Voir le profil de l'agence
+        </a>
+    </footer>
 </div>
 @endsection
 
+
 @push('styles')
 <style>
-    /* ===================== BACK ===================== */
-    .back-action {
-        margin-bottom: 20px;
-    }
+/* ═══════════════════════════════════════════════════════════
+   PAGE DÉTAIL AVIS — Particulier
+   ═══════════════════════════════════════════════════════════ */
 
-    /* ===================== CARTE ===================== */
-    .evaluation-detail-card {
-        background: #fff;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        overflow: hidden;
-    }
+.avis-show {
+    --c-warning:    #E65100;
+    --c-warning-bg: #FFF8E1;
+    --c-success:    #1E7A47;
+    --c-success-bg: #E8F5E9;
+    --c-danger:     #C62828;
+    --c-danger-bg:  #FFEBEE;
+    --c-info:       #0D47A1;
+    --c-info-bg:    #E3F2FD;
+    --c-gold:       #F5A623;
+    --surface:      #F7F9FC;
+    --radius:       14px;
+}
 
-    /* ===================== HEADER ===================== */
-    .evaluation-detail-header {
-        padding: 20px 24px;
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 12px;
-        background: #FAFBFC;
-    }
+.avis-show__back { margin-bottom: 16px; }
 
-    .evaluation-agency {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-    }
+/* ═══════════════════════════════════════════
+   HERO NOTE
+   ═══════════════════════════════════════════ */
+.note-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 32px 24px;
+    border-radius: var(--radius);
+    margin-bottom: 14px;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    border: 1px solid;
+}
+.note-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: .5;
+    pointer-events: none;
+}
 
-    .agency-avatar {
-        width: 56px;
-        height: 56px;
-        border-radius: 50%;
-        background: var(--rust-soft);
-        color: var(--rust);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 22px;
-        flex-shrink: 0;
-    }
+.note-hero--positif {
+    background: linear-gradient(135deg, #F0FBF4 0%, #fff 70%);
+    border-color: #C8E6C9;
+}
+.note-hero--positif::before {
+    background: radial-gradient(circle at top, rgba(30, 122, 71, .06), transparent 60%);
+}
 
-    .evaluation-agency h3 {
-        font-family: var(--display);
-        font-size: 18px;
-        font-weight: 700;
-        margin: 0;
-    }
+.note-hero--neutre {
+    background: linear-gradient(135deg, #FFF9F0 0%, #fff 70%);
+    border-color: #FFE0B2;
+}
+.note-hero--neutre::before {
+    background: radial-gradient(circle at top, rgba(230, 81, 0, .06), transparent 60%);
+}
 
-    .evaluation-agency .sub {
-        font-size: 13px;
-        color: var(--muted);
-        margin: 0;
-    }
+.note-hero--negatif {
+    background: linear-gradient(135deg, #FFF5F5 0%, #fff 70%);
+    border-color: #FFCDD2;
+}
+.note-hero--negatif::before {
+    background: radial-gradient(circle at top, rgba(198, 40, 40, .06), transparent 60%);
+}
 
-    .status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 14px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 600;
-    }
+.note-hero__stars {
+    display: inline-flex;
+    gap: 6px;
+    font-size: 32px;
+    position: relative;
+}
+.note-hero__stars .fa-star {
+    color: #D4D8E0;
+    transition: transform .3s ease;
+}
+.note-hero__stars .fa-star.is-on {
+    color: var(--c-gold);
+    filter: drop-shadow(0 4px 8px rgba(245, 166, 35, .35));
+}
 
-    .status-published {
-        background: #E8F5E9;
-        color: #1E7A47;
-    }
+.note-hero__value {
+    font-family: var(--display);
+    font-size: 52px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -.03em;
+    position: relative;
+}
+.note-hero--positif .note-hero__value { color: var(--c-success); }
+.note-hero--neutre  .note-hero__value { color: var(--c-warning); }
+.note-hero--negatif .note-hero__value { color: var(--c-danger); }
 
-    /* ===================== BODY ===================== */
-    .evaluation-detail-body {
-        padding: 24px;
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
-    }
+.note-hero__value small {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-left: 4px;
+}
 
-    /* ===================== PROPOSITION ===================== */
-    .proposition-section {
-        border-bottom: 1px solid var(--border);
-        padding-bottom: 20px;
-    }
+.note-hero__label {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 700;
+    position: relative;
+}
+.note-hero--positif .note-hero__label { color: var(--c-success); }
+.note-hero--neutre  .note-hero__label { color: var(--c-warning); }
+.note-hero--negatif .note-hero__label { color: var(--c-danger); }
 
-    .proposition-info {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 12px;
-        padding: 12px 16px;
-        background: #F7F9FC;
-        border-radius: 10px;
-        border: 1px solid var(--border);
-    }
+.note-hero__date {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 6px;
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, .7);
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    position: relative;
+}
+.note-hero__date i { font-size: 11px; opacity: .8; }
 
-    .proposition-detail {
-        display: flex;
-        flex-direction: column;
-    }
+/* ═══ PANNEAUX ═══ */
+.panel {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 22px;
+    margin-bottom: 14px;
+}
 
-    .proposition-label {
-        font-size: 11px;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-weight: 600;
-    }
+.panel__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+.panel__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: var(--c-warning-bg);
+    color: var(--rust);
+    font-size: 14px;
+    flex-shrink: 0;
+}
+.panel__icon--info {
+    background: var(--c-info-bg);
+    color: var(--c-info);
+}
+.panel__head h4 {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text);
+    flex: 1;
+}
+.panel__date {
+    font-size: 11.5px;
+    color: var(--muted);
+    font-weight: 500;
+}
 
-    .proposition-value {
-        font-size: 13px;
-        font-weight: 500;
-        color: var(--ink);
-    }
+/* ═══════════════════════════════════════════
+   BLOC AGENCE
+   ═══════════════════════════════════════════ */
+.agency-block {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
 
-    /* ===================== RATING ===================== */
-    .rating-section {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px;
-        background: #F7F9FC;
-        border-radius: 10px;
-        border: 1px solid var(--border);
-    }
+.agency-block__avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--rust), #d4754a);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 700;
+    flex-shrink: 0;
+    box-shadow: 0 6px 16px rgba(180, 83, 42, .2);
+}
 
-    .rating-stars {
-        font-size: 32px;
-        color: #D4D8E0;
-    }
+.agency-block__info {
+    flex: 1;
+    min-width: 180px;
+}
+.agency-block__name {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 5px;
+    color: var(--text);
+}
 
-    .rating-stars .active {
-        color: #F5A623;
-    }
+.agency-block__rating {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+.rating-stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.rating-stars i { color: var(--c-gold); font-size: 13px; }
+.rating-stars strong {
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text);
+}
+.rating-max {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+}
+.rating-reviews {
+    color: var(--muted);
+    font-size: 12px;
+}
 
-    .rating-label {
-        font-size: 18px;
-        font-weight: 700;
-        color: var(--ink);
-        margin-top: 8px;
-    }
+.agency-block__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    font-size: 12.5px;
+    color: var(--muted);
+}
+.agency-block__meta i {
+    color: var(--rust);
+    font-size: 11px;
+    margin-right: 5px;
+}
+.agency-block__cta { flex-shrink: 0; }
 
-    .rating-text {
-        font-size: 14px;
-        font-weight: 400;
-        color: var(--muted);
-        margin-left: 8px;
-    }
+/* ═══════════════════════════════════════════
+   COMMENTAIRE
+   ═══════════════════════════════════════════ */
+.comment-block {
+    position: relative;
+    padding: 16px 20px 16px 26px;
+    border-radius: 12px;
+    font-size: 14.5px;
+    line-height: 1.75;
+    color: var(--text);
+    font-style: italic;
+    margin: 0;
+    border-left: 4px solid var(--muted);
+    background: var(--surface);
+}
+.comment-block--positif {
+    background: linear-gradient(135deg, rgba(30, 122, 71, .06), rgba(30, 122, 71, .02));
+    border-left-color: var(--c-success);
+}
+.comment-block--neutre {
+    background: linear-gradient(135deg, rgba(230, 81, 0, .06), rgba(230, 81, 0, .02));
+    border-left-color: var(--c-warning);
+}
+.comment-block--negatif {
+    background: linear-gradient(135deg, rgba(198, 40, 40, .06), rgba(198, 40, 40, .02));
+    border-left-color: var(--c-danger);
+}
 
-    /* ===================== SECTION TITLE ===================== */
-    .section-title {
-        font-family: var(--display);
-        font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 12px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: var(--text-soft);
-    }
+.comment-empty {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    background: var(--surface);
+    border-radius: 12px;
+    border: 1px dashed var(--border);
+    color: var(--muted);
+    font-size: 13.5px;
+    font-style: italic;
+}
+.comment-empty i { font-size: 18px; opacity: .5; }
 
-    /* ===================== COMMENTAIRE ===================== */
-    .comment-section {
-        border-bottom: 1px solid var(--border);
-        padding-bottom: 20px;
-    }
+/* ═══════════════════════════════════════════
+   PROPOSITION
+   ═══════════════════════════════════════════ */
+.proposition-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+.proposition-grid__item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border-radius: 10px;
+    border: 1px solid transparent;
+    transition: border-color .2s;
+}
+.proposition-grid__item:hover {
+    border-color: var(--border);
+}
+.proposition-grid__item--wide {
+    grid-column: 1 / -1;
+}
+.proposition-grid__label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    font-weight: 600;
+}
+.proposition-grid__value {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+}
+.proposition-grid__value--prix {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--rust);
+}
+.proposition-grid__value--prix small {
+    font-size: 11px;
+    font-weight: 600;
+    opacity: .7;
+    margin-left: 2px;
+}
+.proposition-grid__sub {
+    font-weight: 400;
+    color: var(--muted);
+}
 
-    .comment-content {
-        padding: 14px 18px;
-        background: #F7F9FC;
-        border-radius: 10px;
-        font-size: 14px;
-        color: var(--text-soft);
-        line-height: 1.7;
-        border: 1px solid var(--border);
-    }
+/* ═══════════════════════════════════════════
+   RÉPONSE AGENCE
+   ═══════════════════════════════════════════ */
+.panel--reponse {
+    background: linear-gradient(135deg, #F0F7FF 0%, #fff 60%);
+    border-color: #BBDEFB;
+}
 
-    /* ===================== AGENCE INFO ===================== */
-    .agency-info-section {
-        border-bottom: 1px solid var(--border);
-        padding-bottom: 20px;
-    }
+.reponse-block {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.reponse-block__head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+.reponse-block__avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--c-info), #1565C0);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.reponse-block__head strong {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--c-info);
+}
+.reponse-block__text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-soft);
+    margin: 0;
+    padding-left: 41px;
+}
 
-    .agency-info-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-    }
+/* Réponse vide */
+.reponse-empty {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    background: var(--surface);
+    border-radius: 12px;
+    border: 1px dashed var(--border);
+}
+.reponse-empty i {
+    font-size: 26px;
+    color: var(--muted);
+    opacity: .5;
+    flex-shrink: 0;
+}
+.reponse-empty strong {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-soft);
+    margin-bottom: 2px;
+}
+.reponse-empty p {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin: 0;
+}
 
-    .info-item {
-        display: flex;
-        flex-direction: column;
-    }
+/* ═══ FOOTER ═══ */
+.avis-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    flex-wrap: wrap;
+}
+.avis-actions__right { margin-left: auto; }
 
-    .info-label {
-        font-size: 12px;
-        color: var(--muted);
-        font-weight: 500;
-    }
+/* ═══ BOUTONS ═══ */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .2s ease;
+    white-space: nowrap;
+}
+.btn-rust {
+    background: var(--rust);
+    color: #fff;
+    border-color: var(--rust);
+}
+.btn-rust:hover {
+    background: #9A4523;
+    color: #fff;
+    border-color: #9A4523;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(180, 83, 42, .25);
+}
+.btn-ghost {
+    background: transparent;
+    color: var(--text-soft);
+    border-color: var(--border);
+}
+.btn-ghost:hover {
+    background: var(--surface);
+    border-color: var(--rust);
+    color: var(--rust);
+}
+.btn-sm { padding: 6px 13px; font-size: 12px; }
 
-    .info-value {
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--ink);
-    }
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════ */
 
-    /* ===================== REPONSE ===================== */
-    .response-section {
-        border-bottom: 1px solid var(--border);
-        padding-bottom: 20px;
-    }
+@media (max-width: 768px) {
+    .note-hero { padding: 26px 18px; }
+    .note-hero__stars { font-size: 26px; }
+    .note-hero__value { font-size: 44px; }
+    .note-hero__value small { font-size: 17px; }
+    .note-hero__label { font-size: 15px; }
 
-    .response-content {
-        padding: 14px 18px;
-        background: #E3F2FD;
-        border-radius: 10px;
-        border-left: 4px solid #0D47A1;
-    }
+    .panel { padding: 16px; }
 
-    .response-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-        font-size: 13px;
-    }
+    .agency-block { gap: 12px; }
+    .agency-block__avatar { width: 48px; height: 48px; font-size: 18px; }
+    .agency-block__cta { width: 100%; justify-content: center; }
 
-    .response-agency {
-        font-weight: 600;
-        color: var(--ink);
-    }
+    .proposition-grid { grid-template-columns: 1fr; }
 
-    .response-date {
-        font-size: 12px;
-        color: var(--muted);
-    }
+    .reponse-block__text { padding-left: 0; margin-top: 4px; }
 
-    .response-content p {
-        font-size: 14px;
-        color: var(--text-soft);
-        line-height: 1.7;
-        margin: 0;
-    }
+    .avis-actions { flex-direction: column; align-items: stretch; }
+    .avis-actions .btn { width: 100%; justify-content: center; }
+    .avis-actions__right { margin-left: 0; }
+}
 
-    /* ===================== NO RESPONSE ===================== */
-    .no-response {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 12px 16px;
-        background: #F7F9FC;
-        border-radius: 10px;
-        color: var(--muted);
-        font-size: 13px;
-        border: 1px solid var(--border);
-    }
+@media (max-width: 480px) {
+    .note-hero { padding: 22px 14px; gap: 6px; }
+    .note-hero__stars { font-size: 22px; gap: 4px; }
+    .note-hero__value { font-size: 38px; }
+    .note-hero__value small { font-size: 15px; }
+    .note-hero__label { font-size: 14px; }
+    .note-hero__date { font-size: 11.5px; padding: 3px 10px; }
 
-    .no-response i {
-        font-size: 16px;
-        color: var(--muted);
-    }
+    .panel { padding: 14px; }
+    .panel__head h4 { font-size: 14px; }
 
-    /* ===================== FOOTER ===================== */
-    .evaluation-detail-footer {
-        padding: 16px 24px;
-        border-top: 1px solid var(--border);
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        background: #FAFBFC;
-    }
+    .agency-block__avatar { width: 44px; height: 44px; font-size: 16px; }
+    .agency-block__name { font-size: 15px; }
 
-    /* ===================== BOUTONS ===================== */
-    .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 20px;
-        border-radius: 12px;
-        font-size: 13.5px;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.2s;
-        border: 1px solid transparent;
-        cursor: pointer;
-        font-family: inherit;
-    }
+    .comment-block { font-size: 13.5px; padding: 14px 16px 14px 20px; }
 
-    .btn-rust {
-        background: var(--rust);
-        color: #fff;
-        border-color: var(--rust);
-    }
+    .proposition-grid__value--prix { font-size: 15px; }
 
-    .btn-rust:hover {
-        background: #9A4523;
-        border-color: #9A4523;
-        color: #fff;
-    }
+    .reponse-block__text { font-size: 13px; }
 
-    .btn-ghost {
-        background: transparent;
-        color: var(--text-soft);
-        border-color: var(--border);
-    }
-
-    .btn-ghost:hover {
-        background: var(--border);
-        color: var(--ink);
-    }
-
-    .btn-sm {
-        padding: 6px 14px;
-        font-size: 12.5px;
-    }
-
-    /* ===================== RESPONSIVE ===================== */
-    @media (max-width: 768px) {
-        .evaluation-detail-header {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .evaluation-detail-body {
-            padding: 16px 18px;
-        }
-
-        .agency-info-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .proposition-info {
-            grid-template-columns: 1fr;
-        }
-
-        .rating-stars {
-            font-size: 28px;
-        }
-
-        .rating-label {
-            font-size: 16px;
-        }
-
-        .response-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 4px;
-        }
-
-        .evaluation-detail-footer {
-            flex-direction: column;
-        }
-
-        .evaluation-detail-footer .btn {
-            justify-content: center;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .evaluation-agency {
-            flex-direction: column;
-            text-align: center;
-        }
-
-        .evaluation-agency h3 {
-            font-size: 16px;
-        }
-
-        .agency-avatar {
-            width: 48px;
-            height: 48px;
-            font-size: 18px;
-        }
-
-        .rating-stars {
-            font-size: 24px;
-        }
-
-        .rating-label {
-            font-size: 14px;
-        }
-
-        .rating-text {
-            font-size: 12px;
-            display: block;
-            margin-left: 0;
-        }
-
-        .comment-content {
-            font-size: 13px;
-            padding: 12px 14px;
-        }
-
-        .response-content {
-            padding: 12px 14px;
-        }
-
-        .response-content p {
-            font-size: 13px;
-        }
-    }
+    .btn { font-size: 12px; padding: 7px 13px; }
+}
 </style>
 @endpush

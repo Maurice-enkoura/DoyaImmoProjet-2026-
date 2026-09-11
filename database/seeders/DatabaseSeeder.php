@@ -27,6 +27,7 @@ use App\Enums\StatutDemandeEnum;
 use App\Enums\StatutPropositionEnum;
 use App\Enums\TypeContratEnum;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Faker\Factory as FakerFactory;
 
 class DatabaseSeeder extends Seeder
@@ -94,6 +95,9 @@ class DatabaseSeeder extends Seeder
             $quartierId = $this->faker->randomElement($quartiers);
             $quartierNom = Quartier::find($quartierId)->nom;
             
+            // ✅ SLUG COURT pour l'agence
+            $slug = 'agence-' . ($i + 1) . '-' . Str::random(8);
+            
             $agence = Agence::create([
                 'user_id' => $user->id,
                 'nom_agence' => $this->faker->company . ' Immobilier',
@@ -103,6 +107,7 @@ class DatabaseSeeder extends Seeder
                 'description' => $this->faker->paragraphs(3, true),
                 'logo' => null,
                 'statut_validation' => $i < 4,
+                'slug' => $slug,
             ]);
             $agences[] = $agence;
 
@@ -122,7 +127,6 @@ class DatabaseSeeder extends Seeder
             // Abonnement pour l'agence
             $formule = $this->faker->randomElement([
                 FormuleAbonnementEnum::BASIC, 
-                FormuleAbonnementEnum::PREMIUM, 
                 FormuleAbonnementEnum::PRO
             ]);
             
@@ -141,25 +145,31 @@ class DatabaseSeeder extends Seeder
         $typeBiens = TypeBienEnum::cases();
         $typeContrats = TypeContratEnum::cases();
 
+        $bienCounter = 0;
         foreach ($agences as $agence) {
             if ($agence->statut_validation) {
                 $nbBiens = rand(2, 5);
                 for ($i = 0; $i < $nbBiens; $i++) {
+                    $bienCounter++;
                     $quartierId = $this->faker->randomElement($quartiers);
                     $quartierNom = Quartier::find($quartierId)->nom;
+                    
+                    // ✅ SLUG COURT pour le bien
+                    $slug = 'bien-' . $bienCounter . '-' . Str::random(8);
                     
                     $bien = BienImmobilier::create([
                         'agence_id' => $agence->id,
                         'titre' => $this->faker->sentence(3),
+                        'slug' => $slug,
                         'type_bien' => $this->faker->randomElement($typeBiens)->value,
                         'type_contrat' => $this->faker->randomElement($typeContrats)->value,
-                        'prix' => $this->faker->randomFloat(2, 50000, 500000),
+                        'prix' => $this->faker->numberBetween(50000, 500000),
                         'quartier' => $quartierNom,
                         'quartier_id' => $quartierId,
                         'adresse' => $this->faker->streetAddress,
                         'nombre_chambres' => $this->faker->numberBetween(0, 5),
                         'nombre_salles_bain' => $this->faker->numberBetween(0, 3),
-                        'surface' => $this->faker->randomFloat(2, 30, 300),
+                        'surface' => $this->faker->numberBetween(30, 300),
                         'parking_disponible' => $this->faker->boolean,
                         'est_meuble' => $this->faker->boolean,
                         'description' => $this->faker->paragraphs(2, true),
@@ -184,24 +194,31 @@ class DatabaseSeeder extends Seeder
         $this->command->info('Création des demandes immobilières...');
         $statutsDemande = StatutDemandeEnum::cases();
 
+        $demandeCounter = 0;
         foreach ($particuliers as $particulier) {
             for ($j = 0; $j < rand(1, 3); $j++) {
+                $demandeCounter++;
                 $quartierId = $this->faker->randomElement($quartiers);
                 $quartierNom = Quartier::find($quartierId)->nom;
+                
+                // ✅ SLUG COURT pour la demande
+                $slug = 'demande-' . $demandeCounter . '-' . Str::random(8);
+                
                 
                 $demande = DemandeImmobiliere::create([
                     'particulier_id' => $particulier->id,
                     'type_operation' => $this->faker->randomElement(TypeOperationEnum::cases())->value,
                     'type_bien' => $this->faker->randomElement($typeBiens)->value,
-                    'budget_maximum' => $this->faker->randomFloat(2, 50000, 500000),
+                    'budget_maximum' => $this->faker->numberBetween(50000, 500000),
                     'zone_recherchee' => $quartierNom,
                     'quartier_id' => $quartierId,
                     'nombre_chambres' => $this->faker->numberBetween(0, 5),
-                    'surface_minimum' => $this->faker->randomFloat(2, 30, 300),
+                    'surface_minimum' => $this->faker->numberBetween(30, 300),
                     'date_entree_souhaitee' => $this->faker->dateTimeBetween('+1 month', '+6 months'),
                     'criteres_particuliers' => $this->faker->paragraph,
                     'description' => $this->faker->paragraphs(2, true),
                     'statut' => $this->faker->randomElement($statutsDemande)->value,
+                    'slug' => $slug,
                 ]);
 
                 // Des propositions sur cette demande
@@ -249,7 +266,6 @@ class DatabaseSeeder extends Seeder
         foreach ($particuliers as $particulier) {
             $agencesPourEvaluation = $this->faker->randomElements($agences, rand(1, 3));
             foreach ($agencesPourEvaluation as $agence) {
-                // Vérifier que le particulier a eu un rendez-vous avec cette agence
                 $aEuRendezVous = RendezVous::where('particulier_id', $particulier->id)
                     ->where('agence_id', $agence->id)
                     ->exists();
@@ -311,6 +327,7 @@ class DatabaseSeeder extends Seeder
             'quartier_id' => $quartierNgorId,
             'description' => 'Agence immobilière de test spécialisée dans les biens de luxe.',
             'statut_validation' => true,
+            'slug' => 'doyaimmo-test-agency',
         ]);
 
         // Documents pour l'agence de test
@@ -325,11 +342,11 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // Abonnement Premium pour l'agence de test
+        // Abonnement PRO pour l'agence de test
         Abonnement::create([
             'agence_id' => $testAgence->id,
-            'formule' => FormuleAbonnementEnum::PREMIUM->value,
-            'montant' => FormuleAbonnementEnum::PREMIUM->prix(),
+            'formule' => FormuleAbonnementEnum::PRO->value,
+            'montant' => FormuleAbonnementEnum::PRO->prix(),
             'date_debut' => now(),
             'date_fin' => now()->addMonths(3),
             'statut' => true,
@@ -343,6 +360,7 @@ class DatabaseSeeder extends Seeder
         $biensTest = [
             [
                 'titre' => 'Magnifique Villa à Ngor',
+                'slug' => 'villa-ngor-luxe',
                 'type_bien' => TypeBienEnum::VILLA->value,
                 'type_contrat' => TypeContratEnum::VENTE->value,
                 'prix' => 250000000,
@@ -358,6 +376,7 @@ class DatabaseSeeder extends Seeder
             ],
             [
                 'titre' => 'Appartement de Luxe aux Almadies',
+                'slug' => 'appart-almadies',
                 'type_bien' => TypeBienEnum::APPARTEMENT->value,
                 'type_contrat' => TypeContratEnum::LOCATION->value,
                 'prix' => 500000,
@@ -369,10 +388,11 @@ class DatabaseSeeder extends Seeder
                 'surface' => 150,
                 'parking_disponible' => true,
                 'est_meuble' => true,
-                'description' => 'Appartement moderne avec terrasse et vue sur l\'océan. Proche de toutes les commodités.',
+                'description' => 'Appartement moderne avec terrasse et vue sur l\'océan.',
             ],
             [
                 'titre' => 'Terrain à Diamniadio',
+                'slug' => 'terrain-diamniadio',
                 'type_bien' => TypeBienEnum::TERRAIN->value,
                 'type_contrat' => TypeContratEnum::VENTE->value,
                 'prix' => 75000000,
@@ -384,10 +404,11 @@ class DatabaseSeeder extends Seeder
                 'surface' => 500,
                 'parking_disponible' => true,
                 'est_meuble' => false,
-                'description' => 'Terrain idéal pour construction résidentielle ou commerciale. Proche du nouveau centre économique.',
+                'description' => 'Terrain idéal pour construction résidentielle ou commerciale.',
             ],
             [
                 'titre' => 'Studio Meublé à Ouakam',
+                'slug' => 'studio-ouakam',
                 'type_bien' => TypeBienEnum::STUDIO->value,
                 'type_contrat' => TypeContratEnum::LOCATION->value,
                 'prix' => 250000,
@@ -399,7 +420,7 @@ class DatabaseSeeder extends Seeder
                 'surface' => 45,
                 'parking_disponible' => false,
                 'est_meuble' => true,
-                'description' => 'Studio moderne entièrement meublé. Idéal pour un étudiant ou un jeune professionnel.',
+                'description' => 'Studio moderne entièrement meublé. Idéal pour un étudiant.',
             ],
         ];
 
@@ -421,7 +442,7 @@ class DatabaseSeeder extends Seeder
         // 12. Création de quelques signalements de test
         $this->command->info('Création des signalements de test...');
         foreach ($particuliers as $key => $particulier) {
-            if ($key < 3) { // Seulement les 3 premiers particuliers
+            if ($key < 3) {
                 $biens = BienImmobilier::inRandomOrder()->limit(1)->get();
                 foreach ($biens as $bien) {
                     \App\Models\Signalement::create([

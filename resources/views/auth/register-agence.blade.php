@@ -3,12 +3,14 @@
 @section('title', 'Inscription Agence — DoyaImmo')
 
 @section('content')
-<div class="auth-shell" style="opacity:0;">
+<div class="auth-shell" style="opacity:1;">
     <!-- Section gauche - Visuelle -->
     <div class="auth-visual">
-        <div class="brand">
-            <div class="brand-mark">D</div>
-            <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--gold)">Immo</span></div>
+        <div class="brand" style="display:flex; justify-content:space-between; align-items:center;">
+            <a href="{{ route('home') }}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
+                <div class="brand-mark">D</div>
+                <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--rust)">Immo</span></div>
+            </a>
         </div>
         
         <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:24px;">
@@ -44,9 +46,17 @@
     <!-- Section droite - Formulaire -->
     <div class="auth-form-side">
         <div class="auth-box" style="max-width:480px;">
-            <div class="brand">
-                <div class="brand-mark">D</div>
-                <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
+            <!-- En-tête avec marque et bouton Accueil -->
+            <div class="brand" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <a href="{{ route('home') }}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
+                    <div class="brand-mark">D</div>
+                    <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
+                </a>
+                
+                <!-- Bouton Accueil -->
+                <a href="{{ route('home') }}" class="btn btn-ghost btn-sm" style="display:inline-flex; align-items:center; gap:6px;">
+                    <i class="fa-solid fa-house"></i> Accueil
+                </a>
             </div>
             
             <div class="role-toggle">
@@ -552,34 +562,40 @@
 
     /* ===================== BOUTON ===================== */
     .btn-submit {
-        display: inline-flex;
+        display: inline-flex !important;
         align-items: center;
         justify-content: center;
         gap: 10px;
         width: 100%;
-        padding: 14px 28px;
-        border: none;
-        border-radius: 12px;
-        background: var(--rust);
-        color: #fff;
-        font-size: 15px;
-        font-weight: 600;
-        font-family: inherit;
-        cursor: pointer;
-        transition: background 0.2s;
+        padding: 14px 28px !important;
+        border: none !important;
+        border-radius: 12px !important;
+        background: var(--rust) !important;
+        color: #fff !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        font-family: inherit !important;
+        cursor: pointer !important;
+        transition: background 0.2s !important;
+        margin-top: 20px !important;
+        position: relative !important;
+        z-index: 10 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        display: block !important;
     }
 
     .btn-submit:hover {
-        background: #9A4523;
+        background: #9A4523 !important;
     }
 
     .btn-submit:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
+        opacity: 0.6 !important;
+        cursor: not-allowed !important;
     }
 
     .btn-submit i {
-        font-size: 16px;
+        font-size: 16px !important;
     }
 
     .form-footer {

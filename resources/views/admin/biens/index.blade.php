@@ -162,7 +162,7 @@
                     </span>
                     @if($bien->est_vedette && $bien->vedette_fin > now())
                         <div style="font-size:10px;color:#F5A623;margin-top:2px;">
-                            ⭐ {{ $bien->vedette_restante ?? 0 }} jours restants
+                             {{ $bien->vedette_restante ?? 0 }} jours restants
                         </div>
                     @endif
                 </td>

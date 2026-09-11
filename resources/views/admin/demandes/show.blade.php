@@ -142,25 +142,25 @@
             <div style="display:flex;flex-wrap:wrap;gap:6px;">
                 @php
                     $equipements = [
-                        'parking' => ['label' => '🚗 Parking', 'value' => $demande->parking ?? false],
-                        'meuble' => ['label' => '🛋️ Meublé', 'value' => $demande->meuble ?? false],
-                        'climatisation' => ['label' => '❄️ Climatisation', 'value' => $demande->climatisation ?? false],
-                        'balcon' => ['label' => '🌅 Balcon', 'value' => $demande->balcon ?? false],
-                        'jardin' => ['label' => '🌿 Jardin', 'value' => $demande->jardin ?? false],
-                        'piscine' => ['label' => '🏊 Piscine', 'value' => $demande->piscine ?? false],
-                        'ascenseur' => ['label' => '🛗 Ascenseur', 'value' => $demande->ascenseur ?? false],
-                        'securite' => ['label' => '🛡️ Sécurité', 'value' => $demande->securite ?? false],
+                        'parking' => ['label' => ' Parking', 'value' => $demande->parking ?? false],
+                        'meuble' => ['label' => ' Couchage', 'value' => $demande->meuble ?? false],
+                        'climatisation' => ['label' => ' Climatisation', 'value' => $demande->climatisation ?? false],
+                        'balcon' => ['label' => ' Balcon', 'value' => $demande->balcon ?? false],
+                        'jardin' => ['label' => ' Jardin', 'value' => $demande->jardin ?? false],
+                        'piscine' => ['label' => ' Piscine', 'value' => $demande->piscine ?? false],
+                        'ascenseur' => ['label' => ' Ascenseur', 'value' => $demande->ascenseur ?? false],
+                        'securite' => ['label' => ' Sécurité', 'value' => $demande->securite ?? false],
                     ];
                 @endphp
                 
                 @foreach($equipements as $key => $equipement)
                     @if($equipement['value'])
                         <span class="status-pill status-active" style="background:#E8F5E9;color:#1E7A47;border:1px solid #C8E6C9;">
-                            ✅ {{ $equipement['label'] }}
+                             {{ $equipement['label'] }}
                         </span>
                     @else
                         <span class="status-pill status-inactif" style="background:#F5F5F5;color:#999;border:1px solid #E0E0E0;">
-                            ❌ {{ $equipement['label'] }}
+                             {{ $equipement['label'] }}
                         </span>
                     @endif
                 @endforeach

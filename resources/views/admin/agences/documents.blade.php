@@ -67,23 +67,23 @@
         <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">
             Sélectionnez les documents à valider ou rejeter.
         </p>
-        <!-- ✅ CORRIGÉ : Utilisation du slug -->
-        <form id="validationForm" action="{{ route('admin.agences.valider-documents', $agence->slug) }}" method="POST">
-            @csrf
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <select id="validationStatut" name="statut" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;flex:1;">
-                    <option value="valide"> ✅ Valider</option>
-                    <option value="rejete"> ❌ Rejeter</option>
-                </select>
-                <button type="submit" class="btn btn-rust">
-                    <i class="fa-solid fa-check"></i> Appliquer
-                </button>
-            </div>
-            <div style="margin-top:8px;">
-                <input type="text" id="validationCommentaire" name="commentaire" placeholder="Commentaire (optionnel)" 
-                       style="width:100%;padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
-            </div>
-        </form>
+        
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-success btn-sm" onclick="ouvrirModalValidation('valide')">
+                <i class="fa-solid fa-check"></i> Valider la sélection
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="ouvrirModalValidation('rejete')">
+                <i class="fa-solid fa-times"></i> Rejeter la sélection
+            </button>
+        </div>
+        <div style="margin-top:8px;">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="selectAllDocuments()">
+                <i class="fa-solid fa-check-double"></i> Tout sélectionner
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="deselectAllDocuments()">
+                <i class="fa-solid fa-square"></i> Tout désélectionner
+            </button>
+        </div>
     </div>
 </div>
 
@@ -102,27 +102,25 @@
     </div>
 
     @if($documents->count() > 0)
-        <form id="documentsForm" method="POST">
+        <form id="documentsForm" method="POST" action="{{ route('admin.agences.valider-documents', $agence->slug) }}">
             @csrf
+            <input type="hidden" name="statut" id="statutInput" value="">
+            <input type="hidden" name="commentaire" id="commentaireInput" value="">
+            
             <div style="display:flex;flex-direction:column;gap:8px;">
                 @foreach($documents as $document)
                     @php
-                        // Déterminer la couleur de la bordure selon le statut
                         $borderColor = $document->est_valide ? 'var(--green)' : ($document->est_rejete ? 'var(--red)' : '#E65100');
-                        
-                        // Déterminer le statut CSS
                         $statusClass = $document->est_valide ? 'status-active' : ($document->est_rejete ? 'status-annule' : 'status-en_attente');
                         $statusLabel = $document->statut_validation_label;
                     @endphp
                     <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#F7F9FC;border-radius:8px;border-left:4px solid {{ $borderColor }};">
                         
-                        <!-- Checkbox pour sélectionner -->
                         <div>
                             <input type="checkbox" name="document_ids[]" value="{{ $document->id }}" 
                                    style="width:16px;height:16px;cursor:pointer;">
                         </div>
 
-                        <!-- Informations du document -->
                         <div style="flex:1;">
                             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                                 <span style="font-weight:600;font-size:14px;">
@@ -152,7 +150,6 @@
                             @endif
                         </div>
 
-                        <!-- Statut -->
                         <div>
                             <span class="status-pill {{ $statusClass }}">
                                 <i class="fa-solid fa-circle" style="font-size:6px;"></i>
@@ -160,7 +157,6 @@
                             </span>
                         </div>
 
-                        <!-- Actions -->
                         <div style="display:flex;gap:4px;">
                             <a href="{{ $document->fichier_url }}" target="_blank" class="btn btn-ghost btn-sm" title="Voir le document">
                                 <i class="fa-solid fa-eye"></i>
@@ -173,22 +169,6 @@
                 @endforeach
             </div>
         </form>
-
-        <!-- Actions en bas -->
-        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;">
-            <button type="button" class="btn btn-ghost btn-sm" onclick="selectAllDocuments()">
-                <i class="fa-solid fa-check-double"></i> Tout sélectionner
-            </button>
-            <button type="button" class="btn btn-ghost btn-sm" onclick="deselectAllDocuments()">
-                <i class="fa-solid fa-square"></i> Tout désélectionner
-            </button>
-            <button type="button" class="btn btn-success btn-sm" onclick="validateSelected('valide')">
-                <i class="fa-solid fa-check"></i> Valider la sélection
-            </button>
-            <button type="button" class="btn btn-danger btn-sm" onclick="validateSelected('rejete')">
-                <i class="fa-solid fa-times"></i> Rejeter la sélection
-            </button>
-        </div>
     @else
         <p style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0;">
             <i class="fa-solid fa-file-circle-exclamation" style="font-size:32px;display:block;margin-bottom:8px;"></i>
@@ -197,7 +177,35 @@
     @endif
 </div>
 
+<!-- ✅ MODAL DE CONFIRMATION -->
+<div id="validationModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:12px; padding:24px; max-width:400px; width:90%; box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+        <h3 style="margin-bottom:12px; font-size:16px;">Confirmation</h3>
+        <p id="modalMessage" style="font-size:14px; color:var(--text-soft); margin-bottom:16px;"></p>
+        
+        <div id="motifContainer" style="display:none; margin-bottom:16px;">
+            <label style="font-size:13px; font-weight:600; color:var(--text-soft); display:block; margin-bottom:4px;">
+                Motif du rejet <span style="color:var(--red);">*</span>
+            </label>
+            <textarea id="motifRejet" rows="3" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:13px; resize:vertical;" placeholder="Veuillez indiquer le motif du rejet..."></textarea>
+            <span style="color:var(--red); font-size:12px; display:none;" id="motifError">Le motif est obligatoire</span>
+        </div>
+        
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button type="button" class="btn btn-ghost" onclick="fermerModal()">
+                Annuler
+            </button>
+            <button type="button" class="btn btn-rust" onclick="confirmerValidation()">
+                Confirmer
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
+    let actionStatut = '';
+    let actionCommentaire = '';
+
     function selectAllDocuments() {
         document.querySelectorAll('input[name="document_ids[]"]').forEach(checkbox => {
             checkbox.checked = true;
@@ -210,8 +218,7 @@
         });
     }
 
-    function validateSelected(statut) {
-        const form = document.getElementById('documentsForm');
+    function ouvrirModalValidation(statut) {
         const selected = document.querySelectorAll('input[name="document_ids[]"]:checked');
         
         if (selected.length === 0) {
@@ -219,29 +226,49 @@
             return;
         }
         
-        if (!confirm(`Voulez-vous vraiment ${statut === 'valide' ? 'valider' : 'rejeter'} ${selected.length} document(s) ?`)) {
-            return;
+        actionStatut = statut;
+        const modal = document.getElementById('validationModal');
+        const modalMessage = document.getElementById('modalMessage');
+        const motifContainer = document.getElementById('motifContainer');
+        
+        if (statut === 'valide') {
+            modalMessage.textContent = `Voulez-vous vraiment valider ${selected.length} document(s) ?`;
+            motifContainer.style.display = 'none';
+        } else {
+            modalMessage.textContent = `Voulez-vous vraiment rejeter ${selected.length} document(s) ?`;
+            motifContainer.style.display = 'block';
         }
         
-        // Ajouter le statut au formulaire
-        const statutInput = document.createElement('input');
-        statutInput.type = 'hidden';
-        statutInput.name = 'statut';
-        statutInput.value = statut;
-        form.appendChild(statutInput);
-        
-        // Ajouter le commentaire
-        const commentaire = prompt('Ajouter un commentaire (optionnel) :');
-        if (commentaire !== null) {
-            const commentaireInput = document.createElement('input');
-            commentaireInput.type = 'hidden';
-            commentaireInput.name = 'commentaire';
-            commentaireInput.value = commentaire;
-            form.appendChild(commentaireInput);
+        modal.style.display = 'flex';
+    }
+
+    function fermerModal() {
+        document.getElementById('validationModal').style.display = 'none';
+        document.getElementById('motifError').style.display = 'none';
+        document.getElementById('motifRejet').value = '';
+    }
+
+    function confirmerValidation() {
+        if (actionStatut === 'rejete') {
+            const motif = document.getElementById('motifRejet').value.trim();
+            if (!motif) {
+                document.getElementById('motifError').style.display = 'block';
+                return;
+            }
+            actionCommentaire = motif;
+        } else {
+            const commentaire = prompt('Ajouter un commentaire (optionnel) :');
+            actionCommentaire = commentaire !== null ? commentaire : '';
         }
         
-        // ✅ CORRIGÉ : Utilisation du slug dans l'action
-        form.action = "{{ route('admin.agences.valider-documents', $agence->slug) }}";
+        const form = document.getElementById('documentsForm');
+        const statutInput = document.getElementById('statutInput');
+        const commentaireInput = document.getElementById('commentaireInput');
+        
+        statutInput.value = actionStatut;
+        commentaireInput.value = actionCommentaire;
+        
+        fermerModal();
         form.submit();
     }
 </script>

@@ -7,38 +7,50 @@
 @section('content')
 <div class="view active besoins-page">
 
+    @php
+        $totalDemandes = $stats['total'] ?? 0;
+        $totalCompat   = $stats['compatibles'] ?? 0;
+        $totalNonCompat = max(0, $totalDemandes - $totalCompat);
+    @endphp
+
     {{-- ═══════════════════════════════════════════
-         HEADER
+         EN-TÊTE : Stats + Tabs
     ═══════════════════════════════════════════ --}}
-    <div class="page-header">
-        <div class="page-header__left">
-            <h2>Besoins disponibles</h2>
-            <p>Parcourez les demandes publiées par les clients</p>
+
+    {{-- Stats (mobile inline / desktop cards) --}}
+    <div class="besoins-stats">
+        <div class="besoins-stat">
+            <span class="besoins-stat__value">{{ $totalCompat }}</span>
+            <span class="besoins-stat__label">Compatibles</span>
+        </div>
+        <div class="besoins-stat">
+            <span class="besoins-stat__value">{{ $totalDemandes }}</span>
+            <span class="besoins-stat__label">Total</span>
+        </div>
+        <div class="besoins-stat">
+            <span class="besoins-stat__value">{{ $totalNonCompat }}</span>
+            <span class="besoins-stat__label">Sans match</span>
         </div>
     </div>
 
-    {{-- ═══════════════════════════════════════════
-         ONGLETS
-    ═══════════════════════════════════════════ --}}
-    <nav class="tabs" aria-label="Filtrer par type">
+    {{-- Tabs (mobile + desktop) --}}
+    <nav class="besoins-tabs">
         <a href="{{ route('agence.demandes.index', array_merge(request()->query(), ['onglet' => 'compatibles'])) }}"
-           class="tab {{ $onglet === 'compatibles' ? 'is-active' : '' }}">
+           class="besoins-tab {{ $onglet === 'compatibles' ? 'is-active' : '' }}">
             <i class="fa-solid fa-robot"></i>
             <span>Compatibles</span>
-            <span class="tab__count">{{ $stats['compatibles'] ?? 0 }}</span>
+            <span class="besoins-tab__count">{{ $totalCompat }}</span>
         </a>
 
         <a href="{{ route('agence.demandes.index', array_merge(request()->query(), ['onglet' => 'toutes'])) }}"
-           class="tab {{ $onglet === 'toutes' ? 'is-active' : '' }}">
+           class="besoins-tab {{ $onglet === 'toutes' ? 'is-active' : '' }}">
             <i class="fa-solid fa-list"></i>
-            <span>Toutes les demandes</span>
-            <span class="tab__count">{{ $stats['total'] ?? 0 }}</span>
+            <span>Toutes</span>
+            <span class="besoins-tab__count">{{ $totalDemandes }}</span>
         </a>
     </nav>
 
-    {{-- ═══════════════════════════════════════════
-         FILTRES
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ FILTRES ═══ --}}
     <div class="filters">
         <div class="filters__field">
             <i class="fa-solid fa-location-dot"></i>
@@ -55,7 +67,7 @@
         <div class="filters__field">
             <i class="fa-solid fa-building"></i>
             <select id="filterType">
-                <option value="">Tous types de bien</option>
+                <option value="">Tous types</option>
                 @foreach(\App\Enums\TypeBienEnum::cases() as $type)
                     <option value="{{ $type->value }}" {{ request('type_bien') == $type->value ? 'selected' : '' }}>
                         {{ $type->label() }}
@@ -78,7 +90,7 @@
 
         <div class="filters__field filters__field--grow">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="filterSearch" placeholder="Rechercher une demande..." value="{{ request('search') }}">
+            <input type="text" id="filterSearch" placeholder="Rechercher..." value="{{ request('search') }}">
         </div>
 
         <button type="button" class="btn btn-rust" onclick="applyFilters()">
@@ -86,43 +98,38 @@
         </button>
 
         <button type="button" class="btn btn-ghost" onclick="resetFilters()">
-            <i class="fa-solid fa-rotate"></i> Réinitialiser
+            <i class="fa-solid fa-rotate"></i>
         </button>
     </div>
 
-    {{-- ═══════════════════════════════════════════
-         RÉSUMÉ (onglet "toutes")
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ QUICK FILTERS ═══ --}}
     @if($onglet === 'toutes' && $demandes->count() > 0)
-        <div class="summary-banner">
-            <div class="summary-banner__info">
-                <span class="summary-pill summary-pill--success">
-                    <i class="fa-solid fa-circle-check"></i>
-                    {{ $stats['compatibles'] ?? 0 }} compatible{{ ($stats['compatibles'] ?? 0) > 1 ? 's' : '' }}
-                </span>
-                <span class="summary-pill summary-pill--muted">
-                    <i class="fa-solid fa-circle-xmark"></i>
-                    {{ ($stats['total'] ?? 0) - ($stats['compatibles'] ?? 0) }} sans correspondance
-                </span>
-            </div>
-
-            <div class="summary-banner__actions" id="summaryFilters">
-                <button type="button" class="summary-btn is-active" data-filter="all">
-                    Tout voir
-                </button>
-                <button type="button" class="summary-btn" data-filter="compatible">
-                    Compatibles
-                </button>
-                <button type="button" class="summary-btn" data-filter="non-compatible">
-                    Non compatibles
-                </button>
-            </div>
+        <div class="quick-filters" id="quickFilters">
+            <button type="button" class="quick-filter is-active" data-filter="all">
+                Tout <span class="quick-filter__count">{{ $totalDemandes }}</span>
+            </button>
+            <button type="button" class="quick-filter" data-filter="compatible">
+                <i class="fa-solid fa-check"></i> Compatibles
+            </button>
+            <button type="button" class="quick-filter" data-filter="non-compatible">
+                Non compatibles
+            </button>
         </div>
     @endif
 
-    {{-- ═══════════════════════════════════════════
-         GRILLE DE DEMANDES
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ COMPTEUR RÉSULTATS ═══ --}}
+    <div class="besoins-count">
+        <i class="fa-solid fa-circle-info"></i>
+        <strong>{{ $demandes->total() }}</strong>
+        {{ $demandes->total() > 1 ? 'résultats' : 'résultat' }}
+        @if($onglet === 'compatibles')
+            <span>· compatibles avec vos biens</span>
+        @else
+            <span>· toutes les demandes</span>
+        @endif
+    </div>
+
+    {{-- ═══ GRILLE ═══ --}}
     <div class="besoins-grid" id="besoinGrid">
         @forelse($demandes as $item)
 
@@ -140,14 +147,14 @@
 
                 $equipementsDemande = $demande->equipements ?? [];
 
-                $nbOffres = $demande->propositions->count();
+                $nbOffres    = $demande->propositions->count();
                 $nbEnAttente = $demande->propositions->where('statut', 'en_attente')->count();
             @endphp
 
             <article class="besoin-card besoin-card--{{ $scoreClass }} {{ $estCompatible ? 'is-compatible' : '' }}"
                      data-compatible="{{ $estCompatible ? 'true' : 'false' }}">
 
-                {{-- Badge compatibilité en haut --}}
+                {{-- Badge compatibilité --}}
                 @if($estCompatible)
                     <div class="compat-badge compat-badge--{{ $scoreClass }}">
                         <i class="fa-solid fa-robot"></i>
@@ -163,53 +170,43 @@
 
                 <div class="besoin-card__body">
 
-                    {{-- Type + budget --}}
                     <div class="besoin-card__headline">
-                        <h3 class="besoin-card__type">
-                            {{ $demande->type_bien->label() }}
-                        </h3>
+                        <h3 class="besoin-card__type">{{ $demande->type_bien->label() }}</h3>
                         <div class="besoin-card__budget">
                             {{ number_format($demande->budget_maximum, 0, ',', ' ') }}
                             <small>{{ $budgetLabel }}</small>
                         </div>
                     </div>
 
-                    {{-- Meta --}}
                     <div class="besoin-card__meta">
                         <span class="meta-pill">
-                            <i class="fa-solid fa-location-dot"></i>
-                            {{ $demande->zone_recherchee }}
+                            <i class="fa-solid fa-location-dot"></i> {{ $demande->zone_recherchee }}
                         </span>
                         <span class="meta-pill">
-                            <i class="fa-solid fa-handshake"></i>
-                            {{ $demande->type_operation->label() }}
+                            <i class="fa-solid fa-handshake"></i> {{ $demande->type_operation->label() }}
                         </span>
                         @if($demande->surface_minimum)
                             <span class="meta-pill">
-                                <i class="fa-regular fa-square"></i>
-                                {{ $demande->surface_minimum }} m²
+                                <i class="fa-regular fa-square"></i> {{ $demande->surface_minimum }} m²
                             </span>
                         @endif
                         @if($demande->nombre_chambres)
                             <span class="meta-pill">
-                                <i class="fa-solid fa-bed"></i>
-                                {{ $demande->nombre_chambres }} ch.
+                                <i class="fa-solid fa-bed"></i> {{ $demande->nombre_chambres }} ch.
                             </span>
                         @endif
                     </div>
 
-                    {{-- Bien associé --}}
                     @if($estCompatible && $bien)
                         <div class="bien-match">
                             <i class="fa-solid fa-building"></i>
                             <div class="bien-match__info">
                                 <strong>{{ $bien->titre ?? 'Bien correspondant' }}</strong>
-                                <span>Votre bien qui correspond à cette demande</span>
+                                <span>Votre bien qui correspond</span>
                             </div>
                         </div>
                     @endif
 
-                    {{-- Équipements souhaités --}}
                     @if(count($equipementsDemande) > 0)
                         <div class="equipements-row">
                             @foreach(array_slice($equipementsDemande, 0, 4) as $equipement)
@@ -223,47 +220,43 @@
                         </div>
                     @endif
 
-                    {{-- Description --}}
                     @if($demande->description)
                         <p class="besoin-card__desc">
                             {{ Str::limit($demande->description, 110) }}
                         </p>
                     @endif
 
-                    {{-- Date --}}
                     <div class="besoin-card__date">
                         <i class="fa-regular fa-clock"></i>
                         Publiée {{ $demande->created_at->diffForHumans() }}
                     </div>
                 </div>
 
-                {{-- Footer --}}
                 <footer class="besoin-card__foot">
 
-                    <div class="besoin-card__stats">
-                        @if($nbOffres > 0)
-                            <span class="stat-chip stat-chip--offres">
-                                <i class="fa-regular fa-envelope"></i>
-                                <strong>{{ $nbOffres }}</strong>
-                                {{ $nbOffres > 1 ? 'offres' : 'offre' }}
-                            </span>
-                        @endif
-                        @if($nbEnAttente > 0)
-                            <span class="stat-chip stat-chip--attente">
-                                <i class="fa-regular fa-clock"></i>
-                                {{ $nbEnAttente }} en attente
-                            </span>
-                        @endif
-                    </div>
+                    @if($nbOffres > 0 || $nbEnAttente > 0)
+                        <div class="besoin-card__stats">
+                            @if($nbOffres > 0)
+                                <span class="stat-chip stat-chip--offres">
+                                    <i class="fa-regular fa-envelope"></i>
+                                    <strong>{{ $nbOffres }}</strong>
+                                    offre{{ $nbOffres > 1 ? 's' : '' }}
+                                </span>
+                            @endif
+                            @if($nbEnAttente > 0)
+                                <span class="stat-chip stat-chip--attente">
+                                    <i class="fa-regular fa-clock"></i>
+                                    {{ $nbEnAttente }} en attente
+                                </span>
+                            @endif
+                        </div>
+                    @endif
 
                     <div class="besoin-card__actions">
-                        <a href="{{ route('agence.demandes.show', $demande->slug) }}"
-                           class="btn btn-ghost btn-sm">
+                        <a href="{{ route('agence.demandes.show', $demande->slug) }}" class="btn btn-ghost">
                             <i class="fa-solid fa-eye"></i> Voir
                         </a>
-
-                        <a href="{{ route('agence.propositions.create', $demande->slug) }}"
-                           class="btn btn-rust btn-sm">
+                        <a href="{{ route('agence.propositions.create', $demande->slug) }}" class="btn btn-rust">
                             <i class="fa-solid fa-paper-plane"></i> Faire une offre
                         </a>
                     </div>
@@ -271,10 +264,6 @@
             </article>
 
         @empty
-
-            {{-- ═══════════════════════════════════════════
-                 EMPTY STATE
-            ═══════════════════════════════════════════ --}}
             <div class="empty-state">
                 <div class="empty-state__icon">
                     <i class="fa-solid {{ $onglet === 'compatibles' ? 'fa-robot' : 'fa-inbox' }}"></i>
@@ -297,7 +286,6 @@
         @endforelse
     </div>
 
-    {{-- Pagination --}}
     @if($demandes->count() > 0)
         <div class="pagination-wrapper">
             {{ $demandes->appends(request()->query())->links() }}
@@ -309,9 +297,6 @@
 
 @push('scripts')
 <script>
-    /* ═══════════════════════════════════════════
-       FILTRES (URL)
-    ═══════════════════════════════════════════ */
     function applyFilters() {
         const zone      = document.getElementById('filterZone').value;
         const type      = document.getElementById('filterType').value;
@@ -332,19 +317,16 @@
         window.location.href = '{{ route("agence.demandes.index") }}?onglet={{ $onglet }}';
     }
 
-    document.getElementById('filterSearch')?.addEventListener('keypress', function (e) {
+    document.getElementById('filterSearch')?.addEventListener('keypress', e => {
         if (e.key === 'Enter') applyFilters();
     });
 
-    /* ═══════════════════════════════════════════
-       FILTRE RAPIDE "compatible / non compatible"
-    ═══════════════════════════════════════════ */
     document.addEventListener('DOMContentLoaded', function () {
-        const summaryFilters = document.getElementById('summaryFilters');
-        if (!summaryFilters) return;
+        const wrap = document.getElementById('quickFilters');
+        if (!wrap) return;
 
         const cards = document.querySelectorAll('#besoinGrid .besoin-card');
-        const buttons = summaryFilters.querySelectorAll('.summary-btn');
+        const buttons = wrap.querySelectorAll('.quick-filter');
 
         buttons.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -352,15 +334,12 @@
                 btn.classList.add('is-active');
 
                 const filter = btn.dataset.filter;
-
                 cards.forEach(card => {
                     const isCompatible = card.dataset.compatible === 'true';
-
                     const show =
                         filter === 'all' ||
                         (filter === 'compatible' && isCompatible) ||
                         (filter === 'non-compatible' && !isCompatible);
-
                     card.style.display = show ? '' : 'none';
                 });
             });
@@ -373,7 +352,7 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   PAGE BESOINS DISPONIBLES — Agence
+   BESOINS DISPONIBLES
    ═══════════════════════════════════════════════════════════ */
 
 .besoins-page {
@@ -387,80 +366,117 @@
     --c-info-bg:    #E3F2FD;
     --surface:      #F7F9FC;
     --radius:       14px;
+
+    --ios-bg: #F2F2F7;
+    --ios-card: #FFFFFF;
+    --ios-blue: #007AFF;
+    --ios-label: #000000;
+    --ios-label-2: #3C3C43;
+    --ios-label-3: #8E8E93;
+    --ios-separator: rgba(60, 60, 67, 0.12);
+    --ios-radius-lg: 18px;
 }
 
-/* ═══ HEADER ═══ */
-.page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
+/* ═══ STATS : cards visibles partout ═══ */
+.besoins-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
     margin-bottom: 16px;
-    flex-wrap: wrap;
 }
-.page-header__left h2 {
-    font-family: var(--display);
-    font-size: 22px;
-    font-weight: 700;
-    margin: 0;
-    color: var(--text);
-    line-height: 1.2;
-}
-.page-header__left p {
-    font-size: 13.5px;
-    color: var(--muted);
-    margin: 4px 0 0;
-}
-
-/* ═══ TABS ═══ */
-.tabs {
+.besoins-stat {
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 4px;
-    margin-bottom: 16px;
-    border-bottom: 1px solid var(--border);
-    overflow-x: auto;
-    scrollbar-width: thin;
+    padding: 16px 12px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    position: relative;
+    transition: transform .15s, box-shadow .15s;
 }
-.tabs::-webkit-scrollbar { height: 3px; }
-.tabs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+.besoins-stat:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0,0,0,.05);
+}
+.besoins-stat.is-highlight {
+    border-color: var(--c-success);
+    background: linear-gradient(135deg, #F0FBF4, #fff);
+}
+.besoins-stat__value {
+    font-family: var(--display);
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -.5px;
+    line-height: 1;
+}
+.besoins-stat.is-highlight .besoins-stat__value { color: var(--c-success); }
+.besoins-stat__label {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
 
-.tab {
+/* ═══ TABS : visibles partout ═══ */
+.besoins-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+}
+.besoins-tabs::-webkit-scrollbar { display: none; }
+
+.besoins-tab {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 11px 18px;
+    padding: 10px 18px;
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
     font-size: 13.5px;
     font-weight: 600;
-    color: var(--muted);
+    color: var(--text-soft);
     text-decoration: none;
-    border-bottom: 2.5px solid transparent;
     transition: all .2s;
     white-space: nowrap;
-    margin-bottom: -1px;
+    flex-shrink: 0;
 }
-.tab:hover { color: var(--text); }
-.tab.is-active {
+.besoins-tab:hover {
+    border-color: var(--rust);
     color: var(--rust);
-    border-bottom-color: var(--rust);
 }
-.tab i { font-size: 13px; }
-
-.tab__count {
+.besoins-tab i { font-size: 13px; opacity: .85; }
+.besoins-tab.is-active {
+    background: var(--rust);
+    border-color: var(--rust);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(181, 80, 42, .22);
+}
+.besoins-tab__count {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 26px;
-    padding: 2px 8px;
-    background: var(--surface);
-    color: var(--text-soft);
+    min-width: 24px;
+    height: 22px;
+    padding: 0 8px;
+    background: rgba(0, 0, 0, .06);
+    color: inherit;
     border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
     font-family: var(--display);
+    font-size: 11.5px;
+    font-weight: 800;
 }
-.tab.is-active .tab__count {
-    background: var(--rust-soft);
-    color: var(--rust);
+.besoins-tab.is-active .besoins-tab__count {
+    background: rgba(255,255,255,.28);
+    color: #fff;
 }
 
 /* ═══ FILTRES ═══ */
@@ -475,7 +491,6 @@
     margin-bottom: 14px;
     align-items: center;
 }
-
 .filters__field {
     position: relative;
     display: flex;
@@ -486,9 +501,7 @@
     border-radius: 10px;
     transition: border-color .2s;
 }
-.filters__field:hover { border-color: #d8d8d8; }
 .filters__field:focus-within { border-color: var(--rust); }
-
 .filters__field i {
     position: absolute;
     left: 12px;
@@ -497,7 +510,6 @@
     pointer-events: none;
     z-index: 1;
 }
-
 .filters__field select,
 .filters__field input {
     width: 100%;
@@ -511,80 +523,83 @@
     outline: none;
     border-radius: 10px;
 }
-
 .filters__field input { cursor: text; }
 .filters__field--grow { flex: 1; min-width: 200px; }
 
-/* ═══ RÉSUMÉ ═══ */
-.summary-banner {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-}
-
-.summary-banner__info {
+/* ═══ QUICK FILTERS ═══ */
+.quick-filters {
     display: flex;
     gap: 8px;
-    flex-wrap: wrap;
+    margin-bottom: 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
 }
-
-.summary-pill {
+.quick-filters::-webkit-scrollbar { display: none; }
+.quick-filter {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 5px 12px;
+    padding: 8px 16px;
+    background: #fff;
+    border: 1.5px solid var(--border);
     border-radius: 999px;
-    font-size: 12px;
+    font-family: inherit;
+    font-size: 12.5px;
     font-weight: 600;
-    border: 1px solid;
-}
-.summary-pill i { font-size: 11px; }
-.summary-pill--success {
-    background: var(--c-success-bg);
-    color: var(--c-success);
-    border-color: #C8E6C9;
-}
-.summary-pill--muted {
-    background: var(--surface);
-    color: var(--muted);
-    border-color: var(--border);
-}
-
-.summary-banner__actions {
-    display: flex;
-    gap: 4px;
+    color: var(--text-soft);
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
     flex-shrink: 0;
 }
-
-.summary-btn {
-    padding: 7px 14px;
-    border-radius: 9px;
-    font-size: 12px;
-    font-weight: 600;
-    background: transparent;
-    color: var(--text-soft);
-    border: 1.5px solid transparent;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all .2s;
-    white-space: nowrap;
-}
-.summary-btn:hover {
-    background: var(--surface);
-    border-color: var(--border);
-}
-.summary-btn.is-active {
+.quick-filter:hover { border-color: var(--rust); color: var(--rust); }
+.quick-filter.is-active {
     background: var(--rust);
     color: #fff;
     border-color: var(--rust);
+    box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
 }
+.quick-filter__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 20px;
+    padding: 0 7px;
+    background: var(--surface);
+    color: var(--text-soft);
+    border-radius: 999px;
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 800;
+}
+.quick-filter.is-active .quick-filter__count {
+    background: rgba(255,255,255,.3);
+    color: #fff;
+}
+.quick-filter i { font-size: 11px; }
+
+/* ═══ COMPTEUR ═══ */
+.besoins-count {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border-radius: 10px;
+    font-size: 13px;
+    color: var(--text-soft);
+    margin-bottom: 14px;
+}
+.besoins-count i { color: var(--rust); font-size: 13px; }
+.besoins-count strong {
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--ink);
+}
+.besoins-count span { opacity: .7; }
 
 /* ═══ GRILLE ═══ */
 .besoins-grid {
@@ -593,7 +608,7 @@
     gap: 14px;
 }
 
-/* ═══ CARTE BESOIN ═══ */
+/* ═══ CARTE ═══ */
 .besoin-card {
     position: relative;
     display: flex;
@@ -609,15 +624,13 @@
     box-shadow: 0 10px 28px rgba(0, 0, 0, .07);
     border-color: #d8d8d8;
 }
-
-/* Bordure gauche colorée si compatible */
 .besoin-card.is-compatible { border-left: 3px solid var(--c-success); }
 .besoin-card--excellent.is-compatible { border-left-color: var(--c-success); }
 .besoin-card--bon.is-compatible       { border-left-color: var(--c-info); }
 .besoin-card--moyen.is-compatible     { border-left-color: var(--c-warning); }
 .besoin-card--faible.is-compatible    { border-left-color: var(--c-danger); }
 
-/* ═══ BADGE COMPATIBILITÉ ═══ */
+/* Badge compatibilité */
 .compat-badge {
     display: inline-flex;
     align-items: center;
@@ -633,34 +646,14 @@
     font-size: 14px;
     font-weight: 800;
 }
-.compat-badge span {
-    font-weight: 500;
-    opacity: .85;
-}
+.compat-badge span { font-weight: 500; opacity: .85; }
 
-.compat-badge--excellent {
-    background: linear-gradient(135deg, #F0FBF4, #E8F5E9);
-    color: var(--c-success);
-}
-.compat-badge--bon {
-    background: linear-gradient(135deg, #F0F7FF, #E3F2FD);
-    color: var(--c-info);
-}
-.compat-badge--moyen {
-    background: linear-gradient(135deg, #FFFBF0, #FFF8E1);
-    color: var(--c-warning);
-}
-.compat-badge--faible {
-    background: linear-gradient(135deg, #FFF5F5, #FFEBEE);
-    color: var(--c-danger);
-}
-.compat-badge--none {
-    background: var(--surface);
-    color: var(--muted);
-    justify-content: center;
-}
+.compat-badge--excellent { background: linear-gradient(135deg, #F0FBF4, #E8F5E9); color: var(--c-success); }
+.compat-badge--bon       { background: linear-gradient(135deg, #F0F7FF, #E3F2FD); color: var(--c-info); }
+.compat-badge--moyen     { background: linear-gradient(135deg, #FFFBF0, #FFF8E1); color: var(--c-warning); }
+.compat-badge--faible    { background: linear-gradient(135deg, #FFF5F5, #FFEBEE); color: var(--c-danger); }
+.compat-badge--none      { background: var(--surface); color: var(--muted); justify-content: center; }
 
-/* ═══ CORPS ═══ */
 .besoin-card__body {
     flex: 1;
     display: flex;
@@ -701,12 +694,7 @@
     margin-left: 2px;
 }
 
-/* ═══ META ═══ */
-.besoin-card__meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-}
+.besoin-card__meta { display: flex; flex-wrap: wrap; gap: 5px; }
 .meta-pill {
     display: inline-flex;
     align-items: center;
@@ -721,7 +709,6 @@
 }
 .meta-pill i { font-size: 10px; color: var(--rust); opacity: .8; }
 
-/* ═══ BIEN MATCH ═══ */
 .bien-match {
     display: flex;
     align-items: center;
@@ -731,17 +718,8 @@
     border-radius: 10px;
     border: 1px solid #C8E6C9;
 }
-.bien-match i {
-    color: var(--c-success);
-    font-size: 16px;
-    flex-shrink: 0;
-}
-.bien-match__info {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-}
+.bien-match i { color: var(--c-success); font-size: 16px; flex-shrink: 0; }
+.bien-match__info { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .bien-match__info strong {
     font-size: 13px;
     font-weight: 700;
@@ -750,18 +728,9 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.bien-match__info span {
-    font-size: 11px;
-    color: #175C35;
-    opacity: .85;
-}
+.bien-match__info span { font-size: 11px; color: #175C35; opacity: .85; }
 
-/* ═══ ÉQUIPEMENTS ═══ */
-.equipements-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-}
+.equipements-row { display: flex; flex-wrap: wrap; gap: 4px; }
 .equip-tag {
     display: inline-flex;
     align-items: center;
@@ -779,7 +748,6 @@
     border-color: var(--border);
 }
 
-/* ═══ DESCRIPTION ═══ */
 .besoin-card__desc {
     font-size: 12.5px;
     color: var(--text-soft);
@@ -791,7 +759,6 @@
     overflow: hidden;
 }
 
-/* ═══ DATE ═══ */
 .besoin-card__date {
     display: inline-flex;
     align-items: center;
@@ -802,7 +769,6 @@
 }
 .besoin-card__date i { font-size: 11px; opacity: .8; }
 
-/* ═══ FOOTER ═══ */
 .besoin-card__foot {
     display: flex;
     align-items: center;
@@ -814,11 +780,7 @@
     flex-wrap: wrap;
 }
 
-.besoin-card__stats {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-}
+.besoin-card__stats { display: flex; gap: 6px; flex-wrap: wrap; }
 
 .stat-chip {
     display: inline-flex;
@@ -847,11 +809,7 @@
     border-color: #FFE0B2;
 }
 
-.besoin-card__actions {
-    display: flex;
-    gap: 6px;
-    flex-shrink: 0;
-}
+.besoin-card__actions { display: flex; gap: 6px; flex-shrink: 0; }
 
 /* ═══ BOUTONS ═══ */
 .btn {
@@ -891,9 +849,8 @@
     border-color: var(--rust);
     color: var(--rust);
 }
-.btn-sm { padding: 6px 12px; font-size: 12px; }
 
-/* ═══ EMPTY STATE ═══ */
+/* ═══ EMPTY ═══ */
 .empty-state {
     grid-column: 1 / -1;
     text-align: center;
@@ -929,20 +886,11 @@
 }
 
 /* ═══ PAGINATION ═══ */
-.pagination-wrapper {
-    margin-top: 24px;
-    display: flex;
-    justify-content: center;
-}
+.pagination-wrapper { margin-top: 24px; display: flex; justify-content: center; }
 .pagination-wrapper .pagination,
 .pagination-wrapper nav {
-    display: flex;
-    gap: 5px;
-    justify-content: center;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    flex-wrap: wrap;
+    display: flex; gap: 5px; justify-content: center;
+    list-style: none; padding: 0; margin: 0; flex-wrap: wrap;
 }
 .pagination-wrapper a,
 .pagination-wrapper span:not(.sr-only) {
@@ -958,64 +906,281 @@
     text-align: center;
     background: #fff;
 }
-.pagination-wrapper a:hover {
-    background: var(--border);
-    border-color: var(--rust);
-    color: var(--rust);
-}
+.pagination-wrapper a:hover { background: var(--border); border-color: var(--rust); color: var(--rust); }
 .pagination-wrapper .active span,
 .pagination-wrapper [aria-current="page"] span,
-.pagination-wrapper [aria-current="page"] {
-    background: var(--rust);
-    color: #fff;
-    border-color: var(--rust);
-}
-.pagination-wrapper .disabled span {
-    opacity: .45;
-    cursor: not-allowed;
-}
+.pagination-wrapper [aria-current="page"] { background: var(--rust); color: #fff; border-color: var(--rust); }
+.pagination-wrapper .disabled span { opacity: .45; cursor: not-allowed; }
+
 
 /* ═══════════════════════════════════════════════════════════
-   RESPONSIVE
+   📱 MOBILE — iOS NATIVE
    ═══════════════════════════════════════════════════════════ */
+@media (max-width: 820px) {
 
-@media (max-width: 768px) {
-    .page-header__left h2 { font-size: 19px; }
-    .page-header__left p  { font-size: 13px; }
+    .besoins-page { background: transparent; padding-top: 4px; }
 
-    .filters { padding: 12px; gap: 8px; }
-    .filters__field { min-width: 100%; }
-    .filters__field--grow { min-width: 100%; }
-    .filters .btn { flex: 1; justify-content: center; }
+    /* ─── STATS INLINE ─── */
+    .besoins-stats {
+        display: flex;
+        gap: 0;
+        background: var(--ios-card);
+        border-radius: var(--ios-radius-lg);
+        padding: 16px 6px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        grid-template-columns: none;
+    }
+    .besoins-stat {
+        flex: 1;
+        padding: 0 4px;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        gap: 2px;
+    }
+    .besoins-stat:hover { transform: none; box-shadow: none; }
+    .besoins-stat:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        right: 0; top: 20%;
+        height: 60%; width: 0.5px;
+        background: var(--ios-separator);
+    }
+    .besoins-stat__value { font-size: 22px; }
+    .besoins-stat__label { font-size: 11px; color: var(--ios-label-3); text-transform: none; letter-spacing: 0; }
 
-    .summary-banner { flex-direction: column; align-items: stretch; gap: 10px; }
-    .summary-banner__actions { justify-content: stretch; }
-    .summary-btn { flex: 1; text-align: center; justify-content: center; }
+    /* ─── TABS PILLS iOS ─── */
+    .besoins-tabs {
+        gap: 8px;
+        margin: 0 -16px 14px;
+        padding: 0 16px 2px;
+    }
+    .besoins-tab {
+        padding: 10px 16px;
+        background: var(--ios-card);
+        border: none;
+        border-radius: 999px;
+        font-size: 14px;
+        color: var(--ios-label-2);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .besoins-tab:active { transform: scale(.95); }
+    .besoins-tab.is-active {
+        background: linear-gradient(135deg, var(--rust), #d4754a);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(181, 80, 42, .3);
+    }
+    .besoins-tab__count {
+        background: #EFEFF4;
+        color: var(--ios-label-2);
+        font-size: 11.5px;
+    }
+    .besoins-tab.is-active .besoins-tab__count {
+        background: rgba(255,255,255,.3);
+        color: #fff;
+    }
 
-    .besoins-grid { grid-template-columns: 1fr; gap: 10px; }
+    /* ─── FILTRES masqués ─── */
+    .filters { display: none; }
 
-    .besoin-card__headline { flex-direction: column; align-items: flex-start; gap: 4px; }
-    .besoin-card__foot { flex-direction: column; align-items: stretch; }
-    .besoin-card__stats { justify-content: center; }
-    .besoin-card__actions { width: 100%; }
-    .besoin-card__actions .btn { flex: 1; justify-content: center; }
+    /* ─── QUICK FILTERS iOS ─── */
+    .quick-filters {
+        gap: 8px;
+        margin: 0 -16px 14px;
+        padding: 0 16px 2px;
+    }
+    .quick-filter {
+        padding: 9px 16px;
+        background: var(--ios-card);
+        border: none;
+        font-size: 13px;
+        color: var(--ios-label-2);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .quick-filter:active { transform: scale(.95); }
+    .quick-filter.is-active {
+        background: linear-gradient(135deg, var(--rust), #d4754a);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(181, 80, 42, .3);
+    }
+    .quick-filter.is-active .quick-filter__count {
+        background: rgba(255,255,255,.3);
+        color: #fff;
+    }
+
+    /* ─── COMPTEUR ─── */
+    .besoins-count {
+        padding: 0 4px;
+        background: transparent;
+        margin-bottom: 12px;
+        font-size: 13px;
+        color: var(--ios-label-3);
+    }
+    .besoins-count i { display: none; }
+
+    /* ─── CARTES iOS ─── */
+    .besoins-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .besoin-card {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        overflow: hidden;
+        transition: transform .15s ease;
+    }
+    .besoin-card:hover { transform: none; }
+    .besoin-card:active { transform: scale(.985); }
+
+    .besoin-card.is-compatible { border-left: none; position: relative; }
+    .besoin-card.is-compatible::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        border-radius: var(--ios-radius-lg) var(--ios-radius-lg) 0 0;
+        z-index: 2;
+    }
+    .besoin-card--excellent.is-compatible::before { background: var(--c-success); }
+    .besoin-card--bon.is-compatible::before       { background: var(--c-info); }
+    .besoin-card--moyen.is-compatible::before     { background: var(--c-warning); }
+    .besoin-card--faible.is-compatible::before    { background: var(--c-danger); }
+
+    .compat-badge {
+        padding: 10px 16px;
+        font-size: 12.5px;
+        gap: 7px;
+        border-bottom: 0.5px solid var(--ios-separator);
+    }
+    .compat-badge strong { font-size: 15px; }
+
+    .compat-badge--excellent,
+    .compat-badge--bon,
+    .compat-badge--moyen,
+    .compat-badge--faible { background: transparent; }
+    .compat-badge--none {
+        background: #EFEFF4;
+        color: var(--ios-label-3);
+        justify-content: center;
+        font-weight: 500;
+    }
+
+    .besoin-card__body { padding: 14px 16px; gap: 10px; }
+    .besoin-card__type { font-size: 17px; color: var(--ios-label); }
+    .besoin-card__budget { font-size: 20px; }
+
+    .meta-pill {
+        background: #EFEFF4;
+        border: none;
+        color: var(--ios-label-2);
+        font-size: 12.5px;
+        padding: 4px 11px;
+    }
+    .meta-pill i { color: var(--rust); font-size: 11px; }
+
+    .bien-match {
+        background: linear-gradient(135deg, #F0FBF4, #E8F5E9);
+        border: none;
+        border-radius: 12px;
+        padding: 12px 14px;
+    }
+    .bien-match i { font-size: 18px; }
+    .bien-match__info strong { font-size: 14px; }
+    .bien-match__info span { font-size: 12px; }
+
+    .equipements-row { gap: 6px; }
+    .equip-tag {
+        background: #EFEFF4;
+        border: none;
+        color: var(--ios-label-2);
+        padding: 4px 11px;
+        font-size: 12px;
+    }
+
+    .besoin-card__desc { font-size: 13.5px; color: var(--ios-label-2); }
+    .besoin-card__date { font-size: 12.5px; color: var(--ios-label-3); }
+
+    .besoin-card__foot {
+        padding: 12px 16px;
+        background: transparent;
+        border-top: 0.5px solid var(--ios-separator);
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .besoin-card__stats { justify-content: flex-start; }
+    .stat-chip {
+        background: #EFEFF4;
+        border: none;
+        padding: 5px 11px;
+        font-size: 12px;
+    }
+    .stat-chip--offres { background: var(--c-info-bg); color: var(--c-info); }
+    .stat-chip--attente { background: var(--c-warning-bg); color: var(--c-warning); }
+
+    .besoin-card__actions {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 8px;
+    }
+    .besoin-card__actions .btn {
+        width: 100%;
+        justify-content: center;
+        padding: 12px 18px;
+        font-size: 14px;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+    .besoin-card__actions .btn-rust {
+        background: linear-gradient(135deg, var(--rust), #d4754a);
+        border: none;
+        box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
+    }
+    .besoin-card__actions .btn-ghost {
+        background: var(--ios-card);
+        border: 1px solid #E5E5EA;
+        color: var(--ios-blue);
+    }
+    .besoin-card__actions .btn-ghost:active { background: #EFEFF4; }
+
+    .empty-state {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        padding: 48px 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .empty-state__icon {
+        background: #EFEFF4;
+        color: var(--ios-label-3);
+    }
+    .empty-state h3 { font-size: 17px; }
+    .empty-state p { font-size: 13.5px; color: var(--ios-label-3); }
+
+    .pagination-wrapper a,
+    .pagination-wrapper span:not(.sr-only) {
+        background: var(--ios-card);
+        border: none;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        padding: 10px 14px;
+        font-size: 13px;
+        border-radius: 10px;
+    }
 }
 
 @media (max-width: 480px) {
-    .tab { font-size: 12.5px; padding: 9px 14px; gap: 6px; }
-    .tab__count { font-size: 10.5px; padding: 1px 7px; min-width: 22px; }
+    .besoins-stat__value { font-size: 20px; }
+    .besoins-stat__label { font-size: 10.5px; }
 
+    .besoin-card__type { font-size: 16px; }
+    .besoin-card__budget { font-size: 19px; }
     .besoin-card__body { padding: 12px 14px; }
-    .besoin-card__type { font-size: 15.5px; }
-    .besoin-card__budget { font-size: 15px; }
-
     .besoin-card__foot { padding: 10px 14px; }
-
-    .compat-badge { font-size: 11px; padding: 7px 12px; gap: 6px; }
-    .compat-badge strong { font-size: 13px; }
-
-    .btn { font-size: 12px; padding: 7px 13px; }
-    .btn-sm { font-size: 11.5px; padding: 6px 11px; }
 }
 </style>
 @endpush

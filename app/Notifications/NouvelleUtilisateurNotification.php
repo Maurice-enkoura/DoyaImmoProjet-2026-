@@ -30,35 +30,47 @@ class NouvelleUtilisateurNotification extends Notification implements ShouldQueu
     {
         return (new MailMessage)
             ->subject('Bienvenue sur DoyaImmo - ' . $this->user->prenom . ' !')
-            ->markdown('emails.nouvelle-utilisateur', [
-                'user' => $this->user,
-                'role' => $this->role,
+            ->view('emails.nouvelle-utilisateur', [   // ✅ view au lieu de markdown
+                'user'       => $this->user,
+                'role'       => $this->role,
                 'notifiable' => $notifiable,
             ]);
     }
 
     public function toDatabase($notifiable): array
     {
-        $messages = [
-            'particulier' => 'Bienvenue sur DoyaImmo ! Commencez à publier vos besoins immobiliers.',
-            'agence' => 'Votre agence est en cours de validation par nos équipes.',
-            'admin' => 'Bienvenue sur le tableau de bord administrateur.',
+        $data = [
+            'particulier' => [
+                'title'   => 'Bienvenue ! 👋',
+                'message' => 'Bienvenue sur DoyaImmo ! Commencez à publier vos besoins immobiliers.',
+                'link'    => route('particulier.demandes.create'),
+            ],
+            'agence' => [
+                'title'   => 'Votre agence est en cours de validation',
+                'message' => 'Votre agence est en cours de validation par nos équipes.',
+                'link'    => route('agence.profil'),
+            ],
+            'admin' => [
+                'title'   => 'Bienvenue administrateur !',
+                'message' => 'Bienvenue sur le tableau de bord administrateur.',
+                'link'    => route('admin.dashboard'),
+            ],
         ];
 
-        $titles = [
-            'particulier' => 'Bienvenue ! ',
-            'agence' => 'Votre agence est en cours de validation ',
-            'admin' => 'Bienvenue administrateur ! ',
+        $roleData = $data[$this->role] ?? [
+            'title'   => 'Bienvenue sur DoyaImmo',
+            'message' => 'Votre compte a été créé avec succès.',
+            'link'    => null,
         ];
 
         return [
-            'title' => $titles[$this->role] ?? 'Bienvenue sur DoyaImmo',
-            'message' => $messages[$this->role] ?? 'Votre compte a été créé avec succès.',
-            'type' => 'success',
-            'icon' => 'fa-user-plus',
-            'link' => route('dashboard'),
+            'title'   => $roleData['title'],
+            'message' => $roleData['message'],
+            'type'    => 'success',
+            'icon'    => 'fa-user-plus',
+            'link'    => $roleData['link'],
             'user_id' => $this->user->id,
-            'role' => $this->role,
+            'role'    => $this->role,
         ];
     }
 

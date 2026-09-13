@@ -21,11 +21,11 @@
             'acceptee'   => ['label' => 'Acceptées',   'icon' => 'fa-check-circle'],
             'refusee'    => ['label' => 'Ignorées',    'icon' => 'fa-eye-slash'],
         ];
+
+        $maxScore = $propositions->max(fn($p) => (int) ($p->score_matching ?? 0));
     @endphp
 
-    {{-- ═══════════════════════════════════════════
-         HEADER
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ HEADER DESKTOP ═══ --}}
     <div class="page-header">
         <div class="page-header__left">
             <h2>Offres reçues</h2>
@@ -36,9 +36,27 @@
         </a>
     </div>
 
-    {{-- ═══════════════════════════════════════════
-         FILTRES AVEC COMPTEURS
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ STATS INLINE (mobile) ═══ --}}
+    <div class="offres-stats">
+        <div class="offres-stat {{ $counts[''] > 0 ? '' : '' }}">
+            <span class="offres-stat__value">{{ $counts[''] }}</span>
+            <span class="offres-stat__label">Total</span>
+        </div>
+        <div class="offres-stat {{ $counts['en_attente'] > 0 ? 'is-highlight' : '' }}">
+            <span class="offres-stat__value">{{ $counts['en_attente'] }}</span>
+            <span class="offres-stat__label">En attente</span>
+        </div>
+        <div class="offres-stat">
+            <span class="offres-stat__value">{{ $counts['acceptee'] }}</span>
+            <span class="offres-stat__label">Acceptées</span>
+        </div>
+        <div class="offres-stat">
+            <span class="offres-stat__value">{{ $counts['refusee'] }}</span>
+            <span class="offres-stat__label">Ignorées</span>
+        </div>
+    </div>
+
+    {{-- ═══ FILTRES PILLS ═══ --}}
     <nav class="filter-tabs" aria-label="Filtrer par statut">
         @foreach($tabs as $key => $meta)
             <a href="{{ route('particulier.propositions.index', $key ? ['statut' => $key] : []) }}"
@@ -50,16 +68,13 @@
         @endforeach
     </nav>
 
-    {{-- ═══════════════════════════════════════════
-         ALERTS
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ ALERTS ═══ --}}
     @if(session('error'))
         <div class="alert alert-error">
             <i class="fa-solid fa-circle-exclamation"></i>
             <span>{{ session('error') }}</span>
         </div>
     @endif
-
     @if(session('success'))
         <div class="alert alert-success">
             <i class="fa-solid fa-check-circle"></i>
@@ -67,9 +82,7 @@
         </div>
     @endif
 
-    {{-- ═══════════════════════════════════════════
-         LISTE DES OFFRES
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ LISTE DES OFFRES ═══ --}}
     @forelse($propositions as $proposition)
 
         @php
@@ -86,15 +99,14 @@
             $score       = (int) ($proposition->score_matching ?? 0);
             $scoreClass  = $score >= 80 ? 'excellent' : ($score >= 60 ? 'moyen' : 'faible');
             $scoreLabel  = $score >= 80 ? 'Excellent match' : ($score >= 60 ? 'Bon match' : 'Match faible');
+            $isBestScore = $score > 0 && $score === $maxScore && $score >= 80;
 
-            // Logique d'exclusivité (comme dans ta version)
             $propositionAcceptee = \App\Models\Proposition::where('demande_id', $proposition->demande_id)
                 ->where('statut', 'acceptee')
                 ->exists();
             $estPropositionAcceptee = $statutValue === 'acceptee';
             $autrePropositionAcceptee = $propositionAcceptee && !$estPropositionAcceptee;
 
-            // Miniature (1ère image du bien)
             $cover = $bien && $bien->medias->where('type_media', 'image')->first()
                 ? asset('storage/' . $bien->medias->where('type_media', 'image')->first()->fichier)
                 : null;
@@ -102,16 +114,20 @@
             $equipementsBien = $bien->equipements ?? [];
         @endphp
 
-        <article class="offre-card offre-card--{{ $statutValue }} {{ $isVedette ? 'is-vedette' : '' }} {{ $autrePropositionAcceptee ? 'is-cloturee' : '' }}">
+        <article class="offre-card offre-card--{{ $statutValue }} {{ $isVedette ? 'is-vedette' : '' }} {{ $autrePropositionAcceptee ? 'is-cloturee' : '' }} {{ $isBestScore ? 'is-best-score' : '' }}">
 
-            {{-- Bandeau vedette --}}
+            {{-- Ruban priorité --}}
             @if($isVedette)
-                <div class="vedette-ribbon">
-                    <i class="fa-solid fa-star"></i> Bien en vedette
+                <div class="offre-ribbon offre-ribbon--gold">
+                    <i class="fa-solid fa-star"></i> En vedette
+                </div>
+            @elseif($isBestScore)
+                <div class="offre-ribbon offre-ribbon--rust">
+                    <i class="fa-solid fa-trophy"></i> Meilleur match
                 </div>
             @endif
 
-            {{-- En-tête : statut + score --}}
+            {{-- En-tête : statut + score + temps --}}
             <header class="offre-card__top">
                 <span class="offre-status offre-status--{{ $statutValue }}">
                     <i class="fa-solid fa-circle"></i>
@@ -120,7 +136,7 @@
 
                 @if($autrePropositionAcceptee)
                     <span class="offre-lock">
-                        <i class="fa-solid fa-lock"></i> Offre clôturée
+                        <i class="fa-solid fa-lock"></i> Clôturée
                     </span>
                 @endif
 
@@ -128,7 +144,6 @@
                     <div class="score-inline score-inline--{{ $scoreClass }}">
                         <i class="fa-solid fa-bullseye"></i>
                         <strong>{{ $score }}%</strong>
-                        <span>{{ $scoreLabel }}</span>
                     </div>
                 @endif
 
@@ -140,110 +155,100 @@
                 </time>
             </header>
 
-            {{-- Corps : photo + infos --}}
-            <div class="offre-card__body">
-
-                {{-- Photo --}}
+            {{-- Image --}}
+            @if($cover)
                 <div class="offre-card__media">
-                    @if($cover)
-                        <img src="{{ $cover }}" alt="{{ $bien->titre ?? 'Bien' }}" loading="lazy">
-                    @else
-                        <div class="offre-card__media-placeholder">
-                            <i class="fa-regular fa-image"></i>
-                        </div>
-                    @endif
+                    <img src="{{ $cover }}" alt="{{ $bien->titre ?? 'Bien' }}" loading="lazy">
+                </div>
+            @endif
+
+            {{-- Contenu --}}
+            <div class="offre-card__content">
+
+                {{-- Prix --}}
+                <div class="offre-card__price">
+                    {{ number_format($proposition->prix_propose, 0, ',', ' ') }}
+                    <small>FCFA</small>
                 </div>
 
-                {{-- Infos --}}
-                <div class="offre-card__content">
+                {{-- Titre bien --}}
+                <h3 class="offre-card__title">
+                    {{ $bien->titre ?? 'Bien sans titre' }}
+                </h3>
 
-                    {{-- Prix + agence --}}
-                    <div class="offre-card__headline">
-                        <div class="offre-card__price">
-                            {{ number_format($proposition->prix_propose, 0, ',', ' ') }}
-                            <small>FCFA</small>
-                        </div>
-
-                        <div class="offre-card__agency">
-                            <div class="agency-avatar">
-                                {{ strtoupper(mb_substr($agence->nom_agence ?? 'A', 0, 1)) }}
-                            </div>
-                            <div class="agency-info">
-                                <strong>{{ $agence->nom_agence ?? 'Agence' }}</strong>
-                                <span class="agency-rating">
-                                    <i class="fa-solid fa-star"></i>
-                                    {{ number_format($agence->note_moyenne ?? 0, 1) }}
-                                    <span class="agency-reviews">
-                                        ({{ $agence->evaluations->count() ?? 0 }} avis)
-                                    </span>
-                                </span>
-                            </div>
-                        </div>
+                @if($bien && $bien->quartier)
+                    <div class="offre-card__address">
+                        <i class="fa-solid fa-location-dot"></i>
+                        {{ $bien->quartier }}
                     </div>
+                @endif
 
-                    {{-- Titre bien --}}
-                    <h3 class="offre-card__title">
-                        {{ $bien->titre ?? 'Bien sans titre' }}
-                        @if($bien && $bien->quartier)
-                            <span class="offre-card__title-loc">— {{ $bien->quartier }}</span>
-                        @endif
-                    </h3>
-
-                    {{-- Specs --}}
-                    <div class="offre-card__specs">
-                        @if($bien && $bien->surface)
-                            <span class="spec-pill"><i class="fa-solid fa-vector-square"></i> {{ $bien->surface }} m²</span>
-                        @endif
-                        @if($bien && $bien->nombre_chambres)
-                            <span class="spec-pill"><i class="fa-solid fa-bed"></i> {{ $bien->nombre_chambres }} ch.</span>
-                        @endif
-                        @if($bien && $bien->nombre_salles_bain)
-                            <span class="spec-pill"><i class="fa-solid fa-bath"></i> {{ $bien->nombre_salles_bain }} sdb</span>
-                        @endif
-                        @if($bien && $bien->parking_disponible)
-                            <span class="spec-pill"><i class="fa-solid fa-car"></i> Parking</span>
-                        @endif
-                        @if($bien && $bien->est_meuble)
-                            <span class="spec-pill"><i class="fa-solid fa-couch"></i> Meublé</span>
-                        @endif
-                        @if($bien && $bien->climatisation)
-                            <span class="spec-pill"><i class="fa-solid fa-snowflake"></i> Clim</span>
-                        @endif
-                        @if(count($equipementsBien) > 3)
-                            <span class="spec-pill spec-pill--info">
-                                +{{ count($equipementsBien) - 3 }} équipements
+                {{-- Agence --}}
+                <div class="offre-card__agency">
+                    <div class="agency-avatar">
+                        {{ strtoupper(mb_substr($agence->nom_agence ?? 'A', 0, 1)) }}
+                    </div>
+                    <div class="agency-info">
+                        <strong>{{ $agence->nom_agence ?? 'Agence' }}</strong>
+                        <span class="agency-rating">
+                            <i class="fa-solid fa-star"></i>
+                            {{ number_format($agence->note_moyenne ?? 0, 1) }}
+                            <span class="agency-reviews">
+                                ({{ $agence->evaluations->count() ?? 0 }} avis)
                             </span>
-                        @endif
+                        </span>
                     </div>
+                </div>
 
-                    {{-- Message de l'agence --}}
-                    @if($proposition->message)
-                        <div class="offre-card__message">
-                            <i class="fa-regular fa-message"></i>
-                            <p>{{ Str::limit($proposition->message, 140) }}</p>
-                        </div>
+                {{-- Specs --}}
+                <div class="offre-card__specs">
+                    @if($bien && $bien->surface)
+                        <span class="spec-pill"><i class="fa-solid fa-vector-square"></i> {{ $bien->surface }} m²</span>
+                    @endif
+                    @if($bien && $bien->nombre_chambres)
+                        <span class="spec-pill"><i class="fa-solid fa-bed"></i> {{ $bien->nombre_chambres }} ch.</span>
+                    @endif
+                    @if($bien && $bien->nombre_salles_bain)
+                        <span class="spec-pill"><i class="fa-solid fa-bath"></i> {{ $bien->nombre_salles_bain }} sdb</span>
+                    @endif
+                    @if($bien && $bien->parking_disponible)
+                        <span class="spec-pill"><i class="fa-solid fa-car"></i> Parking</span>
+                    @endif
+                    @if($bien && $bien->est_meuble)
+                        <span class="spec-pill"><i class="fa-solid fa-couch"></i> Meublé</span>
+                    @endif
+                    @if(count($equipementsBien) > 3)
+                        <span class="spec-pill spec-pill--info">
+                            +{{ count($equipementsBien) - 3 }} équipements
+                        </span>
                     @endif
                 </div>
+
+                {{-- Message --}}
+                @if($proposition->message)
+                    <div class="offre-card__message">
+                        <i class="fa-regular fa-message"></i>
+                        <p>{{ Str::limit($proposition->message, 140) }}</p>
+                    </div>
+                @endif
             </div>
 
             {{-- Actions --}}
             <footer class="offre-card__actions">
 
-                {{-- Proposition acceptée --}}
                 @if($statutValue === 'acceptee')
                     <span class="state-pill state-pill--success">
                         <i class="fa-solid fa-circle-check"></i> Agence choisie
                     </span>
-                    <a href="{{ route('particulier.rendezvous.create', $proposition) }}" class="btn btn-rust btn-sm">
+                    <a href="{{ route('particulier.rendezvous.create', $proposition) }}" class="btn btn-rust">
                         <i class="fa-solid fa-calendar-check"></i> Planifier la visite
                     </a>
 
-                {{-- En attente, actionnable --}}
                 @elseif($statutValue === 'en_attente' && !$autrePropositionAcceptee)
                     <form action="{{ route('particulier.propositions.selectionner', $proposition) }}"
                           method="POST" class="inline-form">
                         @csrf
-                        <button type="submit" class="btn btn-rust btn-sm"
+                        <button type="submit" class="btn btn-rust"
                                 onclick="return confirm('✅ Sélectionner cette offre ? Cela clôturera les autres offres en attente.')">
                             <i class="fa-solid fa-check"></i> Choisir cette agence
                         </button>
@@ -252,22 +257,20 @@
                     <form action="{{ route('particulier.propositions.refuser', $proposition) }}"
                           method="POST" class="inline-form">
                         @csrf
-                        <button type="submit" class="btn btn-ghost-danger btn-sm"
+                        <button type="submit" class="btn btn-ghost-danger"
                                 onclick="return confirm('❌ Ignorer cette offre ?')">
                             <i class="fa-regular fa-eye-slash"></i> Ignorer
                         </button>
                     </form>
 
-                {{-- Clôturée --}}
                 @elseif($autrePropositionAcceptee && $statutValue === 'en_attente')
                     <span class="state-pill state-pill--muted">
                         <i class="fa-solid fa-lock"></i> Offre clôturée
                     </span>
                 @endif
 
-                {{-- Détails toujours --}}
                 <a href="{{ route('particulier.propositions.show', $proposition) }}"
-                   class="btn btn-ghost btn-sm offre-card__details">
+                   class="btn btn-ghost offre-card__details">
                     <i class="fa-solid fa-eye"></i> Voir les détails
                 </a>
             </footer>
@@ -275,9 +278,7 @@
 
     @empty
 
-        {{-- ═══════════════════════════════════════════
-             EMPTY STATE
-        ═══════════════════════════════════════════ --}}
+        {{-- ═══ EMPTY STATE ═══ --}}
         <div class="empty-state">
             <div class="empty-state__icon">
                 <i class="fa-solid fa-inbox"></i>
@@ -312,7 +313,7 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   PAGE OFFRES REÇUES — Particulier
+   OFFRES REÇUES — iOS NATIVE
    ═══════════════════════════════════════════════════════════ */
 
 .offres-page {
@@ -327,9 +328,18 @@
     --c-gold:       #F5A623;
     --surface:      #F7F9FC;
     --radius:       14px;
+
+    --ios-bg: #F2F2F7;
+    --ios-card: #FFFFFF;
+    --ios-blue: #007AFF;
+    --ios-label: #000000;
+    --ios-label-2: #3C3C43;
+    --ios-label-3: #8E8E93;
+    --ios-separator: rgba(60, 60, 67, 0.12);
+    --ios-radius-lg: 18px;
 }
 
-/* ═══ HEADER ═══ */
+/* ═══ HEADER DESKTOP ═══ */
 .page-header {
     display: flex;
     justify-content: space-between;
@@ -352,7 +362,10 @@
     margin: 4px 0 0;
 }
 
-/* ═══ FILTRES ONGLETS ═══ */
+/* ═══ STATS INLINE (mobile) ═══ */
+.offres-stats { display: none; }
+
+/* ═══ FILTRES ═══ */
 .filter-tabs {
     display: flex;
     gap: 8px;
@@ -383,10 +396,7 @@
     white-space: nowrap;
     flex-shrink: 0;
 }
-.filter-tab:hover {
-    border-color: var(--rust);
-    transform: translateY(-1px);
-}
+.filter-tab:hover { border-color: var(--rust); transform: translateY(-1px); }
 .filter-tab i { font-size: 12px; opacity: .85; }
 .filter-tab.is-active {
     background: var(--rust);
@@ -425,9 +435,7 @@
 .alert-success { background: var(--c-success-bg); color: var(--c-success); border-left-color: var(--c-success); }
 .alert-error   { background: var(--c-danger-bg);  color: var(--c-danger);  border-left-color: var(--c-danger); }
 
-/* ═══════════════════════════════════════════
-   CARTE OFFRE
-   ═══════════════════════════════════════════ */
+/* ═══ CARTE ═══ */
 .offre-card {
     position: relative;
     background: #fff;
@@ -447,15 +455,10 @@
     border-color: var(--c-gold);
     background: linear-gradient(135deg, #FFFDF5 0%, #fff 55%);
 }
-.offre-card.is-vedette:hover {
-    box-shadow: 0 10px 28px rgba(245, 166, 35, .15);
-}
-.offre-card.is-cloturee {
-    opacity: .82;
-}
+.offre-card.is-cloturee { opacity: .82; }
 
-/* Ruban vedette */
-.vedette-ribbon {
+/* Rubans */
+.offre-ribbon {
     position: absolute;
     top: 0;
     right: 0;
@@ -464,16 +467,22 @@
     gap: 5px;
     padding: 6px 14px;
     border-radius: 0 var(--radius) 0 10px;
-    background: linear-gradient(135deg, var(--c-gold), #E8901A);
     color: #fff;
     font-size: 10.5px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: .4px;
-    box-shadow: 0 4px 10px rgba(245, 166, 35, .3);
     z-index: 2;
 }
-.vedette-ribbon i { font-size: 10px; }
+.offre-ribbon--gold {
+    background: linear-gradient(135deg, var(--c-gold), #E8901A);
+    box-shadow: 0 4px 10px rgba(245, 166, 35, .3);
+}
+.offre-ribbon--rust {
+    background: linear-gradient(135deg, var(--rust), #d4754a);
+    box-shadow: 0 4px 10px rgba(181, 80, 42, .3);
+}
+.offre-ribbon i { font-size: 10px; }
 
 /* En-tête */
 .offre-card__top {
@@ -495,7 +504,6 @@
 }
 .offre-card__time i { font-size: 11px; opacity: .8; }
 
-/* Statut pill */
 .offre-status {
     display: inline-flex;
     align-items: center;
@@ -514,7 +522,6 @@
 .offre-status--refusee    { background: var(--c-danger-bg);  color: var(--c-danger); }
 .offre-status--terminee   { background: var(--c-info-bg);    color: var(--c-info); }
 
-/* Lock pill */
 .offre-lock {
     display: inline-flex;
     align-items: center;
@@ -529,7 +536,6 @@
 }
 .offre-lock i { font-size: 9px; }
 
-/* Score inline */
 .score-inline {
     display: inline-flex;
     align-items: center;
@@ -546,53 +552,12 @@
     font-size: 13px;
     font-weight: 800;
 }
-.score-inline--excellent {
-    background: var(--c-success-bg);
-    color: var(--c-success);
-    border-color: #C8E6C9;
-}
-.score-inline--moyen {
-    background: var(--c-warning-bg);
-    color: var(--c-warning);
-    border-color: #FFE0B2;
-}
-.score-inline--faible {
-    background: var(--c-danger-bg);
-    color: var(--c-danger);
-    border-color: #FFCDD2;
-}
+.score-inline--excellent { background: var(--c-success-bg); color: var(--c-success); border-color: #C8E6C9; }
+.score-inline--moyen { background: var(--c-warning-bg); color: var(--c-warning); border-color: #FFE0B2; }
+.score-inline--faible { background: var(--c-danger-bg); color: var(--c-danger); border-color: #FFCDD2; }
 
-/* ═══ Corps ═══ */
-.offre-card__body {
-    display: grid;
-    grid-template-columns: 140px 1fr;
-    gap: 18px;
-    margin-bottom: 14px;
-}
-
-/* Photo */
-.offre-card__media {
-    position: relative;
-    aspect-ratio: 4 / 3;
-    border-radius: 10px;
-    overflow: hidden;
-    background: var(--surface);
-    border: 1px solid var(--border);
-}
-.offre-card__media img {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    display: block;
-}
-.offre-card__media-placeholder {
-    width: 100%; height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--muted);
-    font-size: 32px;
-    opacity: .4;
-}
+/* Image (desktop caché) */
+.offre-card__media { display: none; }
 
 /* Contenu */
 .offre-card__content {
@@ -600,15 +565,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-}
-
-/* Headline : prix + agence */
-.offre-card__headline {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
+    margin-bottom: 14px;
 }
 
 .offre-card__price {
@@ -625,6 +582,24 @@
     opacity: .7;
     margin-left: 2px;
 }
+
+.offre-card__title {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text);
+    line-height: 1.3;
+}
+
+.offre-card__address {
+    font-size: 12.5px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.offre-card__address i { color: var(--rust); font-size: 11px; }
 
 .offre-card__agency {
     display: flex;
@@ -667,31 +642,9 @@
     font-size: 11.5px;
     color: var(--text-soft);
 }
-.agency-rating i {
-    color: var(--c-gold);
-    font-size: 11px;
-}
-.agency-reviews {
-    color: var(--muted);
-    font-size: 11px;
-}
+.agency-rating i { color: var(--c-gold); font-size: 11px; }
+.agency-reviews { color: var(--muted); font-size: 11px; }
 
-/* Titre bien */
-.offre-card__title {
-    font-family: var(--display);
-    font-size: 15px;
-    font-weight: 700;
-    margin: 0;
-    color: var(--text);
-    line-height: 1.3;
-}
-.offre-card__title-loc {
-    font-weight: 400;
-    color: var(--muted);
-    font-size: 13px;
-}
-
-/* Specs */
 .offre-card__specs {
     display: flex;
     flex-wrap: wrap;
@@ -717,7 +670,6 @@
 }
 .spec-pill--info i { color: var(--c-info); }
 
-/* Message */
 .offre-card__message {
     display: flex;
     align-items: flex-start;
@@ -741,7 +693,6 @@
     font-style: italic;
 }
 
-/* ═══ Actions ═══ */
 .offre-card__actions {
     display: flex;
     align-items: center;
@@ -753,7 +704,6 @@
 .offre-card__details { margin-left: auto; }
 .inline-form { display: inline; }
 
-/* State pills */
 .state-pill {
     display: inline-flex;
     align-items: center;
@@ -764,16 +714,8 @@
     font-weight: 600;
     border: 1px solid;
 }
-.state-pill--success {
-    background: var(--c-success-bg);
-    color: var(--c-success);
-    border-color: #C8E6C9;
-}
-.state-pill--muted {
-    background: var(--surface);
-    color: var(--muted);
-    border-color: var(--border);
-}
+.state-pill--success { background: var(--c-success-bg); color: var(--c-success); border-color: #C8E6C9; }
+.state-pill--muted   { background: var(--surface); color: var(--muted); border-color: var(--border); }
 
 /* ═══ BOUTONS ═══ */
 .btn {
@@ -791,41 +733,15 @@
     transition: all .2s ease;
     white-space: nowrap;
 }
-.btn-rust {
-    background: var(--rust);
-    color: #fff;
-    border-color: var(--rust);
-}
-.btn-rust:hover {
-    background: #9A4523;
-    color: #fff;
-    border-color: #9A4523;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(180, 83, 42, .25);
-}
-.btn-ghost {
-    background: transparent;
-    color: var(--text-soft);
-    border-color: var(--border);
-}
-.btn-ghost:hover {
-    background: var(--surface);
-    border-color: var(--rust);
-    color: var(--rust);
-}
-.btn-ghost-danger {
-    background: transparent;
-    color: #8A91A0;
-    border-color: #E8ECF0;
-}
-.btn-ghost-danger:hover {
-    background: var(--c-danger-bg);
-    color: var(--c-danger);
-    border-color: #FFCDD2;
-}
+.btn-rust { background: var(--rust); color: #fff; border-color: var(--rust); }
+.btn-rust:hover { background: #9A4523; color: #fff; border-color: #9A4523; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(180, 83, 42, .25); }
+.btn-ghost { background: transparent; color: var(--text-soft); border-color: var(--border); }
+.btn-ghost:hover { background: var(--surface); border-color: var(--rust); color: var(--rust); }
+.btn-ghost-danger { background: transparent; color: #8A91A0; border-color: #E8ECF0; }
+.btn-ghost-danger:hover { background: var(--c-danger-bg); color: var(--c-danger); border-color: #FFCDD2; }
 .btn-sm { padding: 6px 12px; font-size: 12px; }
 
-/* ═══ EMPTY STATE ═══ */
+/* ═══ EMPTY ═══ */
 .empty-state {
     text-align: center;
     padding: 64px 20px;
@@ -860,20 +776,11 @@
 }
 
 /* ═══ PAGINATION ═══ */
-.pagination-wrapper {
-    margin-top: 22px;
-    display: flex;
-    justify-content: center;
-}
+.pagination-wrapper { margin-top: 22px; display: flex; justify-content: center; }
 .pagination-wrapper .pagination,
 .pagination-wrapper nav {
-    display: flex;
-    gap: 5px;
-    justify-content: center;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    flex-wrap: wrap;
+    display: flex; gap: 5px; justify-content: center;
+    list-style: none; padding: 0; margin: 0; flex-wrap: wrap;
 }
 .pagination-wrapper a,
 .pagination-wrapper span:not(.sr-only) {
@@ -889,55 +796,231 @@
     text-align: center;
     background: #fff;
 }
-.pagination-wrapper a:hover {
-    background: var(--border);
-    border-color: var(--rust);
-    color: var(--rust);
-}
+.pagination-wrapper a:hover { background: var(--border); border-color: var(--rust); color: var(--rust); }
 .pagination-wrapper .active span,
 .pagination-wrapper [aria-current="page"] span,
-.pagination-wrapper [aria-current="page"] {
-    background: var(--rust);
-    color: #fff;
-    border-color: var(--rust);
-}
-.pagination-wrapper .disabled span {
-    opacity: .45;
-    cursor: not-allowed;
-}
+.pagination-wrapper [aria-current="page"] { background: var(--rust); color: #fff; border-color: var(--rust); }
+.pagination-wrapper .disabled span { opacity: .45; cursor: not-allowed; }
+
 
 /* ═══════════════════════════════════════════════════════════
-   RESPONSIVE
+   📱 MOBILE — iOS NATIVE
    ═══════════════════════════════════════════════════════════ */
+@media (max-width: 820px) {
 
-@media (max-width: 768px) {
-    .page-header__left h2 { font-size: 19px; }
-    .page-header__left p  { font-size: 12.5px; }
+    .offres-page { background: transparent; padding-top: 4px; }
 
-    .offre-card__top { padding-right: 0; }
-    .vedette-ribbon {
-        position: static;
-        margin-bottom: 10px;
-        align-self: flex-start;
-        border-radius: 999px;
-        width: fit-content;
+    /* ─── HEADER DESKTOP masqué ─── */
+    .page-header { display: none; }
+
+    /* ─── STATS INLINE ─── */
+    .offres-stats {
+        display: flex;
+        gap: 0;
+        background: var(--ios-card);
+        border-radius: var(--ios-radius-lg);
+        padding: 16px 6px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
-    .offre-card__time { margin-left: 0; }
-
-    .offre-card__body {
-        grid-template-columns: 1fr;
-    }
-    .offre-card__media {
-        aspect-ratio: 16 / 9;
-    }
-
-    .offre-card__headline {
+    .offres-stat {
+        flex: 1;
+        display: flex;
         flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
+        align-items: center;
+        gap: 2px;
+        position: relative;
+        padding: 0 4px;
+    }
+    .offres-stat:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        right: 0; top: 20%;
+        height: 60%;
+        width: 0.5px;
+        background: var(--ios-separator);
+    }
+    .offres-stat__value {
+        font-family: var(--display);
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--ios-label);
+        letter-spacing: -.5px;
+        line-height: 1;
+    }
+    .offres-stat.is-highlight .offres-stat__value { color: var(--rust); }
+    .offres-stat__label {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--ios-label-3);
+        margin-top: 2px;
     }
 
+    /* ─── FILTRES PILLS iOS ─── */
+    .filter-tabs {
+        gap: 8px;
+        margin: 0 -16px 14px;
+        padding: 0 16px 2px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .filter-tabs::-webkit-scrollbar { display: none; }
+
+    .filter-tab {
+        scroll-snap-align: start;
+        padding: 9px 16px;
+        background: var(--ios-card);
+        border: none;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ios-label-2);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        transition: all .15s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .filter-tab:active { transform: scale(.95); }
+    .filter-tab.is-active {
+        background: linear-gradient(135deg, var(--rust), #d4754a);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(181, 80, 42, .3);
+    }
+    .filter-tab.is-active .filter-tab__count {
+        background: rgba(255, 255, 255, .3);
+    }
+    .filter-tab__count {
+        background: #EFEFF4;
+        color: var(--ios-label-2);
+        font-size: 11px;
+        padding: 1px 8px;
+    }
+
+    /* ─── CARTES iOS ─── */
+    .offre-card {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        transition: transform .15s ease;
+        overflow: hidden;
+    }
+    .offre-card:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,.04); border: none; }
+    .offre-card:active { transform: scale(.985); }
+    .offre-card.is-vedette {
+        border: none;
+        background: linear-gradient(135deg, #FFFDF5 0%, #fff 40%);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .offre-card.is-cloturee { opacity: .8; }
+
+    /* Rubans iOS */
+    .offre-ribbon {
+        padding: 5px 12px;
+        border-radius: 0 var(--ios-radius-lg) 0 10px;
+        font-size: 10px;
+        letter-spacing: .3px;
+    }
+
+    /* En-tête */
+    .offre-card__top {
+        gap: 8px;
+        margin-bottom: 12px;
+        padding-right: 0;
+        flex-wrap: wrap;
+    }
+    .offre-status {
+        font-size: 10.5px;
+        text-transform: none;
+        letter-spacing: 0;
+        padding: 4px 10px;
+        font-weight: 600;
+    }
+    .offre-status i { font-size: 7px; }
+    .offre-lock {
+        font-size: 11px;
+        padding: 4px 10px;
+        font-weight: 500;
+        background: #EFEFF4;
+        border: none;
+    }
+    .score-inline {
+        font-size: 11.5px;
+        padding: 4px 11px;
+    }
+    .score-inline strong { font-size: 13.5px; }
+    .offre-card__time {
+        font-size: 11.5px;
+        margin-left: 0;
+        color: var(--ios-label-3);
+    }
+
+    /* Image iOS pleine largeur */
+    .offre-card__media {
+        display: block;
+        aspect-ratio: 16/9;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #EFEFF4;
+        margin-bottom: 14px;
+    }
+    .offre-card__media img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    /* Contenu */
+    .offre-card__content { gap: 8px; margin-bottom: 12px; }
+
+    .offre-card__price {
+        font-size: 24px;
+        letter-spacing: -.5px;
+    }
+
+    .offre-card__title {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -.2px;
+        color: var(--ios-label);
+    }
+
+    .offre-card__address {
+        font-size: 13px;
+        color: var(--ios-label-3);
+    }
+
+    .offre-card__agency { gap: 10px; }
+    .agency-avatar { width: 38px; height: 38px; font-size: 15px; }
+    .agency-info strong { font-size: 14px; font-weight: 600; }
+    .agency-rating { font-size: 12.5px; }
+
+    .offre-card__specs { gap: 6px; }
+    .spec-pill {
+        font-size: 12px;
+        padding: 4px 10px;
+        background: #EFEFF4;
+        border: none;
+        color: var(--ios-label-2);
+    }
+    .spec-pill i { font-size: 11px; color: var(--rust); }
+
+    .offre-card__message {
+        background: #FFF9F5;
+        border-left: 3px solid var(--rust);
+        border-radius: 10px;
+        padding: 12px 14px;
+    }
+    .offre-card__message p { font-size: 13px; }
+
+    /* Actions iOS */
     .offre-card__actions {
+        gap: 8px;
+        padding-top: 12px;
+        border-top: 0.5px solid var(--ios-separator);
         flex-direction: column;
         align-items: stretch;
     }
@@ -949,16 +1032,67 @@
         justify-content: center;
     }
     .offre-card__details { margin-left: 0; }
+
+    .btn {
+        padding: 12px 18px;
+        font-size: 14px;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+    .btn-rust {
+        background: linear-gradient(135deg, var(--rust), #d4754a);
+        border: none;
+        box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
+    }
+    .btn-ghost {
+        background: var(--ios-card);
+        border: none;
+        color: var(--ios-blue);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .btn-ghost:active { background: #EFEFF4; }
+    .btn-ghost-danger {
+        background: rgba(198, 40, 40, .08);
+        color: var(--c-danger);
+        border: none;
+    }
+
+    .state-pill {
+        padding: 12px 16px;
+        font-size: 14px;
+        border-radius: 12px;
+        justify-content: center;
+    }
+
+    /* Empty state */
+    .empty-state {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        padding: 48px 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .empty-state__icon { width: 64px; height: 64px; font-size: 26px; }
+
+    /* Pagination iOS */
+    .pagination-wrapper a,
+    .pagination-wrapper span:not(.sr-only) {
+        background: var(--ios-card);
+        border: none;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        padding: 10px 14px;
+        font-size: 13px;
+        border-radius: 10px;
+    }
 }
 
 @media (max-width: 480px) {
+    .offres-stat__value { font-size: 20px; }
+    .offres-stat__label { font-size: 10.5px; }
+
     .offre-card { padding: 14px; }
-    .offre-card__price { font-size: 19px; }
-    .offre-card__title { font-size: 14px; }
-    .spec-pill { font-size: 11px; padding: 3px 9px; }
-    .filter-tab { font-size: 12px; padding: 8px 13px; }
-    .btn { font-size: 12px; padding: 7px 13px; }
-    .btn-sm { font-size: 11.5px; padding: 6px 11px; }
+    .offre-card__price { font-size: 22px; }
+    .offre-card__title { font-size: 15px; }
 }
 </style>
 @endpush

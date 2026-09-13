@@ -7,286 +7,341 @@
 @section('content')
 @php
     $ongletActif = request()->get('onglet', 'infos');
-    
-    // ✅ Récupérer le planning type depuis la SESSION
+
     $planningType = session()->get('planning_type_' . $agence->id, []);
     $joursFr = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
     $planningParJour = [];
     foreach ($planningType as $p) {
         $jour = $p['jour'];
-        if (!isset($planningParJour[$jour])) {
-            $planningParJour[$jour] = [];
-        }
+        if (!isset($planningParJour[$jour])) $planningParJour[$jour] = [];
         $planningParJour[$jour][] = [
             'heure_debut' => $p['heure_debut'],
-            'heure_fin' => $p['heure_fin'],
+            'heure_fin'   => $p['heure_fin'],
         ];
     }
-    
-    // ✅ Récupérer la semaine avec les créneaux (depuis la variable $creneaux passée par le contrôleur)
-    $semaine = isset($creneaux['semaine']) ? $creneaux['semaine'] : [];
+
+    $semaine         = isset($creneaux['semaine']) ? $creneaux['semaine'] : [];
     $creneauxParJour = isset($creneaux['creneaux']) ? $creneaux['creneaux'] : [];
 @endphp
-<div class="view active">
-    <!-- En-tête de la section -->
-    <div class="section-head">
-        <div>
-            <h2>Profil de l'agence</h2>
-            <p>Ces informations sont visibles par les clients de DoyaImmo</p>
+
+<div class="view active agence-profil">
+
+    {{-- ═══ HEADER DESKTOP ═══ --}}
+    <div class="page-header">
+        <div class="page-header__left">
+            <h2>Profil agence</h2>
+            <p>Vos informations visibles par les clients</p>
         </div>
     </div>
 
-    <!-- Messages flash -->
-    @if(session('success'))
-        <div class="alert alert-success">
-            <i class="fa-solid fa-check-circle"></i>
-            {{ session('success') }}
+    {{-- ═══ HERO AGENCE ═══ --}}
+    <section class="profil-hero">
+        <div class="profil-hero__avatar">
+            @if($agence->logo)
+                <img src="{{ asset('storage/' . $agence->logo) }}" alt="{{ $agence->nom_agence }}">
+            @else
+                {{ strtoupper(mb_substr($agence->nom_agence, 0, 2)) }}
+            @endif
         </div>
-    @endif
 
-    @if(session('error'))
-        <div class="alert alert-error">
-            <i class="fa-solid fa-exclamation-circle"></i>
-            {{ session('error') }}
-        </div>
-    @endif
+        <div class="profil-hero__body">
+            <h2 class="profil-hero__name">{{ $agence->nom_agence }}</h2>
 
-    @if(session('warning'))
-        <div class="alert alert-warning">
-            <i class="fa-solid fa-exclamation-triangle"></i>
-            {{ session('warning') }}
-        </div>
-    @endif
-
-    <!-- Onglets -->
-    <div class="tabs">
-        <button class="tab-btn {{ $ongletActif === 'infos' ? 'active' : '' }}" data-tab="infos" onclick="switchTab('infos')">
-            <i class="fa-solid fa-user"></i> Informations
-        </button>
-        <button class="tab-btn {{ $ongletActif === 'creneaux' ? 'active' : '' }}" data-tab="creneaux" onclick="switchTab('creneaux')">
-            <i class="fa-solid fa-calendar-clock"></i> Disponibilités
-        </button>
-    </div>
-
-    <!-- ==================== ONGLET INFORMATIONS ==================== -->
-    <div id="tab-infos" class="tab-content {{ $ongletActif === 'infos' ? 'active' : '' }}" style="{{ $ongletActif === 'infos' ? 'display:block;' : 'display:none;' }}">
-        <div class="profile-grid">
-            <!-- Carte de gauche - Profil -->
-            <div class="profile-card profile-left">
-                @if($agence->logo)
-                    <div class="profile-logo">
-                        <img src="{{ asset('storage/' . $agence->logo) }}" alt="{{ $agence->nom_agence }}">
-                    </div>
-                @else
-                    <div class="profile-avatar">
-                        {{ strtoupper(substr($agence->nom_agence, 0, 2)) }}
-                    </div>
-                @endif
-                <h3 class="profile-name">{{ $agence->nom_agence }}</h3>
-                <div class="profile-status {{ $agence->statut_validation ? 'verified' : 'pending' }}">
-                    <i class="fa-solid {{ $agence->statut_validation ? 'fa-circle-check' : 'fa-clock' }}"></i>
-                    {{ $agence->statut_validation ? 'Agence vérifiée' : 'En attente de validation' }}
-                </div>
-                <div class="profile-meta">
-                    Membre depuis {{ $agence->created_at->format('d/m/Y') }}
-                </div>
-                <div class="profile-rating">
-                    <span class="stars">
-                        @for($i = 1; $i <= 5; $i++)
-                            <i class="fa-solid fa-star {{ $i <= round($agence->evaluations->avg('note') ?? 0) ? 'active' : '' }}"></i>
-                        @endfor
+            <div class="profil-hero__badges">
+                @if($agence->statut_validation)
+                    <span class="profil-badge profil-badge--success">
+                        <i class="fa-solid fa-circle-check"></i> Vérifiée
                     </span>
-                    <span>{{ number_format($agence->evaluations->avg('note') ?? 0, 1) }} ★</span>
-                    <span class="reviews">({{ $agence->evaluations->count() }} avis)</span>
-                </div>
-                <div class="profile-stats">
-                    <div class="stat-item">
-                        <span class="stat-value">{{ $besoinsDisponibles ?? 0 }}</span>
-                        <span class="stat-label">Besoins disponibles</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value">{{ $rendezvousAVenir ?? 0 }}</span>
-                        <span class="stat-label">Rendez-vous à venir</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value">{{ $agence->biens->count() ?? 0 }}</span>
-                        <span class="stat-label">Biens publiés</span>
-                    </div>
-                </div>
+                @else
+                    <span class="profil-badge profil-badge--warning">
+                        <i class="fa-solid fa-clock"></i> En attente
+                    </span>
+                @endif
+
+                <span class="profil-badge profil-badge--gold">
+                    <i class="fa-solid fa-star"></i>
+                    {{ number_format($agence->evaluations->avg('note') ?? 0, 1) }}
+                    <span class="profil-badge__muted">({{ $agence->evaluations->count() }})</span>
+                </span>
             </div>
 
-            <!-- Carte de droite - Formulaire -->
-            <div class="profile-card profile-right">
-                <form method="POST" action="{{ route('agence.profil.update') }}" enctype="multipart/form-data">
+            <div class="profil-hero__meta">
+                <span><i class="fa-solid fa-map-pin"></i> {{ $agence->quartier }}</span>
+                <span class="profil-hero__dot">·</span>
+                <span>Membre depuis {{ $agence->created_at->format('m/Y') }}</span>
+            </div>
+        </div>
+    </section>
+
+    {{-- ═══ TABS iOS ═══ --}}
+    <nav class="profil-tabs" role="tablist">
+        <button type="button"
+                class="profil-tab {{ $ongletActif === 'infos' ? 'is-active' : '' }}"
+                data-tab="infos"
+                onclick="switchTab('infos')"
+                role="tab">
+            <i class="fa-solid fa-user"></i>
+            <span>Informations</span>
+        </button>
+
+        <button type="button"
+                class="profil-tab {{ $ongletActif === 'creneaux' ? 'is-active' : '' }}"
+                data-tab="creneaux"
+                onclick="switchTab('creneaux')"
+                role="tab">
+            <i class="fa-solid fa-calendar-clock"></i>
+            <span>Disponibilités</span>
+        </button>
+    </nav>
+
+    {{-- ═══════════════════════════════════════════
+         TAB 1 — INFORMATIONS
+    ═══════════════════════════════════════════ --}}
+    <div id="tab-infos" class="profil-content {{ $ongletActif === 'infos' ? 'is-active' : '' }}">
+
+        <div class="profil-layout">
+            {{-- Colonne principale --}}
+            <div class="profil-layout__main">
+                <form method="POST"
+                      action="{{ route('agence.profil.update') }}"
+                      enctype="multipart/form-data"
+                      class="profil-form"
+                      id="profilForm">
                     @csrf
                     @method('PUT')
 
-                    <div class="form-row">
-                        <div class="field">
-                            <label>Nom de l'agence <span class="required">*</span></label>
-                            <input type="text" name="nom_agence" value="{{ old('nom_agence', $agence->nom_agence) }}" required>
-                            @error('nom_agence') <span class="error">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="field">
-                            <label>Quartier <span class="required">*</span></label>
-                            <input type="text" name="quartier" value="{{ old('quartier', $agence->quartier) }}" required>
-                            @error('quartier') <span class="error">{{ $message }}</span> @enderror
-                        </div>
+                    {{-- Logo --}}
+                    <div class="ios-section-title">
+                        <i class="fa-regular fa-image"></i> Logo
                     </div>
 
-                    <div class="field">
-                        <label>Adresse <span class="required">*</span></label>
-                        <input type="text" name="adresse" value="{{ old('adresse', $agence->adresse) }}" required>
-                        @error('adresse') <span class="error">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div class="field">
-                        <label>Description</label>
-                        <textarea name="description" rows="4">{{ old('description', $agence->description) }}</textarea>
-                        @error('description') <span class="error">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div class="field logo-field">
-                        <label>Logo de l'agence</label>
-                        <div class="logo-upload-wrapper">
-                            <div class="logo-upload-area" id="logoUploadArea" role="button" tabindex="0">
-                                <div class="logo-preview" id="logoPreview">
-                                    @if($agence->logo)
-                                        <img src="{{ asset('storage/' . $agence->logo) }}" alt="Logo actuel" id="logoPreviewImg">
-                                    @else
-                                        <div class="logo-placeholder">
-                                            <i class="fa-solid fa-image"></i>
-                                            <span>Aucun logo</span>
-                                        </div>
-                                    @endif
+                    <label class="logo-card" for="logoInput">
+                        <div class="logo-card__preview" id="logoPreview">
+                            @if($agence->logo)
+                                <img src="{{ asset('storage/' . $agence->logo) }}" alt="Logo">
+                            @else
+                                <div class="logo-card__placeholder">
+                                    <i class="fa-solid fa-image"></i>
                                 </div>
-                                <div class="logo-upload-info">
-                                    <p class="logo-upload-title">
-                                        <i class="fa-solid fa-cloud-arrow-up"></i> Cliquez pour changer le logo
-                                    </p>
-                                    <p class="logo-upload-hint">PNG, JPEG, SVG · Max 2 Mo</p>
-                                    <p class="logo-upload-current">
-                                        @if($agence->logo)
-                                            <i class="fa-solid fa-check-circle" style="color:var(--green);"></i>
-                                            Logo actuel : {{ basename($agence->logo) }}
-                                        @else
-                                            <i class="fa-solid fa-info-circle" style="color:var(--muted);"></i>
-                                            Aucun logo téléchargé
-                                        @endif
-                                    </p>
-                                </div>
+                            @endif
+                        </div>
+                        <div class="logo-card__info">
+                            <span class="logo-card__title">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                                Changer le logo
+                            </span>
+                            <span class="logo-card__hint">
+                                PNG, JPEG, SVG · Max 2 Mo
+                            </span>
+                            @if($agence->logo)
+                                <span class="logo-card__current">
+                                    <i class="fa-solid fa-check-circle"></i>
+                                    <span class="logo-card__filename" title="{{ basename($agence->logo) }}">
+                                        {{ basename($agence->logo) }}
+                                    </span>
+                                </span>
+                            @endif
+                        </div>
+                        <input type="file" name="logo" id="logoInput" accept="image/*" hidden>
+                    </label>
+                    @error('logo') <small class="err">{{ $message }}</small> @enderror
+
+                    {{-- Informations --}}
+                    <div class="ios-section-title">
+                        <i class="fa-regular fa-building"></i> Informations
+                    </div>
+
+                    <div class="ios-form-grid">
+                        <div class="ios-list__item--field">
+                            <div class="ios-list__content">
+                                <label>Nom de l'agence <span class="req">*</span></label>
+                                <input type="text" name="nom_agence"
+                                       value="{{ old('nom_agence', $agence->nom_agence) }}"
+                                       class="ios-input" required>
                             </div>
-                            <input type="file" name="logo" accept="image/*" id="logoInput" class="logo-input">
                         </div>
-                        @error('logo') <span class="error">{{ $message }}</span> @enderror
+
+                        <div class="ios-list__item--field">
+                            <div class="ios-list__content">
+                                <label>Quartier <span class="req">*</span></label>
+                                <input type="text" name="quartier"
+                                       value="{{ old('quartier', $agence->quartier) }}"
+                                       class="ios-input" required>
+                            </div>
+                        </div>
+
+                        <div class="ios-list__item--field" style="grid-column: 1 / -1;">
+                            <div class="ios-list__content">
+                                <label>Adresse <span class="req">*</span></label>
+                                <input type="text" name="adresse"
+                                       value="{{ old('adresse', $agence->adresse) }}"
+                                       class="ios-input" required>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-rust">
+                    @error('nom_agence') <small class="err">{{ $message }}</small> @enderror
+                    @error('quartier') <small class="err">{{ $message }}</small> @enderror
+                    @error('adresse') <small class="err">{{ $message }}</small> @enderror
+
+                    {{-- Description --}}
+                    <div class="ios-section-title">
+                        <i class="fa-regular fa-message"></i> Description
+                    </div>
+
+                    <div class="ios-field">
+                        <textarea name="description" rows="4"
+                                  class="ios-input"
+                                  placeholder="Décrivez votre agence...">{{ old('description', $agence->description) }}</textarea>
+                        @error('description') <small class="err">{{ $message }}</small> @enderror
+                    </div>
+
+                    {{-- Actions --}}
+                    <div class="ios-form-actions">
+                        <button type="submit" class="ios-btn ios-btn--primary">
                             <i class="fa-solid fa-save"></i> Enregistrer
                         </button>
-                        <a href="{{ route('agence.dashboard') }}" class="btn btn-ghost">
-                            <i class="fa-solid fa-arrow-left"></i> Retour
-                        </a>
                     </div>
                 </form>
             </div>
+
+            {{-- Colonne latérale : Stats + Déconnexion --}}
+            <aside class="profil-layout__side">
+                {{-- Statistiques --}}
+                <div class="ios-section-title">
+                    <i class="fa-solid fa-chart-simple"></i> Mon activité
+                </div>
+
+                <div class="profil-stats">
+                    <div class="profil-stat">
+                        <span class="profil-stat__value">{{ $agence->biens->count() ?? 0 }}</span>
+                        <span class="profil-stat__label">Biens publiés</span>
+                    </div>
+                    <div class="profil-stat">
+                        <span class="profil-stat__value">{{ $besoinsDisponibles ?? 0 }}</span>
+                        <span class="profil-stat__label">Besoins dispo.</span>
+                    </div>
+                    <div class="profil-stat">
+                        <span class="profil-stat__value">{{ $rendezvousAVenir ?? 0 }}</span>
+                        <span class="profil-stat__label">RDV à venir</span>
+                    </div>
+                </div>
+
+                {{-- Déconnexion --}}
+                <div class="ios-section-title">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Compte
+                </div>
+
+                <div class="ios-list--danger">
+                    <button type="button"
+                            class="ios-list__item--action"
+                            onclick="openLogoutModal()">
+                        <div class="ios-list__icon ios-list__icon--danger">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        </div>
+                        <div class="ios-list__content">
+                            <span class="ios-list__label">Se déconnecter</span>
+                            <span class="ios-list__sublabel">Fermer la session sur cet appareil</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right ios-list__chevron"></i>
+                    </button>
+                </div>
+            </aside>
         </div>
     </div>
 
-    <!-- ==================== ONGLET DISPONIBILITÉS ==================== -->
-    <div id="tab-creneaux" class="tab-content {{ $ongletActif === 'creneaux' ? 'active' : '' }}" style="{{ $ongletActif === 'creneaux' ? 'display:block;' : 'display:none;' }}">
+    {{-- ═══════════════════════════════════════════
+         TAB 2 — DISPONIBILITÉS
+    ═══════════════════════════════════════════ --}}
+    <div id="tab-creneaux" class="profil-content {{ $ongletActif === 'creneaux' ? 'is-active' : '' }}">
+
+        {{-- Légende --}}
         <div class="legend-bar">
-            <div class="legend-item">
-                <span class="legend-dot disponible"></span> Disponible
-            </div>
-            <div class="legend-item">
-                <span class="legend-dot indisponible"></span> Indisponible
-            </div>
-            <div class="legend-item">
-                <span class="legend-dot today"></span> Aujourd'hui
-            </div>
-            <div class="legend-item">
-                <span class="legend-dot past"></span> Passé
-            </div>
+            <span class="legend-item">
+                <span class="legend-dot legend-dot--disponible"></span> Disponible
+            </span>
+            <span class="legend-item">
+                <span class="legend-dot legend-dot--indisponible"></span> Indisponible
+            </span>
+            <span class="legend-item">
+                <span class="legend-dot legend-dot--today"></span> Aujourd'hui
+            </span>
+            <span class="legend-item">
+                <span class="legend-dot legend-dot--past"></span> Passé
+            </span>
         </div>
 
-        <!-- ✅ PLANNING TYPE ACTUEL (depuis la SESSION) - SANS RÉPÉTITIONS -->
+        {{-- Planning type --}}
         @if(!empty($planningParJour))
-        <div style="margin-bottom:16px;padding:12px 16px;background:#E8F5E9;border-radius:8px;border-left:4px solid #1E7A47;">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-                <div>
-                    <strong style="font-size:13px;color:#1E7A47;">
-                        <i class="fa-solid fa-arrows-rotate"></i> Planning type actif
-                    </strong>
-                    <span style="font-size:12px;color:var(--muted);margin-left:8px;">
-                        Les créneaux sont générés automatiquement chaque semaine
-                    </span>
+            <div class="planning-card planning-card--active">
+                <div class="planning-card__head">
+                    <div class="planning-card__title">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        Planning type actif
+                    </div>
+                    <form action="{{ route('agence.creneaux.generer-auto') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="planning-card__btn">
+                            <i class="fa-solid fa-rotate"></i> Régénérer
+                        </button>
+                    </form>
                 </div>
-                <form action="{{ route('agence.creneaux.generer-auto') }}" method="POST" style="display:inline;">
-                    @csrf
-                    <button type="submit" class="btn btn-sm" style="background:#1E7A47;color:#fff;border:none;padding:4px 12px;border-radius:6px;font-size:11px;cursor:pointer;">
-                        <i class="fa-solid fa-rotate"></i> Régénérer
-                    </button>
-                </form>
+                <div class="planning-card__days">
+                    @foreach($joursFr as $index => $jour)
+                        @if(isset($planningParJour[$index]))
+                            @php
+                                $text = [];
+                                foreach($planningParJour[$index] as $p) {
+                                    $text[] = substr($p['heure_debut'], 0, 5) . '-' . substr($p['heure_fin'], 0, 5);
+                                }
+                            @endphp
+                            <span class="planning-day">
+                                <strong>{{ $jour }}</strong>
+                                {{ implode(' · ', $text) }}
+                            </span>
+                        @endif
+                    @endforeach
+                </div>
             </div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
-                @foreach($joursFr as $index => $jour)
-                    @if(isset($planningParJour[$index]))
-                        @php
-                            $creneauxText = [];
-                            foreach($planningParJour[$index] as $p) {
-                                $creneauxText[] = substr($p['heure_debut'], 0, 5) . '-' . substr($p['heure_fin'], 0, 5);
-                            }
-                        @endphp
-                        <span style="font-size:12px;background:#fff;padding:2px 10px;border-radius:4px;border:1px solid #C8E6C9;">
-                            <strong>{{ $jour }}</strong> 
-                            {{ implode(' · ', $creneauxText) }}
-                        </span>
-                    @endif
-                @endforeach
-            </div>
-        </div>
         @else
-        <div style="margin-bottom:16px;padding:12px 16px;background:#FFF8E1;border-radius:8px;border-left:4px solid #F5A623;">
-            <div style="display:flex;align-items:center;gap:10px;">
-                <i class="fa-solid fa-info-circle" style="color:#E65100;font-size:18px;"></i>
-                <div>
-                    <strong style="font-size:13px;color:#E65100;">Aucun planning type configuré</strong>
-                    <span style="font-size:12px;color:var(--muted);display:block;">
-                        Utilisez le bouton "Générer des créneaux" ci-dessous pour créer votre planning type.
-                        Les créneaux seront ensuite générés automatiquement chaque semaine.
-                    </span>
+            <div class="planning-card planning-card--empty">
+                <div class="planning-card__head">
+                    <div class="planning-card__title">
+                        <i class="fa-solid fa-info-circle"></i>
+                        Aucun planning type
+                    </div>
                 </div>
+                <p class="planning-card__text">
+                    Utilisez le bouton <strong>"Générer des créneaux"</strong> pour créer votre planning.
+                    Les créneaux seront ensuite générés automatiquement chaque semaine.
+                </p>
             </div>
-        </div>
         @endif
 
-        <div class="creneaux-header">
-            <div class="creneaux-info">
-                <i class="fa-regular fa-clock"></i>
-                <span>Gérez vos créneaux de disponibilité pour les visites</span>
-            </div>
-            <button class="btn btn-rust" onclick="openModal()">
-                <i class="fa-solid fa-plus"></i> Générer des créneaux
+        {{-- Header section --}}
+        <div class="section-header">
+            <span>Semaine en cours</span>
+            <button type="button" class="section-header__cta" onclick="openModal()">
+                <i class="fa-solid fa-plus"></i> Générer
             </button>
         </div>
 
-        <div class="slots-grid">
-            @php
-                $joursMap = [
-                    'Monday' => 'Lundi',
-                    'Tuesday' => 'Mardi',
-                    'Wednesday' => 'Mercredi',
-                    'Thursday' => 'Jeudi',
-                    'Friday' => 'Vendredi',
-                    'Saturday' => 'Samedi',
-                    'Sunday' => 'Dimanche'
-                ];
-                $aujourdhui = \Carbon\Carbon::today()->format('Y-m-d');
-            @endphp
+        {{-- Grille créneaux --}}
+        @php
+            $joursMap = [
+                'Monday'    => 'Lundi',
+                'Tuesday'   => 'Mardi',
+                'Wednesday' => 'Mercredi',
+                'Thursday'  => 'Jeudi',
+                'Friday'    => 'Vendredi',
+                'Saturday'  => 'Samedi',
+                'Sunday'    => 'Dimanche',
+            ];
+            $aujourdhui = \Carbon\Carbon::today()->format('Y-m-d');
+        @endphp
 
-            @if(count($semaine) > 0)
+        @if(count($semaine) > 0)
+            <div class="slots-grid">
                 @foreach($semaine as $date)
                     @php
                         $dateObj = \Carbon\Carbon::parse($date);
@@ -296,1130 +351,1511 @@
                         $creneauxDuJour = isset($creneauxParJour[$date]) ? $creneauxParJour[$date] : collect();
                     @endphp
 
-                    <div class="slot-card {{ $estAujourdhui ? 'today' : '' }} {{ $estPasse ? 'past' : '' }}">
-                        <div class="slot-card-header">
-                            <div class="slot-day">
-                                <span class="day-name">{{ $joursMap[$jourSemaine] ?? $jourSemaine }}</span>
-                                <span class="day-date">{{ $dateObj->format('d/m/Y') }}</span>
+                    <div class="slot-card {{ $estAujourdhui ? 'is-today' : '' }} {{ $estPasse ? 'is-past' : '' }}">
+                        <header class="slot-card__head">
+                            <div class="slot-card__date">
+                                <span class="slot-card__day">{{ $joursMap[$jourSemaine] ?? $jourSemaine }}</span>
+                                <span class="slot-card__num">{{ $dateObj->format('d/m') }}</span>
                             </div>
                             @if($estAujourdhui)
-                                <span class="today-badge">Aujourd'hui</span>
+                                <span class="slot-badge slot-badge--today">Aujourd'hui</span>
+                            @elseif($estPasse)
+                                <span class="slot-badge slot-badge--past">Passé</span>
+                            @else
+                                <span class="slot-badge slot-badge--count">
+                                    {{ $creneauxDuJour->count() }} créneau{{ $creneauxDuJour->count() > 1 ? 'x' : '' }}
+                                </span>
                             @endif
-                            @if($estPasse)
-                                <span class="past-badge">Passé</span>
-                            @endif
-                        </div>
+                        </header>
 
-                        <div class="slot-card-body">
+                        <div class="slot-card__body">
                             @if($creneauxDuJour->count() > 0)
-                                <div class="slots-list">
-                                    @foreach($creneauxDuJour as $creneau)
-                                        <div class="slot-item {{ $creneau->est_disponible ? 'disponible' : 'indisponible' }}">
-                                            <span class="slot-time">
-                                                {{ substr($creneau->heure_debut, 0, 5) }} - {{ substr($creneau->heure_fin, 0, 5) }}
-                                            </span>
-                                            <span class="slot-status">
-                                                @if($creneau->est_disponible)
-                                                    <i class="fa-solid fa-circle-check"></i> Disponible
-                                                @else
-                                                    <i class="fa-solid fa-circle-xmark"></i> Indisponible
-                                                @endif
-                                            </span>
-                                            @if(!$estPasse)
-                                                <form action="{{ route('agence.creneaux.toggle', $creneau) }}" method="POST" class="slot-form">
+                                @foreach($creneauxDuJour as $creneau)
+                                    <div class="slot-row {{ $creneau->est_disponible ? 'is-available' : 'is-unavailable' }}">
+                                        <div class="slot-row__time">
+                                            {{ substr($creneau->heure_debut, 0, 5) }}
+                                            <span class="slot-row__sep">–</span>
+                                            {{ substr($creneau->heure_fin, 0, 5) }}
+                                        </div>
+
+                                        @if(!$estPasse)
+                                            <div class="slot-row__actions">
+                                                <form action="{{ route('agence.creneaux.toggle', $creneau) }}" method="POST">
                                                     @csrf
-                                                    <button type="submit" class="slot-toggle" title="Basculer la disponibilité">
+                                                    <button type="submit" class="slot-action slot-action--toggle" title="Basculer">
                                                         <i class="fa-solid {{ $creneau->est_disponible ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
                                                     </button>
                                                 </form>
-                                                <form action="{{ route('agence.creneaux.supprimer', $creneau) }}" method="POST" class="slot-form">
+                                                <form action="{{ route('agence.creneaux.supprimer', $creneau) }}" method="POST"
+                                                      onsubmit="return confirm('Supprimer ce créneau ?')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="slot-delete" title="Supprimer ce créneau" onclick="return confirm('Supprimer ce créneau ?')">
+                                                    <button type="submit" class="slot-action slot-action--delete" title="Supprimer">
                                                         <i class="fa-solid fa-xmark"></i>
                                                     </button>
                                                 </form>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
+                                            </div>
+                                        @else
+                                            <span class="slot-row__status">
+                                                <i class="fa-solid {{ $creneau->est_disponible ? 'fa-circle-check' : 'fa-circle-xmark' }}"></i>
+                                            </span>
+                                        @endif
+                                    </div>
+                                @endforeach
                             @else
-                                <div class="no-slots">
+                                <div class="slot-empty">
                                     <i class="fa-regular fa-clock"></i>
                                     <span>Aucun créneau</span>
                                 </div>
                             @endif
                         </div>
 
-                        <div class="slot-card-footer">
-                            <span class="slot-count">
-                                <i class="fa-regular fa-clock"></i>
-                                {{ $creneauxDuJour->count() }} créneau(x)
-                            </span>
-                            @if($creneauxDuJour->count() > 0 && !$estPasse)
-                                <form action="{{ route('agence.creneaux.supprimerDatePost') }}" method="POST" class="slot-form" onsubmit="return confirm('Supprimer tous les créneaux de cette date ?')">
+                        @if($creneauxDuJour->count() > 0 && !$estPasse)
+                            <footer class="slot-card__foot">
+                                <form action="{{ route('agence.creneaux.supprimerDatePost') }}" method="POST"
+                                      onsubmit="return confirm('Supprimer tous les créneaux de cette date ?')">
                                     @csrf
                                     <input type="hidden" name="date" value="{{ $date }}">
-                                    <button type="submit" class="btn btn-ghost btn-sm" style="color:#C62828;border-color:#FFCDD2;">
-                                        <i class="fa-solid fa-trash-can"></i> Supprimer tout
+                                    <button type="submit" class="slot-card__delete">
+                                        <i class="fa-solid fa-trash-can"></i> Tout supprimer
                                     </button>
                                 </form>
-                            @endif
-                        </div>
+                            </footer>
+                        @endif
                     </div>
                 @endforeach
-            @else
-                <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted);background:#F7F9FC;border-radius:10px;border:1px dashed var(--border);">
-                    <i class="fa-regular fa-calendar" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.3;"></i>
-                    <span>Aucune semaine disponible</span>
+            </div>
+        @else
+            <div class="ios-empty">
+                <div class="ios-empty__icon">
+                    <i class="fa-regular fa-calendar"></i>
                 </div>
-            @endif
-        </div>
+                <h4>Aucune semaine disponible</h4>
+                <p>Générez des créneaux pour commencer à recevoir des rendez-vous.</p>
+                <button type="button" class="ios-btn ios-btn--primary" onclick="openModal()">
+                    <i class="fa-solid fa-plus"></i> Générer des créneaux
+                </button>
+            </div>
+        @endif
     </div>
+
 </div>
 
-<!-- ==================== MODAL GÉNÉRER DES CRÉNEAUX ==================== -->
+{{-- ═══ MODAL — GÉNÉRER DES CRÉNEAUX ═══ --}}
 <div class="modal" id="modalCreneaux">
-    <div class="modal-overlay" onclick="closeModal()"></div>
-    <div class="modal-content">
-        <div class="modal-header">
+    <div class="modal__overlay" onclick="closeModal()"></div>
+    <div class="modal__content">
+        <header class="modal__head">
             <h3>
-                <i class="fa-solid fa-calendar-plus" style="color:var(--rust);"></i>
+                <i class="fa-solid fa-calendar-plus"></i>
                 Générer des créneaux
             </h3>
-            <button class="modal-close" onclick="closeModal()">
+            <button type="button" class="modal__close" onclick="closeModal()">
                 <i class="fa-solid fa-xmark"></i>
             </button>
-        </div>
+        </header>
 
-        <form method="POST" action="{{ route('agence.creneaux.generer') }}" class="modal-body">
+        <form method="POST" action="{{ route('agence.creneaux.generer') }}" class="modal__body">
             @csrf
 
-            <div class="form-group">
-                <label>Sélectionnez les jours</label>
-                <div class="days-grid">
+            <div class="ios-section-title">
+                <i class="fa-solid fa-calendar-days"></i> Jours
+            </div>
+
+            <div class="days-grid">
+                @foreach(['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'] as $jour)
+                    <label class="check-card">
+                        <input type="checkbox" name="jours[]" value="{{ $jour }}" checked>
+                        <span>{{ $jour }}</span>
+                    </label>
+                @endforeach
+            </div>
+
+            <div class="ios-section-title">
+                <i class="fa-regular fa-clock"></i> Plages horaires
+            </div>
+
+            <div class="hours-grid">
+                @foreach(['09:00','10:00','11:00','14:00','15:00','16:00','17:00'] as $heure)
                     @php
-                        $joursSemaine = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+                        $heureFin = \Carbon\Carbon::parse($heure)->addHour()->format('H:i');
                     @endphp
-                    @foreach($joursSemaine as $jour)
-                        <label class="day-check">
-                            <input type="checkbox" name="jours[]" value="{{ $jour }}" checked>
-                            {{ $jour }}
-                        </label>
-                    @endforeach
-                </div>
+                    <label class="check-card">
+                        <input type="checkbox" name="heures[]" value="{{ $heure }}" checked>
+                        <span>{{ $heure }} – {{ $heureFin }}</span>
+                    </label>
+                @endforeach
             </div>
 
-            <div class="form-group">
-                <label>Plages horaires</label>
-                <div class="hours-grid">
-                    @foreach(['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'] as $heure)
-                        @php
-                            $heureFin = \Carbon\Carbon::parse($heure)->addHour()->format('H:i');
-                        @endphp
-                        <label class="hour-check">
-                            <input type="checkbox" name="heures[]" value="{{ $heure }}" checked>
-                            {{ $heure }} - {{ $heureFin }}
-                        </label>
-                    @endforeach
-                </div>
-            </div>
-
-            <!-- ✅ OPTION PLANNING TYPE -->
-            <div class="form-group" style="margin-top:16px;padding:12px;background:#E8F5E9;border-radius:8px;border-left:4px solid #1E7A47;">
-                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
+            <div class="planning-toggle">
+                <label>
                     <input type="checkbox" name="est_recurrent" value="1" checked>
                     <span>
                         <strong>Sauvegarder comme planning type</strong>
-                        <span style="display:block;font-weight:normal;color:var(--muted);font-size:12px;margin-top:2px;">
-                            Les créneaux seront générés automatiquement chaque semaine.
-                            Une fois sauvegardé, vous n'aurez plus besoin de revenir ici.
-                        </span>
+                        <small>Génération automatique chaque semaine</small>
                     </span>
                 </label>
             </div>
 
-            <div class="modal-actions">
-                <button type="button" class="btn btn-ghost" onclick="closeModal()">
+            <div class="modal__actions">
+                <button type="button" class="ios-btn ios-btn--ghost" onclick="closeModal()">
                     Annuler
                 </button>
-                <button type="submit" class="btn btn-rust">
-                    <i class="fa-solid fa-check"></i> Générer les créneaux
+                <button type="submit" class="ios-btn ios-btn--primary">
+                    <i class="fa-solid fa-check"></i> Générer
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+{{-- ═══ MODAL — DÉCONNEXION ═══ --}}
+<div class="modal" id="modalLogout">
+    <div class="modal__overlay" onclick="closeLogoutModal()"></div>
+    <div class="modal__content modal__content--sheet">
+        <header class="modal__head">
+            <h3>
+                <i class="fa-solid fa-arrow-right-from-bracket" style="color:#C62828;"></i>
+                Se déconnecter
+            </h3>
+            <button type="button" class="modal__close" onclick="closeLogoutModal()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </header>
+
+        <div class="modal__body">
+            <p class="logout-confirm-text">
+                Voulez-vous vraiment vous déconnecter de votre compte DoyaImmo ?
+            </p>
+            <div class="modal__actions">
+                <button type="button" class="ios-btn ios-btn--ghost" onclick="closeLogoutModal()">
+                    Annuler
+                </button>
+                <form method="POST" action="{{ route('logout') }}" style="display:contents;">
+                    @csrf
+                    <button type="submit" class="ios-btn ios-btn--danger">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        Se déconnecter
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
+
 
 @push('scripts')
 <script>
-    // ===================== RESTER SUR L'ONGLET APRÈS RECHARGEMENT =====================
-    document.addEventListener('DOMContentLoaded', function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const onglet = urlParams.get('onglet');
-        
-        if (onglet && (onglet === 'infos' || onglet === 'creneaux')) {
-            switchTab(onglet);
-        }
-    });
+document.addEventListener('DOMContentLoaded', function() {
+    /* ═══ ONGLET via URL ═══ */
+    const params = new URLSearchParams(window.location.search);
+    const onglet = params.get('onglet');
+    if (onglet === 'infos' || onglet === 'creneaux') switchTab(onglet);
 
-    // ===================== SWITCH ONGLETS =====================
-    function switchTab(tab) {
-        // Cacher tous les onglets
-        document.querySelectorAll('.tab-content').forEach(el => {
-            el.classList.remove('active');
-            el.style.display = 'none';
+    /* ═══ APERÇU LOGO ═══ */
+    const logoInput = document.getElementById('logoInput');
+    const preview = document.getElementById('logoPreview');
+    if (logoInput && preview) {
+        logoInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                preview.innerHTML = `<img src="${e.target.result}" alt="Logo">`;
+            };
+            reader.readAsDataURL(file);
         });
-        
-        // Désactiver tous les boutons
-        document.querySelectorAll('.tab-btn').forEach(el => {
-            el.classList.remove('active');
-        });
-        
-        // Afficher l'onglet sélectionné
-        const content = document.getElementById('tab-' + tab);
-        if (content) {
-            content.classList.add('active');
-            content.style.display = 'block';
-        }
-        
-        // Activer le bouton correspondant
-        const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+    }
+
+    /* ═══ SOUMISSION ═══ */
+    document.getElementById('profilForm')?.addEventListener('submit', function() {
+        const btn = this.querySelector('button[type="submit"]');
         if (btn) {
-            btn.classList.add('active');
-        }
-        
-        // Mettre à jour l'URL sans recharger la page
-        const url = new URL(window.location);
-        url.searchParams.set('onglet', tab);
-        window.history.pushState({}, '', url);
-    }
-
-    // ===================== MODAL =====================
-    function openModal() {
-        document.getElementById('modalCreneaux').classList.add('active');
-        document.getElementById('modalCreneaux').style.display = 'flex';
-    }
-
-    function closeModal() {
-        document.getElementById('modalCreneaux').classList.remove('active');
-        document.getElementById('modalCreneaux').style.display = 'none';
-    }
-
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeModal();
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enregistrement...';
+            btn.disabled = true;
         }
     });
+});
 
-    document.querySelector('.modal-overlay')?.addEventListener('click', closeModal);
+/* ═══ SWITCH TABS ═══ */
+function switchTab(tab) {
+    document.querySelectorAll('.profil-content').forEach(el => el.classList.remove('is-active'));
+    document.querySelectorAll('.profil-tab').forEach(el => el.classList.remove('is-active'));
 
-    // ===================== APERÇU DU LOGO =====================
-    document.addEventListener('DOMContentLoaded', function() {
-        const logoInput = document.getElementById('logoInput');
-        const logoUploadArea = document.getElementById('logoUploadArea');
-        const previewContainer = document.getElementById('logoPreview');
+    document.getElementById('tab-' + tab)?.classList.add('is-active');
+    document.querySelector(`.profil-tab[data-tab="${tab}"]`)?.classList.add('is-active');
 
-        if (logoInput && logoUploadArea) {
-            logoUploadArea.addEventListener('click', function() {
-                logoInput.click();
-            });
+    const url = new URL(window.location);
+    url.searchParams.set('onglet', tab);
+    window.history.pushState({}, '', url);
+}
 
-            logoUploadArea.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    logoInput.click();
-                }
-            });
+/* ═══ MODAL CRÉNEAUX ═══ */
+function openModal() {
+    document.getElementById('modalCreneaux').classList.add('is-active');
+    document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+    document.getElementById('modalCreneaux').classList.remove('is-active');
+    document.body.style.overflow = '';
+}
 
-            logoInput.addEventListener('change', function(e) {
-                const file = this.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        previewContainer.innerHTML = `
-                            <img src="${event.target.result}" alt="Aperçu logo" id="logoPreviewImg">
-                        `;
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-        }
-    });
+/* ═══ MODAL DÉCONNEXION ═══ */
+function openLogoutModal() {
+    document.getElementById('modalLogout').classList.add('is-active');
+    document.body.style.overflow = 'hidden';
+}
+function closeLogoutModal() {
+    document.getElementById('modalLogout').classList.remove('is-active');
+    document.body.style.overflow = '';
+}
+
+/* ═══ ESC key ═══ */
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        closeModal();
+        closeLogoutModal();
+    }
+});
 </script>
 @endpush
 
+
 @push('styles')
 <style>
-    .tabs {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 24px;
-        border-bottom: 1px solid var(--border);
-    }
+/* ═══════════════════════════════════════════════════════════
+   PROFIL AGENCE — iOS NATIVE
+   ═══════════════════════════════════════════════════════════ */
 
-    .tab-btn {
-        padding: 10px 20px;
-        border: none;
-        background: none;
-        cursor: pointer;
-        font-weight: 600;
-        color: var(--text-soft);
-        border-bottom: 3px solid transparent;
-        font-size: 14px;
-        font-family: inherit;
-        transition: all 0.2s;
-    }
+.agence-profil {
+    --c-success: #1E7A47; --c-success-bg: #E8F5E9;
+    --c-warning: #E65100; --c-warning-bg: #FFF8E1;
+    --c-danger: #C62828; --c-danger-bg: #FFEBEE;
+    --c-info: #0D47A1; --c-info-bg: #E3F2FD;
+    --c-gold: #F5A623; --c-gold-bg: #FFF8E1;
+    --surface: #F7F9FC;
+    --radius: 14px;
 
-    .tab-btn:hover {
-        color: var(--ink);
-        border-bottom-color: var(--border);
-    }
+    --ios-bg: #F2F2F7;
+    --ios-card: #FFFFFF;
+    --ios-blue: #007AFF;
+    --ios-label: #000000;
+    --ios-label-2: #3C3C43;
+    --ios-label-3: #8E8E93;
+    --ios-separator: rgba(60, 60, 67, 0.12);
+    --ios-radius-lg: 18px;
+}
 
-    .tab-btn.active {
-        color: var(--rust);
-        border-bottom-color: var(--rust);
-    }
+/* ═══ HEADER DESKTOP ═══ */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.page-header__left h2 {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text);
+    line-height: 1.2;
+}
+.page-header__left p {
+    font-size: 13.5px;
+    color: var(--muted);
+    margin: 4px 0 0;
+}
 
-    .tab-btn i {
-        margin-right: 8px;
-    }
+/* ═══ HERO AGENCE ═══ */
+.profil-hero {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 24px 28px;
+    background: linear-gradient(135deg, #FFF9F5 0%, #fff 60%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 22px;
+}
+.profil-hero__avatar {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--rust), #d4754a);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--display);
+    font-size: 26px;
+    font-weight: 700;
+    flex-shrink: 0;
+    overflow: hidden;
+    box-shadow: 0 6px 16px rgba(181, 80, 42, .25);
+}
+.profil-hero__avatar img { width: 100%; height: 100%; object-fit: cover; }
+.profil-hero__body { min-width: 0; flex: 1; }
+.profil-hero__name {
+    font-family: var(--display);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 10px;
+    letter-spacing: -.4px;
+}
+.profil-hero__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.profil-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+}
+.profil-badge i { font-size: 10px; }
+.profil-badge--success { background: var(--c-success-bg); color: var(--c-success); }
+.profil-badge--warning { background: var(--c-warning-bg); color: var(--c-warning); }
+.profil-badge--gold { background: var(--c-gold-bg); color: #B26A00; }
+.profil-badge--gold i { color: var(--c-gold); }
+.profil-badge__muted { opacity: .7; font-weight: 500; }
+.profil-hero__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    color: var(--muted);
+}
+.profil-hero__meta i { color: var(--rust); font-size: 12px; margin-right: 4px; }
+.profil-hero__dot { opacity: .5; }
 
-    .tab-content {
-        display: none;
-    }
+/* ═══ TABS ═══ */
+.profil-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 4px;
+    background: #EFEFF4;
+    border-radius: 12px;
+    margin-bottom: 22px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    max-width: 500px;
+}
+.profil-tabs::-webkit-scrollbar { display: none; }
+.profil-tab {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 20px;
+    background: transparent;
+    border: none;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-soft);
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+}
+.profil-tab i { font-size: 13px; }
+.profil-tab:hover { color: var(--ink); }
+.profil-tab.is-active {
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+.profil-tab.is-active i { color: var(--rust); }
 
-    .tab-content.active {
-        display: block;
-    }
+/* ═══ CONTENT ═══ */
+.profil-content { display: none; }
+.profil-content.is-active { display: block; }
 
-    .profile-grid {
-        display: grid;
-        grid-template-columns: 1fr 2fr;
-        gap: 24px;
-    }
+/* ═══ LAYOUT 2 COLONNES (desktop) ═══ */
+.profil-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    align-items: start;
+}
+.profil-layout__main { min-width: 0; }
+.profil-layout__side { min-width: 0; }
+.profil-layout__side .ios-section-title:first-child { margin-top: 0; }
 
-    @media (max-width: 820px) {
-        .profile-grid {
-            grid-template-columns: 1fr;
-        }
-    }
+/* ═══ SECTION TITLES ═══ */
+.ios-section-title {
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 24px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+.ios-section-title:first-child { margin-top: 0; }
+.ios-section-title i { color: var(--rust); font-size: 13px; }
 
-    .profile-card {
-        background: #fff;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 24px;
-    }
+/* ═══ LOGO CARD ═══ */
+.logo-card {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 20px;
+    background: #fff;
+    border: 1.5px dashed var(--border);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all .2s;
+    margin-bottom: 16px;
+}
+.logo-card:hover { border-color: var(--rust); background: #FFF9F5; }
+.logo-card__preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.logo-card__preview img { width: 100%; height: 100%; object-fit: cover; }
+.logo-card__placeholder { color: var(--muted); font-size: 26px; opacity: .4; }
+.logo-card__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.logo-card__title {
+    font-family: var(--display);
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--ink);
+}
+.logo-card__title i { color: var(--rust); margin-right: 6px; }
+.logo-card__hint { font-size: 12.5px; color: var(--muted); }
+.logo-card__current {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--c-success);
+    margin-top: 2px;
+    min-width: 0;
+}
+.logo-card__current i { font-size: 10px; flex-shrink: 0; }
 
-    .profile-left {
-        text-align: center;
-    }
+/* ✅ Nom du fichier logo tronqué */
+.logo-card__filename {
+    display: inline-block;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+}
 
-    .profile-logo {
-        width: 100px;
-        height: 100px;
-        border-radius: 50%;
-        overflow: hidden;
-        margin: 0 auto 12px;
-        border: 3px solid var(--border);
-        background: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
+/* ═══ FORM GRID (desktop) ═══ */
+.ios-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 18px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
 
-    .profile-logo img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
+.ios-list__item--field { display: flex; flex-direction: column; gap: 6px; }
+.ios-list__content { display: flex; flex-direction: column; gap: 6px; }
+.ios-list__content label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-soft);
+}
+.ios-list__content label .req { color: #C62828; }
 
-    .profile-avatar {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        background: var(--rust-soft);
-        color: var(--rust);
-        font-size: 32px;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 12px;
-    }
+/* ═══ FIELDS ═══ */
+.ios-field { margin-bottom: 16px; }
+.ios-input {
+    width: 100%;
+    padding: 13px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 14.5px;
+    font-family: inherit;
+    background: #fff;
+    color: var(--ink);
+    transition: all .15s;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.ios-input:focus {
+    outline: none;
+    border-color: var(--rust);
+    box-shadow: 0 0 0 3px var(--rust-soft);
+}
+textarea.ios-input { resize: vertical; min-height: 120px; line-height: 1.6; }
 
-    .profile-name {
-        font-family: var(--display);
-        font-size: 18px;
-        margin: 0 0 8px;
-    }
+.err {
+    display: block;
+    color: #C62828;
+    font-size: 12.5px;
+    margin: 4px 0 12px 4px;
+    font-weight: 500;
+}
 
-    .profile-status {
-        font-size: 13px;
-        font-weight: 600;
-        padding: 4px 12px;
-        border-radius: 20px;
-        display: inline-block;
-    }
+/* ═══ STATS (sidebar) ═══ */
+.profil-stats {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+.profil-stat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border-radius: 12px;
+}
+.profil-stat__value {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--ink);
+    line-height: 1;
+    letter-spacing: -.4px;
+}
+.profil-stat__label {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 500;
+    order: -1;
+}
 
-    .profile-status.verified {
-        color: #1E7A47;
-        background: rgba(30, 122, 71, 0.1);
-    }
+/* ═══ ACTIONS ═══ */
+.ios-form-actions {
+    display: flex;
+    gap: 10px;
+    padding-top: 20px;
+    margin-top: 8px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+.ios-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 13px 22px;
+    border-radius: 12px;
+    font-size: 14.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: 1px solid transparent;
+    text-decoration: none;
+    transition: all .15s;
+    white-space: nowrap;
+}
+.ios-btn--primary {
+    background: var(--rust);
+    color: #fff;
+    border-color: var(--rust);
+    box-shadow: 0 4px 12px rgba(181,80,42,.2);
+}
+.ios-btn--primary:hover { background: #9A4523; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(181,80,42,.3); }
+.ios-btn--primary:active { transform: scale(.97); }
+.ios-btn--ghost {
+    background: #fff;
+    color: var(--text-soft);
+    border-color: var(--border);
+}
+.ios-btn--ghost:hover { border-color: var(--rust); color: var(--rust); }
+.ios-btn--danger {
+    background: var(--c-danger);
+    color: #fff;
+    border-color: var(--c-danger);
+    box-shadow: 0 4px 12px rgba(198, 40, 40, .25);
+}
+.ios-btn--danger:hover {
+    background: #A61F1F;
+    border-color: #A61F1F;
+    transform: translateY(-1px);
+}
+.ios-btn--danger:active { transform: scale(.97); }
 
-    .profile-status.pending {
-        color: #E65100;
-        background: rgba(230, 81, 0, 0.1);
-    }
+/* ═══ LISTE DANGER (déconnexion) ═══ */
+.ios-list--danger {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+.ios-list__item--action {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 16px 18px;
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: background .15s;
+    -webkit-tap-highlight-color: transparent;
+}
+.ios-list__item--action:hover { background: #FAFBFC; }
+.ios-list__item--action:active { background: #F2F2F7; }
+.ios-list__icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+    color: #fff;
+}
+.ios-list__icon--danger {
+    background: linear-gradient(135deg, #FF3B30, #C62828);
+    box-shadow: 0 3px 8px rgba(255, 59, 48, .25);
+}
+.ios-list__content { flex: 1; min-width: 0; }
+.ios-list__label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--c-danger);
+    letter-spacing: -.2px;
+    display: block;
+}
+.ios-list__sublabel {
+    font-size: 12.5px;
+    color: var(--muted);
+    display: block;
+    margin-top: 2px;
+    letter-spacing: -.1px;
+}
+.ios-list__chevron {
+    color: var(--muted);
+    font-size: 13px;
+    flex-shrink: 0;
+    opacity: .6;
+}
 
-    .profile-meta {
-        font-size: 12.5px;
-        color: var(--muted);
-        margin: 8px 0;
-    }
+/* ═══ LÉGENDE ═══ */
+.legend-bar {
+    display: flex;
+    gap: 20px;
+    padding: 14px 18px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    color: var(--text-soft);
+    font-weight: 500;
+}
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.legend-dot--disponible { background: var(--c-success); }
+.legend-dot--indisponible { background: var(--c-danger); }
+.legend-dot--today { background: var(--ios-blue); box-shadow: 0 0 0 3px rgba(0,122,255,.2); }
+.legend-dot--past { background: #E8ECF0; border: 1px dashed #B0B8C4; }
 
-    .profile-rating {
-        font-size: 13px;
-        color: var(--text-soft);
-    }
+/* ═══ PLANNING CARD ═══ */
+.planning-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 22px;
+    margin-bottom: 18px;
+}
+.planning-card--active {
+    background: linear-gradient(135deg, #F0FBF4 0%, #fff 60%);
+    border-color: #C8E6C9;
+}
+.planning-card--empty {
+    background: linear-gradient(135deg, #FFF9F0 0%, #fff 60%);
+    border-color: #FFE0B2;
+}
+.planning-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+.planning-card__title {
+    font-family: var(--display);
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--c-success);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.planning-card--empty .planning-card__title { color: var(--c-warning); }
+.planning-card__title i { font-size: 13px; }
+.planning-card__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: var(--c-success);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s;
+}
+.planning-card__btn:hover { background: #175C35; }
+.planning-card__days { display: flex; flex-wrap: wrap; gap: 8px; }
+.planning-day {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: #fff;
+    border: 1px solid #C8E6C9;
+    border-radius: 9px;
+    font-size: 12.5px;
+    color: var(--text-soft);
+}
+.planning-day strong { color: var(--ink); font-weight: 700; font-size: 12px; }
+.planning-card__text {
+    font-size: 13.5px;
+    color: var(--text-soft);
+    line-height: 1.55;
+    margin: 0;
+}
+.planning-card__text strong { color: var(--c-warning); }
 
-    .profile-rating .stars {
-        color: #D4D8E0;
-    }
+/* ═══ SECTION HEADER (semaine) ═══ */
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 22px 0 14px;
+    padding: 0 2px;
+    flex-wrap: wrap;
+}
+.section-header span {
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+}
+.section-header__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    background: linear-gradient(135deg, var(--rust), #d4754a);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(181,80,42,.25);
+    transition: transform .15s, box-shadow .15s;
+}
+.section-header__cta:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(181,80,42,.3); }
+.section-header__cta:active { transform: scale(.96); }
 
-    .profile-rating .stars .active {
-        color: #F5A623;
-    }
+/* ═══ GRID SLOTS ═══ */
+.slots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+}
+.slot-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all .2s;
+}
+.slot-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,.06); }
+.slot-card.is-today {
+    border-color: var(--ios-blue);
+    box-shadow: 0 0 0 2px rgba(0,122,255,.15);
+}
+.slot-card.is-past { opacity: .55; background: #FAFBFC; }
+.slot-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    background: #FAFBFC;
+}
+.slot-card.is-today .slot-card__head {
+    background: linear-gradient(135deg, #E8F0FE 0%, #FAFBFC 60%);
+    border-bottom-color: rgba(0,122,255,.2);
+}
+.slot-card__date { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.slot-card__day {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+}
+.slot-card__num { font-size: 12.5px; color: var(--muted); }
+.slot-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 11px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
+.slot-badge--today { background: var(--ios-blue); color: #fff; }
+.slot-badge--past { background: var(--border); color: var(--muted); }
+.slot-badge--count {
+    background: var(--surface);
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+}
+.slot-card__body {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 280px;
+    overflow-y: auto;
+}
+.slot-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13.5px;
+}
+.slot-row.is-available {
+    background: rgba(30, 122, 71, .06);
+    border: 1px solid rgba(30, 122, 71, .15);
+}
+.slot-row.is-unavailable {
+    background: rgba(198, 40, 40, .06);
+    border: 1px solid rgba(198, 40, 40, .15);
+    opacity: .8;
+}
+.slot-row__time {
+    font-family: var(--display);
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -.2px;
+}
+.slot-row__sep { color: var(--muted); margin: 0 2px; font-weight: 400; }
+.slot-row__actions { display: flex; align-items: center; gap: 4px; }
+.slot-row__actions form { margin: 0; }
+.slot-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all .15s;
+    -webkit-tap-highlight-color: transparent;
+}
+.slot-action--toggle { color: var(--c-success); }
+.slot-row.is-unavailable .slot-action--toggle { color: var(--c-danger); }
+.slot-action--delete { color: var(--muted); opacity: .6; }
+.slot-action:hover { background: rgba(0,0,0,.05); opacity: 1; }
+.slot-action:active { transform: scale(.9); }
+.slot-row__status { font-size: 15px; color: var(--muted); }
+.slot-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 28px 16px;
+    color: var(--muted);
+    font-size: 13px;
+}
+.slot-empty i { font-size: 24px; opacity: .4; }
+.slot-card__foot {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    background: #FAFBFC;
+    text-align: right;
+}
+.slot-card__delete {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: transparent;
+    color: var(--c-danger);
+    border: 1px solid #FFCDD2;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+}
+.slot-card__delete:hover {
+    background: var(--c-danger-bg);
+    border-color: var(--c-danger);
+}
 
-    .profile-rating .reviews {
-        color: var(--muted);
-        font-size: 12px;
-    }
+/* ═══ EMPTY iOS ═══ */
+.ios-empty {
+    background: #fff;
+    border: 1px dashed var(--border);
+    border-radius: 16px;
+    padding: 48px 24px;
+    text-align: center;
+}
+.ios-empty__icon {
+    width: 68px; height: 68px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 26px;
+    opacity: .7;
+}
+.ios-empty h4 {
+    font-family: var(--display);
+    font-size: 16px; font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 6px;
+}
+.ios-empty p {
+    font-size: 13.5px;
+    color: var(--muted);
+    margin: 0 auto 20px;
+    max-width: 360px;
+    line-height: 1.5;
+}
 
-    .profile-stats {
-        display: flex;
+/* ═══ MODAL ═══ */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.modal.is-active { display: flex; }
+.modal__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+.modal__content {
+    position: relative;
+    background: #fff;
+    border-radius: 18px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0,0,0,.25);
+    animation: modalIn .25s ease;
+}
+.modal__content--sheet { max-width: 460px; }
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(.96) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0;
+    background: #fff;
+    z-index: 1;
+    border-radius: 18px 18px 0 0;
+}
+.modal__head h3 {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.modal__head h3 i { color: var(--rust); font-size: 16px; }
+.modal__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #F2F2F7;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--muted);
+    transition: all .15s;
+}
+.modal__close:hover { background: #E5E5EA; color: var(--ink); }
+.modal__body { padding: 22px 24px; }
+
+.days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+}
+.hours-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+.check-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-soft);
+    cursor: pointer;
+    transition: all .15s;
+    user-select: none;
+}
+.check-card:hover { border-color: var(--rust); }
+.check-card:has(input:checked) {
+    background: var(--rust-soft);
+    border-color: var(--rust);
+    color: var(--rust);
+    font-weight: 600;
+}
+.check-card input {
+    accent-color: var(--rust);
+    width: 15px; height: 15px;
+    cursor: pointer;
+}
+.planning-toggle {
+    padding: 14px 16px;
+    background: #F0FBF4;
+    border: 1px solid #C8E6C9;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+.planning-toggle label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+}
+.planning-toggle input {
+    accent-color: var(--c-success);
+    width: 16px; height: 16px;
+    margin-top: 2px;
+    cursor: pointer;
+}
+.planning-toggle span { display: flex; flex-direction: column; gap: 2px; }
+.planning-toggle strong {
+    font-family: var(--display);
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--c-success);
+}
+.planning-toggle small {
+    font-size: 12px;
+    color: var(--text-soft);
+    line-height: 1.4;
+}
+.modal__actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.logout-confirm-text {
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--text-soft);
+    margin: 0 0 20px;
+    text-align: center;
+    letter-spacing: -.1px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DESKTOP : conteneur large
+   ═══════════════════════════════════════════════════════════ */
+@media (min-width: 1000px) {
+    .agence-profil {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 8px 0 60px;
+    }
+}
+
+@media (max-width: 999px) and (min-width: 821px) {
+    .profil-layout {
+        grid-template-columns: 1fr;
         gap: 16px;
-        margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid var(--border);
-        justify-content: center;
-        flex-wrap: wrap;
     }
-
-    .stat-item {
-        text-align: center;
-    }
-
-    .stat-value {
-        display: block;
-        font-family: var(--display);
-        font-weight: 700;
-        font-size: 20px;
-        color: var(--ink);
-    }
-
-    .stat-label {
-        font-size: 11px;
-        color: var(--muted);
-    }
-
-    .form-row {
+    .profil-layout__side {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 16px;
     }
+    .agence-profil {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 8px 0 40px;
+    }
+}
 
-    @media (max-width: 600px) {
-        .form-row {
-            grid-template-columns: 1fr;
-        }
+
+/* ═══════════════════════════════════════════════════════════
+   📱 MOBILE — iOS NATIVE
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 820px) {
+
+    .agence-profil {
+        margin: 0 -16px;
+        padding: 0 16px 40px;
+        max-width: none;
     }
 
-    .field {
-        margin-bottom: 16px;
+    /* HEADER desktop masqué */
+    .page-header { display: none; }
+
+    /* Layout → 1 colonne */
+    .profil-layout {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+    .profil-layout__main,
+    .profil-layout__side {
+        display: contents;
     }
 
-    .field label {
-        display: block;
-        font-size: 12.5px;
-        font-weight: 600;
-        color: var(--text-soft);
-        margin-bottom: 4px;
+    /* ✅ Espace pour le bouton fixe en bas */
+    .profil-form {
+        padding-bottom: 100px;
     }
 
-    .field input,
-    .field textarea {
-        width: 100%;
-        padding: 10px 14px;
-        border: 1px solid var(--border);
-        border-radius: 10px;
+    /* Form grid → 1 colonne */
+    .ios-form-grid {
+        grid-template-columns: 1fr;
+        padding: 16px;
+        gap: 14px;
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+
+    .profil-hero {
+        padding: 18px;
+        gap: 14px;
+    }
+    .profil-hero__avatar { width: 60px; height: 60px; font-size: 20px; }
+    .profil-hero__name { font-size: 19px; margin-bottom: 6px; }
+
+    .profil-tabs { max-width: none; }
+
+    .ios-section-title {
+        text-transform: none;
+        letter-spacing: 0;
         font-size: 13px;
-        font-family: inherit;
-        transition: border 0.2s;
-        background: #fff;
+        color: var(--ios-label-3);
+        margin: 22px 4px 8px;
     }
 
-    .field input:focus,
-    .field textarea:focus {
-        outline: none;
-        border-color: var(--rust);
-        box-shadow: 0 0 0 3px rgba(181, 80, 42, 0.08);
+    .logo-card {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        padding: 16px;
+        gap: 14px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .logo-card:hover { background: var(--ios-card); border: none; }
+    .logo-card:active { background: #F5F5F7; }
+    .logo-card__preview { width: 64px; height: 64px; border-radius: 12px; }
+
+    /* Nom du fichier logo tronqué sur mobile */
+    .logo-card__filename {
+        max-width: 140px;
+        font-size: 11.5px;
     }
 
-    .field textarea {
-        resize: vertical;
-        min-height: 100px;
-    }
-
-    .required {
-        color: var(--rust);
-    }
-
-    .error {
-        display: block;
-        color: #C62828;
+    .ios-list__content label {
         font-size: 12px;
-        margin-top: 4px;
+        text-transform: none;
+        letter-spacing: 0;
+        color: var(--ios-label-3);
+        font-weight: 500;
     }
 
-    .form-actions {
-        display: flex;
-        gap: 12px;
-        padding-top: 16px;
-        border-top: 1px solid var(--border);
-        margin-top: 8px;
-    }
-
-    .logo-field {
-        margin-top: 8px;
-    }
-
-    .logo-upload-wrapper {
-        position: relative;
-    }
-
-    .logo-upload-area {
-        display: flex;
-        gap: 20px;
-        align-items: center;
-        padding: 16px 20px;
-        border: 2px dashed var(--border);
-        border-radius: 12px;
-        background: #FAFBFC;
-        transition: all 0.2s;
-        cursor: pointer;
-    }
-
-    .logo-upload-area:hover {
-        border-color: var(--rust);
-        background: rgba(181, 80, 42, 0.02);
-    }
-
-    .logo-upload-area:focus-visible {
-        outline: 2px solid var(--rust);
-        outline-offset: 2px;
-    }
-
-    .logo-preview {
-        width: 80px;
-        height: 80px;
+    .ios-input {
+        background: #EFEFF4;
+        border: none;
+        font-size: 16px;
+        padding: 12px 14px;
         border-radius: 10px;
-        overflow: hidden;
+    }
+    .ios-input:focus {
         background: #fff;
-        border: 1px solid var(--border);
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        pointer-events: none;
+        box-shadow: 0 0 0 3px var(--rust-soft);
     }
 
-    .logo-preview img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
+    /* Stats iOS */
+    .profil-stats {
+        background: var(--ios-card);
+        border: none;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        padding: 14px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
     }
-
-    .logo-placeholder {
-        display: flex;
+    .profil-stat {
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        color: var(--muted);
-        font-size: 12px;
+        padding: 12px 6px;
+        background: #EFEFF4;
+        gap: 4px;
     }
-
-    .logo-placeholder i {
-        font-size: 28px;
-        margin-bottom: 4px;
-        opacity: 0.3;
-    }
-
-    .logo-upload-info {
-        flex: 1;
-        pointer-events: none;
-    }
-
-    .logo-upload-title {
-        font-weight: 600;
-        font-size: 13px;
-        color: var(--text);
-        margin-bottom: 2px;
-    }
-
-    .logo-upload-title i {
-        color: var(--rust);
-        margin-right: 6px;
-    }
-
-    .logo-upload-hint {
-        font-size: 12px;
-        color: var(--muted);
-        margin: 0;
-    }
-
-    .logo-upload-current {
-        font-size: 12px;
-        color: var(--muted);
-        margin-top: 4px;
-    }
-
-    .logo-upload-current i {
-        margin-right: 4px;
-    }
-
-    .logo-input {
-        position: absolute;
-        opacity: 0;
-        width: 0;
-        height: 0;
-        pointer-events: none;
-    }
+    .profil-stat__label { order: 0; font-size: 11.5px; }
+    .profil-stat__value { font-size: 20px; }
 
     .legend-bar {
-        display: flex;
-        gap: 20px;
-        padding: 12px 16px;
-        background: #fff;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        margin-bottom: 24px;
-        flex-wrap: wrap;
+        background: var(--ios-card);
+        border: none;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
 
-    .legend-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 13px;
-        color: var(--text-soft);
+    .planning-card {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        padding: 16px;
     }
+    .planning-card--active { background: linear-gradient(135deg, #F0FBF4 0%, #fff 60%); }
+    .planning-card--empty { background: linear-gradient(135deg, #FFF9F0 0%, #fff 60%); }
 
-    .legend-dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        flex-shrink: 0;
-    }
-
-    .legend-dot.disponible {
-        background: #1E7A47;
-    }
-
-    .legend-dot.indisponible {
-        background: #C62828;
-    }
-
-    .legend-dot.today {
-        background: #4A90D9;
-        border: 2px solid #4A90D9;
-        box-shadow: 0 0 0 2px #fff, 0 0 0 3px #4A90D9;
-    }
-
-    .legend-dot.past {
-        background: #E8ECF0;
-        border: 1px dashed #B0B8C4;
-    }
-
-    .creneaux-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-bottom: 16px;
-    }
-
-    .creneaux-info {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 13px;
-        color: var(--muted);
-    }
-
-    .creneaux-info i {
-        color: var(--rust);
-    }
-
-    .slots-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-        gap: 16px;
-    }
-
-    @media (max-width: 768px) {
-        .slots-grid {
-            grid-template-columns: 1fr;
-        }
-    }
+    .slots-grid { grid-template-columns: 1fr; gap: 10px; }
 
     .slot-card {
-        background: #fff;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        overflow: hidden;
-        transition: all 0.2s;
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .slot-card__head {
+        background: transparent;
+        border-bottom: 0.5px solid var(--ios-separator);
+        padding: 14px 16px;
+    }
+    .slot-card.is-today .slot-card__head {
+        background: linear-gradient(135deg, #E8F0FE 0%, transparent 60%);
+    }
+    .slot-row {
+        border: none;
+        background: #F5F5F7;
+        padding: 12px 14px;
+    }
+    .slot-row.is-available { background: linear-gradient(135deg, #E8F5E9 0%, #F5F5F7 100%); }
+    .slot-row.is-unavailable { background: #FFEBEE; }
+    .slot-action { width: 38px; height: 38px; font-size: 18px; }
+    .slot-card__foot {
+        background: transparent;
+        border-top: 0.5px solid var(--ios-separator);
     }
 
-    .slot-card.today {
-        border-color: #4A90D9;
-        box-shadow: 0 0 0 1px #4A90D9;
-    }
-
-    .slot-card.past {
-        opacity: 0.5;
-    }
-
-    .slot-card.past .slot-toggle,
-    .slot-card.past .slot-delete {
-        display: none;
-    }
-
-    .slot-card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 16px;
-        border-bottom: 1px solid var(--border);
-        background: #FAFBFC;
-    }
-
-    .slot-day .day-name {
-        font-weight: 600;
-        font-size: 15px;
-    }
-
-    .slot-day .day-date {
-        font-size: 12px;
-        color: var(--muted);
-    }
-
-    .today-badge {
-        font-size: 10px;
-        font-weight: 700;
-        text-transform: uppercase;
-        background: #4A90D9;
-        color: #fff;
-        padding: 2px 12px;
-        border-radius: 20px;
-        letter-spacing: 0.5px;
-    }
-
-    .past-badge {
-        font-size: 10px;
-        font-weight: 600;
-        text-transform: uppercase;
-        background: var(--border);
-        color: var(--muted);
-        padding: 2px 12px;
-        border-radius: 20px;
-        letter-spacing: 0.5px;
-    }
-
-    .slot-card-body {
-        padding: 12px 16px;
-        max-height: 220px;
-        overflow-y: auto;
-    }
-
-    .slots-list {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .slot-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 4px 10px;
-        border-radius: 8px;
-        font-size: 13px;
-    }
-
-    .slot-item.disponible {
-        background: rgba(30, 122, 71, 0.06);
-        border: 1px solid rgba(30, 122, 71, 0.15);
-    }
-
-    .slot-item.indisponible {
-        background: rgba(198, 40, 40, 0.06);
-        border: 1px solid rgba(198, 40, 40, 0.15);
-        opacity: 0.7;
-    }
-
-    .slot-item .slot-time {
-        font-weight: 500;
-        min-width: 80px;
-    }
-
-    .slot-item .slot-status {
-        flex: 1;
-        font-size: 12px;
-    }
-
-    .slot-item.disponible .slot-status {
-        color: #1E7A47;
-    }
-
-    .slot-item.indisponible .slot-status {
-        color: #C62828;
-    }
-
-    .slot-item .slot-status i {
-        margin-right: 4px;
-    }
-
-    .slot-form {
-        display: inline;
+    /* Actions : fixe en bas, safe-area */
+    .ios-form-actions {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(242, 242, 247, 0.95);
+        backdrop-filter: saturate(180%) blur(20px);
+        -webkit-backdrop-filter: saturate(180%) blur(20px);
+        border-top: 0.5px solid var(--ios-separator);
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
         margin: 0;
-        padding: 0;
+        gap: 10px;
+        z-index: 100;
+        border-radius: 0;
     }
-
-    .slot-toggle {
-        background: none;
+    .ios-form-actions .ios-btn {
+        flex: 1;
+        padding: 14px 18px;
+        font-size: 15px;
+        border-radius: 14px;
+    }
+    .ios-btn {
+        padding: 14px 18px;
+        font-size: 15px;
+        border-radius: 14px;
+        letter-spacing: -.1px;
+    }
+    .ios-btn--primary {
+        background: linear-gradient(135deg, var(--rust), #d4754a);
         border: none;
-        cursor: pointer;
-        font-size: 18px;
-        padding: 4px;
-        color: var(--muted);
+        box-shadow: 0 4px 12px rgba(181, 80, 42, .3);
     }
 
-    .slot-item.disponible .slot-toggle {
-        color: #1E7A47;
-    }
-
-    .slot-item.indisponible .slot-toggle {
-        color: #C62828;
-    }
-
-    .slot-delete {
-        background: none;
+    .ios-list--danger {
+        background: var(--ios-card);
         border: none;
-        cursor: pointer;
-        font-size: 14px;
-        padding: 4px;
-        color: var(--muted);
-        opacity: 0.5;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        border-radius: var(--ios-radius-lg);
     }
-
-    .slot-delete:hover {
-        color: #C62828;
-        opacity: 1;
+    .ios-list__item--action {
+        padding: 16px;
+        gap: 14px;
     }
-
-    .no-slots {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px;
-        color: var(--muted);
+    .ios-list__item--action:active { background: #F5F5F7; }
+    .ios-list__icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+    }
+    .ios-list__label {
+        font-size: 16px;
+        color: var(--c-danger);
+    }
+    .ios-list__sublabel {
         font-size: 13px;
-    }
-
-    .no-slots i {
-        font-size: 28px;
-        margin-bottom: 8px;
-        opacity: 0.3;
-    }
-
-    .slot-card-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 16px;
-        border-top: 1px solid var(--border);
-        background: #FAFBFC;
-        font-size: 12px;
-        color: var(--muted);
-    }
-
-    .slot-count {
-        display: flex;
-        align-items: center;
-        gap: 4px;
+        color: var(--ios-label-3);
     }
 
     .modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 9999;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
+        padding: 0;
+        align-items: flex-end;
     }
-
-    .modal.active {
-        display: flex;
+    .modal__content {
+        border-radius: 20px 20px 0 0;
+        max-height: 92vh;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        animation: sheetIn .3s cubic-bezier(.4,0,.2,1);
     }
-
-    .modal-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.4);
+    .modal__content--sheet { max-width: 100%; width: 100%; }
+    @keyframes sheetIn {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
     }
-
-    .modal-content {
-        position: relative;
-        background: #fff;
-        border-radius: var(--radius);
-        max-width: 560px;
-        width: 100%;
-        max-height: 90vh;
-        overflow-y: auto;
-        box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+    .modal__head {
+        border-radius: 20px 20px 0 0;
+        padding: 18px 20px;
     }
+    .modal__head h3 { font-size: 16px; }
+    .modal__body { padding: 18px 20px; }
 
-    .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 20px 24px;
-        border-bottom: 1px solid var(--border);
-        position: sticky;
-        top: 0;
-        background: #fff;
-        z-index: 1;
-    }
-
-    .modal-header h3 {
-        font-family: var(--display);
-        font-size: 18px;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin: 0;
-    }
-
-    .modal-close {
-        background: none;
+    .days-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .hours-grid { grid-template-columns: 1fr; gap: 6px; }
+    .check-card { padding: 12px 8px; font-size: 13px; }
+    .modal__actions { flex-direction: column-reverse; gap: 10px; }
+    .modal__actions .ios-btn { width: 100%; padding: 14px 18px; font-size: 15px; }
+    .ios-btn--danger {
+        background: linear-gradient(135deg, #FF3B30, #C62828);
         border: none;
-        font-size: 24px;
-        cursor: pointer;
-        color: var(--muted);
-        padding: 4px;
     }
 
-    .modal-close:hover {
-        color: var(--ink);
+    .logout-confirm-text {
+        font-size: 14px;
+        color: var(--ios-label-2);
+    }
+}
+
+@media (max-width: 480px) {
+    .profil-hero { padding: 16px; gap: 12px; }
+    .profil-hero__avatar { width: 54px; height: 54px; font-size: 18px; }
+    .profil-hero__name { font-size: 18px; }
+    .profil-hero__badges { gap: 4px; }
+    .profil-badge { font-size: 10.5px; padding: 2px 8px; }
+
+    .profil-tab { font-size: 13px; padding: 9px 12px; }
+    .ios-section-title { font-size: 12px; }
+    .logo-card__preview { width: 56px; height: 56px; }
+    .logo-card__title { font-size: 13px; }
+    .logo-card__hint { font-size: 11.5px; }
+
+    .logo-card__filename {
+        max-width: 100px;
+        font-size: 11px;
     }
 
-    .modal-body {
-        padding: 24px;
+    .profil-stat__value { font-size: 18px; }
+    .profil-stat__label { font-size: 10.5px; }
+    .section-header span { font-size: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
     }
-
-    .days-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 8px;
-    }
-
-    @media (max-width: 600px) {
-        .days-grid {
-            grid-template-columns: repeat(4, 1fr);
-        }
-    }
-
-    .day-check {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        font-size: 13px;
-        cursor: pointer;
-        padding: 8px 4px;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        background: #fff;
-        user-select: none;
-    }
-
-    .day-check:hover {
-        border-color: var(--rust);
-        background: rgba(181, 80, 42, 0.04);
-    }
-
-    .day-check:has(input:checked) {
-        background: var(--rust-soft);
-        border-color: var(--rust);
-    }
-
-    .day-check input[type="checkbox"] {
-        accent-color: var(--rust);
-        width: 16px;
-        height: 16px;
-        cursor: pointer;
-    }
-
-    .hours-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-    }
-
-    @media (max-width: 600px) {
-        .hours-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    .hour-check {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 13px;
-        cursor: pointer;
-        padding: 8px 12px;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        background: #fff;
-        user-select: none;
-    }
-
-    .hour-check:hover {
-        border-color: var(--rust);
-        background: rgba(181, 80, 42, 0.04);
-    }
-
-    .hour-check:has(input:checked) {
-        background: var(--rust-soft);
-        border-color: var(--rust);
-    }
-
-    .hour-check input[type="checkbox"] {
-        accent-color: var(--rust);
-        width: 16px;
-        height: 16px;
-        cursor: pointer;
-    }
-
-    .modal-actions {
-        display: flex;
-        gap: 12px;
-        justify-content: flex-end;
-        padding-top: 16px;
-        border-top: 1px solid var(--border);
-        margin-top: 8px;
-    }
-
-    .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 20px;
-        border-radius: 12px;
-        font-size: 13.5px;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.2s;
-        border: 1px solid transparent;
-        cursor: pointer;
-        font-family: inherit;
-    }
-
-    .btn-rust {
-        background: var(--rust);
-        color: #fff;
-        border-color: var(--rust);
-    }
-
-    .btn-rust:hover {
-        background: #9A4523;
-        border-color: #9A4523;
-        color: #fff;
-    }
-
-    .btn-ghost {
-        background: transparent;
-        color: var(--text-soft);
-        border-color: var(--border);
-    }
-
-    .btn-ghost:hover {
-        background: var(--border);
-        color: var(--ink);
-    }
-
-    .btn-sm {
-        padding: 6px 14px;
-        font-size: 12.5px;
-    }
-
-    .alert {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 20px;
-        border-radius: var(--radius);
-        margin-bottom: 20px;
-        border-left: 4px solid;
-    }
-
-    .alert-success {
-        background: #E8F5E9;
-        color: #1E7A47;
-        border-left-color: #1E7A47;
-    }
-
-    .alert-error {
-        background: #FFEBEE;
-        color: #C62828;
-        border-left-color: #C62828;
-    }
-
-    .alert-warning {
-        background: #FFF8E1;
-        color: #E65100;
-        border-left-color: #F5A623;
-    }
-
-    @media (max-width: 480px) {
-        .logo-upload-area {
-            flex-direction: column;
-            text-align: center;
-            padding: 16px;
-        }
-
-        .logo-preview {
-            width: 100px;
-            height: 100px;
-        }
-
-        .profile-logo {
-            width: 80px;
-            height: 80px;
-        }
-    }
+}
 </style>
 @endpush

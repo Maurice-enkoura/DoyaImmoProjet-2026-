@@ -13,7 +13,6 @@
         $agenceUser = $agence->user ?? null;
         $isVedette = $bien && $bien->est_vedette;
 
-        // Statut
         $statutValue = is_object($proposition->statut) ? $proposition->statut->value : $proposition->statut;
         $statusLabels = [
             'en_attente' => 'En attente',
@@ -23,17 +22,14 @@
         ];
         $statutLabel = $statusLabels[$statutValue] ?? $statutValue;
 
-        // Score
         $score = (int) ($proposition->score_matching ?? 0);
         $scoreClass = $score >= 80 ? 'excellent' : ($score >= 60 ? 'moyen' : 'faible');
         $scoreLabel = $score >= 80 ? 'Excellent match' : ($score >= 60 ? 'Bon match' : 'Match faible');
 
-        // Opération
         $isLocation = is_object($proposition->demande->type_operation)
             && $proposition->demande->type_operation->value === 'location';
         $budgetLabel = $isLocation ? 'F/mois' : 'F';
 
-        // Médias (proposition en priorité, sinon bien)
         $propMedias = $proposition->medias ?? collect();
         $propImages = $propMedias->where('type_media', 'image')->values();
         $propVideos = $propMedias->where('type_media', 'video')->values();
@@ -49,27 +45,22 @@
         $equipementsBien = $bien->equipements ?? [];
 
         $initial = strtoupper(mb_substr($agence->nom_agence ?? 'A', 0, 1));
+
+        $hasConditions = $proposition->caution_mois !== null
+            || $proposition->avance_loyer_mois !== null
+            || $proposition->honoraires !== null
+            || $proposition->charges !== null
+            || $proposition->disponibilite !== null
+            || $proposition->conditions_particulieres !== null;
     @endphp
 
-    {{-- ═══════════════════════════════════════════
-         RETOUR
-    ═══════════════════════════════════════════ --}}
-    <div class="offre-show__back">
-        <a href="{{ route('particulier.propositions.index') }}" class="btn btn-ghost btn-sm">
-            <i class="fa-solid fa-arrow-left"></i> Retour aux offres
-        </a>
-    </div>
-
-    {{-- ═══════════════════════════════════════════
-         ALERTS
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ ALERTS ═══ --}}
     @if(session('success'))
         <div class="alert alert-success">
             <i class="fa-solid fa-check-circle"></i>
             <span>{{ session('success') }}</span>
         </div>
     @endif
-
     @if(session('error'))
         <div class="alert alert-error">
             <i class="fa-solid fa-circle-exclamation"></i>
@@ -77,72 +68,65 @@
         </div>
     @endif
 
-    {{-- ═══════════════════════════════════════════
-         HERO
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ HERO ═══ --}}
     <header class="offre-hero offre-hero--{{ $statutValue }} {{ $isVedette ? 'is-vedette' : '' }}">
 
-        <div class="offre-hero__main">
-            <div class="offre-hero__badges">
-                <span class="offre-status offre-status--{{ $statutValue }}">
-                    <i class="fa-solid fa-circle"></i> {{ $statutLabel }}
+        <div class="offre-hero__badges">
+            <span class="offre-status offre-status--{{ $statutValue }}">
+                <i class="fa-solid fa-circle"></i> {{ $statutLabel }}
+            </span>
+            @if($isVedette)
+                <span class="offre-badge offre-badge--vedette">
+                    <i class="fa-solid fa-star"></i> En vedette
                 </span>
-                @if($isVedette)
-                    <span class="offre-badge offre-badge--vedette">
-                        <i class="fa-solid fa-star"></i> Bien en vedette
-                    </span>
-                @endif
-            </div>
-
-            <h1 class="offre-hero__title">
-                {{ is_object($proposition->demande->type_bien) ? $proposition->demande->type_bien->label() : $proposition->demande->type_bien }}
-                <span class="offre-hero__title-sep">—</span>
-                {{ $proposition->demande->zone_recherchee }}
-            </h1>
-
-            <div class="offre-hero__meta">
-                <span>
-                    <i class="fa-solid fa-wallet"></i>
-                    Budget max
-                    <strong>{{ number_format($proposition->demande->budget_maximum, 0, ',', ' ') }} {{ $budgetLabel }}</strong>
-                </span>
-                <span class="offre-hero__meta-sep">•</span>
-                <span>
-                    <i class="fa-regular fa-calendar"></i>
-                    Reçue le {{ $proposition->created_at->format('d/m/Y à H:i') }}
-                </span>
-            </div>
+            @endif
         </div>
 
+        <h1 class="offre-hero__title">
+            {{ is_object($proposition->demande->type_bien) ? $proposition->demande->type_bien->label() : $proposition->demande->type_bien }}
+            <span class="offre-hero__title-sep">—</span>
+            {{ $proposition->demande->zone_recherchee }}
+        </h1>
+
+        <div class="offre-hero__meta">
+            <span>
+                <i class="fa-solid fa-wallet"></i>
+                <strong>{{ number_format($proposition->demande->budget_maximum, 0, ',', ' ') }} {{ $budgetLabel }}</strong>
+            </span>
+            <span class="offre-hero__meta-sep">•</span>
+            <span>
+                <i class="fa-regular fa-calendar"></i>
+                Reçue le {{ $proposition->created_at->format('d/m/Y') }}
+            </span>
+        </div>
+
+        {{-- Score ring --}}
         @if($score)
             <div class="offre-hero__score">
                 <div class="score-ring score-ring--lg score-ring--{{ $scoreClass }}"
                      style="--score: {{ $score }};"
                      role="img"
-                     aria-label="Score de compatibilité : {{ $score }}%">
+                     aria-label="Score : {{ $score }}%">
                     <svg viewBox="0 0 36 36" aria-hidden="true">
                         <circle class="score-ring__bg" cx="18" cy="18" r="16"/>
                         <circle class="score-ring__fill" cx="18" cy="18" r="16"/>
                     </svg>
                     <span class="score-ring__value">{{ $score }}<small>%</small></span>
                 </div>
-                <span class="offre-hero__score-label">Compatibilité</span>
-                <span class="score-label score-label--{{ $scoreClass }}">{{ $scoreLabel }}</span>
+                <div class="offre-hero__score-text">
+                    <span class="score-label score-label--{{ $scoreClass }}">{{ $scoreLabel }}</span>
+                    <span class="offre-hero__score-hint">Compatibilité</span>
+                </div>
             </div>
         @endif
     </header>
 
-    {{-- ═══════════════════════════════════════════
-         AGENCE + PRIX
-    ═══════════════════════════════════════════ --}}
-    <section class="panel panel--agency">
-        <header class="panel__head">
-            <span class="panel__icon">
-                <i class="fa-regular fa-building"></i>
-            </span>
-            <h4>Agence</h4>
-        </header>
+    {{-- ═══ AGENCE + PRIX ═══ --}}
+    <div class="ios-section-title">
+        <i class="fa-regular fa-building"></i> Agence
+    </div>
 
+    <div class="panel panel--agency">
         <div class="agency-block">
             <div class="agency-block__avatar">{{ $initial }}</div>
 
@@ -176,196 +160,319 @@
                     @endif
                 </div>
             </div>
+        </div>
 
-            <div class="agency-block__price">
-                <span class="price-label">Prix proposé</span>
-                <span class="price-value">
-                    {{ number_format($proposition->prix_propose, 0, ',', ' ') }}
-                    <small>FCFA</small>
+        <div class="agency-block__price">
+            <span class="price-label">Prix proposé</span>
+            <span class="price-value">
+                {{ number_format($proposition->prix_propose, 0, ',', ' ') }}
+                <small>FCFA</small>
+            </span>
+            @if($isVedette)
+                <span class="price-vedette">
+                    <i class="fa-solid fa-star"></i> Bien en vedette
                 </span>
-                @if($isVedette)
-                    <span class="price-vedette">
-                        <i class="fa-solid fa-star"></i> Bien en vedette
-                    </span>
+            @endif
+        </div>
+    </div>
+
+    {{-- ═══ CONDITIONS COMMERCIALES ═══ --}}
+    @if($hasConditions)
+        <div class="ios-section-title">
+            <i class="fa-solid fa-file-signature"></i> Conditions commerciales
+        </div>
+
+        <div class="panel panel--conditions">
+            {{-- Récap caution --}}
+            @if($proposition->caution_mois !== null)
+                <div class="conditions-recap">
+                    <div class="recap-card recap-card--info">
+                        <div class="recap-card__icon">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <div class="recap-card__body">
+                            <span class="recap-card__label">À l'avance</span>
+                            <span class="recap-card__value">
+                                {{ $proposition->caution_mois > 0 ? $proposition->caution_mois . ' mois' : 'Aucune' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="recap-card recap-card--success">
+                        <div class="recap-card__icon">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </div>
+                        <div class="recap-card__body">
+                            <span class="recap-card__label">À la sortie</span>
+                            <span class="recap-card__value">
+                                {{ $proposition->caution_mois > 0 ? $proposition->caution_mois . ' mois' : '—' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            {{-- Détails --}}
+            <div class="conditions-grid">
+                @if($proposition->disponibilite)
+                    <div class="condition-item">
+                        <span class="condition-item__label">
+                            <i class="fa-regular fa-calendar"></i> Disponibilité
+                        </span>
+                        <span class="condition-item__value">
+                            {{ $proposition->disponibilite_label }}
+                        </span>
+                    </div>
+                @endif
+
+                @if($proposition->caution_mois !== null)
+                    <div class="condition-item">
+                        <span class="condition-item__label">
+                            <i class="fa-solid fa-shield-halved"></i> Caution
+                        </span>
+                        <span class="condition-item__value">
+                            {{ $proposition->caution_label ?? 'Aucune' }}
+                        </span>
+                    </div>
+                @endif
+
+                @if($proposition->avance_loyer_mois !== null)
+                    <div class="condition-item">
+                        <span class="condition-item__label">
+                            <i class="fa-solid fa-money-bill-wave"></i> Avance loyer
+                        </span>
+                        <span class="condition-item__value">
+                            {{ $proposition->avance_label ?? 'Aucune' }}
+                        </span>
+                    </div>
+                @endif
+
+                @if($proposition->honoraires !== null)
+                    <div class="condition-item">
+                        <span class="condition-item__label">
+                            <i class="fa-solid fa-hand-holding-dollar"></i> Honoraires
+                        </span>
+                        <span class="condition-item__value">
+                            {{ $proposition->honoraires_formate }}
+                        </span>
+                    </div>
+                @endif
+
+                @if($proposition->charges !== null)
+                    <div class="condition-item">
+                        <span class="condition-item__label">
+                            <i class="fa-solid fa-receipt"></i> Charges
+                        </span>
+                        <span class="condition-item__value">
+                            {{ $proposition->charges_formate }}
+                        </span>
+                    </div>
                 @endif
             </div>
+
+            {{-- Coût total --}}
+            @if($proposition->cout_entree_total > 0)
+                <div class="conditions-total">
+                    <div class="conditions-total__left">
+                        <i class="fa-solid fa-coins"></i>
+                        <div>
+                            <span class="conditions-total__label">Coût total à l'entrée</span>
+                            <span class="conditions-total__hint">Caution + Avance + Honoraires + Charges</span>
+                        </div>
+                    </div>
+                    <span class="conditions-total__value">
+                        {{ $proposition->cout_entree_total_formate }}
+                    </span>
+                </div>
+            @endif
+
+            {{-- Notes --}}
+            @if($proposition->conditions_particulieres)
+                <div class="conditions-notes">
+                    <span class="conditions-notes__label">
+                        <i class="fa-regular fa-file-lines"></i> Conditions particulières
+                    </span>
+                    <p class="conditions-notes__text">{{ $proposition->conditions_particulieres }}</p>
+                </div>
+            @endif
         </div>
-    </section>
+    @endif
 
-    {{-- ═══════════════════════════════════════════
-         MÉDIAS
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ GALERIE ═══ --}}
     @if($propImages->count() > 0 || $propVideos->count() > 0)
-        <section class="panel panel--gallery">
-            <header class="panel__head">
-                <span class="panel__icon">
-                    <i class="fa-regular fa-images"></i>
-                </span>
-                <h4>Médias du bien</h4>
-                <span class="panel__count">{{ $propImages->count() + $propVideos->count() }}</span>
-            </header>
+        <div class="ios-section-title">
+            <i class="fa-regular fa-images"></i> Médias du bien
+            <span class="ios-section-count">{{ $propImages->count() + $propVideos->count() }}</span>
+        </div>
 
-            @if($propImages->count() > 0)
-                <div class="gallery-grid">
-                    @foreach($propImages as $index => $media)
-                        @php $url = asset('storage/' . $media->fichier); @endphp
-                        <div class="gallery-item"
-                             onclick="openLightbox('{{ $url }}', {{ $index }})">
-                            <img src="{{ $url }}" alt="Photo du bien" loading="lazy">
-                            <div class="gallery-item__overlay">
-                                <i class="fa-solid fa-magnifying-glass-plus"></i>
-                            </div>
+        @if($propImages->count() > 0)
+            <div class="gallery-grid">
+                @foreach($propImages as $index => $media)
+                    @php $url = asset('storage/' . $media->fichier); @endphp
+                    <div class="gallery-item" onclick="openLightbox('{{ $url }}', {{ $index }})">
+                        <img src="{{ $url }}" alt="Photo" loading="lazy">
+                        <div class="gallery-item__overlay">
+                            <i class="fa-solid fa-magnifying-glass-plus"></i>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+        @if($propVideos->count() > 0)
+            <div class="video-section">
+                <h5 class="video-section__title">
+                    <i class="fa-regular fa-circle-play"></i>
+                    Vidéos
+                    <span class="video-section__count">{{ $propVideos->count() }}</span>
+                </h5>
+                <div class="video-grid">
+                    @foreach($propVideos as $media)
+                        <div class="video-tile">
+                            <video src="{{ asset('storage/' . $media->fichier) }}" controls preload="metadata">
+                                Votre navigateur ne supporte pas la vidéo.
+                            </video>
                         </div>
                     @endforeach
                 </div>
-            @endif
-
-            @if($propVideos->count() > 0)
-                <div class="video-section">
-                    <h5 class="video-section__title">
-                        <i class="fa-regular fa-circle-play"></i>
-                        Vidéos
-                        <span class="video-section__count">{{ $propVideos->count() }}</span>
-                    </h5>
-                    <div class="video-grid">
-                        @foreach($propVideos as $media)
-                            <div class="video-tile">
-                                <video src="{{ asset('storage/' . $media->fichier) }}" controls preload="metadata">
-                                    Votre navigateur ne supporte pas la vidéo.
-                                </video>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
-        </section>
+            </div>
+        @endif
     @else
-        <section class="panel panel--gallery">
-            <header class="panel__head">
-                <span class="panel__icon">
-                    <i class="fa-regular fa-images"></i>
-                </span>
-                <h4>Médias du bien</h4>
-            </header>
-            <div class="empty-gallery">
-                <i class="fa-regular fa-image"></i>
-                <span>Aucun média disponible pour ce bien</span>
-            </div>
-        </section>
+        <div class="ios-section-title">
+            <i class="fa-regular fa-images"></i> Médias du bien
+        </div>
+        <div class="empty-gallery">
+            <i class="fa-regular fa-image"></i>
+            <span>Aucun média disponible pour ce bien</span>
+        </div>
     @endif
 
-    {{-- ═══════════════════════════════════════════
-         MESSAGE DE L'AGENCE
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ MESSAGE ═══ --}}
     @if($proposition->message)
-        <section class="panel panel--message">
-            <header class="panel__head">
-                <span class="panel__icon">
-                    <i class="fa-regular fa-message"></i>
-                </span>
-                <h4>Message de l'agence</h4>
-            </header>
-            <blockquote class="message-block">
-                {{ $proposition->message }}
-            </blockquote>
-        </section>
+        <div class="ios-section-title">
+            <i class="fa-regular fa-message"></i> Message de l'agence
+        </div>
+        <blockquote class="message-block">
+            {{ $proposition->message }}
+        </blockquote>
     @endif
 
-    {{-- ═══════════════════════════════════════════
-         CARACTÉRISTIQUES DU BIEN
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ CARACTÉRISTIQUES DU BIEN ═══ --}}
     @if($bien)
-        <section class="panel panel--bien">
-            <header class="panel__head">
-                <span class="panel__icon">
-                    <i class="fa-regular fa-list-check"></i>
+        <div class="ios-section-title">
+            <i class="fa-regular fa-list-check"></i> Caractéristiques du bien
+            @if($isVedette)
+                <span class="ios-section-count ios-section-count--gold">
+                    <i class="fa-solid fa-star"></i> Vedette
                 </span>
-                <h4>Caractéristiques du bien</h4>
-                @if($isVedette)
-                    <span class="offre-badge offre-badge--vedette offre-badge--sm">
-                        <i class="fa-solid fa-star"></i> Vedette
-                    </span>
-                @endif
-            </header>
+            @endif
+        </div>
 
-            <div class="bien-grid">
-                <div class="bien-grid__item">
-                    <span class="bien-grid__label">Titre</span>
-                    <span class="bien-grid__value">{{ $bien->titre ?? '—' }}</span>
+        <div class="ios-list">
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Titre</span>
                 </div>
-                <div class="bien-grid__item">
-                    <span class="bien-grid__label">Type</span>
-                    <span class="bien-grid__value">
-                        {{ is_object($bien->type_bien) ? $bien->type_bien->label() : ($bien->type_bien ?? '—') }}
-                    </span>
-                </div>
-                <div class="bien-grid__item">
-                    <span class="bien-grid__label">Contrat</span>
-                    <span class="bien-grid__value">
-                        {{ is_object($bien->type_contrat) ? $bien->type_contrat->label() : ($bien->type_contrat ?? '—') }}
-                    </span>
-                </div>
-                <div class="bien-grid__item">
-                    <span class="bien-grid__label">Surface</span>
-                    <span class="bien-grid__value">{{ $bien->surface ?? '—' }} m²</span>
-                </div>
-                <div class="bien-grid__item">
-                    <span class="bien-grid__label">Chambres</span>
-                    <span class="bien-grid__value">{{ $bien->nombre_chambres ?? '—' }}</span>
-                </div>
-                <div class="bien-grid__item">
-                    <span class="bien-grid__label">Salles de bain</span>
-                    <span class="bien-grid__value">{{ $bien->nombre_salles_bain ?? '—' }}</span>
-                </div>
-                <div class="bien-grid__item">
-                    <span class="bien-grid__label">Parking</span>
-                    <span class="bien-grid__value">
-                        <i class="fa-solid {{ $bien->parking_disponible ? 'fa-circle-check is-yes' : 'fa-circle-xmark is-no' }}"></i>
-                        {{ $bien->parking_disponible ? 'Disponible' : 'Non' }}
-                    </span>
-                </div>
-                <div class="bien-grid__item">
-                    <span class="bien-grid__label">Meublé</span>
-                    <span class="bien-grid__value">
-                        <i class="fa-solid {{ $bien->est_meuble ? 'fa-circle-check is-yes' : 'fa-circle-xmark is-no' }}"></i>
-                        {{ $bien->est_meuble ? 'Oui' : 'Non' }}
-                    </span>
-                </div>
-                <div class="bien-grid__item bien-grid__item--wide">
-                    <span class="bien-grid__label">Adresse</span>
-                    <span class="bien-grid__value">{{ $bien->adresse ?? 'Non spécifiée' }}</span>
-                </div>
+                <span class="ios-list__value">{{ $bien->titre ?? '—' }}</span>
             </div>
 
-            @if(count($equipementsBien) > 0)
-                <div class="bien-equipements">
-                    <h5 class="bien-equipements__title">
-                        <i class="fa-solid fa-cogs"></i> Équipements
-                    </h5>
-                    <div class="bien-equipements__list">
-                        @foreach($equipementsBien as $equipement)
-                            <span class="equipement-pill">
-                                <i class="fa-solid fa-check-circle"></i> {{ $equipement }}
-                            </span>
-                        @endforeach
-                    </div>
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Type</span>
                 </div>
-            @endif
+                <span class="ios-list__value">
+                    {{ is_object($bien->type_bien) ? $bien->type_bien->label() : ($bien->type_bien ?? '—') }}
+                </span>
+            </div>
 
-            @if($bien->description)
-                <div class="bien-description">
-                    <h5 class="bien-description__title">
-                        <i class="fa-regular fa-file-lines"></i> Description
-                    </h5>
-                    <p>{{ $bien->description }}</p>
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Contrat</span>
                 </div>
-            @endif
-        </section>
+                <span class="ios-list__value">
+                    {{ is_object($bien->type_contrat) ? $bien->type_contrat->label() : ($bien->type_contrat ?? '—') }}
+                </span>
+            </div>
+
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Surface</span>
+                </div>
+                <span class="ios-list__value">{{ $bien->surface ?? '—' }} m²</span>
+            </div>
+
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Chambres</span>
+                </div>
+                <span class="ios-list__value">{{ $bien->nombre_chambres ?? '—' }}</span>
+            </div>
+
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Salles de bain</span>
+                </div>
+                <span class="ios-list__value">{{ $bien->nombre_salles_bain ?? '—' }}</span>
+            </div>
+
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Parking</span>
+                </div>
+                <span class="ios-list__value">
+                    <i class="fa-solid {{ $bien->parking_disponible ? 'fa-circle-check is-yes' : 'fa-circle-xmark is-no' }}"></i>
+                    {{ $bien->parking_disponible ? 'Oui' : 'Non' }}
+                </span>
+            </div>
+
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Meublé</span>
+                </div>
+                <span class="ios-list__value">
+                    <i class="fa-solid {{ $bien->est_meuble ? 'fa-circle-check is-yes' : 'fa-circle-xmark is-no' }}"></i>
+                    {{ $bien->est_meuble ? 'Oui' : 'Non' }}
+                </span>
+            </div>
+        </div>
+
+        {{-- Adresse --}}
+        @if($bien->adresse)
+            <div class="panel panel--address">
+                <div class="address-block">
+                    <i class="fa-solid fa-location-dot"></i>
+                    <span>{{ $bien->adresse }}</span>
+                </div>
+            </div>
+        @endif
+
+        {{-- Équipements --}}
+        @if(count($equipementsBien) > 0)
+            <div class="ios-section-title">
+                <i class="fa-solid fa-cogs"></i> Équipements
+                <span class="ios-section-count">{{ count($equipementsBien) }}</span>
+            </div>
+            <div class="equipements-grid">
+                @foreach($equipementsBien as $equipement)
+                    <span class="equipement-pill">
+                        <i class="fa-solid fa-check-circle"></i> {{ $equipement }}
+                    </span>
+                @endforeach
+            </div>
+        @endif
+
+        {{-- Description --}}
+        @if($bien->description)
+            <div class="ios-section-title">
+                <i class="fa-regular fa-file-lines"></i> Description
+            </div>
+            <blockquote class="quote-block quote-block--rust">
+                {{ $bien->description }}
+            </blockquote>
+        @endif
     @endif
 
-    {{-- ═══════════════════════════════════════════
-         ACTIONS
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ ACTIONS ═══ --}}
     <footer class="offre-actions">
         <div class="offre-actions__main">
             @if($statutValue === 'en_attente')
@@ -418,9 +525,7 @@
     </footer>
 </div>
 
-{{-- ═══════════════════════════════════════════
-     LIGHTBOX
-═══════════════════════════════════════════ --}}
+{{-- ═══ LIGHTBOX ═══ --}}
 <div id="lightbox" class="lightbox" onclick="closeLightboxOutside(event)">
     <button type="button" class="lightbox__close" onclick="closeLightbox()" aria-label="Fermer">&times;</button>
 
@@ -467,17 +572,11 @@
     }
 
     function prevImage() {
-        if (currentIndex > 0) {
-            currentIndex--;
-            renderLightbox();
-        }
+        if (currentIndex > 0) { currentIndex--; renderLightbox(); }
     }
 
     function nextImage() {
-        if (currentIndex < LIGHTBOX_IMAGES.length - 1) {
-            currentIndex++;
-            renderLightbox();
-        }
+        if (currentIndex < LIGHTBOX_IMAGES.length - 1) { currentIndex++; renderLightbox(); }
     }
 
     function renderLightbox() {
@@ -508,7 +607,6 @@
         if (e.key === 'ArrowRight') nextImage();
     });
 
-    // Swipe tactile
     let touchStartX = 0;
     document.getElementById('lightboxImage')?.addEventListener('touchstart', function (e) {
         touchStartX = e.changedTouches[0].screenX;
@@ -527,7 +625,7 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   PAGE DÉTAIL OFFRE — Particulier
+   DÉTAIL OFFRE — iOS NATIVE
    ═══════════════════════════════════════════════════════════ */
 
 .offre-show {
@@ -542,9 +640,16 @@
     --c-gold:       #F5A623;
     --surface:      #F7F9FC;
     --radius:       14px;
-}
 
-.offre-show__back { margin-bottom: 16px; }
+    --ios-bg: #F2F2F7;
+    --ios-card: #FFFFFF;
+    --ios-blue: #007AFF;
+    --ios-label: #000000;
+    --ios-label-2: #3C3C43;
+    --ios-label-3: #8E8E93;
+    --ios-separator: rgba(60, 60, 67, 0.12);
+    --ios-radius-lg: 18px;
+}
 
 /* ═══ ALERTS ═══ */
 .alert {
@@ -560,6 +665,32 @@
 }
 .alert-success { background: var(--c-success-bg); color: var(--c-success); border-left-color: var(--c-success); }
 .alert-error   { background: var(--c-danger-bg);  color: var(--c-danger);  border-left-color: var(--c-danger); }
+
+/* ═══ SECTION TITLES ═══ */
+.ios-section-title {
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 22px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.ios-section-title i { color: var(--rust); font-size: 15px; }
+.ios-section-title .ios-section-count {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    background: var(--c-warning-bg);
+    color: var(--rust);
+    border-radius: 999px;
+}
+.ios-section-title .ios-section-count--gold {
+    background: linear-gradient(135deg, var(--c-gold), #E8901A);
+    color: #fff;
+}
 
 /* ═══ HERO ═══ */
 .offre-hero {
@@ -593,14 +724,13 @@
     border-color: var(--c-gold);
 }
 
-.offre-hero__main { flex: 1; min-width: 0; }
-
 .offre-hero__badges {
     display: flex;
     align-items: center;
     gap: 8px;
     margin-bottom: 10px;
     flex-wrap: wrap;
+    width: 100%;
 }
 
 .offre-hero__title {
@@ -610,6 +740,7 @@
     margin: 0 0 10px;
     color: var(--text);
     line-height: 1.25;
+    width: 100%;
 }
 .offre-hero__title-sep {
     color: var(--muted);
@@ -624,6 +755,7 @@
     gap: 10px;
     font-size: 13px;
     color: var(--muted);
+    width: 100%;
 }
 .offre-hero__meta i { font-size: 12px; margin-right: 5px; opacity: .8; }
 .offre-hero__meta strong { color: var(--text); font-weight: 600; }
@@ -631,17 +763,8 @@
 
 .offre-hero__score {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-}
-.offre-hero__score-label {
-    font-size: 10.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .5px;
-    color: var(--muted);
+    gap: 14px;
 }
 
 /* ═══ SCORE RING ═══ */
@@ -650,7 +773,7 @@
     width: 60px;
     height: 60px;
 }
-.score-ring--lg { width: 88px; height: 88px; }
+.score-ring--lg { width: 80px; height: 80px; }
 .score-ring svg {
     transform: rotate(-90deg);
     width: 100%; height: 100%;
@@ -678,25 +801,35 @@
     line-height: 1;
     font-size: 14px;
 }
-.score-ring--lg .score-ring__value { font-size: 22px; }
+.score-ring--lg .score-ring__value { font-size: 20px; }
 .score-ring--excellent .score-ring__value { color: var(--c-success); }
 .score-ring--moyen     .score-ring__value { color: var(--c-warning); }
 .score-ring--faible    .score-ring__value { color: var(--c-danger); }
 .score-ring__value small { font-size: 9px; margin-left: 1px; font-weight: 700; }
-.score-ring--lg .score-ring__value small { font-size: 13px; }
+.score-ring--lg .score-ring__value small { font-size: 12px; }
+
+.offre-hero__score-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.offre-hero__score-hint {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
 
 .score-label {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .3px;
-    text-align: center;
 }
 .score-label--excellent { color: var(--c-success); }
 .score-label--moyen     { color: var(--c-warning); }
 .score-label--faible    { color: var(--c-danger); }
 
-/* ═══ STATUT / BADGES ═══ */
+/* ═══ BADGES ═══ */
 .offre-status {
     display: inline-flex;
     align-items: center;
@@ -732,9 +865,8 @@
     color: #fff;
     box-shadow: 0 2px 6px rgba(245, 166, 35, .3);
 }
-.offre-badge--sm { padding: 2px 9px; font-size: 10px; margin-left: 8px; }
 
-/* ═══ PANNEAUX ═══ */
+/* ═══ PANEL ═══ */
 .panel {
     background: #fff;
     border: 1px solid var(--border);
@@ -743,49 +875,13 @@
     margin-bottom: 14px;
 }
 
-.panel__head {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 14px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
-}
-.panel__icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
-    background: var(--c-warning-bg);
-    color: var(--rust);
-    font-size: 14px;
-    flex-shrink: 0;
-}
-.panel__head h4 {
-    font-family: var(--display);
-    font-size: 15px;
-    font-weight: 700;
-    margin: 0;
-    color: var(--text);
-    flex: 1;
-}
-.panel__count {
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 10px;
-    background: var(--c-warning-bg);
-    color: var(--rust);
-    border-radius: 999px;
-}
-
-/* ═══ BLOC AGENCE ═══ */
+/* ═══ AGENCE ═══ */
 .agency-block {
     display: flex;
     align-items: center;
     gap: 16px;
     flex-wrap: wrap;
+    margin-bottom: 14px;
 }
 
 .agency-block__avatar {
@@ -858,15 +954,24 @@
     flex-shrink: 0;
     padding-left: 20px;
     border-left: 1px dashed var(--border);
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 14px;
+    padding-left: 0;
+    border-left: none;
+    border-top: 1px dashed var(--border);
+    margin-top: 4px;
 }
 .price-label {
-    display: block;
     font-size: 11px;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: .5px;
     font-weight: 600;
-    margin-bottom: 3px;
+    display: block;
 }
 .price-value {
     font-family: var(--display);
@@ -886,7 +991,6 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    margin-top: 6px;
     padding: 3px 10px;
     background: #FFF8E1;
     color: #E8901A;
@@ -897,6 +1001,174 @@
     letter-spacing: .3px;
 }
 .price-vedette i { font-size: 9px; }
+
+/* ═══ CONDITIONS ═══ */
+.conditions-recap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.recap-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+}
+.recap-card--info { background: var(--c-info-bg); border-color: #BBDEFB; }
+.recap-card--success { background: var(--c-success-bg); border-color: #C8E6C9; }
+
+.recap-card__icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 16px;
+}
+.recap-card--info    .recap-card__icon { color: var(--c-info); }
+.recap-card--success .recap-card__icon { color: var(--c-success); }
+
+.recap-card__body { min-width: 0; }
+.recap-card__label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    opacity: .75;
+    margin-bottom: 2px;
+}
+.recap-card--info    .recap-card__label { color: var(--c-info); }
+.recap-card--success .recap-card__label { color: var(--c-success); }
+
+.recap-card__value {
+    display: block;
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+}
+
+.conditions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.condition-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+.condition-item__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.condition-item__label i { color: var(--rust); font-size: 11px; opacity: .85; }
+.condition-item__value {
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.conditions-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, #FFFBF7 0%, #FFF 100%);
+    border: 1px solid rgba(181, 80, 42, .2);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.conditions-total__left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+.conditions-total__left > i {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: var(--rust);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+.conditions-total__label {
+    display: block;
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+}
+.conditions-total__hint {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+.conditions-total__value {
+    font-family: var(--display);
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--rust);
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+.conditions-notes {
+    padding-top: 16px;
+    border-top: 1px dashed var(--border);
+}
+.conditions-notes__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 8px;
+}
+.conditions-notes__label i { color: var(--rust); font-size: 12px; }
+.conditions-notes__text {
+    font-size: 13.5px;
+    color: var(--text-soft);
+    line-height: 1.7;
+    margin: 0;
+    padding: 12px 16px;
+    background: var(--surface);
+    border-radius: 10px;
+    border-left: 3px solid var(--rust);
+    font-style: italic;
+}
 
 /* ═══ GALERIE ═══ */
 .gallery-grid {
@@ -938,7 +1210,6 @@
 }
 .gallery-item:hover .gallery-item__overlay { opacity: 1; }
 
-/* Vidéos */
 .video-section { margin-top: 8px; }
 .video-section__title {
     display: flex;
@@ -978,129 +1249,135 @@
     display: block;
 }
 
-/* Galerie vide */
 .empty-gallery {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
     padding: 30px 20px;
-    background: var(--surface);
-    border-radius: 10px;
+    background: #fff;
+    border-radius: var(--radius);
     border: 1px dashed var(--border);
     color: var(--muted);
     font-size: 13px;
+    margin-bottom: 14px;
 }
 .empty-gallery i { font-size: 28px; opacity: .4; }
 
 /* ═══ MESSAGE ═══ */
 .message-block {
-    position: relative;
-    padding: 16px 20px 16px 24px;
+    padding: 16px 20px;
     border-radius: 12px;
-    background: var(--surface);
+    background: #fff;
     font-size: 14px;
     line-height: 1.75;
     color: var(--text);
     font-style: italic;
-    margin: 0;
+    margin: 0 0 14px;
     border-left: 4px solid var(--rust);
+    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
 }
 
-/* ═══ GRILLE BIEN ═══ */
-.bien-grid {
+/* ═══ LISTE iOS (caractéristiques) ═══ */
+.ios-list {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 14px;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(2, 1fr);
 }
-.bien-grid__item {
+.ios-list__item {
     display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding: 10px 14px;
-    background: var(--surface);
-    border-radius: 8px;
-    border: 1px solid transparent;
-    transition: border-color .2s;
-}
-.bien-grid__item:hover { border-color: var(--border); }
-.bien-grid__item--wide {
-    grid-column: 1 / -1;
-    flex-direction: row;
     align-items: center;
     justify-content: space-between;
-}
-.bien-grid__label {
-    font-size: 11px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .4px;
-    font-weight: 600;
-}
-.bien-grid__value {
+    gap: 14px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
     font-size: 13.5px;
-    font-weight: 600;
+}
+.ios-list__item--static { cursor: default; }
+.ios-list__content { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ios-list__title {
+    font-size: 12.5px;
+    color: var(--muted);
+    font-weight: 500;
+}
+.ios-list__value {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    text-align: right;
+    flex-shrink: 0;
+}
+.ios-list__value .is-yes { color: var(--c-success); margin-right: 4px; }
+.ios-list__value .is-no  { color: var(--c-danger);  margin-right: 4px; }
+
+/* Adresse */
+.panel--address {
+    padding: 14px 18px;
+    margin-bottom: 14px;
+}
+.address-block {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
     color: var(--text);
 }
-.bien-grid__item--wide .bien-grid__value {
-    font-weight: 500;
-    color: var(--text-soft);
+.address-block i {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    background: var(--c-warning-bg);
+    color: var(--rust);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
 }
-.bien-grid__value .is-yes { color: var(--c-success); margin-right: 4px; }
-.bien-grid__value .is-no  { color: var(--c-danger);  margin-right: 4px; }
 
 /* Équipements */
-.bien-equipements {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px dashed var(--border);
-}
-.bien-equipements__title {
-    font-family: var(--display);
-    font-size: 13px;
-    font-weight: 700;
-    margin: 0 0 10px;
-    color: var(--text-soft);
-}
-.bien-equipements__title i { color: var(--rust); margin-right: 6px; }
-.bien-equipements__list {
+.equipements-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    margin-bottom: 14px;
 }
 .equipement-pill {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 4px 11px;
+    padding: 6px 13px;
     background: var(--c-info-bg);
     color: var(--c-info);
     border: 1px solid #BBDEFB;
     border-radius: 999px;
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 600;
 }
 .equipement-pill i { font-size: 10px; }
 
-/* Description */
-.bien-description {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px dashed var(--border);
-}
-.bien-description__title {
-    font-family: var(--display);
-    font-size: 13px;
-    font-weight: 700;
-    margin: 0 0 8px;
-    color: var(--text-soft);
-}
-.bien-description__title i { color: var(--rust); margin-right: 6px; }
-.bien-description p {
+/* Quote */
+.quote-block {
+    padding: 14px 18px;
+    border-radius: 12px;
     font-size: 13.5px;
-    line-height: 1.7;
-    color: var(--text-soft);
-    margin: 0;
+    line-height: 1.75;
+    color: var(--text);
+    margin: 0 0 14px;
+    border-left: 4px solid var(--rust);
+    background: #fff;
+    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+.quote-block--rust {
+    background: linear-gradient(135deg, rgba(180, 83, 42, .06), rgba(180, 83, 42, .02));
+    font-style: italic;
 }
 
 /* ═══ ACTIONS ═══ */
@@ -1114,6 +1391,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     flex-wrap: wrap;
+    margin-top: 8px;
 }
 .offre-actions__main {
     display: flex;
@@ -1134,21 +1412,9 @@
     font-weight: 600;
     border: 1px solid;
 }
-.state-pill--success {
-    background: var(--c-success-bg);
-    color: var(--c-success);
-    border-color: #C8E6C9;
-}
-.state-pill--muted {
-    background: var(--surface);
-    color: var(--muted);
-    border-color: var(--border);
-}
-.state-pill--info {
-    background: var(--c-info-bg);
-    color: var(--c-info);
-    border-color: #BBDEFB;
-}
+.state-pill--success { background: var(--c-success-bg); color: var(--c-success); border-color: #C8E6C9; }
+.state-pill--muted   { background: var(--surface); color: var(--muted); border-color: var(--border); }
+.state-pill--info    { background: var(--c-info-bg); color: var(--c-info); border-color: #BBDEFB; }
 
 /* ═══ BOUTONS ═══ */
 .btn {
@@ -1166,47 +1432,14 @@
     transition: all .2s ease;
     white-space: nowrap;
 }
-.btn-rust {
-    background: var(--rust);
-    color: #fff;
-    border-color: var(--rust);
-}
-.btn-rust:hover {
-    background: #9A4523;
-    color: #fff;
-    border-color: #9A4523;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(180, 83, 42, .25);
-}
-.btn-ghost {
-    background: transparent;
-    color: var(--text-soft);
-    border-color: var(--border);
-}
-.btn-ghost:hover {
-    background: var(--surface);
-    border-color: var(--rust);
-    color: var(--rust);
-}
-.btn-danger-soft {
-    background: var(--c-danger-bg);
-    color: var(--c-danger);
-    border-color: #FFCDD2;
-}
-.btn-danger-soft:hover {
-    background: var(--c-danger);
-    color: #fff;
-    border-color: var(--c-danger);
-}
-.btn-ghost-danger {
-    background: transparent;
-    color: var(--c-danger);
-    border-color: #FFCDD2;
-}
-.btn-ghost-danger:hover {
-    background: var(--c-danger-bg);
-    border-color: var(--c-danger);
-}
+.btn-rust { background: var(--rust); color: #fff; border-color: var(--rust); }
+.btn-rust:hover { background: #9A4523; color: #fff; border-color: #9A4523; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(180, 83, 42, .25); }
+.btn-ghost { background: transparent; color: var(--text-soft); border-color: var(--border); }
+.btn-ghost:hover { background: var(--surface); border-color: var(--rust); color: var(--rust); }
+.btn-danger-soft { background: var(--c-danger-bg); color: var(--c-danger); border-color: #FFCDD2; }
+.btn-danger-soft:hover { background: var(--c-danger); color: #fff; border-color: var(--c-danger); }
+.btn-ghost-danger { background: transparent; color: var(--c-danger); border-color: #FFCDD2; }
+.btn-ghost-danger:hover { background: var(--c-danger-bg); border-color: var(--c-danger); }
 .btn-sm { padding: 6px 13px; font-size: 12px; }
 
 /* ═══ LIGHTBOX ═══ */
@@ -1257,7 +1490,6 @@
     color: #fff;
     border: none;
     font-size: 26px;
-    line-height: 1;
     cursor: pointer;
     transition: background .2s, transform .2s;
     display: flex;
@@ -1285,99 +1517,393 @@
     justify-content: center;
     z-index: 2;
 }
-.lightbox__nav:hover {
-    background: rgba(255, 255, 255, .28);
-    transform: translateY(-50%) scale(1.06);
-}
+.lightbox__nav:hover { background: rgba(255, 255, 255, .28); transform: translateY(-50%) scale(1.06); }
 .lightbox__nav--prev { left: 24px; }
 .lightbox__nav--next { right: 24px; }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
 
 /* ═══════════════════════════════════════════════════════════
-   RESPONSIVE
+   📱 MOBILE — iOS NATIVE
    ═══════════════════════════════════════════════════════════ */
+@media (max-width: 820px) {
 
-@media (max-width: 1024px) {
-    .bien-grid { grid-template-columns: repeat(2, 1fr); }
-}
+    .offre-show { background: transparent; padding-top: 4px; }
 
-@media (max-width: 768px) {
+    /* ─── HERO iOS ─── */
     .offre-hero {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        padding: 20px;
+        margin-bottom: 12px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        overflow: hidden;
+    }
+    .offre-hero::before {
+        left: 0; right: 0;
+        height: 3px;
+        border-radius: 0;
+    }
+    .offre-hero.is-vedette {
+        background: linear-gradient(135deg, #FFFDF5 0%, #fff 40%);
+        border: none;
+    }
+    .offre-hero__badges { gap: 6px; margin-bottom: 6px; }
+    .offre-status {
+        font-size: 10.5px;
+        text-transform: none;
+        letter-spacing: 0;
+        padding: 4px 10px;
+        font-weight: 600;
+    }
+    .offre-status i { font-size: 7px; }
+    .offre-badge { font-size: 11px; padding: 4px 10px; text-transform: none; letter-spacing: 0; }
+
+    .offre-hero__title {
+        font-size: 22px;
+        letter-spacing: -.4px;
+        color: var(--ios-label);
+        font-weight: 700;
+        margin: 0 0 8px;
+    }
+    .offre-hero__title-sep { color: var(--ios-label-3); }
+
+    .offre-hero__meta {
+        font-size: 13.5px;
+        color: var(--ios-label-3);
+        gap: 8px;
+    }
+    .offre-hero__meta i { color: var(--ios-label-3); }
+    .offre-hero__meta strong { color: var(--ios-label); }
+    .offre-hero__meta-sep { display: none; }
+
+    /* Score inline */
+    .offre-hero__score {
+        gap: 12px;
+        padding-top: 14px;
+        border-top: 0.5px solid var(--ios-separator);
+        margin-top: 4px;
+    }
+    .score-ring--lg { width: 72px; height: 72px; }
+    .score-ring--lg .score-ring__value { font-size: 18px; }
+    .score-label { font-size: 14px; font-weight: 700; }
+    .offre-hero__score-hint {
+        font-size: 12px;
+        color: var(--ios-label-3);
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: 400;
+    }
+
+    /* ─── SECTION TITLES iOS ─── */
+    .ios-section-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--ios-label);
+        letter-spacing: -.3px;
+        margin: 22px 4px 10px;
+    }
+    .ios-section-title i { font-size: 15px; color: var(--rust); }
+    .ios-section-title .ios-section-count {
+        font-size: 11px;
+        padding: 3px 10px;
+    }
+
+    /* ─── PANEL iOS ─── */
+    .panel {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+
+    /* ─── AGENCE ─── */
+    .agency-block {
         flex-direction: column;
         align-items: flex-start;
-        padding: 18px;
-        gap: 14px;
+        gap: 12px;
+        padding-bottom: 14px;
+        margin-bottom: 0;
+        border-bottom: 0.5px solid var(--ios-separator);
     }
-    .offre-hero__title { font-size: 18px; }
-    .offre-hero__score {
-        flex-direction: row;
-        align-items: center;
-        gap: 14px;
-        align-self: stretch;
+    .agency-block__avatar { width: 52px; height: 52px; font-size: 20px; }
+    .agency-block__info { width: 100%; }
+    .agency-block__name { font-size: 18px; font-weight: 700; letter-spacing: -.2px; }
+    .agency-block__rating { font-size: 13px; }
+    .rating-stars strong { font-size: 14px; }
+    .agency-block__contact {
+        gap: 8px 14px;
+        font-size: 13px;
+        margin-top: 8px;
     }
+    .contact-link { font-weight: 500; }
 
-    .panel { padding: 16px; }
-
-    .agency-block { gap: 12px; }
-    .agency-block__avatar { width: 48px; height: 48px; font-size: 18px; }
+    /* Prix en bas, style iOS */
     .agency-block__price {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding-top: 14px;
+        padding-left: 0;
+        margin-top: 14px;
+        border-left: none;
+        border-top: none;
         width: 100%;
         text-align: left;
-        padding-left: 0;
-        padding-top: 12px;
-        border-left: none;
-        border-top: 1px dashed var(--border);
     }
+    .price-label {
+        font-size: 13px;
+        color: var(--ios-label-3);
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: 500;
+    }
+    .price-value {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -.5px;
+    }
+    .price-vedette { display: none; } /* déjà dans le hero */
 
-    .gallery-grid { grid-template-columns: repeat(3, 1fr); }
-    .video-grid { grid-template-columns: 1fr; }
+    /* ─── CONDITIONS iOS ─── */
+    .conditions-recap { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .recap-card { padding: 12px; gap: 10px; }
+    .recap-card__icon { width: 36px; height: 36px; font-size: 14px; border-radius: 9px; }
+    .recap-card__label { font-size: 10px; }
+    .recap-card__value { font-size: 14px; }
 
-    .bien-grid { grid-template-columns: 1fr; }
-    .bien-grid__item--wide {
+    .conditions-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .condition-item {
+        background: #EFEFF4;
+        border: none;
+        padding: 10px 12px;
+        border-radius: 10px;
+    }
+    .condition-item__label { font-size: 10.5px; text-transform: none; letter-spacing: 0; }
+    .condition-item__value { font-size: 13.5px; }
+
+    .conditions-total {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
+        align-items: stretch;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #FFF4EC, #FFE8D9);
+        border: none;
+    }
+    .conditions-total__left > i {
+        width: 38px; height: 38px;
+        background: linear-gradient(135deg, var(--rust), #d4754a);
+        box-shadow: 0 4px 10px rgba(181, 80, 42, .25);
+    }
+    .conditions-total__label { font-size: 14px; }
+    .conditions-total__value {
+        font-size: 22px;
+        letter-spacing: -.4px;
+        text-align: left;
+        align-self: flex-end;
     }
 
-    .offre-actions { flex-direction: column; align-items: stretch; }
-    .offre-actions__main { flex-direction: column; align-items: stretch; }
+    .conditions-notes { border-top: 0.5px solid var(--ios-separator); }
+    .conditions-notes__label { font-size: 12px; text-transform: none; letter-spacing: 0; color: var(--ios-label-2); }
+    .conditions-notes__text {
+        background: #FFF9F5;
+        border-left: 3px solid var(--rust);
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 13.5px;
+    }
+
+    /* ─── GALERIE iOS ─── */
+    .gallery-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    .gallery-item { border-radius: 12px; border: none; }
+    .gallery-item__overlay { display: none; }
+
+    .video-section__title { font-size: 13px; text-transform: none; letter-spacing: 0; color: var(--ios-label-2); font-weight: 600; }
+    .video-grid { grid-template-columns: 1fr; gap: 10px; }
+    .video-tile { border-radius: 12px; border: none; }
+
+    .empty-gallery {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        padding: 32px 20px;
+        font-size: 13.5px;
+        color: var(--ios-label-3);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+
+    /* ─── MESSAGE iOS ─── */
+    .message-block {
+        background: var(--ios-card);
+        border: none;
+        border-left: 3px solid var(--rust);
+        border-radius: 12px;
+        padding: 16px 18px;
+        font-size: 14px;
+        line-height: 1.65;
+        color: var(--ios-label-2);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+
+    /* ─── LISTE iOS ─── */
+    .ios-list {
+        display: block;
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        margin-bottom: 12px;
+    }
+    .ios-list__item {
+        padding: 14px 16px;
+        gap: 12px;
+        border-bottom: 0.5px solid var(--ios-separator);
+        font-size: 15px;
+    }
+    .ios-list__item:last-child { border-bottom: none; }
+    .ios-list__title {
+        font-size: 15px;
+        color: var(--ios-label);
+        font-weight: 500;
+        letter-spacing: -.2px;
+    }
+    .ios-list__value {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--ios-label-3);
+        text-align: right;
+    }
+    .ios-list__value .is-yes { color: var(--c-success); }
+    .ios-list__value .is-no  { color: var(--c-danger); }
+
+    /* Adresse iOS */
+    .panel--address { padding: 14px 16px; }
+    .address-block { font-size: 14px; gap: 10px; }
+    .address-block i {
+        width: 34px; height: 34px;
+        border-radius: 9px;
+        background: var(--c-warning-bg);
+    }
+
+    /* ─── ÉQUIPEMENTS ─── */
+    .equipements-grid { gap: 8px; }
+    .equipement-pill {
+        background: var(--ios-card);
+        color: var(--ios-label);
+        border: none;
+        padding: 8px 14px;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .equipement-pill i { font-size: 12px; color: var(--c-success); }
+
+    /* ─── QUOTE ─── */
+    .quote-block {
+        background: var(--ios-card);
+        border: none;
+        border-left: 3px solid var(--rust);
+        border-radius: 12px;
+        padding: 16px 18px;
+        font-size: 14px;
+        line-height: 1.65;
+        color: var(--ios-label-2);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+
+    /* ─── ACTIONS iOS ─── */
+    .offre-actions {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        padding: 14px 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+    .offre-actions__main {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
     .offre-actions__main .btn,
     .offre-actions__main form,
     .offre-actions__main .inline-form,
-    .offre-actions__main .state-pill { width: 100%; justify-content: center; }
+    .offre-actions__main .state-pill {
+        width: 100%;
+        justify-content: center;
+    }
     .offre-actions__main .inline-form .btn { width: 100%; justify-content: center; }
     .offre-actions__report { margin-left: 0; width: 100%; justify-content: center; }
 
+    .state-pill {
+        padding: 14px 16px;
+        font-size: 14px;
+        border-radius: 12px;
+        justify-content: center;
+    }
+
+    .btn {
+        padding: 12px 18px;
+        font-size: 14px;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+    .btn-rust {
+        background: linear-gradient(135deg, var(--rust), #d4754a);
+        border: none;
+        box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
+    }
+    .btn-ghost {
+        background: var(--ios-card);
+        border: none;
+        color: var(--ios-blue);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .btn-ghost:active { background: #EFEFF4; }
+    .btn-danger-soft { border: none; }
+    .btn-ghost-danger { border: none; background: rgba(198, 40, 40, .08); }
+
+    /* ─── LIGHTBOX iOS ─── */
     .lightbox__nav { width: 44px; height: 44px; font-size: 17px; }
     .lightbox__nav--prev { left: 12px; }
     .lightbox__nav--next { right: 12px; }
-    .lightbox__close { top: 12px; right: 12px; width: 38px; height: 38px; font-size: 22px; }
+    .lightbox__close { top: 14px; right: 14px; width: 40px; height: 40px; font-size: 22px; }
 }
 
 @media (max-width: 480px) {
-    .offre-hero { padding: 14px; }
-    .offre-hero__title { font-size: 16px; }
+    .offre-hero { padding: 16px; }
+    .offre-hero__title { font-size: 20px; }
 
-    .score-ring--lg { width: 68px; height: 68px; }
-    .score-ring--lg .score-ring__value { font-size: 17px; }
+    .score-ring--lg { width: 64px; height: 64px; }
+    .score-ring--lg .score-ring__value { font-size: 16px; }
     .score-ring--lg .score-ring__value small { font-size: 10px; }
 
-    .gallery-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
-
-    .agency-block__avatar { width: 44px; height: 44px; font-size: 16px; }
-    .agency-block__name { font-size: 15px; }
-    .price-value { font-size: 19px; }
+    .conditions-recap { grid-template-columns: 1fr; }
+    .conditions-grid { grid-template-columns: 1fr; }
+    .conditions-total__value { font-size: 20px; }
 
     .panel { padding: 14px; }
-    .panel__head h4 { font-size: 13.5px; }
 
-    .message-block { padding: 14px 16px 14px 20px; font-size: 13px; }
+    .agency-block__name { font-size: 17px; }
+    .price-value { font-size: 22px; }
 
-    .btn { font-size: 12px; padding: 8px 14px; }
+    .gallery-grid { gap: 6px; }
 }
 </style>
 @endpush

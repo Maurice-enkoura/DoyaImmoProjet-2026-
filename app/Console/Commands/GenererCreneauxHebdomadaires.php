@@ -4,31 +4,36 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\Agence;
+use App\Models\PlanningType;
 use App\Models\CreneauRendezVous;
 use Carbon\Carbon;
 
 class GenererCreneauxHebdomadaires extends Command
 {
     protected $signature = 'creneaux:generer-hebdomadaire';
-    protected $description = 'Génère automatiquement les créneaux pour toutes les agences pour la semaine à venir';
+    protected $description = 'Génère automatiquement les créneaux pour toutes les agences pour les 30 prochains jours';
 
     public function handle()
     {
-        $this->info('🔄 Génération automatique des créneaux...');
+        $this->info('🔄 Génération automatique des créneaux (fenêtre 30 jours)...');
 
-        // Récupérer toutes les agences
         $agences = Agence::all();
         $totalCreneaux = 0;
         $totalAgences = 0;
 
         foreach ($agences as $agence) {
-            // Récupérer le planning type de l'agence (stocké en session ou en base)
-            // ⚠️ Ici on suppose que le planning est stocké en session
-            // Pour une solution durable, il faudrait le stocker en base de données
-            $planningType = session()->get('planning_type_' . $agence->id, []);
-
-            if (empty($planningType)) {
+            $planningsBdd = PlanningType::where('agence_id', $agence->id)->get();
+            if ($planningsBdd->isEmpty()) {
                 continue;
+            }
+
+            $planningType = [];
+            foreach ($planningsBdd as $p) {
+                $planningType[] = [
+                    'jour' => (int) $p->jour,
+                    'heure_debut' => substr($p->heure_debut, 0, 5),
+                    'heure_fin' => substr($p->heure_fin, 0, 5),
+                ];
             }
 
             $creneauxCrees = $this->genererCreneauxPourAgence($agence, $planningType);
@@ -46,49 +51,41 @@ class GenererCreneauxHebdomadaires extends Command
     }
 
     /**
-     * Générer les créneaux pour une agence spécifique
+     * Générer les créneaux pour une agence spécifique sur 30 jours
      */
-    private function genererCreneauxPourAgence($agence, $planningType): int
+    private function genererCreneauxPourAgence($agence, array $planningType): int
     {
         if (empty($planningType)) {
             return 0;
         }
 
         $creneauxCrees = 0;
-        $joursMap = [
-            0 => 'Lun',
-            1 => 'Mar',
-            2 => 'Mer',
-            3 => 'Jeu',
-            4 => 'Ven',
-            5 => 'Sam',
-            6 => 'Dim'
-        ];
 
-        // Générer pour les 7 prochains jours (à partir de demain)
-        for ($i = 1; $i <= 7; $i++) {
+        // Générer pour les 30 prochains jours
+        for ($i = 0; $i < 30; $i++) {
             $date = Carbon::today()->addDays($i);
             $jourSemaine = $date->dayOfWeek;
             $jourSemaineCarbon = $jourSemaine === 0 ? 6 : $jourSemaine - 1;
 
-            // Récupérer les plannings pour ce jour
             $planningsJour = array_filter($planningType, function ($p) use ($jourSemaineCarbon) {
-                return $p['jour'] == $jourSemaineCarbon;
+                return (int) $p['jour'] === (int) $jourSemaineCarbon;
             });
 
             foreach ($planningsJour as $planning) {
-                // Vérifier si le créneau existe déjà
+                $heureDebut = strlen($planning['heure_debut']) === 5 ? $planning['heure_debut'] : substr($planning['heure_debut'], 0, 5);
+                $heureFin = strlen($planning['heure_fin']) === 5 ? $planning['heure_fin'] : substr($planning['heure_fin'], 0, 5);
+
                 $existe = CreneauRendezVous::where('agence_id', $agence->id)
                     ->where('date', $date->format('Y-m-d'))
-                    ->where('heure_debut', $planning['heure_debut'])
+                    ->where('heure_debut', $heureDebut)
                     ->exists();
 
                 if (!$existe) {
                     CreneauRendezVous::create([
                         'agence_id' => $agence->id,
                         'date' => $date->format('Y-m-d'),
-                        'heure_debut' => $planning['heure_debut'],
-                        'heure_fin' => $planning['heure_fin'],
+                        'heure_debut' => $heureDebut,
+                        'heure_fin' => $heureFin,
                         'est_disponible' => true,
                     ]);
                     $creneauxCrees++;

@@ -7,25 +7,22 @@ use Illuminate\Support\Facades\Auth;
 
 class NotificationController extends Controller
 {
-   public function index()
-{
-    $user = auth()->user();
-    $notifications = $user->notifications()->paginate(20);
-    
-    // ✅ Déterminer le layout en fonction du rôle
-    $layout = 'layouts.dashboard';
-    $view = 'notifications.index';
-    
-    if ($user->isAgence()) {
-        $layout = 'layouts.dashboard-agence';
+    public function index()
+    {
+        $user = auth()->user();
+        $notifications = $user->notifications()->paginate(20);
+
+        $layout = 'layouts.dashboard';
         $view = 'notifications.index';
-    } elseif ($user->isAdmin()) {
-        $layout = 'layouts.admin';
-        $view = 'notifications.index';
+
+        if ($user->isAgence()) {
+            $layout = 'layouts.dashboard-agence';
+        } elseif ($user->isAdmin()) {
+            $layout = 'layouts.admin';
+        }
+
+        return view($view, compact('notifications', 'layout'));
     }
-    
-    return view($view, compact('notifications', 'layout'));
-}
 
     public function count()
     {
@@ -34,19 +31,40 @@ class NotificationController extends Controller
         ]);
     }
 
-    public function read($id)
+    /**
+     * Marque UNE notification comme lue
+     */
+    public function read(Request $request, $id)
     {
         $notification = auth()->user()->notifications()->find($id);
+
         if ($notification) {
             $notification->markAsRead();
         }
-        return response()->json(['success' => true]);
+
+        // AJAX → JSON
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        // Formulaire → redirection
+        return back()->with('success', 'Notification marquée comme lue.');
     }
 
-    public function readAll()
+    /**
+     * Marque TOUTES les notifications comme lues
+     */
+    public function readAll(Request $request)
     {
         auth()->user()->unreadNotifications->markAsRead();
-        return response()->json(['success' => true]);
+
+        // AJAX → JSON
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        // Formulaire → redirection
+        return back()->with('success', 'Toutes les notifications ont été marquées comme lues.');
     }
 
     public function new(Request $request)
@@ -58,11 +76,11 @@ class NotificationController extends Controller
         return response()->json([
             'notifications' => $notifications->map(function ($n) {
                 return [
-                    'title' => $n->data['title'] ?? 'Notification',
+                    'title'   => $n->data['title']   ?? 'Notification',
                     'message' => $n->data['message'] ?? '',
-                    'type' => $n->data['type'] ?? 'info',
-                    'icon' => $n->data['icon'] ?? null,
-                    'link' => $n->data['link'] ?? null,
+                    'type'    => $n->data['type']    ?? 'info',
+                    'icon'    => $n->data['icon']    ?? null,
+                    'link'    => $n->data['link']    ?? null,
                 ];
             }),
             'count' => auth()->user()->unreadNotifications()->count()

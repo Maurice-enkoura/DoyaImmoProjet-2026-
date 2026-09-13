@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Enums\StatutPropositionEnum;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use App\Enums\StatutPropositionEnum;
 
 class Proposition extends Model
 {
@@ -19,15 +19,26 @@ class Proposition extends Model
         'bien_id',
         'particulier_id',
         'prix_propose',
+        'disponibilite',           
+        'caution_mois',            
+        'avance_loyer_mois',       
+        'honoraires',              
+        'charges',                 
+        'conditions_particulieres',
         'message',
         'statut',
         'date_proposition',
     ];
 
     protected $casts = [
-        'prix_propose' => 'integer',
-        'date_proposition' => 'datetime',
-        'statut' => StatutPropositionEnum::class,
+        'prix_propose'            => 'integer',
+        'disponibilite'           => 'date',        
+        'caution_mois'            => 'integer',    
+        'avance_loyer_mois'       => 'integer',     
+        'honoraires'              => 'integer',     
+        'charges'                 => 'integer',     
+        'date_proposition'        => 'datetime',
+        'statut'                  => StatutPropositionEnum::class,
     ];
 
     // ==================== RELATIONS ====================
@@ -52,15 +63,17 @@ class Proposition extends Model
         return $this->belongsTo(Particulier::class);
     }
 
-    /**
-     * Relation avec les rendez-vous
-     */
     public function rendezVous(): HasMany
     {
         return $this->hasMany(RendezVous::class);
     }
 
-    // ==================== ACCESSORS ====================
+    public function medias(): MorphMany
+    {
+        return $this->morphMany(Media::class, 'mediable');
+    }
+
+    // ==================== ACCESSORS EXISTANTS ====================
 
     public function getStatutLabelAttribute()
     {
@@ -69,36 +82,104 @@ class Proposition extends Model
         }
         $labels = [
             'en_attente' => 'En attente',
-            'acceptee' => 'Acceptée',
-            'refusee' => 'Refusée',
-            'terminee' => 'Terminée',
+            'acceptee'   => 'Acceptée',
+            'refusee'    => 'Refusée',
+            'terminee'   => 'Terminée',
         ];
         return $labels[$this->statut] ?? $this->statut;
     }
 
-    // ✅ Accesseur pour la valeur du statut
     public function getStatutValueAttribute()
     {
         if (is_object($this->statut) && method_exists($this->statut, 'value')) {
             return $this->statut->value;
         }
-        
-        if (is_string($this->statut)) {
-            return $this->statut;
-        }
-        
-        return 'en_attente';
+        return is_string($this->statut) ? $this->statut : 'en_attente';
     }
 
+    // ==================== 🆕 ACCESSORS CONDITIONS ====================
 
-    
+    /**
+     * Ex : "2 mois" — ou null si non renseigné.
+     */
+    public function getCautionLabelAttribute(): ?string
+    {
+        return $this->caution_mois
+            ? $this->caution_mois . ' mois'
+            : null;
+    }
 
+    /**
+     * Ex : "1 mois" — avance de loyer.
+     */
+    public function getAvanceLabelAttribute(): ?string
+    {
+        return $this->avance_loyer_mois
+            ? $this->avance_loyer_mois . ' mois'
+            : null;
+    }
 
-/**
- * Relation avec les médias (polymorphique)
- */
-public function medias(): MorphMany
-{
-    return $this->morphMany(Media::class, 'mediable');
-}
+    /**
+     * Ex : "250 000 FCFA".
+     */
+    public function getHonorairesFormateAttribute(): ?string
+    {
+        return $this->honoraires !== null
+            ? number_format($this->honoraires, 0, ',', ' ') . ' FCFA'
+            : null;
+    }
+
+    public function getChargesFormateAttribute(): ?string
+    {
+        return $this->charges !== null
+            ? number_format($this->charges, 0, ',', ' ') . ' FCFA'
+            : null;
+    }
+
+    /**
+     * Ex : "1er octobre 2026".
+     */
+    public function getDisponibiliteLabelAttribute(): ?string
+    {
+        if (!$this->disponibilite) return null;
+
+        // Si c'est aujourd'hui ou avant → "Maintenant"
+        if ($this->disponibilite->isPast() || $this->disponibilite->isToday()) {
+            return 'Maintenant';
+        }
+
+        return 'À partir du ' . $this->disponibilite->translatedFormat('d F Y');
+    }
+
+    /**
+     * Montant total à prévoir à l'entrée (info affichée au particulier).
+     * Caution + avance + honoraires + charges.
+     * ⚠️ N'entre PAS dans le matching — purement informatif.
+     */
+    public function getCoutEntreeTotalAttribute(): int
+    {
+        $caution   = ($this->caution_mois ?? 0) * ($this->prix_propose ?? 0);
+        $avance    = ($this->avance_loyer_mois ?? 0) * ($this->prix_propose ?? 0);
+        $honoraires= $this->honoraires ?? 0;
+        $charges   = $this->charges ?? 0;
+
+        return $caution + $avance + $honoraires + $charges;
+    }
+
+    public function getCoutEntreeTotalFormateAttribute(): string
+    {
+        return number_format($this->cout_entree_total, 0, ',', ' ') . ' FCFA';
+    }
+
+    /**
+     * Vérifie si TOUTES les conditions sont renseignées (utile pour l'affichage).
+     */
+    public function getAConditionsFinancieresAttribute(): bool
+    {
+        return $this->caution_mois !== null
+            || $this->avance_loyer_mois !== null
+            || $this->honoraires !== null
+            || $this->charges !== null
+            || $this->conditions_particulieres !== null;
+    }
 }

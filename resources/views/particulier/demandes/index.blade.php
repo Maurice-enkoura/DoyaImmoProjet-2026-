@@ -8,24 +8,7 @@
 <div class="view active besoins-page">
 
     {{-- ═══════════════════════════════════════════
-         FLASH MESSAGES
-    ═══════════════════════════════════════════ --}}
-    @if(session('success'))
-        <div class="flash flash--success">
-            <i class="fa-solid fa-check-circle"></i>
-            <span>{{ session('success') }}</span>
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="flash flash--error">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            <span>{{ session('error') }}</span>
-        </div>
-    @endif
-
-    {{-- ═══════════════════════════════════════════
-         HEADER
+         HEADER DESKTOP
     ═══════════════════════════════════════════ --}}
     <div class="page-header">
         <div class="page-header__left">
@@ -43,33 +26,85 @@
     </div>
 
     {{-- ═══════════════════════════════════════════
-         GRILLE DES BESOINS
+         STATS BAR (mobile + desktop)
     ═══════════════════════════════════════════ --}}
-    <div class="besoins-grid">
+    @php
+        $totalDemandes  = $demandes->total() ?? $demandes->count();
+        $totalOffresAll = $demandes->sum(fn($d) => $d->propositions->count());
+        $totalAttente   = $demandes->sum(fn($d) => $d->propositions->where('statut.value', 'en_attente')->count());
+        $totalActives   = $demandes->where('statut.value', 'en_cours')->count()
+                        + $demandes->where('statut.value', 'en_attente')->count();
+    @endphp
+
+    <div class="besoins-stats">
+        <div class="besoins-stat">
+            <span class="besoins-stat__value">{{ $totalDemandes }}</span>
+            <span class="besoins-stat__label">Besoins</span>
+        </div>
+        <div class="besoins-stat">
+            <span class="besoins-stat__value">{{ $totalActives }}</span>
+            <span class="besoins-stat__label">Actifs</span>
+        </div>
+        <div class="besoins-stat {{ $totalAttente > 0 ? 'is-highlight' : '' }}">
+            <span class="besoins-stat__value">{{ $totalOffresAll }}</span>
+            <span class="besoins-stat__label">Offres</span>
+        </div>
+        <div class="besoins-stat">
+            <span class="besoins-stat__value">{{ $totalAttente }}</span>
+            <span class="besoins-stat__label">En attente</span>
+        </div>
+    </div>
+
+    {{-- ═══════════════════════════════════════════
+         FILTRES (pills)
+    ═══════════════════════════════════════════ --}}
+    @if($demandes->count() > 0)
+        <div class="besoins-filters" id="besoinsFilters">
+            <button type="button" class="besoins-filter is-active" data-filter="all">
+                Tous
+            </button>
+            <button type="button" class="besoins-filter" data-filter="en_cours">
+                Actifs
+            </button>
+            <button type="button" class="besoins-filter" data-filter="with_offers">
+                Avec offres
+            </button>
+            <button type="button" class="besoins-filter" data-filter="terminee">
+                Terminés
+            </button>
+        </div>
+    @endif
+
+    {{-- ═══════════════════════════════════════════
+         LISTE DES BESOINS
+    ═══════════════════════════════════════════ --}}
+    <div class="besoins-grid" id="besoinsGrid">
         @forelse($demandes as $demande)
 
             @php
-                // Statut
                 $statutValue = is_object($demande->statut) ? $demande->statut->value : $demande->statut;
                 $statutLabel = is_object($demande->statut) ? $demande->statut->label() : ucfirst($demande->statut);
 
-                // Compteurs
                 $totalOffres     = $demande->propositions->count();
                 $offresEnAttente = $demande->propositions->where('statut.value', 'en_attente')->count();
                 $offresAcceptees = $demande->propositions->where('statut.value', 'acceptee')->count();
 
-                // Budget
                 $isLocation  = is_object($demande->type_operation)
                                 && $demande->type_operation->value === 'location';
                 $budgetLabel = $isLocation ? 'F/mois' : 'F';
 
-                // Highlight si nouvelles offres
                 $hasNewOffers = $offresEnAttente > 0;
+
+                // Data attributes pour filtres JS
+                $dataStatus = $statutValue;
+                $dataOffers = $totalOffres > 0 ? 'yes' : 'no';
             @endphp
 
-            <article class="besoin-card besoin-card--{{ $statutValue }} {{ $hasNewOffers ? 'has-offers' : '' }}">
+            <article class="besoin-card besoin-card--{{ $statutValue }} {{ $hasNewOffers ? 'has-offers' : '' }}"
+                     data-status="{{ $dataStatus }}"
+                     data-offers="{{ $dataOffers }}">
 
-                {{-- En-tête : statut + compteurs --}}
+                {{-- Top : badge statut + chevron iOS --}}
                 <header class="besoin-card__top">
                     <span class="besoin-status besoin-status--{{ $statutValue }}">
                         <i class="fa-solid fa-circle"></i>
@@ -93,63 +128,59 @@
                     @endif
                 </header>
 
-                {{-- Corps --}}
-                <div class="besoin-card__body">
-
-                    {{-- Type + Budget --}}
-                    <div class="besoin-card__headline">
-                        <h3 class="besoin-card__type">{{ $demande->type_bien->label() }}</h3>
-                        <div class="besoin-card__budget">
-                            {{ number_format($demande->budget_maximum, 0, ',', ' ') }}
-                            <small>{{ $budgetLabel }}</small>
-                        </div>
+                {{-- Titre + Budget --}}
+                <div class="besoin-card__headline">
+                    <h3 class="besoin-card__type">{{ $demande->type_bien->label() }}</h3>
+                    <div class="besoin-card__budget">
+                        {{ number_format($demande->budget_maximum, 0, ',', ' ') }}
+                        <small>{{ $budgetLabel }}</small>
                     </div>
-
-                    {{-- Meta --}}
-                    <div class="besoin-card__meta">
-                        <span class="meta-item">
-                            <i class="fa-solid fa-location-dot"></i>
-                            {{ $demande->zone_recherchee }}
-                        </span>
-                        @if($demande->surface_minimum)
-                            <span class="meta-item">
-                                <i class="fa-regular fa-square"></i>
-                                {{ $demande->surface_minimum }} m²
-                            </span>
-                        @endif
-                        <span class="meta-item">
-                            <i class="fa-regular fa-clock"></i>
-                            {{ $demande->created_at->diffForHumans() }}
-                        </span>
-                    </div>
-
-                    {{-- Description --}}
-                    @if($demande->description)
-                        <p class="besoin-card__desc">
-                            {{ Str::limit($demande->description, 100) }}
-                        </p>
-                    @endif
-
-                    {{-- Compteurs détaillés (si plusieurs) --}}
-                    @if($offresEnAttente > 0 || $offresAcceptees > 0)
-                        <div class="besoin-card__counters">
-                            @if($offresEnAttente > 0)
-                                <span class="counter-chip counter-chip--warning">
-                                    <i class="fa-regular fa-clock"></i>
-                                    {{ $offresEnAttente }} en attente
-                                </span>
-                            @endif
-                            @if($offresAcceptees > 0)
-                                <span class="counter-chip counter-chip--success">
-                                    <i class="fa-solid fa-check-circle"></i>
-                                    {{ $offresAcceptees }} acceptée{{ $offresAcceptees > 1 ? 's' : '' }}
-                                </span>
-                            @endif
-                        </div>
-                    @endif
                 </div>
 
-                {{-- Actions --}}
+                {{-- Meta --}}
+                <div class="besoin-card__meta">
+                    <span class="meta-item">
+                        <i class="fa-solid fa-location-dot"></i>
+                        {{ $demande->zone_recherchee }}
+                    </span>
+                    @if($demande->surface_minimum)
+                        <span class="meta-item">
+                            <i class="fa-regular fa-square"></i>
+                            {{ $demande->surface_minimum }} m²
+                        </span>
+                    @endif
+                    <span class="meta-item">
+                        <i class="fa-regular fa-clock"></i>
+                        {{ $demande->created_at->diffForHumans() }}
+                    </span>
+                </div>
+
+                {{-- Description --}}
+                @if($demande->description)
+                    <p class="besoin-card__desc">
+                        {{ Str::limit($demande->description, 100) }}
+                    </p>
+                @endif
+
+                {{-- Compteurs détaillés --}}
+                @if($offresEnAttente > 0 || $offresAcceptees > 0)
+                    <div class="besoin-card__counters">
+                        @if($offresEnAttente > 0)
+                            <span class="counter-chip counter-chip--warning">
+                                <i class="fa-regular fa-clock"></i>
+                                {{ $offresEnAttente }} en attente
+                            </span>
+                        @endif
+                        @if($offresAcceptees > 0)
+                            <span class="counter-chip counter-chip--success">
+                                <i class="fa-solid fa-check-circle"></i>
+                                {{ $offresAcceptees }} acceptée{{ $offresAcceptees > 1 ? 's' : '' }}
+                            </span>
+                        @endif
+                    </div>
+                @endif
+
+                {{-- Actions (desktop) / iOS rows (mobile) --}}
                 <footer class="besoin-card__footer">
                     <a href="{{ route('particulier.demandes.show', $demande->slug) }}"
                        class="btn btn-ghost btn-sm">
@@ -165,17 +196,31 @@
                         </a>
                     @else
                         <span class="btn btn-ghost btn-sm is-disabled">
-                            <i class="fa-regular fa-hourglass-half"></i> Aucune offre pour l'instant
+                            <i class="fa-regular fa-hourglass-half"></i> Aucune offre
                         </span>
                     @endif
                 </footer>
+
+                {{-- Liens iOS (mobile) --}}
+                <div class="besoin-card__ios-links">
+                    <a href="{{ route('particulier.demandes.show', $demande->slug) }}" class="besoin-card__ios-link">
+                        <i class="fa-solid fa-eye"></i>
+                        <span>Voir le détail</span>
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                    @if($totalOffres > 0)
+                        <a href="{{ route('particulier.demandes.offres', $demande->slug) }}" class="besoin-card__ios-link besoin-card__ios-link--rust">
+                            <i class="fa-solid fa-file-invoice"></i>
+                            <span>Voir les {{ $totalOffres }} offre{{ $totalOffres > 1 ? 's' : '' }}</span>
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </a>
+                    @endif
+                </div>
             </article>
 
         @empty
 
-            {{-- ═══════════════════════════════════════════
-                 EMPTY STATE
-            ═══════════════════════════════════════════ --}}
+            {{-- EMPTY STATE --}}
             <div class="empty-state">
                 <div class="empty-state__icon">
                     <i class="fa-regular fa-house-circle-check"></i>
@@ -189,12 +234,22 @@
         @endforelse
     </div>
 
+    {{-- Empty state filtré (JS) --}}
+    <div class="ios-filter-empty" id="filterEmpty" style="display:none;">
+        <div class="ios-filter-empty__icon">
+            <i class="fa-regular fa-face-meh"></i>
+        </div>
+        <h4>Aucun besoin dans ce filtre</h4>
+        <p>Essayez un autre filtre pour voir vos besoins.</p>
+    </div>
+
     {{-- Pagination --}}
-    @if($demandes->count() > 0)
+    @if($demandes->count() > 0 && method_exists($demandes, 'links'))
         <div class="pagination-wrapper">
             {{ $demandes->links() }}
         </div>
     @endif
+
 </div>
 @endsection
 
@@ -202,7 +257,7 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   PAGE BESOINS PUBLIÉS — Particulier
+   BESOINS PUBLIÉS — iOS NATIVE
    ═══════════════════════════════════════════════════════════ */
 
 .besoins-page {
@@ -216,24 +271,18 @@
     --c-info-bg:    #E3F2FD;
     --surface:      #F7F9FC;
     --radius:       14px;
+
+    --ios-bg: #F2F2F7;
+    --ios-card: #FFFFFF;
+    --ios-blue: #007AFF;
+    --ios-label: #000000;
+    --ios-label-2: #3C3C43;
+    --ios-label-3: #8E8E93;
+    --ios-separator: rgba(60, 60, 67, 0.12);
+    --ios-radius-lg: 18px;
 }
 
-/* ═══ FLASH ═══ */
-.flash {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 11px 16px;
-    border-radius: 10px;
-    margin-bottom: 16px;
-    font-size: 13px;
-    font-weight: 500;
-    border: 1px solid;
-}
-.flash--success { background: var(--c-success-bg); border-color: #C8E6C9; color: var(--c-success); }
-.flash--error   { background: var(--c-danger-bg);  border-color: #FFCDD2; color: var(--c-danger); }
-
-/* ═══ HEADER ═══ */
+/* ═══ HEADER DESKTOP ═══ */
 .page-header {
     display: flex;
     justify-content: space-between;
@@ -261,6 +310,12 @@
     flex-wrap: wrap;
 }
 
+/* ═══ STATS BAR — caché desktop, visible mobile ═══ */
+.besoins-stats { display: none; }
+
+/* ═══ FILTRES ═══ */
+.besoins-filters { display: none; }
+
 /* ═══ GRILLE ═══ */
 .besoins-grid {
     display: grid;
@@ -268,7 +323,7 @@
     gap: 14px;
 }
 
-/* ═══ CARTE BESOIN ═══ */
+/* ═══ CARTE ═══ */
 .besoin-card {
     display: flex;
     flex-direction: column;
@@ -286,7 +341,7 @@
     border-color: #d8d8d8;
 }
 
-/* Bande colorée statut en haut */
+/* Barre colorée statut en haut */
 .besoin-card::before {
     content: '';
     position: absolute;
@@ -302,13 +357,12 @@
 .besoin-card--terminee::before   { background: var(--c-success); }
 .besoin-card--annulee::before    { background: var(--c-danger); }
 
-/* Highlight si nouvelles offres */
 .besoin-card.has-offers {
     border-color: rgba(180, 83, 42, .35);
     background: linear-gradient(135deg, #FFFBF7 0%, #fff 45%);
 }
 
-/* ═══ En-tête ═══ */
+/* ═══ EN-TÊTE ═══ */
 .besoin-card__top {
     display: flex;
     align-items: center;
@@ -338,7 +392,6 @@
 .besoin-status--acceptee   { background: var(--c-success-bg); color: var(--c-success); }
 .besoin-status--refusee    { background: var(--c-danger-bg);  color: var(--c-danger); }
 
-/* Badge offres */
 .offres-badge {
     display: inline-flex;
     align-items: center;
@@ -374,7 +427,6 @@
     font-weight: 500;
 }
 
-/* Point pulsé si nouvelles offres */
 .pulse-dot {
     display: inline-block;
     width: 7px;
@@ -398,13 +450,8 @@
     50%      { transform: scale(1.6); opacity: 0; }
 }
 
-/* ═══ Corps ═══ */
-.besoin-card__body {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    flex: 1;
-}
+/* ═══ CORPS ═══ */
+.besoin-card__body { display: flex; flex-direction: column; gap: 10px; flex: 1; }
 
 .besoin-card__headline {
     display: flex;
@@ -436,7 +483,6 @@
     margin-left: 2px;
 }
 
-/* Meta */
 .besoin-card__meta {
     display: flex;
     flex-wrap: wrap;
@@ -444,18 +490,9 @@
     font-size: 12.5px;
     color: var(--muted);
 }
-.meta-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-.meta-item i {
-    font-size: 11px;
-    color: var(--rust);
-    opacity: .8;
-}
+.meta-item { display: inline-flex; align-items: center; gap: 5px; }
+.meta-item i { font-size: 11px; color: var(--rust); opacity: .8; }
 
-/* Description */
 .besoin-card__desc {
     font-size: 12.5px;
     color: var(--text-soft);
@@ -467,13 +504,7 @@
     overflow: hidden;
 }
 
-/* Compteurs détaillés */
-.besoin-card__counters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding-top: 4px;
-}
+.besoin-card__counters { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px; }
 .counter-chip {
     display: inline-flex;
     align-items: center;
@@ -485,18 +516,10 @@
     border: 1px solid;
 }
 .counter-chip i { font-size: 10px; }
-.counter-chip--warning {
-    background: var(--c-warning-bg);
-    color: var(--c-warning);
-    border-color: #FFE0B2;
-}
-.counter-chip--success {
-    background: var(--c-success-bg);
-    color: var(--c-success);
-    border-color: #C8E6C9;
-}
+.counter-chip--warning { background: var(--c-warning-bg); color: var(--c-warning); border-color: #FFE0B2; }
+.counter-chip--success { background: var(--c-success-bg); color: var(--c-success); border-color: #C8E6C9; }
 
-/* ═══ Footer ═══ */
+/* ═══ FOOTER ═══ */
 .besoin-card__footer {
     display: flex;
     align-items: center;
@@ -508,6 +531,9 @@
     flex-wrap: wrap;
 }
 .besoin-card__cta { margin-left: auto; }
+
+/* Liens iOS (mobile uniquement) */
+.besoin-card__ios-links { display: none; }
 
 /* ═══ BOUTONS ═══ */
 .btn {
@@ -525,38 +551,14 @@
     transition: all .2s ease;
     white-space: nowrap;
 }
-.btn-rust {
-    background: var(--rust);
-    color: #fff;
-    border-color: var(--rust);
-}
-.btn-rust:hover {
-    background: #9A4523;
-    color: #fff;
-    border-color: #9A4523;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(180, 83, 42, .25);
-}
-.btn-ghost {
-    background: transparent;
-    color: var(--text-soft);
-    border-color: var(--border);
-}
-.btn-ghost:hover {
-    background: var(--surface);
-    border-color: var(--rust);
-    color: var(--rust);
-}
+.btn-rust { background: var(--rust); color: #fff; border-color: var(--rust); }
+.btn-rust:hover { background: #9A4523; color: #fff; border-color: #9A4523; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(180, 83, 42, .25); }
+.btn-ghost { background: transparent; color: var(--text-soft); border-color: var(--border); }
+.btn-ghost:hover { background: var(--surface); border-color: var(--rust); color: var(--rust); }
 .btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn.is-disabled { opacity: .65; cursor: not-allowed; pointer-events: none; font-style: italic; }
 
-.btn.is-disabled {
-    opacity: .65;
-    cursor: not-allowed;
-    pointer-events: none;
-    font-style: italic;
-}
-
-/* ═══ EMPTY STATE ═══ */
+/* ═══ EMPTY ═══ */
 .empty-state {
     grid-column: 1 / -1;
     text-align: center;
@@ -566,47 +568,21 @@
     border: 1px dashed var(--border);
 }
 .empty-state__icon {
-    width: 76px;
-    height: 76px;
+    width: 76px; height: 76px;
     margin: 0 auto 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     background: var(--c-warning-bg);
     border-radius: 50%;
     color: var(--rust);
     font-size: 30px;
 }
-.empty-state h3 {
-    font-family: var(--display);
-    font-size: 17px;
-    font-weight: 700;
-    margin: 0 0 6px;
-    color: var(--text);
-}
-.empty-state p {
-    color: var(--muted);
-    font-size: 13.5px;
-    margin: 0 auto 18px;
-    max-width: 400px;
-}
+.empty-state h3 { font-family: var(--display); font-size: 17px; font-weight: 700; margin: 0 0 6px; color: var(--text); }
+.empty-state p { color: var(--muted); font-size: 13.5px; margin: 0 auto 18px; max-width: 400px; }
 
 /* ═══ PAGINATION ═══ */
-.pagination-wrapper {
-    margin-top: 24px;
-    display: flex;
-    justify-content: center;
-}
+.pagination-wrapper { margin-top: 24px; display: flex; justify-content: center; }
 .pagination-wrapper .pagination,
-.pagination-wrapper nav {
-    display: flex;
-    gap: 5px;
-    justify-content: center;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    flex-wrap: wrap;
-}
+.pagination-wrapper nav { display: flex; gap: 5px; justify-content: center; list-style: none; padding: 0; margin: 0; flex-wrap: wrap; }
 .pagination-wrapper a,
 .pagination-wrapper span:not(.sr-only) {
     display: inline-block;
@@ -621,70 +597,374 @@
     text-align: center;
     background: #fff;
 }
-.pagination-wrapper a:hover {
-    background: var(--border);
-    border-color: var(--rust);
-    color: var(--rust);
-}
+.pagination-wrapper a:hover { background: var(--border); border-color: var(--rust); color: var(--rust); }
 .pagination-wrapper .active span,
 .pagination-wrapper [aria-current="page"] span,
-.pagination-wrapper [aria-current="page"] {
-    background: var(--rust);
-    color: #fff;
-    border-color: var(--rust);
-}
-.pagination-wrapper .disabled span {
-    opacity: .45;
-    cursor: not-allowed;
-}
+.pagination-wrapper [aria-current="page"] { background: var(--rust); color: #fff; border-color: var(--rust); }
+.pagination-wrapper .disabled span { opacity: .45; cursor: not-allowed; }
+
+.ios-filter-empty { display: none; text-align: center; padding: 40px 20px; }
+
 
 /* ═══════════════════════════════════════════════════════════
-   RESPONSIVE
+   📱 MOBILE — iOS NATIVE
    ═══════════════════════════════════════════════════════════ */
+@media (max-width: 820px) {
 
-@media (max-width: 768px) {
-    .page-header__left h2 { font-size: 19px; }
-    .page-header__left p  { font-size: 13px; }
-    .page-header__actions { width: 100%; }
-    .page-header__actions .btn { flex: 1; justify-content: center; }
+    .besoins-page {
+        background: transparent;
+        padding-top: 4px;
+    }
 
+    /* ─── HEADER DESKTOP masqué ─── */
+    .page-header { display: none; }
+
+    /* ─── STATS BAR iOS ─── */
+    .besoins-stats {
+        display: flex;
+        gap: 0;
+        background: var(--ios-card);
+        border-radius: var(--ios-radius-lg);
+        padding: 16px 6px;
+        margin-bottom: 14px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .besoins-stat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        position: relative;
+        padding: 0 4px;
+    }
+    .besoins-stat:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        right: 0; top: 20%;
+        height: 60%;
+        width: 0.5px;
+        background: var(--ios-separator);
+    }
+    .besoins-stat__value {
+        font-family: var(--display);
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--ios-label);
+        letter-spacing: -.5px;
+        line-height: 1;
+    }
+    .besoins-stat.is-highlight .besoins-stat__value { color: var(--rust); }
+    .besoins-stat__label {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--ios-label-3);
+        margin-top: 2px;
+    }
+
+    /* ─── FILTRES PILLS ─── */
+    .besoins-filters {
+        display: flex;
+        gap: 8px;
+        padding: 0 0 12px;
+        margin: 0 -16px;
+        padding-left: 16px;
+        padding-right: 16px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .besoins-filters::-webkit-scrollbar { display: none; }
+
+    .besoins-filter {
+        scroll-snap-align: start;
+        flex: 0 0 auto;
+        padding: 9px 16px;
+        background: var(--ios-card);
+        border: none;
+        border-radius: 999px;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ios-label-2);
+        cursor: pointer;
+        transition: all .15s ease;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        -webkit-tap-highlight-color: transparent;
+        white-space: nowrap;
+    }
+    .besoins-filter:active { transform: scale(.95); }
+    .besoins-filter.is-active {
+        background: linear-gradient(135deg, var(--rust), #d4754a);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(181, 80, 42, .3);
+    }
+
+    /* ─── GRILLE → LISTE ─── */
     .besoins-grid {
         grid-template-columns: 1fr;
-        gap: 10px;
+        gap: 12px;
     }
 
-    .besoin-card { padding: 14px 16px; }
-    .besoin-card::before { left: 16px; right: 16px; }
+    /* ─── CARTES iOS ─── */
+    .besoin-card {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        padding: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        transition: transform .15s ease, box-shadow .15s ease;
+        overflow: visible;
+    }
+    .besoin-card:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,.04); border: none; }
+    .besoin-card:active { transform: scale(.985); }
 
-    .besoin-card__footer {
+    /* Barre statut en haut iOS */
+    .besoin-card::before {
+        left: 16px;
+        right: 16px;
+        height: 3px;
+        top: 0;
+    }
+    .besoin-card.has-offers {
+        background: var(--ios-card);
+        border: 1.5px solid rgba(181, 80, 42, .35);
+    }
+
+    /* Top */
+    .besoin-card__top {
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .besoin-status {
+        font-size: 11px;
+        text-transform: none;
+        letter-spacing: 0;
+        padding: 4px 10px;
+        font-weight: 600;
+    }
+    .besoin-status i { font-size: 7px; }
+
+    .offres-badge {
+        font-size: 12px;
+        padding: 4px 10px;
+    }
+    .offres-badge strong { font-size: 13px; }
+
+    /* Headline */
+    .besoin-card__type {
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: -.2px;
+    }
+    .besoin-card__budget {
+        font-size: 18px;
+        letter-spacing: -.3px;
+    }
+
+    /* Meta */
+    .besoin-card__meta {
+        font-size: 13px;
+        gap: 6px 12px;
+        color: var(--ios-label-2);
+    }
+    .meta-item i { font-size: 11px; }
+
+    /* Description */
+    .besoin-card__desc {
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--ios-label-2);
+        -webkit-line-clamp: 2;
+    }
+
+    /* Compteurs */
+    .counter-chip {
+        font-size: 11.5px;
+        padding: 3px 10px;
+    }
+
+    /* ─── ACTIONS : on cache les btns, on montre les liens iOS ─── */
+    .besoin-card__footer { display: none; }
+
+    .besoin-card__ios-links {
+        display: flex;
         flex-direction: column;
-        align-items: stretch;
+        margin: 14px -16px -16px;
+        border-top: 0.5px solid var(--ios-separator);
     }
-    .besoin-card__footer .btn,
-    .besoin-card__footer .is-disabled {
-        width: 100%;
+    .besoin-card__ios-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        text-decoration: none;
+        color: var(--ios-label);
+        font-size: 15px;
+        font-weight: 500;
+        transition: background .15s;
+        border-bottom: 0.5px solid var(--ios-separator);
+    }
+    .besoin-card__ios-link:last-child { border-bottom: none; }
+    .besoin-card__ios-link:active { background: #F5F5F7; }
+
+    .besoin-card__ios-link i:first-child {
+        width: 20px;
+        text-align: center;
+        font-size: 15px;
+        color: var(--ios-label-3);
+        flex-shrink: 0;
+    }
+    .besoin-card__ios-link span {
+        flex: 1;
+        min-width: 0;
+    }
+    .besoin-card__ios-link i:last-child {
+        color: #C7C7CC;
+        font-size: 13px;
+        flex-shrink: 0;
+        opacity: .8;
+    }
+
+    .besoin-card__ios-link--rust {
+        color: var(--rust);
+        font-weight: 600;
+    }
+    .besoin-card__ios-link--rust i:first-child { color: var(--rust); }
+
+    /* ─── Empty state iOS ─── */
+    .empty-state {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        padding: 48px 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .empty-state__icon {
+        width: 64px;
+        height: 64px;
+        font-size: 26px;
+    }
+
+    .ios-filter-empty {
+        display: none;
+        background: var(--ios-card);
+        border-radius: var(--ios-radius-lg);
+        padding: 40px 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        text-align: center;
+    }
+    .ios-filter-empty__icon {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 14px;
+        display: flex;
+        align-items: center;
         justify-content: center;
+        background: #EFEFF4;
+        border-radius: 50%;
+        color: var(--ios-label-3);
+        font-size: 22px;
     }
-    .besoin-card__cta { margin-left: 0; }
+    .ios-filter-empty h4 {
+        font-family: var(--display);
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--ios-label);
+        margin: 0 0 4px;
+    }
+    .ios-filter-empty p {
+        font-size: 13px;
+        color: var(--ios-label-3);
+        margin: 0;
+    }
+
+    /* ─── PAGINATION iOS ─── */
+    .pagination-wrapper { margin-top: 20px; }
+    .pagination-wrapper a,
+    .pagination-wrapper span:not(.sr-only) {
+        background: var(--ios-card);
+        border: none;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        padding: 10px 14px;
+        font-size: 13px;
+        border-radius: 10px;
+    }
 }
 
 @media (max-width: 480px) {
-    .besoin-card { padding: 12px 14px; }
+    .besoins-stat__value { font-size: 20px; }
+    .besoins-stat__label { font-size: 10.5px; }
+
+    .besoin-card { padding: 14px; }
     .besoin-card::before { left: 14px; right: 14px; }
-
-    .besoin-card__type { font-size: 15.5px; }
-    .besoin-card__budget { font-size: 16px; }
-
-    .besoin-card__meta { font-size: 12px; gap: 5px 12px; }
-    .meta-item i { font-size: 10px; }
-
-    .besoin-card__desc { font-size: 12px; }
-
-    .offres-badge { font-size: 11px; padding: 3px 10px; }
-    .offres-badge strong { font-size: 12px; }
-
-    .btn { font-size: 12px; padding: 7px 13px; }
-    .btn-sm { font-size: 11.5px; padding: 6px 11px; }
+    .besoin-card__type { font-size: 16px; }
+    .besoin-card__budget { font-size: 17px; }
+    .besoin-card__ios-links { margin: 12px -14px -14px; }
+    .besoin-card__ios-link { padding: 13px 14px; font-size: 14px; }
 }
 </style>
+@endpush
+
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    /* ═══════════════════════════════════════════
+       FILTRES PILLS
+    ═══════════════════════════════════════════ */
+    const filters = document.querySelectorAll('.besoins-filter');
+    const cards = document.querySelectorAll('.besoin-card');
+    const filterEmpty = document.getElementById('filterEmpty');
+    const grid = document.getElementById('besoinsGrid');
+
+    filters.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const filter = btn.dataset.filter;
+
+            // UI : bouton actif
+            filters.forEach(f => f.classList.remove('is-active'));
+            btn.classList.add('is-active');
+
+            // Filtrage des cartes
+            let visibleCount = 0;
+            cards.forEach(card => {
+                const status = card.dataset.status;
+                const hasOffers = card.dataset.offers === 'yes';
+                let show = false;
+
+                if (filter === 'all') {
+                    show = true;
+                } else if (filter === 'en_cours') {
+                    show = status === 'en_cours' || status === 'en_attente';
+                } else if (filter === 'with_offers') {
+                    show = hasOffers;
+                } else if (filter === 'terminee') {
+                    show = status === 'terminee';
+                }
+
+                if (show) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Empty state
+            if (visibleCount === 0 && cards.length > 0) {
+                if (filterEmpty) filterEmpty.style.display = 'block';
+                if (grid) grid.style.display = 'none';
+            } else {
+                if (filterEmpty) filterEmpty.style.display = 'none';
+                if (grid) grid.style.display = '';
+            }
+        });
+    });
+
+});
+</script>
 @endpush

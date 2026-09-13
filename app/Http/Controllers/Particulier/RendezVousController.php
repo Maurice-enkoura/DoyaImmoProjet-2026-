@@ -46,6 +46,11 @@ class RendezVousController extends Controller
         return back()->with('error', 'Cette proposition n\'est pas acceptée.');
     }
 
+    // ✅ S'assurer que les créneaux des 30 prochains jours sont générés depuis le PlanningType en BDD
+    if ($proposition->agence) {
+        $this->assurerCreneauxAgence($proposition->agence);
+    }
+
     // ✅ Récupérer les créneaux disponibles pour cette agence (avec filtre anti-passé)
     $creneaux = CreneauRendezVous::where('agence_id', $proposition->agence_id)
         ->where('est_disponible', true)
@@ -64,6 +69,56 @@ class RendezVousController extends Controller
 
     return view('particulier.rendezvous.create', compact('proposition', 'creneaux'));
 }
+
+    /**
+     * Génère automatiquement les créneaux manquants des 30 prochains jours pour l'agence
+     */
+    private function assurerCreneauxAgence($agence): void
+    {
+        $planningsBdd = \App\Models\PlanningType::where('agence_id', $agence->id)->get();
+        if ($planningsBdd->isEmpty()) {
+            return;
+        }
+
+        $planningType = [];
+        foreach ($planningsBdd as $p) {
+            $planningType[] = [
+                'jour' => (int) $p->jour,
+                'heure_debut' => substr($p->heure_debut, 0, 5),
+                'heure_fin' => substr($p->heure_fin, 0, 5),
+            ];
+        }
+
+        for ($i = 0; $i < 30; $i++) {
+            $date = \Carbon\Carbon::today()->addDays($i);
+            $jourSemaine = $date->dayOfWeek;
+            $jourSemaineCarbon = $jourSemaine === 0 ? 6 : $jourSemaine - 1;
+
+            $planningsJour = array_filter($planningType, function ($p) use ($jourSemaineCarbon) {
+                return (int) $p['jour'] === (int) $jourSemaineCarbon;
+            });
+
+            foreach ($planningsJour as $planning) {
+                $heureDebut = strlen($planning['heure_debut']) === 5 ? $planning['heure_debut'] : substr($planning['heure_debut'], 0, 5);
+                $heureFin = strlen($planning['heure_fin']) === 5 ? $planning['heure_fin'] : substr($planning['heure_fin'], 0, 5);
+
+                $existe = CreneauRendezVous::where('agence_id', $agence->id)
+                    ->where('date', $date->format('Y-m-d'))
+                    ->where('heure_debut', $heureDebut)
+                    ->exists();
+
+                if (!$existe) {
+                    CreneauRendezVous::create([
+                        'agence_id' => $agence->id,
+                        'date' => $date->format('Y-m-d'),
+                        'heure_debut' => $heureDebut,
+                        'heure_fin' => $heureFin,
+                        'est_disponible' => true,
+                    ]);
+                }
+            }
+        }
+    }
 
     public function store(RendezVousRequest $request)
 {

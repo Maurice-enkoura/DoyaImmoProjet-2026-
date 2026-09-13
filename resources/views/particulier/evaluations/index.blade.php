@@ -8,15 +8,24 @@
 <div class="view active avis-donnes">
 
     @php
-        $total = $evaluations->total();
-        $moyenne = $evaluations->avg('note') ?? 0;
-        $cinqEtoiles = $evaluations->where('note', 5)->count();
-        $avecReponse = $evaluations->whereNotNull('reponse_agence')->count();
+        $total        = $evaluations->total();
+        $moyenne      = $evaluations->avg('note') ?? 0;
+        $cinqEtoiles  = $evaluations->where('note', 5)->count();
+        $avecReponse  = $evaluations->whereNotNull('reponse_agence')->count();
+        $positives    = $evaluations->where('note', '>=', 4)->count();
+        $negatives    = $evaluations->where('note', '<=', 2)->count();
+
+        $current = request('filtre', '');
+        $tabs = [
+            ''        => ['label' => 'Tous',      'icon' => 'fa-list',       'count' => $total],
+            '5'       => ['label' => '5 étoiles', 'icon' => 'fa-star',       'count' => $cinqEtoiles],
+            'reponse' => ['label' => 'Réponses',  'icon' => 'fa-reply',      'count' => $avecReponse],
+            'positif' => ['label' => 'Positifs',  'icon' => 'fa-thumbs-up',  'count' => $positives],
+            'negatif' => ['label' => 'Négatifs',  'icon' => 'fa-thumbs-down','count' => $negatives],
+        ];
     @endphp
 
-    {{-- ═══════════════════════════════════════════
-         HEADER
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ HEADER DESKTOP ═══ --}}
     <div class="page-header">
         <div class="page-header__left">
             <h2>Mes avis donnés</h2>
@@ -27,23 +36,60 @@
         </a>
     </div>
 
-    {{-- ═══════════════════════════════════════════
-         ALERTS
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ STATS INLINE (mobile) ═══ --}}
+    @if($total > 0)
+        <div class="avis-stats">
+            <div class="avis-stat">
+                <span class="avis-stat__value">
+                    <i class="fa-solid fa-star"></i>
+                    {{ number_format($moyenne, 1) }}
+                </span>
+                <span class="avis-stat__label">Moyenne</span>
+            </div>
+            <div class="avis-stat">
+                <span class="avis-stat__value">{{ $total }}</span>
+                <span class="avis-stat__label">Avis</span>
+            </div>
+            <div class="avis-stat {{ $cinqEtoiles > 0 ? 'is-highlight' : '' }}">
+                <span class="avis-stat__value">{{ $cinqEtoiles }}</span>
+                <span class="avis-stat__label">5 étoiles</span>
+            </div>
+            <div class="avis-stat">
+                <span class="avis-stat__value">{{ $avecReponse }}</span>
+                <span class="avis-stat__label">Réponses</span>
+            </div>
+        </div>
+    @endif
+
+    {{-- ═══ FILTRES PILLS ═══ --}}
+    @if($total > 0)
+        <nav class="filter-tabs" aria-label="Filtrer les avis">
+            @foreach($tabs as $key => $meta)
+                @if($meta['count'] > 0 || $key === '')
+                    <a href="{{ route('particulier.evaluations.index', $key ? ['filtre' => $key] : []) }}"
+                       class="filter-tab {{ $current === $key ? 'is-active' : '' }}">
+                        <i class="fa-solid {{ $meta['icon'] }}"></i>
+                        <span>{{ $meta['label'] }}</span>
+                        <span class="filter-tab__count">{{ $meta['count'] }}</span>
+                    </a>
+                @endif
+            @endforeach
+        </nav>
+    @endif
+
+    {{-- ═══ ALERTS ═══ --}}
     @if(session('error'))
         <div class="alert alert-error">
             <i class="fa-solid fa-circle-exclamation"></i>
             <span>{{ session('error') }}</span>
         </div>
     @endif
-
     @if(session('info'))
         <div class="alert alert-info">
             <i class="fa-solid fa-circle-info"></i>
             <span>{{ session('info') }}</span>
         </div>
     @endif
-
     @if(session('success'))
         <div class="alert alert-success">
             <i class="fa-solid fa-check-circle"></i>
@@ -53,49 +99,7 @@
 
     @if($total > 0)
 
-        {{-- ═══════════════════════════════════════════
-             STATS RAPIDES
-        ═══════════════════════════════════════════ --}}
-        <section class="summary">
-            <div class="summary__item">
-                <span class="summary__value">
-                    <i class="fa-solid fa-star"></i>
-                    {{ number_format($moyenne, 1) }}
-                </span>
-                <span class="summary__label">Note moyenne</span>
-            </div>
-
-            <div class="summary__sep"></div>
-
-            <div class="summary__item">
-                <span class="summary__value">{{ $total }}</span>
-                <span class="summary__label">Avis donnés</span>
-            </div>
-
-            @if($cinqEtoiles > 0)
-                <div class="summary__sep"></div>
-                <div class="summary__item">
-                    <span class="summary__value summary__value--success">{{ $cinqEtoiles }}</span>
-                    <span class="summary__label">
-                        <i class="fa-solid fa-star"></i> 5 étoiles
-                    </span>
-                </div>
-            @endif
-
-            @if($avecReponse > 0)
-                <div class="summary__sep"></div>
-                <div class="summary__item">
-                    <span class="summary__value summary__value--info">{{ $avecReponse }}</span>
-                    <span class="summary__label">
-                        <i class="fa-solid fa-reply"></i> Avec réponse
-                    </span>
-                </div>
-            @endif
-        </section>
-
-        {{-- ═══════════════════════════════════════════
-             LISTE DES AVIS
-        ═══════════════════════════════════════════ --}}
+        {{-- ═══ LISTE DES AVIS ═══ --}}
         <div class="avis-list">
             @foreach($evaluations as $evaluation)
 
@@ -155,7 +159,7 @@
                         </blockquote>
                     @endif
 
-                    {{-- Réponse de l'agence --}}
+                    {{-- Réponse agence --}}
                     @if($hasReponse)
                         <div class="reponse-block">
                             <div class="reponse-block__head">
@@ -171,24 +175,24 @@
                         </div>
                     @endif
 
-                    {{-- Actions --}}
+                    {{-- Actions iOS pleine largeur --}}
                     <footer class="avis-card__actions">
                         <a href="{{ route('particulier.evaluations.show', $evaluation->id) }}"
-                           class="btn btn-ghost btn-sm">
+                           class="btn btn-ghost">
                             <i class="fa-solid fa-eye"></i> Voir le détail
                         </a>
 
                         @if($isOwner)
                             <a href="{{ route('particulier.evaluations.edit', $evaluation->id) }}"
-                               class="btn btn-ghost btn-sm">
+                               class="btn btn-ghost">
                                 <i class="fa-solid fa-pen"></i> Modifier
                             </a>
 
                             <form action="{{ route('particulier.evaluations.destroy', $evaluation->id) }}"
-                                  method="POST" class="inline-form avis-card__delete">
+                                  method="POST" class="inline-form">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-danger-soft btn-sm"
+                                <button type="submit" class="btn btn-danger-soft"
                                         onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet avis ?')">
                                     <i class="fa-solid fa-trash-can"></i> Supprimer
                                 </button>
@@ -199,16 +203,14 @@
             @endforeach
         </div>
 
-        {{-- Pagination --}}
+        {{-- ═══ Pagination ═══ --}}
         <div class="pagination-wrapper">
-            {{ $evaluations->links() }}
+            {{ $evaluations->appends(request()->query())->links() }}
         </div>
 
     @else
 
-        {{-- ═══════════════════════════════════════════
-             EMPTY STATE
-        ═══════════════════════════════════════════ --}}
+        {{-- ═══ EMPTY STATE ═══ --}}
         <div class="empty-state">
             <div class="empty-state__icon">
                 <i class="fa-regular fa-star"></i>
@@ -219,6 +221,7 @@
                 <i class="fa-solid fa-calendar"></i> Voir mes rendez-vous
             </a>
         </div>
+
     @endif
 </div>
 @endsection
@@ -227,7 +230,7 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   PAGE AVIS DONNÉS — Particulier
+   MES AVIS DONNÉS — iOS NATIVE
    ═══════════════════════════════════════════════════════════ */
 
 .avis-donnes {
@@ -242,9 +245,18 @@
     --c-gold:       #F5A623;
     --surface:      #F7F9FC;
     --radius:       14px;
+
+    --ios-bg: #F2F2F7;
+    --ios-card: #FFFFFF;
+    --ios-blue: #007AFF;
+    --ios-label: #000000;
+    --ios-label-2: #3C3C43;
+    --ios-label-3: #8E8E93;
+    --ios-separator: rgba(60, 60, 67, 0.12);
+    --ios-radius-lg: 18px;
 }
 
-/* ═══ HEADER ═══ */
+/* ═══ HEADER DESKTOP ═══ */
 .page-header {
     display: flex;
     justify-content: space-between;
@@ -267,6 +279,12 @@
     margin: 4px 0 0;
 }
 
+/* ═══ STATS INLINE (mobile) ═══ */
+.avis-stats { display: none; }
+
+/* ═══ FILTRES ═══ */
+.filter-tabs { display: none; }
+
 /* ═══ ALERTS ═══ */
 .alert {
     display: flex;
@@ -283,7 +301,7 @@
 .alert-error   { background: var(--c-danger-bg);  color: var(--c-danger);  border-left-color: var(--c-danger); }
 .alert-info    { background: var(--c-info-bg);    color: var(--c-info);    border-left-color: var(--c-info); }
 
-/* ═══ STATS RAPIDES ═══ */
+/* ═══ STATS DESKTOP ═══ */
 .summary {
     display: flex;
     align-items: center;
@@ -295,11 +313,7 @@
     margin-bottom: 18px;
     flex-wrap: wrap;
 }
-.summary__item {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
+.summary__item { display: flex; flex-direction: column; gap: 2px; }
 .summary__value {
     display: inline-flex;
     align-items: center;
@@ -310,28 +324,14 @@
     line-height: 1;
     color: var(--text);
 }
-.summary__value i {
-    color: var(--c-gold);
-    font-size: 19px;
-}
+.summary__value i { color: var(--c-gold); font-size: 19px; }
 .summary__value--success { color: var(--c-success); }
 .summary__value--success i { color: var(--c-success); }
 .summary__value--info    { color: var(--c-info); }
 .summary__value--info i { color: var(--c-info); }
-
-.summary__label {
-    font-size: 12.5px;
-    color: var(--muted);
-    font-weight: 500;
-}
+.summary__label { font-size: 12.5px; color: var(--muted); font-weight: 500; }
 .summary__label i { margin-right: 3px; font-size: 10px; }
-
-.summary__sep {
-    width: 1px;
-    height: 34px;
-    background: var(--border);
-    flex-shrink: 0;
-}
+.summary__sep { width: 1px; height: 34px; background: var(--border); flex-shrink: 0; }
 
 /* ═══ LISTE AVIS ═══ */
 .avis-list {
@@ -355,7 +355,6 @@
     border-color: #d8d8d8;
 }
 
-/* Bande colorée selon sentiment */
 .avis-card::before {
     content: '';
     position: absolute;
@@ -375,48 +374,27 @@
     margin-bottom: 12px;
     flex-wrap: wrap;
 }
-
-.avis-card__agency {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    min-width: 0;
-}
+.avis-card__agency { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .agency-avatar {
-    width: 44px;
-    height: 44px;
+    width: 44px; height: 44px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--rust), #d4754a);
     color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     font-family: var(--display);
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 18px; font-weight: 700;
     flex-shrink: 0;
 }
-.agency-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-}
+.agency-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .agency-info strong {
     font-family: var(--display);
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 15px; font-weight: 700;
     color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .avis-card__date {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 12px;
-    color: var(--muted);
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; color: var(--muted);
 }
 .avis-card__date i { font-size: 11px; opacity: .8; }
 
@@ -433,31 +411,21 @@
 .avis-card__rating--neutre  { background: var(--c-warning-bg); }
 .avis-card__rating--negatif { background: var(--c-danger-bg); }
 
-.avis-stars {
-    display: inline-flex;
-    gap: 3px;
-    font-size: 14px;
-}
+.avis-stars { display: inline-flex; gap: 3px; font-size: 14px; }
 .avis-stars .fa-star { color: #D4D8E0; }
 .avis-stars .fa-star.is-on { color: var(--c-gold); }
 
 .avis-card__score {
     font-family: var(--display);
-    font-size: 15px;
-    font-weight: 800;
+    font-size: 15px; font-weight: 800;
     line-height: 1;
 }
-.avis-card__score small {
-    font-size: 10px;
-    font-weight: 600;
-    opacity: .65;
-    margin-left: 1px;
-}
+.avis-card__score small { font-size: 10px; font-weight: 600; opacity: .65; margin-left: 1px; }
 .avis-card__rating--positif .avis-card__score { color: var(--c-success); }
 .avis-card__rating--neutre  .avis-card__score { color: var(--c-warning); }
 .avis-card__rating--negatif .avis-card__score { color: var(--c-danger); }
 
-/* Proposition associée */
+/* Proposition */
 .avis-card__prop {
     display: inline-flex;
     align-items: center;
@@ -498,7 +466,7 @@
     border-left-color: var(--c-danger);
 }
 
-/* Réponse agence */
+/* Réponse */
 .reponse-block {
     padding: 12px 14px;
     background: var(--c-info-bg);
@@ -519,18 +487,8 @@
     flex-wrap: wrap;
 }
 .reponse-block__head i { font-size: 10px; }
-.reponse-block__date {
-    font-weight: 500;
-    text-transform: none;
-    letter-spacing: 0;
-    color: var(--muted);
-}
-.reponse-block__text {
-    font-size: 13px;
-    line-height: 1.6;
-    color: var(--text-soft);
-    margin: 0;
-}
+.reponse-block__date { font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--muted); }
+.reponse-block__text { font-size: 13px; line-height: 1.6; color: var(--text-soft); margin: 0; }
 
 /* Actions */
 .avis-card__actions {
@@ -560,41 +518,15 @@
     transition: all .2s ease;
     white-space: nowrap;
 }
-.btn-rust {
-    background: var(--rust);
-    color: #fff;
-    border-color: var(--rust);
-}
-.btn-rust:hover {
-    background: #9A4523;
-    color: #fff;
-    border-color: #9A4523;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(180, 83, 42, .25);
-}
-.btn-ghost {
-    background: transparent;
-    color: var(--text-soft);
-    border-color: var(--border);
-}
-.btn-ghost:hover {
-    background: var(--surface);
-    border-color: var(--rust);
-    color: var(--rust);
-}
-.btn-danger-soft {
-    background: var(--c-danger-bg);
-    color: var(--c-danger);
-    border-color: #FFCDD2;
-}
-.btn-danger-soft:hover {
-    background: var(--c-danger);
-    color: #fff;
-    border-color: var(--c-danger);
-}
+.btn-rust { background: var(--rust); color: #fff; border-color: var(--rust); }
+.btn-rust:hover { background: #9A4523; color: #fff; border-color: #9A4523; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(180, 83, 42, .25); }
+.btn-ghost { background: transparent; color: var(--text-soft); border-color: var(--border); }
+.btn-ghost:hover { background: var(--surface); border-color: var(--rust); color: var(--rust); }
+.btn-danger-soft { background: var(--c-danger-bg); color: var(--c-danger); border-color: #FFCDD2; }
+.btn-danger-soft:hover { background: var(--c-danger); color: #fff; border-color: var(--c-danger); }
 .btn-sm { padding: 6px 12px; font-size: 12px; }
 
-/* ═══ EMPTY STATE ═══ */
+/* ═══ EMPTY ═══ */
 .empty-state {
     text-align: center;
     padding: 70px 20px;
@@ -603,12 +535,9 @@
     border: 1px dashed var(--border);
 }
 .empty-state__icon {
-    width: 76px;
-    height: 76px;
+    width: 76px; height: 76px;
     margin: 0 auto 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     background: linear-gradient(135deg, #FFF8E1, #FFECB3);
     border-radius: 50%;
     color: var(--c-gold);
@@ -616,8 +545,7 @@
 }
 .empty-state h3 {
     font-family: var(--display);
-    font-size: 17px;
-    font-weight: 700;
+    font-size: 17px; font-weight: 700;
     margin: 0 0 6px;
     color: var(--text);
 }
@@ -629,20 +557,11 @@
 }
 
 /* ═══ PAGINATION ═══ */
-.pagination-wrapper {
-    margin-top: 22px;
-    display: flex;
-    justify-content: center;
-}
+.pagination-wrapper { margin-top: 22px; display: flex; justify-content: center; }
 .pagination-wrapper .pagination,
 .pagination-wrapper nav {
-    display: flex;
-    gap: 5px;
-    justify-content: center;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    flex-wrap: wrap;
+    display: flex; gap: 5px; justify-content: center;
+    list-style: none; padding: 0; margin: 0; flex-wrap: wrap;
 }
 .pagination-wrapper a,
 .pagination-wrapper span:not(.sr-only) {
@@ -658,69 +577,286 @@
     text-align: center;
     background: #fff;
 }
-.pagination-wrapper a:hover {
-    background: var(--border);
-    border-color: var(--rust);
-    color: var(--rust);
-}
+.pagination-wrapper a:hover { background: var(--border); border-color: var(--rust); color: var(--rust); }
 .pagination-wrapper .active span,
 .pagination-wrapper [aria-current="page"] span,
-.pagination-wrapper [aria-current="page"] {
-    background: var(--rust);
-    color: #fff;
-    border-color: var(--rust);
-}
-.pagination-wrapper .disabled span {
-    opacity: .45;
-    cursor: not-allowed;
-}
+.pagination-wrapper [aria-current="page"] { background: var(--rust); color: #fff; border-color: var(--rust); }
+.pagination-wrapper .disabled span { opacity: .45; cursor: not-allowed; }
+
 
 /* ═══════════════════════════════════════════════════════════
-   RESPONSIVE
+   📱 MOBILE — iOS NATIVE
    ═══════════════════════════════════════════════════════════ */
+@media (max-width: 820px) {
 
-@media (max-width: 768px) {
-    .page-header__left h2 { font-size: 19px; }
-    .page-header__left p  { font-size: 13px; }
+    .avis-donnes { background: transparent; padding-top: 4px; }
 
-    .summary {
-        padding: 14px 18px;
-        gap: 16px;
+    /* ─── HEADER masqué ─── */
+    .page-header { display: none; }
+
+    /* ─── STATS INLINE ─── */
+    .avis-stats {
+        display: flex;
+        gap: 0;
+        background: var(--ios-card);
+        border-radius: var(--ios-radius-lg);
+        padding: 16px 6px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
-    .summary__value { font-size: 20px; }
-    .summary__value i { font-size: 16px; }
-    .summary__label { font-size: 11.5px; }
-    .summary__sep { height: 28px; }
+    .avis-stat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        position: relative;
+        padding: 0 4px;
+    }
+    .avis-stat:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        right: 0; top: 20%;
+        height: 60%;
+        width: 0.5px;
+        background: var(--ios-separator);
+    }
+    .avis-stat__value {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-family: var(--display);
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--ios-label);
+        letter-spacing: -.5px;
+        line-height: 1;
+    }
+    .avis-stat__value i {
+        color: var(--c-gold);
+        font-size: 15px;
+    }
+    .avis-stat.is-highlight .avis-stat__value { color: var(--rust); }
+    .avis-stat.is-highlight .avis-stat__value i { color: var(--rust); }
+    .avis-stat__label {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--ios-label-3);
+        margin-top: 2px;
+    }
 
-    .avis-card { padding: 16px; }
-    .avis-card__head { flex-direction: column; align-items: flex-start; gap: 10px; }
-    .avis-card__rating { align-self: flex-start; }
+    /* ─── FILTRES PILLS iOS ─── */
+    .filter-tabs {
+        display: flex;
+        gap: 8px;
+        margin: 0 -16px 14px;
+        padding: 0 16px 2px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .filter-tabs::-webkit-scrollbar { display: none; }
+    .filter-tab {
+        scroll-snap-align: start;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 9px 16px;
+        background: var(--ios-card);
+        border: none;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ios-label-2);
+        text-decoration: none;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        transition: all .15s ease;
+        -webkit-tap-highlight-color: transparent;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .filter-tab:active { transform: scale(.95); }
+    .filter-tab i { font-size: 12px; opacity: .85; }
+    .filter-tab.is-active {
+        background: linear-gradient(135deg, var(--rust), #d4754a);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(181, 80, 42, .3);
+    }
+    .filter-tab.is-active i { opacity: 1; }
+    .filter-tab__count {
+        background: rgba(0, 0, 0, .07);
+        padding: 1px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        min-width: 22px;
+        text-align: center;
+    }
+    .filter-tab.is-active .filter-tab__count {
+        background: rgba(255, 255, 255, .3);
+        color: #fff;
+    }
 
-    .avis-card__actions { flex-direction: column; align-items: stretch; }
+    /* ─── ALERTS iOS ─── */
+    .alert {
+        border-radius: 14px;
+        border: none;
+        padding: 14px 16px;
+        font-size: 13.5px;
+    }
+
+    /* ─── CARTES iOS ─── */
+    .avis-list { gap: 12px; }
+
+    .avis-card {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        padding: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        transition: transform .15s ease;
+        overflow: hidden;
+    }
+    .avis-card:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,.04); border: none; }
+    .avis-card:active { transform: scale(.985); }
+
+    /* Barre statut : plus fine en haut */
+    .avis-card::before {
+        top: 0; left: 0; right: 0; bottom: auto;
+        width: auto;
+        height: 3px;
+        border-radius: 0;
+    }
+
+    /* En-tête */
+    .avis-card__head {
+        gap: 10px;
+        margin-bottom: 12px;
+        align-items: flex-start;
+    }
+    .agency-avatar { width: 42px; height: 42px; font-size: 17px; }
+    .agency-info strong { font-size: 15px; font-weight: 700; letter-spacing: -.2px; color: var(--ios-label); }
+    .avis-card__date { font-size: 12.5px; color: var(--ios-label-3); }
+
+    .avis-card__rating {
+        padding: 5px 10px;
+        gap: 7px;
+    }
+    .avis-stars { font-size: 13px; gap: 2px; }
+    .avis-card__score { font-size: 14px; }
+
+    /* Proposition */
+    .avis-card__prop {
+        background: #EFEFF4;
+        padding: 6px 12px;
+        font-size: 12.5px;
+        border-radius: 10px;
+        margin-bottom: 12px;
+    }
+
+    /* Commentaire */
+    .avis-card__comment {
+        padding: 14px 16px 14px 18px;
+        border-radius: 12px;
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--ios-label-2);
+        margin: 0 0 12px;
+    }
+
+    /* Réponse iOS */
+    .reponse-block {
+        border-radius: 12px;
+        padding: 12px 14px;
+        margin-bottom: 12px;
+    }
+    .reponse-block__head {
+        font-size: 11px;
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: 600;
+    }
+    .reponse-block__text { font-size: 13.5px; }
+
+    /* ─── Actions iOS ─── */
+    .avis-card__actions {
+        gap: 8px;
+        padding-top: 12px;
+        border-top: 0.5px solid var(--ios-separator);
+        flex-direction: column;
+        align-items: stretch;
+    }
     .avis-card__actions .btn,
     .avis-card__actions form,
-    .avis-card__actions .inline-form { width: 100%; justify-content: center; }
+    .avis-card__actions .inline-form {
+        width: 100%;
+        justify-content: center;
+    }
     .avis-card__delete { margin-left: 0; }
+
+    .btn {
+        padding: 12px 18px;
+        font-size: 14px;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+    .btn-rust {
+        background: linear-gradient(135deg, var(--rust), #d4754a);
+        border: none;
+        box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
+    }
+    .btn-ghost {
+        background: var(--ios-card);
+        border: 1px solid #E5E5EA;
+        color: var(--ios-blue);
+    }
+    .btn-ghost:active { background: #EFEFF4; }
+    .btn-danger-soft {
+        background: rgba(198, 40, 40, .08);
+        border: none;
+        color: var(--c-danger);
+    }
+
+    /* ─── EMPTY iOS ─── */
+    .empty-state {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        padding: 48px 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .empty-state__icon {
+        width: 68px;
+        height: 68px;
+        font-size: 28px;
+    }
+    .empty-state h3 { font-size: 17px; letter-spacing: -.3px; }
+    .empty-state p { font-size: 13.5px; color: var(--ios-label-3); }
+
+    /* ─── Pagination iOS ─── */
+    .pagination-wrapper a,
+    .pagination-wrapper span:not(.sr-only) {
+        background: var(--ios-card);
+        border: none;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        padding: 10px 14px;
+        font-size: 13px;
+        border-radius: 10px;
+    }
 }
 
 @media (max-width: 480px) {
-    .summary {
-        gap: 12px;
-        padding: 12px 14px;
-    }
-    .summary__value { font-size: 18px; gap: 5px; }
-    .summary__value i { font-size: 14px; }
-    .summary__label { font-size: 11px; }
+    .avis-stat__value { font-size: 20px; }
+    .avis-stat__value i { font-size: 13px; }
+    .avis-stat__label { font-size: 10.5px; }
 
     .avis-card { padding: 14px; }
     .agency-avatar { width: 38px; height: 38px; font-size: 15px; }
     .agency-info strong { font-size: 14px; }
     .avis-stars { font-size: 12px; }
-    .avis-card__comment { font-size: 13px; padding: 12px 14px 12px 18px; }
-    .reponse-block__text { font-size: 12.5px; }
-
-    .btn { font-size: 12px; padding: 7px 13px; }
-    .btn-sm { font-size: 11.5px; padding: 6px 11px; }
+    .avis-card__comment { font-size: 13px; padding: 12px 14px 12px 16px; }
+    .reponse-block__text { font-size: 13px; }
 }
 </style>
 @endpush

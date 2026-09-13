@@ -5,7 +5,7 @@
 @section('page_sub', 'Répondez à l\'avis de votre client')
 
 @section('content')
-<div class="view active avis-show">
+<div class="view active ios-avis-show">
 
     @php
         $note        = (int) $evaluation->note;
@@ -17,192 +17,177 @@
         $bien        = $evaluation->proposition->bien ?? null;
     @endphp
 
-    {{-- ═══════════════════════════════════════════
-         RETOUR
-    ═══════════════════════════════════════════ --}}
-    <div class="avis-show__back">
-        <a href="{{ route('agence.evaluations.index') }}" class="btn btn-ghost btn-sm">
-            <i class="fa-solid fa-arrow-left"></i> Retour aux avis
-        </a>
-    </div>
-
-    {{-- ═══════════════════════════════════════════
-         HERO CLIENT
-    ═══════════════════════════════════════════ --}}
-    <header class="avis-hero avis-hero--{{ $sentiment }}">
-        <div class="avis-hero__client">
-            <div class="avis-hero__avatar avis-hero__avatar--{{ $sentiment }}">
+    {{-- ═══ HERO CLIENT ═══ --}}
+    <header class="ios-avis-hero ios-avis-hero--{{ $sentiment }}">
+        <div class="ios-avis-hero__client">
+            <div class="ios-avis-hero__avatar ios-avis-hero__avatar--{{ $sentiment }}">
                 {{ $initial }}
             </div>
-            <div class="avis-hero__identity">
-                <h1 class="avis-hero__name">{{ $prenom }} {{ $nom }}</h1>
-                <span class="avis-hero__date">
+            <div class="ios-avis-hero__identity">
+                <h2 class="ios-avis-hero__name">{{ $prenom }} {{ $nom }}</h2>
+                <span class="ios-avis-hero__date">
                     <i class="fa-regular fa-calendar"></i>
                     Avis reçu le {{ $evaluation->created_at->translatedFormat('d F Y') }}
                 </span>
             </div>
         </div>
 
-        <div class="avis-hero__rating avis-hero__rating--{{ $sentiment }}">
-            <div class="avis-hero__stars">
+        <div class="ios-avis-hero__rating ios-avis-hero__rating--{{ $sentiment }}">
+            <div class="ios-avis-hero__stars">
                 @for($i = 1; $i <= 5; $i++)
                     <i class="fa-solid fa-star {{ $i <= $note ? 'is-on' : '' }}"></i>
                 @endfor
             </div>
-            <div class="avis-hero__score">
+            <div class="ios-avis-hero__score">
                 {{ $note }}<small>/5</small>
             </div>
         </div>
     </header>
 
-    {{-- ═══════════════════════════════════════════
-         COMMENTAIRE DU CLIENT
-    ═══════════════════════════════════════════ --}}
-    <section class="panel panel--comment">
-        <header class="panel__head">
-            <span class="panel__icon">
-                <i class="fa-regular fa-message"></i>
-            </span>
-            <h4>Commentaire du client</h4>
-        </header>
+    {{-- ═══ CONTENU 2 COLONNES (desktop) ═══ --}}
+    <div class="ios-avis-layout">
 
-        @if($evaluation->commentaire)
-            <blockquote class="comment-block comment-block--{{ $sentiment }}">
-                {{ $evaluation->commentaire }}
-            </blockquote>
-        @else
-            <div class="comment-empty">
-                <i class="fa-regular fa-comment"></i>
-                <span>Aucun commentaire n'a été laissé par ce client.</span>
+        {{-- ═══ COLONNE PRINCIPALE ═══ --}}
+        <div class="ios-avis-layout__main">
+
+            {{-- ═══ COMMENTAIRE ═══ --}}
+            <div class="ios-section-header">Commentaire du client</div>
+
+            <div class="ios-group">
+                <div class="ios-cell ios-cell--stacked">
+                    <div class="ios-cell__icon ios-cell__icon--blue">
+                        <i class="fa-regular fa-message"></i>
+                    </div>
+                    <div class="ios-cell__body">
+                        @if($evaluation->commentaire)
+                            <p class="ios-comment ios-comment--{{ $sentiment }}">
+                                {{ $evaluation->commentaire }}
+                            </p>
+                        @else
+                            <p class="ios-comment-empty">
+                                <i class="fa-regular fa-comment"></i>
+                                Aucun commentaire n'a été laissé par ce client.
+                            </p>
+                        @endif
+                    </div>
+                </div>
             </div>
-        @endif
-    </section>
 
-    {{-- ═══════════════════════════════════════════
-         BIEN CONCERNÉ
-    ═══════════════════════════════════════════ --}}
-    @if($bien)
-        <section class="panel panel--bien">
-            <header class="panel__head">
-                <span class="panel__icon">
-                    <i class="fa-regular fa-building"></i>
-                </span>
-                <h4>Bien concerné</h4>
-            </header>
+            {{-- ═══ BIEN CONCERNÉ ═══ --}}
+            @if($bien)
+                <div class="ios-section-header">Bien concerné</div>
 
-            <div class="bien-info">
-                <h3 class="bien-info__title">{{ $bien->titre ?? 'Bien' }}</h3>
+                <div class="ios-group">
+                    <div class="ios-cell ios-cell--stacked">
+                        <div class="ios-cell__icon ios-cell__icon--orange">
+                            <i class="fa-regular fa-building"></i>
+                        </div>
+                        <div class="ios-cell__body">
+                            <span class="ios-cell__label ios-cell__label--strong">
+                                {{ $bien->titre ?? 'Bien' }}
+                            </span>
+                            @if($bien->adresse)
+                                <span class="ios-cell__sublabel">
+                                    <i class="fa-solid fa-location-dot" style="font-size:11px;margin-right:4px;"></i>
+                                    {{ $bien->adresse }}
+                                </span>
+                            @endif
 
-                @if($bien->adresse)
-                    <div class="bien-info__address">
-                        <i class="fa-solid fa-location-dot"></i>
-                        {{ $bien->adresse }}
+                            <div class="ios-bien-tags">
+                                @if($bien->surface)
+                                    <span class="ios-bien-tag">
+                                        <i class="fa-regular fa-square"></i> {{ $bien->surface }} m²
+                                    </span>
+                                @endif
+                                @if($bien->nombre_chambres)
+                                    <span class="ios-bien-tag">
+                                        <i class="fa-solid fa-bed"></i> {{ $bien->nombre_chambres }} ch.
+                                    </span>
+                                @endif
+                                @if($bien->nombre_salles_bain)
+                                    <span class="ios-bien-tag">
+                                        <i class="fa-solid fa-bath"></i> {{ $bien->nombre_salles_bain }} sdb
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            {{-- ═══ ACTIONS ═══ --}}
+            <div class="ios-section-header">Actions</div>
+
+            <div class="ios-actions-inline">
+                <a href="{{ route('agence.evaluations.index') }}" class="ios-btn ios-btn--gray">
+                    <i class="fa-solid fa-list"></i> Tous les avis
+                </a>
+                <a href="{{ route('agence.dashboard') }}" class="ios-btn ios-btn--gray">
+                    <i class="fa-solid fa-chart-pie"></i> Tableau de bord
+                </a>
+            </div>
+        </div>
+
+        {{-- ═══ COLONNE LATÉRALE : RÉPONSE ═══ --}}
+        <aside class="ios-avis-layout__side">
+
+            <div class="ios-section-header">Votre réponse</div>
+
+            <div class="ios-group ios-group--padded">
+                @if($hasReponse)
+                    <div class="ios-reponse-existing">
+                        <div class="ios-reponse-existing__head">
+                            <span class="ios-reponse-existing__status">
+                                <i class="fa-solid fa-circle-check"></i> Déjà répondu
+                            </span>
+                            @if($evaluation->date_reponse)
+                                <span class="ios-reponse-existing__date">
+                                    {{ $evaluation->date_reponse->translatedFormat('d F Y') }}
+                                </span>
+                            @endif
+                        </div>
+                        <p class="ios-reponse-existing__text">{{ $evaluation->reponse_agence }}</p>
                     </div>
                 @endif
 
-                <div class="bien-info__details">
-                    @if($bien->surface)
-                        <span class="bien-detail">
-                            <i class="fa-regular fa-square"></i>
-                            {{ $bien->surface }} m²
-                        </span>
-                    @endif
-                    @if($bien->nombre_chambres)
-                        <span class="bien-detail">
-                            <i class="fa-solid fa-bed"></i>
-                            {{ $bien->nombre_chambres }} ch.
-                        </span>
-                    @endif
-                    @if($bien->nombre_salles_bain)
-                        <span class="bien-detail">
-                            <i class="fa-solid fa-bath"></i>
-                            {{ $bien->nombre_salles_bain }} sdb
-                        </span>
-                    @endif
-                </div>
+                <form method="POST"
+                      action="{{ route('agence.evaluations.repondre', $evaluation) }}"
+                      class="ios-response-form">
+                    @csrf
+
+                    <label for="reponse" class="ios-response-form__label">
+                        @if($hasReponse)
+                            Modifier votre réponse <span class="is-required">*</span>
+                        @else
+                            Votre réponse <span class="is-required">*</span>
+                        @endif
+                    </label>
+
+                    <textarea name="reponse"
+                              id="reponse"
+                              rows="4"
+                              required
+                              placeholder="Répondez à l'avis de votre client..."
+                              class="ios-response-form__textarea">{{ old('reponse', $evaluation->reponse_agence) }}</textarea>
+
+                    @error('reponse')
+                        <span class="ios-response-form__error">{{ $message }}</span>
+                    @enderror
+
+                    <div class="ios-response-form__helper">
+                        <i class="fa-regular fa-lightbulb"></i>
+                        <span>Une réponse professionnelle et courtoise montre votre engagement.</span>
+                    </div>
+
+                    <button type="submit" class="ios-btn ios-btn--primary ios-btn--full">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        {{ $hasReponse ? 'Mettre à jour' : 'Envoyer la réponse' }}
+                    </button>
+                </form>
             </div>
-        </section>
-    @endif
+        </aside>
+    </div>
 
-    {{-- ═══════════════════════════════════════════
-         RÉPONSE DE L'AGENCE
-    ═══════════════════════════════════════════ --}}
-    <section class="panel panel--response">
-        <header class="panel__head">
-            <span class="panel__icon">
-                <i class="fa-regular fa-reply"></i>
-            </span>
-            <h4>Votre réponse</h4>
-        </header>
-
-        {{-- Réponse existante --}}
-        @if($hasReponse)
-            <div class="response-existing">
-                <div class="response-existing__head">
-                    <span class="response-existing__status">
-                        <i class="fa-solid fa-circle-check"></i> Déjà répondu
-                    </span>
-                    @if($evaluation->date_reponse)
-                        <span class="response-existing__date">
-                            {{ $evaluation->date_reponse->translatedFormat('d F Y') }}
-                        </span>
-                    @endif
-                </div>
-                <p class="response-existing__text">{{ $evaluation->reponse_agence }}</p>
-            </div>
-        @endif
-
-        {{-- Formulaire (toujours visible) --}}
-        <form method="POST"
-              action="{{ route('agence.evaluations.repondre', $evaluation) }}"
-              class="response-form">
-
-            @csrf
-
-            <label for="reponse" class="response-form__label">
-                @if($hasReponse)
-                    Modifier votre réponse <span class="is-required">*</span>
-                @else
-                    Votre réponse <span class="is-required">*</span>
-                @endif
-            </label>
-
-            <textarea name="reponse"
-                      id="reponse"
-                      rows="4"
-                      required
-                      placeholder="Répondez à l'avis de votre client..."
-                      class="response-form__textarea">{{ old('reponse', $evaluation->reponse_agence) }}</textarea>
-
-            @error('reponse')
-                <span class="response-form__error">{{ $message }}</span>
-            @enderror
-
-            <div class="response-form__helper">
-                <i class="fa-regular fa-lightbulb"></i>
-                <span>Une réponse professionnelle et courtoise montre votre engagement envers vos clients.</span>
-            </div>
-
-            <div class="response-form__actions">
-                <button type="submit" class="btn btn-rust">
-                    <i class="fa-solid fa-paper-plane"></i>
-                    {{ $hasReponse ? 'Mettre à jour' : 'Envoyer la réponse' }}
-                </button>
-            </div>
-        </form>
-    </section>
-
-    {{-- ═══════════════════════════════════════════
-         FOOTER
-    ═══════════════════════════════════════════ --}}
-    <footer class="avis-actions">
-        <a href="{{ route('agence.evaluations.index') }}" class="btn btn-ghost">
-            <i class="fa-solid fa-list"></i> Tous les avis
-        </a>
-        <a href="{{ route('agence.dashboard') }}" class="btn btn-ghost avis-actions__right">
-            <i class="fa-solid fa-chart-pie"></i> Tableau de bord
-        </a>
-    </footer>
 </div>
 @endsection
 
@@ -210,269 +195,300 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   PAGE DÉTAIL AVIS
+   DÉTAIL AVIS — iOS NATIVE
    ═══════════════════════════════════════════════════════════ */
 
-.avis-show {
-    --c-warning:    #E65100;
-    --c-warning-bg: #FFF8E1;
-    --c-success:    #1E7A47;
-    --c-success-bg: #E8F5E9;
-    --c-danger:     #C62828;
-    --c-danger-bg:  #FFEBEE;
-    --c-info:       #0D47A1;
-    --c-info-bg:    #E3F2FD;
-    --c-gold:       #F5A623;
-    --surface:      #F7F9FC;
-    --radius:       14px;
+.ios-avis-show {
+    --ios-blue:      #007AFF;
+    --ios-green:     #34C759;
+    --ios-red:       #FF3B30;
+    --ios-orange:    #FF9500;
+    --ios-yellow:    #FFCC00;
+    --ios-gray:      #8E8E93;
+    --ios-gray-3:    #C7C7CC;
+    --ios-gray-5:    #E5E5EA;
+    --ios-gray-6:    #F2F2F7;
+
+    --ios-bg:        #F2F2F7;
+    --ios-card:      #FFFFFF;
+    --ios-label:     #000000;
+    --ios-label-2:   rgba(60, 60, 67, 0.6);
+    --ios-label-3:   rgba(60, 60, 67, 0.3);
+    --ios-separator: rgba(60, 60, 67, 0.29);
+
+    --ios-radius:    10px;
+    --ios-radius-lg: 12px;
+
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    background: var(--ios-bg);
+    padding-bottom: 40px;
 }
 
-.avis-show__back { margin-bottom: 16px; }
-
-/* ═══════════════════════════════════════════
-   HERO CLIENT
-   ═══════════════════════════════════════════ */
-.avis-hero {
+/* ═══ HERO CLIENT ═══ */
+.ios-avis-hero {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 20px;
-    padding: 20px 24px;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    margin-bottom: 14px;
+    padding: 22px 26px;
+    background: var(--ios-card);
+    border-radius: var(--ios-radius-lg);
+    margin-bottom: 22px;
     flex-wrap: wrap;
     position: relative;
     overflow: hidden;
 }
-.avis-hero::before {
+.ios-avis-hero::before {
     content: '';
     position: absolute;
     top: 0; left: 0;
     width: 5px;
     height: 100%;
 }
-.avis-hero--positif::before { background: var(--c-success); }
-.avis-hero--neutre::before  { background: var(--c-warning); }
-.avis-hero--negatif::before { background: var(--c-danger); }
+.ios-avis-hero--positif::before { background: var(--ios-green); }
+.ios-avis-hero--neutre::before  { background: var(--ios-orange); }
+.ios-avis-hero--negatif::before { background: var(--ios-red); }
 
-.avis-hero__client {
+.ios-avis-hero__client {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 16px;
     min-width: 0;
     flex: 1;
 }
 
-.avis-hero__avatar {
-    width: 60px;
-    height: 60px;
+.ios-avis-hero__avatar {
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: var(--display);
-    font-size: 24px;
-    font-weight: 700;
+    font-size: 26px;
+    font-weight: 600;
     color: #fff;
     flex-shrink: 0;
     box-shadow: 0 6px 16px rgba(0, 0, 0, .12);
+    letter-spacing: -0.5px;
 }
-.avis-hero__avatar--positif { background: linear-gradient(135deg, var(--c-success), #2E9B5F); }
-.avis-hero__avatar--neutre  { background: linear-gradient(135deg, var(--c-warning), #F57C00); }
-.avis-hero__avatar--negatif { background: linear-gradient(135deg, var(--c-danger), #E53935); }
+.ios-avis-hero__avatar--positif { background: linear-gradient(135deg, #34C759, #2E9B5F); }
+.ios-avis-hero__avatar--neutre  { background: linear-gradient(135deg, #FF9500, #F57C00); }
+.ios-avis-hero__avatar--negatif { background: linear-gradient(135deg, #FF3B30, #E53935); }
 
-.avis-hero__identity { min-width: 0; }
-.avis-hero__name {
-    font-family: var(--display);
-    font-size: 20px;
+.ios-avis-hero__identity { min-width: 0; }
+.ios-avis-hero__name {
+    font-size: 22px;
     font-weight: 700;
-    margin: 0 0 4px;
-    color: var(--text);
+    margin: 0 0 5px;
+    color: var(--ios-label);
     line-height: 1.2;
+    letter-spacing: -0.4px;
 }
-.avis-hero__date {
+.ios-avis-hero__date {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    font-size: 12.5px;
-    color: var(--muted);
+    gap: 6px;
+    font-size: 13px;
+    color: var(--ios-label-2);
+    letter-spacing: -0.1px;
 }
-.avis-hero__date i { font-size: 11px; opacity: .8; }
+.ios-avis-hero__date i { font-size: 12px; opacity: .8; }
 
-.avis-hero__rating {
+.ios-avis-hero__rating {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 5px;
+    gap: 6px;
     flex-shrink: 0;
 }
-.avis-hero__stars {
+.ios-avis-hero__stars {
     display: inline-flex;
-    gap: 3px;
+    gap: 4px;
 }
-.avis-hero__stars .fa-star {
-    font-size: 20px;
-    color: #D4D8E0;
+.ios-avis-hero__stars .fa-star {
+    font-size: 22px;
+    color: var(--ios-gray-3);
     transition: color .2s;
 }
-.avis-hero__stars .fa-star.is-on {
-    color: var(--c-gold);
-    filter: drop-shadow(0 2px 4px rgba(245, 166, 35, .35));
+.ios-avis-hero__stars .fa-star.is-on {
+    color: var(--ios-yellow);
+    filter: drop-shadow(0 2px 4px rgba(255, 204, 0, .35));
 }
 
-.avis-hero__score {
-    font-family: var(--display);
-    font-size: 22px;
+.ios-avis-hero__score {
+    font-size: 24px;
     font-weight: 800;
     line-height: 1;
+    letter-spacing: -0.5px;
 }
-.avis-hero__score small {
-    font-size: 13px;
+.ios-avis-hero__score small {
+    font-size: 14px;
     font-weight: 600;
     opacity: .6;
     margin-left: 2px;
 }
-.avis-hero__rating--positif .avis-hero__score { color: var(--c-success); }
-.avis-hero__rating--neutre  .avis-hero__score { color: var(--c-warning); }
-.avis-hero__rating--negatif .avis-hero__score { color: var(--c-danger); }
+.ios-avis-hero__rating--positif .ios-avis-hero__score { color: var(--ios-green); }
+.ios-avis-hero__rating--neutre  .ios-avis-hero__score { color: var(--ios-orange); }
+.ios-avis-hero__rating--negatif .ios-avis-hero__score { color: var(--ios-red); }
 
-/* ═══════════════════════════════════════════
-   PANNEAUX
-   ═══════════════════════════════════════════ */
-.panel {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 22px;
-    margin-bottom: 14px;
+/* ═══ LAYOUT 2 COLONNES (desktop) ═══ */
+.ios-avis-layout {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 22px;
+    align-items: start;
 }
+.ios-avis-layout__main { min-width: 0; }
+.ios-avis-layout__side { min-width: 0; }
 
-.panel__head {
+/* ═══ SECTION HEADER ═══ */
+.ios-section-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 14px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--ios-label-2);
+    margin: 24px 0 8px;
+    padding: 0 4px;
 }
-.panel__icon {
-    display: inline-flex;
+.ios-section-header:first-child { margin-top: 0; }
+
+/* ═══ GROUPED LIST ═══ */
+.ios-group {
+    background: var(--ios-card);
+    border-radius: var(--ios-radius-lg);
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+.ios-group--padded { padding: 18px; }
+
+.ios-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 16px;
+    min-height: 44px;
+    position: relative;
+    background: var(--ios-card);
+    transition: background 0.1s;
+}
+.ios-cell + .ios-cell::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 16px;
+    right: 0;
+    height: 0.5px;
+    background: var(--ios-separator);
+}
+.ios-cell--stacked { align-items: flex-start; padding: 16px 18px; }
+
+.ios-cell__icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
-    background: var(--c-warning-bg);
-    color: var(--rust);
-    font-size: 14px;
     flex-shrink: 0;
-}
-.panel__head h4 {
-    font-family: var(--display);
     font-size: 15px;
-    font-weight: 700;
-    margin: 0;
-    color: var(--text);
+    color: #fff;
+}
+.ios-cell__icon--blue   { background: var(--ios-blue); }
+.ios-cell__icon--green  { background: var(--ios-green); }
+.ios-cell__icon--orange { background: var(--ios-orange); }
+.ios-cell__icon--red    { background: var(--ios-red); }
+.ios-cell__icon--gray   { background: var(--ios-gray); }
+.ios-cell__icon--rust   { background: #B4532A; }
+
+.ios-cell__body {
     flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.ios-cell__label {
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--ios-label);
+    letter-spacing: -0.2px;
+}
+.ios-cell__label--strong { font-weight: 600; font-size: 16px; }
+.ios-cell__sublabel {
+    font-size: 13.5px;
+    color: var(--ios-label-2);
+    letter-spacing: -0.1px;
 }
 
-/* ═══ Commentaire ═══ */
-.comment-block {
-    position: relative;
-    padding: 16px 20px 16px 24px;
-    border-radius: 12px;
-    background: var(--surface);
-    font-size: 14.5px;
-    line-height: 1.75;
-    color: var(--text);
+/* ═══ COMMENTAIRE ═══ */
+.ios-comment {
+    font-size: 15.5px;
+    line-height: 1.65;
+    color: var(--ios-label);
     font-style: italic;
     margin: 0;
-    border-left: 4px solid var(--muted);
+    padding: 4px 0 4px 14px;
+    border-left: 3px solid var(--ios-gray-3);
+    letter-spacing: -0.1px;
 }
-.comment-block--positif {
-    background: linear-gradient(135deg, rgba(30, 122, 71, .06), rgba(30, 122, 71, .02));
-    border-left-color: var(--c-success);
-}
-.comment-block--neutre {
-    background: linear-gradient(135deg, rgba(230, 81, 0, .06), rgba(230, 81, 0, .02));
-    border-left-color: var(--c-warning);
-}
-.comment-block--negatif {
-    background: linear-gradient(135deg, rgba(198, 40, 40, .06), rgba(198, 40, 40, .02));
-    border-left-color: var(--c-danger);
-}
+.ios-comment--positif { border-left-color: var(--ios-green); }
+.ios-comment--neutre  { border-left-color: var(--ios-orange); }
+.ios-comment--negatif { border-left-color: var(--ios-red); }
 
-.comment-empty {
+.ios-comment-empty {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 16px 20px;
-    background: var(--surface);
-    border-radius: 12px;
-    border: 1px dashed var(--border);
-    color: var(--muted);
-    font-size: 13.5px;
+    padding: 4px 0;
+    color: var(--ios-label-3);
+    font-size: 14px;
     font-style: italic;
+    margin: 0;
+    line-height: 1.5;
 }
-.comment-empty i {
+.ios-comment-empty i {
     font-size: 18px;
-    opacity: .5;
+    opacity: 0.6;
 }
 
-/* ═══ Bien ═══ */
-.bien-info {
-    padding: 14px 18px;
-    background: var(--surface);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-}
-.bien-info__title {
-    font-family: var(--display);
-    font-size: 15px;
-    font-weight: 700;
-    margin: 0 0 6px;
-    color: var(--text);
-}
-.bien-info__address {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 10px;
-}
-.bien-info__address i { color: var(--rust); font-size: 12px; }
-
-.bien-info__details {
+/* ═══ BIEN TAGS ═══ */
+.ios-bien-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px 16px;
+    gap: 6px;
+    margin-top: 8px;
 }
-.bien-detail {
+.ios-bien-tag {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 11px;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-soft);
+    gap: 5px;
+    padding: 5px 12px;
+    background: var(--ios-gray-6);
+    border-radius: 100px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ios-label-2);
+    letter-spacing: -0.1px;
 }
-.bien-detail i { color: var(--rust); font-size: 11px; }
+.ios-bien-tag i { color: #B4532A; font-size: 11px; }
 
-/* ═══ Réponse ═══ */
-.response-existing {
+/* ═══ RÉPONSE EXISTANTE ═══ */
+.ios-reponse-existing {
     padding: 14px 16px;
-    background: var(--c-info-bg);
+    background: rgba(0, 122, 255, 0.08);
     border-radius: 10px;
-    border-left: 3px solid var(--c-info);
+    border-left: 3px solid var(--ios-blue);
     margin-bottom: 16px;
 }
-.response-existing__head {
+.ios-reponse-existing__head {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -480,193 +496,225 @@
     margin-bottom: 6px;
     flex-wrap: wrap;
 }
-.response-existing__status {
+.ios-reponse-existing__status {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: .3px;
-    color: var(--c-info);
+    letter-spacing: 0.4px;
+    color: var(--ios-blue);
 }
-.response-existing__status i { font-size: 12px; }
+.ios-reponse-existing__status i { font-size: 12px; }
 
-.response-existing__date {
+.ios-reponse-existing__date {
     font-size: 11.5px;
-    color: var(--muted);
+    color: var(--ios-label-2);
     font-weight: 500;
 }
 
-.response-existing__text {
+.ios-reponse-existing__text {
     font-size: 14px;
-    line-height: 1.65;
-    color: var(--text-soft);
+    line-height: 1.55;
+    color: var(--ios-label);
     margin: 0;
+    letter-spacing: -0.1px;
 }
 
-/* ═══ Formulaire réponse ═══ */
-.response-form {
+/* ═══ FORMULAIRE ═══ */
+.ios-response-form {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
 }
-.response-form__label {
+.ios-response-form__label {
     font-size: 13px;
-    font-weight: 700;
-    color: var(--text-soft);
+    font-weight: 600;
+    color: var(--ios-label-2);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
 }
-.is-required {
-    color: var(--rust);
-    margin-left: 2px;
-}
-.response-form__textarea {
+.is-required { color: #B4532A; margin-left: 2px; }
+
+.ios-response-form__textarea {
     width: 100%;
-    padding: 12px 14px;
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    font-size: 13.5px;
+    padding: 14px 16px;
+    border: 1px solid var(--ios-separator);
+    border-radius: 12px;
+    font-size: 15px;
     font-family: inherit;
-    line-height: 1.6;
+    line-height: 1.5;
     resize: vertical;
-    min-height: 100px;
+    min-height: 130px;
     transition: border .2s, box-shadow .2s;
-    color: var(--text);
-    background: #fff;
+    color: var(--ios-label);
+    background: var(--ios-gray-6);
+    letter-spacing: -0.1px;
 }
-.response-form__textarea:focus {
+.ios-response-form__textarea:focus {
     outline: none;
-    border-color: var(--rust);
-    box-shadow: 0 0 0 3px rgba(180, 83, 42, .1);
+    border-color: var(--ios-blue);
+    background: var(--ios-card);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
 }
-.response-form__error {
+.ios-response-form__textarea::placeholder {
+    color: var(--ios-label-3);
+}
+
+.ios-response-form__error {
     display: block;
-    color: var(--c-danger);
-    font-size: 12px;
+    color: var(--ios-red);
+    font-size: 12.5px;
     font-weight: 500;
+    padding: 0 4px;
 }
-.response-form__helper {
+.ios-response-form__helper {
     display: flex;
     align-items: flex-start;
     gap: 8px;
     padding: 10px 12px;
-    background: var(--c-warning-bg);
-    border-radius: 8px;
+    background: rgba(255, 204, 0, 0.12);
+    border-radius: 10px;
     font-size: 12.5px;
     color: #8B4B15;
-    line-height: 1.5;
+    line-height: 1.45;
+    letter-spacing: -0.1px;
 }
-.response-form__helper i {
-    color: var(--c-gold);
+.ios-response-form__helper i {
+    color: var(--ios-yellow);
     font-size: 13px;
     flex-shrink: 0;
     margin-top: 1px;
 }
-.response-form__actions {
+
+/* ═══ ACTIONS INLINE (desktop) ═══ */
+.ios-actions-inline {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
-    margin-top: 4px;
 }
 
-/* ═══ Footer ═══ */
-.avis-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 14px 18px;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    flex-wrap: wrap;
-}
-.avis-actions__right { margin-left: auto; }
-
-/* ═══ Boutons ═══ */
-.btn {
+/* ═══ BOUTONS iOS ═══ */
+.ios-btn {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    padding: 8px 16px;
-    border-radius: 10px;
-    font-size: 12.5px;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 20px;
+    border-radius: var(--ios-radius-lg);
+    font-size: 16px;
     font-weight: 600;
-    text-decoration: none;
-    border: 1px solid transparent;
-    cursor: pointer;
     font-family: inherit;
-    transition: all .2s ease;
+    letter-spacing: -0.2px;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: opacity 0.1s, transform 0.1s;
     white-space: nowrap;
+    min-height: 48px;
 }
-.btn-rust {
-    background: var(--rust);
-    color: #fff;
-    border-color: var(--rust);
-}
-.btn-rust:hover {
-    background: #9A4523;
-    color: #fff;
-    border-color: #9A4523;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(180, 83, 42, .25);
-}
-.btn-ghost {
-    background: transparent;
-    color: var(--text-soft);
-    border-color: var(--border);
-}
-.btn-ghost:hover {
-    background: var(--surface);
-    border-color: var(--rust);
-    color: var(--rust);
-}
-.btn-sm { padding: 6px 13px; font-size: 12px; }
+.ios-btn:active { transform: scale(0.98); opacity: 0.85; }
+
+.ios-btn--primary { background: #B4532A; color: #fff; }
+.ios-btn--primary:hover { background: #9A4523; }
+.ios-btn--gray    { background: var(--ios-gray-5); color: var(--ios-blue); }
+.ios-btn--gray:hover { background: #D8D8DD; }
+.ios-btn--full    { width: 100%; }
 
 /* ═══════════════════════════════════════════════════════════
    RESPONSIVE
    ═══════════════════════════════════════════════════════════ */
 
-@media (max-width: 768px) {
-    .avis-hero {
+/* Desktop : conteneur large */
+@media (min-width: 1101px) {
+    .ios-avis-show {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 8px 0 40px;
+    }
+}
+
+/* Tablette : 1 colonne */
+@media (max-width: 1100px) and (min-width: 821px) {
+    .ios-avis-layout {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .ios-avis-show {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 8px 0 40px;
+    }
+}
+
+/* Mobile iOS */
+@media (max-width: 820px) {
+
+    .ios-avis-show {
+        margin: 0 -16px;
+        padding: 0 16px 40px;
+    }
+
+    .ios-avis-layout {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    .ios-avis-layout__main,
+    .ios-avis-layout__side {
+        display: contents;
+    }
+
+    .ios-avis-hero {
         flex-direction: column;
         align-items: flex-start;
         padding: 18px;
         gap: 14px;
     }
-    .avis-hero__rating {
+    .ios-avis-hero__rating {
         align-items: flex-start;
         width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
     }
-    .avis-hero__stars .fa-star { font-size: 17px; }
-    .avis-hero__score { font-size: 19px; }
+    .ios-avis-hero__stars .fa-star { font-size: 18px; }
+    .ios-avis-hero__score { font-size: 20px; }
 
-    .panel { padding: 16px; }
-
-    .comment-block { font-size: 13.5px; padding: 14px 16px 14px 20px; }
-
-    .response-form__actions { flex-direction: column; }
-    .response-form__actions .btn { width: 100%; justify-content: center; }
-
-    .avis-actions { flex-direction: column; align-items: stretch; }
-    .avis-actions .btn { width: 100%; justify-content: center; }
-    .avis-actions__right { margin-left: 0; }
+    .ios-actions-inline {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .ios-actions-inline .ios-btn {
+        width: 100%;
+        flex: 0 0 auto;
+    }
 }
 
 @media (max-width: 480px) {
-    .avis-hero { padding: 16px; }
-    .avis-hero__avatar { width: 50px; height: 50px; font-size: 20px; }
-    .avis-hero__name { font-size: 17px; }
-    .avis-hero__stars .fa-star { font-size: 15px; }
+    .ios-avis-hero { padding: 16px; }
+    .ios-avis-hero__avatar { width: 54px; height: 54px; font-size: 21px; }
+    .ios-avis-hero__name { font-size: 19px; }
+    .ios-avis-hero__stars .fa-star { font-size: 17px; }
+    .ios-avis-hero__score { font-size: 20px; }
 
-    .panel { padding: 14px; }
-    .panel__head h4 { font-size: 14px; }
+    .ios-comment { font-size: 14px; }
+    .ios-bien-tag { font-size: 11.5px; padding: 3px 10px; }
 
-    .comment-block { font-size: 13px; }
-    .bien-info { padding: 12px 14px; }
-    .bien-info__title { font-size: 14px; }
-    .bien-detail { font-size: 11.5px; padding: 3px 9px; }
+    .ios-response-form__textarea {
+        font-size: 14px;
+        min-height: 110px;
+    }
+    .ios-btn { font-size: 15px; padding: 13px 18px; }
+}
 
-    .btn { font-size: 12px; padding: 7px 13px; }
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 </style>
 @endpush

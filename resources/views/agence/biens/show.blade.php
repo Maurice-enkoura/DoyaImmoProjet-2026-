@@ -19,7 +19,6 @@
 
         $lightboxImages = $images->map(fn($m) => asset('storage/' . $m->fichier))->values()->all();
 
-        // Équipements supplémentaires
         $extraEquip = collect();
         if ($bien->climatisation) $extraEquip->push(['icon' => 'fa-snowflake', 'label' => 'Climatisation']);
         if ($bien->balcon)        $extraEquip->push(['icon' => 'fa-door-open', 'label' => 'Balcon']);
@@ -29,21 +28,9 @@
         if ($bien->securite)      $extraEquip->push(['icon' => 'fa-shield-halved', 'label' => 'Sécurité 24h/24']);
     @endphp
 
-    {{-- ═══════════════════════════════════════════
-         RETOUR
-    ═══════════════════════════════════════════ --}}
-    <div class="bien-show__back">
-        <a href="{{ route('agence.biens.index') }}" class="btn btn-ghost btn-sm">
-            <i class="fa-solid fa-arrow-left"></i> Retour à mes biens
-        </a>
-    </div>
-
-    {{-- ═══════════════════════════════════════════
-         HERO VISUEL
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ HERO VISUEL ═══ --}}
     <header class="bien-hero {{ $isVedette ? 'is-vedette' : '' }}">
 
-        {{-- Image hero --}}
         <div class="bien-hero__media"
              @if($heroImage) onclick="openLightbox(0)" @endif>
             @if($heroImage)
@@ -54,7 +41,6 @@
                 </div>
             @endif
 
-            {{-- Badges --}}
             @if($isVedette)
                 <span class="hero-badge hero-badge--gold">
                     <i class="fa-solid fa-star"></i> Vedette
@@ -66,7 +52,6 @@
                 {{ $isDispo ? 'Disponible' : 'Indisponible' }}
             </span>
 
-            {{-- Compteur médias --}}
             @if($images->count() > 1 || $videos->count() > 0)
                 <span class="hero-badge hero-badge--count">
                     @if($images->count() > 0)
@@ -78,7 +63,6 @@
                 </span>
             @endif
 
-            {{-- Overlay avec infos --}}
             <div class="bien-hero__overlay">
                 <h1 class="bien-hero__title">{{ $bien->titre }}</h1>
 
@@ -109,9 +93,7 @@
         </div>
     </header>
 
-    {{-- ═══════════════════════════════════════════
-         STATS RAPIDES
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ STATS RAPIDES ═══ --}}
     <section class="quick-stats">
         <div class="quick-stat">
             <div class="quick-stat__icon">
@@ -139,240 +121,216 @@
                     <i class="fa-solid fa-star"></i>
                 </div>
                 <div class="quick-stat__content">
-                    <span class="quick-stat__value">{{ $bien->vedette_jours_restants ?? 0 }} jour(s)</span>
-                    <span class="quick-stat__label">vedette restante</span>
+                    <span class="quick-stat__value">{{ $bien->vedette_jours_restants ?? 0 }} j</span>
+                    <span class="quick-stat__label">vedette</span>
                 </div>
             </div>
         @endif
     </section>
 
-    {{-- ═══════════════════════════════════════════
-         GALERIE
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ GALERIE ═══ --}}
     @if($images->count() > 0 || $videos->count() > 0)
-        <section class="panel">
-            <header class="panel__head">
-                <span class="panel__icon">
-                    <i class="fa-regular fa-images"></i>
-                </span>
-                <h4>Galerie</h4>
-                <span class="panel__count">
-                    {{ $images->count() }} photo{{ $images->count() > 1 ? 's' : '' }}
-                    @if($videos->count() > 0)
-                        · {{ $videos->count() }} vidéo{{ $videos->count() > 1 ? 's' : '' }}
-                    @endif
-                </span>
-            </header>
+        <div class="ios-section-title">
+            <i class="fa-regular fa-images"></i> Galerie
+            <span class="ios-section-count">
+                {{ $images->count() }}
+                @if($videos->count() > 0)
+                    · {{ $videos->count() }} vidéo
+                @endif
+            </span>
+        </div>
 
-            @if($images->count() > 0)
-                <div class="gallery-grid">
-                    @foreach($images as $index => $media)
-                        @php $url = asset('storage/' . $media->fichier); @endphp
-                        <div class="gallery-item {{ $index === 0 ? 'gallery-item--hero' : '' }}"
-                             onclick="openLightbox({{ $index }})">
-                            <img src="{{ $url }}" alt="Photo du bien" loading="lazy">
-                            <div class="gallery-item__overlay">
-                                <i class="fa-solid fa-magnifying-glass-plus"></i>
-                            </div>
+        @if($images->count() > 0)
+            <div class="gallery-grid">
+                @foreach($images as $index => $media)
+                    @php $url = asset('storage/' . $media->fichier); @endphp
+                    <div class="gallery-item" onclick="openLightbox({{ $index }})">
+                        <img src="{{ $url }}" alt="Photo du bien" loading="lazy">
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+        @if($videos->count() > 0)
+            <div class="video-section">
+                <div class="video-grid">
+                    @foreach($videos as $media)
+                        <div class="video-tile">
+                            <video src="{{ asset('storage/' . $media->fichier) }}" controls preload="metadata">
+                                Votre navigateur ne supporte pas la vidéo.
+                            </video>
                         </div>
                     @endforeach
                 </div>
-            @endif
-
-            @if($videos->count() > 0)
-                <div class="video-section">
-                    <h5 class="video-section__title">
-                        <i class="fa-regular fa-circle-play"></i>
-                        Vidéos
-                    </h5>
-                    <div class="video-grid">
-                        @foreach($videos as $media)
-                            <div class="video-tile">
-                                <video src="{{ asset('storage/' . $media->fichier) }}" controls preload="metadata">
-                                    Votre navigateur ne supporte pas la vidéo.
-                                </video>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
-        </section>
+            </div>
+        @endif
     @endif
 
-    {{-- ═══════════════════════════════════════════
-         CARACTÉRISTIQUES
-    ═══════════════════════════════════════════ --}}
-    <section class="panel">
-        <header class="panel__head">
-            <span class="panel__icon">
-                <i class="fa-regular fa-house"></i>
-            </span>
-            <h4>Caractéristiques</h4>
-        </header>
+    {{-- ═══ CARACTÉRISTIQUES ═══ --}}
+    <div class="ios-section-title">
+        <i class="fa-regular fa-house"></i> Caractéristiques
+    </div>
 
-        <div class="info-grid">
-            <div class="info-grid__item">
-                <span class="info-grid__label">Type</span>
-                <span class="info-grid__value">{{ $bien->type_bien->label() }}</span>
+    <div class="ios-list">
+        <div class="ios-list__item ios-list__item--static">
+            <div class="ios-list__content">
+                <span class="ios-list__title">Type</span>
             </div>
-            <div class="info-grid__item">
-                <span class="info-grid__label">Contrat</span>
-                <span class="info-grid__value">{{ $bien->type_contrat->label() }}</span>
-            </div>
-            <div class="info-grid__item info-grid__item--accent">
-                <span class="info-grid__label">Prix</span>
-                <span class="info-grid__value info-grid__value--prix">
-                    {{ number_format($bien->prix, 0, ',', ' ') }}
-                    <small>FCFA</small>
-                </span>
-            </div>
-            <div class="info-grid__item">
-                <span class="info-grid__label">Surface</span>
-                <span class="info-grid__value">{{ $bien->surface }} m²</span>
-            </div>
-            @if($bien->nombre_chambres > 0)
-                <div class="info-grid__item">
-                    <span class="info-grid__label">Chambres</span>
-                    <span class="info-grid__value">{{ $bien->nombre_chambres }}</span>
-                </div>
-            @endif
-            @if($bien->nombre_salles_bain > 0)
-                <div class="info-grid__item">
-                    <span class="info-grid__label">Salles de bain</span>
-                    <span class="info-grid__value">{{ $bien->nombre_salles_bain }}</span>
-                </div>
-            @endif
-            <div class="info-grid__item">
-                <span class="info-grid__label">Parking</span>
-                <span class="info-grid__value">
-                    <i class="fa-solid {{ $bien->parking_disponible ? 'fa-circle-check is-yes' : 'fa-circle-xmark is-no' }}"></i>
-                    {{ $bien->parking_disponible ? 'Disponible' : 'Non' }}
-                </span>
-            </div>
-            <div class="info-grid__item">
-                <span class="info-grid__label">Meublé</span>
-                <span class="info-grid__value">
-                    <i class="fa-solid {{ $bien->est_meuble ? 'fa-circle-check is-yes' : 'fa-circle-xmark is-no' }}"></i>
-                    {{ $bien->est_meuble ? 'Oui' : 'Non' }}
-                </span>
-            </div>
+            <span class="ios-list__value">{{ $bien->type_bien->label() }}</span>
         </div>
-    </section>
 
-    {{-- ═══════════════════════════════════════════
-         ÉQUIPEMENTS
-    ═══════════════════════════════════════════ --}}
+        <div class="ios-list__item ios-list__item--static">
+            <div class="ios-list__content">
+                <span class="ios-list__title">Contrat</span>
+            </div>
+            <span class="ios-list__value">{{ $bien->type_contrat->label() }}</span>
+        </div>
+
+        <div class="ios-list__item ios-list__item--static">
+            <div class="ios-list__content">
+                <span class="ios-list__title">Prix</span>
+            </div>
+            <span class="ios-list__value ios-list__value--rust">
+                {{ number_format($bien->prix, 0, ',', ' ') }} FCFA
+            </span>
+        </div>
+
+        <div class="ios-list__item ios-list__item--static">
+            <div class="ios-list__content">
+                <span class="ios-list__title">Surface</span>
+            </div>
+            <span class="ios-list__value">{{ $bien->surface }} m²</span>
+        </div>
+
+        @if($bien->nombre_chambres > 0)
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Chambres</span>
+                </div>
+                <span class="ios-list__value">{{ $bien->nombre_chambres }}</span>
+            </div>
+        @endif
+
+        @if($bien->nombre_salles_bain > 0)
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Salles de bain</span>
+                </div>
+                <span class="ios-list__value">{{ $bien->nombre_salles_bain }}</span>
+            </div>
+        @endif
+
+        <div class="ios-list__item ios-list__item--static">
+            <div class="ios-list__content">
+                <span class="ios-list__title">Parking</span>
+            </div>
+            <span class="ios-list__value">
+                <i class="fa-solid {{ $bien->parking_disponible ? 'fa-circle-check is-yes' : 'fa-circle-xmark is-no' }}"></i>
+                {{ $bien->parking_disponible ? 'Oui' : 'Non' }}
+            </span>
+        </div>
+
+        <div class="ios-list__item ios-list__item--static">
+            <div class="ios-list__content">
+                <span class="ios-list__title">Meublé</span>
+            </div>
+            <span class="ios-list__value">
+                <i class="fa-solid {{ $bien->est_meuble ? 'fa-circle-check is-yes' : 'fa-circle-xmark is-no' }}"></i>
+                {{ $bien->est_meuble ? 'Oui' : 'Non' }}
+            </span>
+        </div>
+    </div>
+
+    {{-- ═══ ÉQUIPEMENTS ═══ --}}
     @php $equipements = $bien->equipements ?? []; @endphp
     @if(count($equipements) > 0 || $extraEquip->count() > 0)
-        <section class="panel">
-            <header class="panel__head">
-                <span class="panel__icon">
-                    <i class="fa-solid fa-cogs"></i>
-                </span>
-                <h4>Équipements</h4>
-                <span class="panel__count">
-                    {{ count($equipements) + $extraEquip->count() }}
-                </span>
-            </header>
+        <div class="ios-section-title">
+            <i class="fa-solid fa-cogs"></i> Équipements
+            <span class="ios-section-count">{{ count($equipements) + $extraEquip->count() }}</span>
+        </div>
 
-            <div class="equipements-grid">
-                @foreach($equipements as $equipement)
-                    <span class="equipement-pill">
-                        <i class="fa-solid fa-check"></i>
-                        {{ $equipement }}
-                    </span>
-                @endforeach
+        <div class="equipements-grid">
+            @foreach($equipements as $equipement)
+                <span class="equipement-pill">
+                    <i class="fa-solid fa-check"></i>
+                    {{ $equipement }}
+                </span>
+            @endforeach
 
-                @foreach($extraEquip as $eq)
-                    <span class="equipement-pill">
-                        <i class="fa-solid {{ $eq['icon'] }}"></i>
-                        {{ $eq['label'] }}
-                    </span>
-                @endforeach
-            </div>
-        </section>
+            @foreach($extraEquip as $eq)
+                <span class="equipement-pill">
+                    <i class="fa-solid {{ $eq['icon'] }}"></i>
+                    {{ $eq['label'] }}
+                </span>
+            @endforeach
+        </div>
     @endif
 
-    {{-- ═══════════════════════════════════════════
-         DESCRIPTION
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ DESCRIPTION ═══ --}}
     @if($bien->description)
-        <section class="panel">
-            <header class="panel__head">
-                <span class="panel__icon">
-                    <i class="fa-solid fa-align-left"></i>
-                </span>
-                <h4>Description</h4>
-            </header>
-            <blockquote class="quote-block">
-                {{ $bien->description }}
-            </blockquote>
-        </section>
+        <div class="ios-section-title">
+            <i class="fa-solid fa-align-left"></i> Description
+        </div>
+        <blockquote class="quote-block">
+            {{ $bien->description }}
+        </blockquote>
     @endif
 
-    {{-- ═══════════════════════════════════════════
-         VEDETTE
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ VEDETTE ═══ --}}
     @if($isVedette)
-        <section class="panel panel--vedette">
-            <header class="panel__head">
-                <span class="panel__icon panel__icon--gold">
-                    <i class="fa-solid fa-star"></i>
-                </span>
-                <h4>Statut vedette</h4>
-            </header>
+        <div class="ios-section-title">
+            <i class="fa-solid fa-star"></i> Statut vedette
+        </div>
 
-            <div class="vedette-info">
-                <div class="vedette-info__icon">
-                    <i class="fa-solid fa-star"></i>
-                </div>
-                <div class="vedette-info__content">
-                    <strong>
-                        En vedette jusqu'au
-                        {{ $bien->vedette_fin ? $bien->vedette_fin->format('d/m/Y') : 'Illimité' }}
-                    </strong>
-                    @if(($bien->vedette_jours_restants ?? 0) > 0)
-                        <span>{{ $bien->vedette_jours_restants }} jour(s) restant(s)</span>
-                    @endif
-                </div>
+        <div class="vedette-card">
+            <div class="vedette-card__icon">
+                <i class="fa-solid fa-star"></i>
             </div>
-        </section>
+            <div class="vedette-card__body">
+                <strong>
+                    En vedette jusqu'au
+                    {{ $bien->vedette_fin ? $bien->vedette_fin->format('d/m/Y') : 'Illimité' }}
+                </strong>
+                @if(($bien->vedette_jours_restants ?? 0) > 0)
+                    <span>{{ $bien->vedette_jours_restants }} jour(s) restant(s)</span>
+                @endif
+            </div>
+        </div>
     @endif
 
-    {{-- ═══════════════════════════════════════════
-         ACTIONS
-    ═══════════════════════════════════════════ --}}
-    <footer class="bien-actions">
-        <a href="{{ route('agence.biens.index') }}" class="btn btn-ghost">
-            <i class="fa-solid fa-list"></i> Tous mes biens
+    {{-- ═══ ACTIONS FIXES ═══ --}}
+    <div class="ios-form-actions">
+        <a href="{{ route('agence.biens.edit', $bien->slug) }}" class="ios-btn ios-btn--ghost">
+            <i class="fa-solid fa-pen"></i> Modifier
         </a>
 
-        <div class="bien-actions__main">
-            <a href="{{ route('agence.biens.edit', $bien->slug) }}" class="btn btn-ghost">
-                <i class="fa-solid fa-pen"></i> Modifier
-            </a>
-
-            <form action="{{ route('agence.biens.activer', $bien->slug) }}" method="POST">
+        @if($isDispo)
+            <form action="{{ route('agence.biens.desactiver', $bien->slug) }}" method="POST" class="ios-form-actions__form">
                 @csrf
-                <button type="submit" class="btn {{ $isDispo ? 'btn-ghost-danger' : 'btn-success' }}"
-                        onclick="return confirm('{{ $isDispo ? 'Masquer ce bien ?' : 'Publier ce bien ?' }}')">
-                    <i class="fa-solid {{ $isDispo ? 'fa-eye-slash' : 'fa-eye' }}"></i>
-                    {{ $isDispo ? 'Masquer' : 'Publier' }}
+                <button type="submit" class="ios-btn ios-btn--danger"
+                        onclick="return confirm('Masquer ce bien ?')">
+                    <i class="fa-solid fa-eye-slash"></i> Masquer
                 </button>
             </form>
+        @else
+            <form action="{{ route('agence.biens.activer', $bien->slug) }}" method="POST" class="ios-form-actions__form">
+                @csrf
+                <button type="submit" class="ios-btn ios-btn--success"
+                        onclick="return confirm('Publier ce bien ?')">
+                    <i class="fa-solid fa-eye"></i> Publier
+                </button>
+            </form>
+        @endif
 
-            @if(!$isVedette)
-                <a href="{{ route('agence.biens.vedette.demander', $bien->slug) }}" class="btn btn-gold">
-                    <i class="fa-solid fa-star"></i> Demander vedette
-                </a>
-            @endif
-        </div>
-    </footer>
+        @if(!$isVedette)
+            <a href="{{ route('agence.biens.vedette.demander', $bien->slug) }}" class="ios-btn ios-btn--gold">
+                <i class="fa-solid fa-star"></i> Vedette
+            </a>
+        @endif
+    </div>
 </div>
 
-{{-- ═══════════════════════════════════════════
-     LIGHTBOX avec navigation
-═══════════════════════════════════════════ --}}
+{{-- ═══ LIGHTBOX ═══ --}}
 <div id="lightbox" class="lightbox" onclick="closeLightbox(event)">
     <button type="button" class="lightbox__close" onclick="event.stopPropagation();closeLightbox()" aria-label="Fermer">
         &times;
@@ -465,7 +423,7 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   PAGE DÉTAIL BIEN — Agence
+   DÉTAIL BIEN (Agence) — iOS NATIVE
    ═══════════════════════════════════════════════════════════ */
 
 .bien-show {
@@ -481,9 +439,38 @@
     --c-gold-bg:    #FFF8E1;
     --surface:      #F7F9FC;
     --radius:       14px;
+
+    --ios-bg: #F2F2F7;
+    --ios-card: #FFFFFF;
+    --ios-blue: #007AFF;
+    --ios-label: #000000;
+    --ios-label-2: #3C3C43;
+    --ios-label-3: #8E8E93;
+    --ios-separator: rgba(60, 60, 67, 0.12);
+    --ios-radius-lg: 18px;
 }
 
-.bien-show__back { margin-bottom: 16px; }
+/* ═══ SECTION TITLES ═══ */
+.ios-section-title {
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 22px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.ios-section-title i { color: var(--rust); font-size: 15px; }
+.ios-section-count {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    background: var(--c-warning-bg);
+    color: var(--rust);
+    border-radius: 999px;
+}
 
 /* ═══ HERO ═══ */
 .bien-hero {
@@ -521,7 +508,6 @@
     opacity: .3;
 }
 
-/* Badges hero */
 .hero-badge {
     position: absolute;
     display: inline-flex;
@@ -541,14 +527,12 @@
 .hero-badge i { font-size: 10px; }
 
 .hero-badge--gold {
-    top: 16px;
-    left: 16px;
+    top: 16px; left: 16px;
     background: linear-gradient(135deg, var(--c-gold), #E8901A);
     color: #fff;
 }
 .hero-badge--status {
-    top: 16px;
-    right: 16px;
+    top: 16px; right: 16px;
     background: rgba(255, 255, 255, .95);
 }
 .hero-badge--status i { font-size: 6px; }
@@ -556,18 +540,12 @@
 .hero-badge--status.is-indispo { color: var(--c-danger); }
 
 .hero-badge--count {
-    top: 16px;
-    right: 16px;
-    margin-top: 0;
-}
-.hero-badge--status + .hero-badge--count {
-    top: 56px;
+    top: 56px; right: 16px;
     background: rgba(0, 0, 0, .65);
     color: #fff;
 }
 .hero-badge--count i { font-size: 11px; }
 
-/* Overlay infos */
 .bien-hero__overlay {
     position: absolute;
     bottom: 0; left: 0; right: 0;
@@ -667,11 +645,8 @@
     font-family: var(--display);
     font-size: 16px;
     font-weight: 800;
-    color: var(--text);
+    color: var(--ink);
     line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 .quick-stat--gold .quick-stat__value { color: var(--c-warning); }
 .quick-stat__label {
@@ -682,64 +657,12 @@
     font-weight: 600;
 }
 
-/* ═══ PANNEAUX ═══ */
-.panel {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 22px;
-    margin-bottom: 14px;
-}
-.panel--vedette {
-    background: linear-gradient(135deg, #FFFBF0 0%, #fff 60%);
-    border-color: #FFE0B2;
-}
-
-.panel__head {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 14px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
-}
-.panel__icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px; height: 32px;
-    border-radius: 9px;
-    background: var(--c-warning-bg);
-    color: var(--rust);
-    font-size: 14px;
-    flex-shrink: 0;
-}
-.panel__icon--gold {
-    background: var(--c-gold-bg);
-    color: var(--c-gold);
-}
-.panel__head h4 {
-    font-family: var(--display);
-    font-size: 15px;
-    font-weight: 700;
-    margin: 0;
-    color: var(--text);
-    flex: 1;
-}
-.panel__count {
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 10px;
-    background: var(--c-warning-bg);
-    color: var(--rust);
-    border-radius: 999px;
-}
-
 /* ═══ GALERIE ═══ */
 .gallery-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 8px;
+    margin-bottom: 14px;
 }
 .gallery-item {
     position: relative;
@@ -755,43 +678,14 @@
     transform: scale(1.02);
     box-shadow: 0 6px 16px rgba(0, 0, 0, .1);
 }
-.gallery-item--hero {
-    grid-column: span 2;
-    grid-row: span 2;
-    aspect-ratio: auto;
-}
 .gallery-item img {
     width: 100%; height: 100%;
     object-fit: cover;
     display: block;
 }
-.gallery-item__overlay {
-    position: absolute;
-    inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(0, 0, 0, .4);
-    color: #fff;
-    font-size: 20px;
-    opacity: 0;
-    transition: opacity .2s;
-}
-.gallery-item:hover .gallery-item__overlay { opacity: 1; }
 
 /* Vidéos */
-.video-section { margin-top: 14px; }
-.video-section__title {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 12.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-    color: var(--muted);
-    margin: 0 0 10px;
-}
-.video-section__title i { color: var(--rust); font-size: 13px; }
-
+.video-section { margin-bottom: 14px; }
 .video-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -810,65 +704,55 @@
     display: block;
 }
 
-/* ═══ GRILLE INFOS ═══ */
-.info-grid {
+/* ═══ LISTE iOS ═══ */
+.ios-list {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(2, 1fr);
+    margin-bottom: 14px;
 }
-.info-grid__item {
+.ios-list__item {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 10px 14px;
-    background: var(--surface);
-    border-radius: 8px;
-    border: 1px solid transparent;
-    transition: border-color .2s;
-}
-.info-grid__item:hover { border-color: var(--border); }
-.info-grid__item--accent {
-    background: var(--c-warning-bg);
-    border-color: #FFE0B2;
-}
-.info-grid__label {
-    font-size: 11px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .4px;
-    font-weight: 600;
-}
-.info-grid__value {
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
     font-size: 13.5px;
-    font-weight: 600;
-    color: var(--text);
 }
-.info-grid__value--prix {
-    font-family: var(--display);
-    font-size: 16px;
-    font-weight: 800;
-    color: var(--rust);
+.ios-list__item--static { cursor: default; }
+.ios-list__content { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ios-list__title {
+    font-size: 12.5px;
+    color: var(--muted);
+    font-weight: 500;
 }
-.info-grid__value--prix small {
-    font-size: 11px;
-    font-weight: 600;
-    opacity: .7;
-    margin-left: 2px;
+.ios-list__value {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    text-align: right;
+    flex-shrink: 0;
 }
-.info-grid__value .is-yes { color: var(--c-success); margin-right: 4px; }
-.info-grid__value .is-no  { color: var(--c-danger);  margin-right: 4px; }
+.ios-list__value--rust { color: var(--rust); }
+.ios-list__value .is-yes { color: var(--c-success); margin-right: 4px; }
+.ios-list__value .is-no  { color: var(--c-danger);  margin-right: 4px; }
 
 /* ═══ ÉQUIPEMENTS ═══ */
 .equipements-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    margin-bottom: 14px;
 }
 .equipement-pill {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 5px 13px;
+    padding: 6px 13px;
     background: var(--c-info-bg);
     color: var(--c-info);
     border: 1px solid #BBDEFB;
@@ -878,22 +762,25 @@
 }
 .equipement-pill i { font-size: 11px; }
 
-/* ═══ DESCRIPTION ═══ */
+/* ═══ QUOTE ═══ */
 .quote-block {
     position: relative;
     padding: 14px 18px;
     border-radius: 12px;
     font-size: 13.5px;
     line-height: 1.75;
-    color: var(--text);
-    margin: 0;
+    color: var(--ink);
+    margin: 0 0 14px;
     border-left: 4px solid var(--rust);
-    background: linear-gradient(135deg, rgba(180, 83, 42, .05), rgba(180, 83, 42, .02));
+    background: #fff;
+    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
     font-style: italic;
 }
 
 /* ═══ VEDETTE ═══ */
-.vedette-info {
+.vedette-card {
     display: flex;
     align-items: center;
     gap: 14px;
@@ -901,8 +788,9 @@
     background: var(--c-gold-bg);
     border-radius: 12px;
     border: 1px solid #FFE0B2;
+    margin-bottom: 14px;
 }
-.vedette-info__icon {
+.vedette-card__icon {
     width: 42px; height: 42px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--c-gold), #E8901A);
@@ -912,112 +800,80 @@
     flex-shrink: 0;
     box-shadow: 0 4px 12px rgba(245, 166, 35, .3);
 }
-.vedette-info__content {
+.vedette-card__body {
     display: flex;
     flex-direction: column;
     gap: 2px;
 }
-.vedette-info__content strong {
+.vedette-card__body strong {
     font-size: 14px;
     font-weight: 700;
     color: var(--c-warning);
 }
-.vedette-info__content span {
+.vedette-card__body span {
     font-size: 12px;
     color: var(--c-warning);
     opacity: .85;
 }
 
 /* ═══ ACTIONS ═══ */
-.bien-actions {
+.ios-form-actions {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 14px 18px;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    gap: 10px;
+    padding-top: 20px;
+    margin-top: 20px;
+    border-top: 1px solid var(--border);
     flex-wrap: wrap;
 }
-.bien-actions__main {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-left: auto;
-}
-
-/* ═══ BOUTONS ═══ */
-.btn {
+.ios-form-actions__form { flex: 1; margin: 0; }
+.ios-btn {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    padding: 9px 18px;
-    border-radius: 10px;
-    font-size: 13px;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 14px;
     font-weight: 600;
-    text-decoration: none;
-    border: 1px solid transparent;
-    cursor: pointer;
     font-family: inherit;
-    transition: all .2s ease;
+    cursor: pointer;
+    border: 1px solid transparent;
+    text-decoration: none;
+    transition: all .15s;
     white-space: nowrap;
+    flex: 1;
 }
-.btn-rust {
-    background: var(--rust); color: #fff;
+.ios-btn--primary {
+    background: var(--rust);
+    color: #fff;
     border-color: var(--rust);
+    box-shadow: 0 4px 12px rgba(181,80,42,.2);
 }
-.btn-rust:hover {
-    background: #9A4523; color: #fff;
-    border-color: #9A4523;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(180, 83, 42, .25);
-}
-.btn-ghost {
-    background: transparent;
+.ios-btn--primary:hover { background: #9A4523; transform: translateY(-1px); }
+.ios-btn--ghost {
+    background: #fff;
     color: var(--text-soft);
     border-color: var(--border);
 }
-.btn-ghost:hover {
-    background: var(--surface);
-    border-color: var(--rust);
-    color: var(--rust);
-}
-.btn-ghost-danger {
-    background: transparent;
+.ios-btn--ghost:hover { border-color: var(--rust); color: var(--rust); }
+.ios-btn--danger {
+    background: #fff;
     color: var(--c-danger);
     border-color: #FFCDD2;
 }
-.btn-ghost-danger:hover {
-    background: var(--c-danger-bg);
-    border-color: var(--c-danger);
-}
-.btn-success {
+.ios-btn--danger:hover { background: var(--c-danger-bg); border-color: var(--c-danger); }
+.ios-btn--success {
     background: var(--c-success);
     color: #fff;
     border-color: var(--c-success);
 }
-.btn-success:hover {
-    background: #156A3B;
-    color: #fff;
-    border-color: #156A3B;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(30, 122, 71, .25);
-}
-.btn-gold {
+.ios-btn--success:hover { background: #156A3B; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(30, 122, 71, .25); }
+.ios-btn--gold {
     background: linear-gradient(135deg, var(--c-gold), #E8901A);
     color: #fff;
     border-color: var(--c-gold);
 }
-.btn-gold:hover {
-    background: linear-gradient(135deg, #E8901A, #D57E15);
-    color: #fff;
-    border-color: #E8901A;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(245, 166, 35, .3);
-}
-.btn-sm { padding: 7px 14px; font-size: 12px; }
+.ios-btn--gold:hover { background: linear-gradient(135deg, #E8901A, #D57E15); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(245, 166, 35, .3); }
 
 /* ═══ LIGHTBOX ═══ */
 .lightbox {
@@ -1032,7 +888,6 @@
     animation: fadeIn .2s ease;
 }
 .lightbox.is-open { display: flex; }
-
 .lightbox__figure {
     margin: 0;
     max-width: 92vw;
@@ -1058,7 +913,6 @@
     background: rgba(255, 255, 255, .12);
     border-radius: 999px;
 }
-
 .lightbox__close {
     position: absolute;
     top: 20px; right: 24px;
@@ -1068,18 +922,13 @@
     color: #fff;
     border: none;
     font-size: 26px;
-    line-height: 1;
     cursor: pointer;
-    transition: background .2s, transform .2s;
     display: flex; align-items: center; justify-content: center;
     font-family: sans-serif;
     z-index: 2;
+    transition: all .2s;
 }
-.lightbox__close:hover {
-    background: rgba(255, 255, 255, .25);
-    transform: scale(1.05);
-}
-
+.lightbox__close:hover { background: rgba(255, 255, 255, .25); transform: scale(1.05); }
 .lightbox__nav {
     position: absolute;
     top: 50%;
@@ -1091,90 +940,278 @@
     border: none;
     font-size: 20px;
     cursor: pointer;
-    transition: background .2s, transform .2s;
     display: flex; align-items: center; justify-content: center;
     z-index: 2;
+    transition: all .2s;
 }
-.lightbox__nav:hover {
-    background: rgba(255, 255, 255, .28);
-    transform: translateY(-50%) scale(1.06);
-}
+.lightbox__nav:hover { background: rgba(255, 255, 255, .28); transform: translateY(-50%) scale(1.06); }
 .lightbox__nav--prev { left: 24px; }
 .lightbox__nav--next { right: 24px; }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
 
 /* ═══════════════════════════════════════════════════════════
-   RESPONSIVE
+   📱 MOBILE — iOS NATIVE
    ═══════════════════════════════════════════════════════════ */
+@media (max-width: 820px) {
 
-@media (max-width: 1024px) {
-    .info-grid { grid-template-columns: repeat(2, 1fr); }
-    .gallery-grid { grid-template-columns: repeat(4, 1fr); }
-}
+    .bien-show { background: transparent; padding-top: 4px; }
 
-@media (max-width: 768px) {
-    .bien-hero__media { aspect-ratio: 16 / 9; }
-    .bien-hero__title { font-size: 20px; }
-    .bien-hero__price { font-size: 18px; padding: 6px 14px; }
-    .bien-hero__overlay { padding: 50px 18px 16px; }
-
-    .quick-stat { padding: 8px 12px; min-width: 0; }
-    .quick-stat__icon { width: 32px; height: 32px; font-size: 13px; }
-    .quick-stat__value { font-size: 14px; }
-
-    .panel { padding: 16px; }
-
-    .gallery-grid { grid-template-columns: repeat(3, 1fr); }
-    .gallery-item--hero { grid-column: span 2; grid-row: span 2; }
-
-    .video-grid { grid-template-columns: 1fr; }
-
-    .info-grid { grid-template-columns: 1fr; }
-
-    .bien-actions {
-        flex-direction: column;
-        align-items: stretch;
+    /* ─── SECTION TITLES iOS ─── */
+    .ios-section-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--ios-label);
+        letter-spacing: -.3px;
+        margin: 22px 4px 10px;
     }
-    .bien-actions .btn,
-    .bien-actions form { width: 100%; }
-    .bien-actions form .btn { width: 100%; justify-content: center; }
-    .bien-actions__main { margin-left: 0; flex-direction: column; align-items: stretch; width: 100%; }
-    .bien-actions__main .btn { width: 100%; justify-content: center; }
+    .ios-section-title i { font-size: 15px; color: var(--rust); }
+    .ios-section-count { font-size: 11px; padding: 3px 10px; }
 
+    /* ─── HERO iOS ─── */
+    .bien-hero {
+        border-radius: var(--ios-radius-lg);
+        border: none;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .bien-hero__media { aspect-ratio: 16/9; }
+    .bien-hero.is-vedette {
+        border: none;
+        box-shadow: 0 0 0 2px rgba(245, 166, 35, .3), 0 1px 3px rgba(0,0,0,.04);
+    }
+
+    .hero-badge {
+        font-size: 10.5px;
+        padding: 5px 12px;
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: 600;
+    }
+    .hero-badge--gold { top: 12px; left: 12px; }
+    .hero-badge--status { top: 12px; right: 12px; }
+    .hero-badge--count { top: 52px; right: 12px; }
+
+    .bien-hero__overlay {
+        padding: 60px 18px 18px;
+    }
+    .bien-hero__title {
+        font-size: 22px;
+        letter-spacing: -.4px;
+        margin-bottom: 8px;
+    }
+    .bien-hero__meta {
+        font-size: 13px;
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+    .bien-hero__meta i { font-size: 12px; }
+    .bien-hero__price {
+        font-size: 20px;
+        padding: 7px 16px;
+        border-radius: 10px;
+    }
+    .bien-hero__price small { font-size: 12px; }
+
+    /* ─── STATS iOS ─── */
+    .quick-stats {
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    .quick-stat {
+        background: var(--ios-card);
+        border: none;
+        border-radius: 14px;
+        padding: 12px 14px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        min-width: 0;
+    }
+    .quick-stat__icon {
+        width: 36px; height: 36px;
+        border-radius: 50%;
+        background: var(--rust-soft);
+        color: var(--rust);
+        font-size: 15px;
+    }
+    .quick-stat--gold {
+        background: linear-gradient(135deg, #FFFBF0, var(--c-gold-bg));
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .quick-stat--gold .quick-stat__icon {
+        background: linear-gradient(135deg, var(--c-gold), #E8901A);
+        color: #fff;
+    }
+    .quick-stat__value {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: -.1px;
+    }
+    .quick-stat__label {
+        font-size: 11px;
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: 500;
+    }
+
+    /* ─── GALERIE iOS ─── */
+    .gallery-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    .gallery-item { border-radius: 12px; border: none; }
+
+    .video-grid { grid-template-columns: 1fr; gap: 10px; margin-bottom: 12px; }
+    .video-tile { border-radius: 12px; border: none; }
+
+    /* ─── LISTE iOS ─── */
+    .ios-list {
+        display: block;
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        margin-bottom: 12px;
+    }
+    .ios-list__item {
+        padding: 14px 16px;
+        gap: 12px;
+        border-bottom: 0.5px solid var(--ios-separator);
+        font-size: 15px;
+    }
+    .ios-list__item:last-child { border-bottom: none; }
+    .ios-list__title {
+        font-size: 15px;
+        color: var(--ios-label);
+        font-weight: 500;
+        letter-spacing: -.2px;
+    }
+    .ios-list__value {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--ios-label-3);
+    }
+    .ios-list__value--rust { color: var(--rust); }
+
+    /* ─── ÉQUIPEMENTS iOS ─── */
+    .equipements-grid { gap: 8px; margin-bottom: 12px; }
+    .equipement-pill {
+        background: var(--ios-card);
+        color: var(--ios-label);
+        border: none;
+        padding: 8px 14px;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .equipement-pill i { font-size: 12px; color: var(--c-success); }
+
+    /* ─── QUOTE iOS ─── */
+    .quote-block {
+        background: var(--ios-card);
+        border: none;
+        border-left: 3px solid var(--rust);
+        border-radius: 12px;
+        padding: 16px 18px;
+        font-size: 14px;
+        line-height: 1.65;
+        color: var(--ios-label-2);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        margin-bottom: 12px;
+    }
+
+    /* ─── VEDETTE iOS ─── */
+    .vedette-card {
+        background: var(--ios-card);
+        border: none;
+        border-left: 3px solid var(--c-gold);
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .vedette-card__icon {
+        width: 40px; height: 40px;
+        font-size: 17px;
+    }
+
+    /* ─── ACTIONS FIXES ─── */
+    .ios-form-actions {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(242, 242, 247, 0.95);
+        backdrop-filter: saturate(180%) blur(20px);
+        -webkit-backdrop-filter: saturate(180%) blur(20px);
+        border-top: 0.5px solid var(--ios-separator);
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+        margin: 0;
+        gap: 10px;
+        z-index: 100;
+        border-radius: 0;
+        flex-wrap: nowrap;
+    }
+    .ios-form-actions__form { flex: 1; }
+    .ios-btn {
+        padding: 14px 18px;
+        font-size: 15px;
+        font-weight: 600;
+        border-radius: 14px;
+        flex: 1;
+        letter-spacing: -.1px;
+    }
+    .ios-btn--ghost {
+        background: var(--ios-card);
+        border: none;
+        color: var(--ios-blue);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        flex: 0 0 auto;
+        padding: 14px 16px;
+    }
+    .ios-btn--ghost:active { background: #EFEFF4; }
+    .ios-btn--danger {
+        background: var(--ios-card);
+        border: none;
+        color: var(--c-danger);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .ios-btn--danger:active { background: #FFEBEE; }
+    .ios-btn--success {
+        background: linear-gradient(135deg, var(--c-success), #2E9958);
+        border: none;
+        box-shadow: 0 4px 12px rgba(30, 122, 71, .3);
+    }
+    .ios-btn--gold {
+        background: linear-gradient(135deg, var(--c-gold), #E8901A);
+        border: none;
+        box-shadow: 0 4px 12px rgba(245, 166, 35, .3);
+    }
+
+    /* Padding bottom */
+    .bien-show {
+        padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* ─── LIGHTBOX iOS ─── */
     .lightbox__nav { width: 44px; height: 44px; font-size: 17px; }
     .lightbox__nav--prev { left: 12px; }
     .lightbox__nav--next { right: 12px; }
-    .lightbox__close { top: 12px; right: 12px; width: 38px; height: 38px; font-size: 22px; }
+    .lightbox__close { top: 14px; right: 14px; width: 40px; height: 40px; font-size: 22px; }
 }
 
 @media (max-width: 480px) {
-    .bien-hero__media { aspect-ratio: 4 / 3; }
-    .bien-hero__title { font-size: 17px; }
-    .bien-hero__meta { font-size: 12px; gap: 6px; }
-    .bien-hero__price { font-size: 16px; padding: 5px 12px; }
-    .bien-hero__overlay { padding: 40px 14px 12px; }
-    .hero-badge { font-size: 10px; padding: 4px 10px; }
-    .hero-badge--gold { top: 12px; left: 12px; }
-    .hero-badge--status { top: 12px; right: 12px; }
+    .bien-hero__title { font-size: 20px; }
+    .bien-hero__price { font-size: 18px; }
+    .bien-hero__overlay { padding: 50px 16px 16px; }
 
-    .gallery-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
-    .gallery-item--hero { grid-column: span 2; grid-row: span 2; }
+    .quick-stat { padding: 10px 12px; gap: 8px; }
+    .quick-stat__icon { width: 32px; height: 32px; font-size: 13px; }
+    .quick-stat__value { font-size: 14px; }
 
-    .panel { padding: 14px; }
-    .panel__head h4 { font-size: 14px; }
-
-    .quote-block { padding: 12px 14px; font-size: 13px; }
-
-    .vedette-info { padding: 12px 14px; gap: 10px; }
-    .vedette-info__icon { width: 36px; height: 36px; font-size: 15px; }
-    .vedette-info__content strong { font-size: 13px; }
-    .vedette-info__content span { font-size: 11.5px; }
-
-    .btn { font-size: 12px; padding: 8px 14px; }
+    .ios-section-title { font-size: 16px; }
 }
 </style>
 @endpush

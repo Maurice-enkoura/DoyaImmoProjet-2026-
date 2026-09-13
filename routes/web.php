@@ -200,23 +200,27 @@ Route::middleware(['auth'])->group(function () {
     | ROUTES NOTIFICATIONS (avec le contrôleur)
     |--------------------------------------------------------------------------
     */
-    Route::prefix('notifications')->name('notifications.')->group(function () {
-        Route::get('/', [NotificationController::class, 'index'])->name('index');
-        Route::post('/{id}/read', [NotificationController::class, 'read'])->name('read');
-        Route::post('/read-all', [NotificationController::class, 'readAll'])->name('read-all');
-    });
+   Route::prefix('notifications')->name('notifications.')->group(function () {
+    Route::get('/', [NotificationController::class, 'index'])->name('index');
+
+    // ⚠️ /read-all DOIT être AVANT /{id}/read
+    Route::post('/read-all', [NotificationController::class, 'readAll'])->name('read-all');
+    Route::post('/{id}/read', [NotificationController::class, 'read'])->name('read');
+});
 
     /*
     |--------------------------------------------------------------------------
     | ROUTES API NOTIFICATIONS
     |--------------------------------------------------------------------------
     */
-    Route::prefix('api/notifications')->name('api.notifications.')->group(function () {
-        Route::get('/count', [NotificationController::class, 'count'])->name('count');
-        Route::post('/{id}/read', [NotificationController::class, 'read'])->name('read');
-        Route::post('/read-all', [NotificationController::class, 'readAll'])->name('read-all');
-        Route::get('/new', [NotificationController::class, 'new'])->name('new');
-    });
+  Route::prefix('api/notifications')->name('api.notifications.')->group(function () {
+    Route::get('/count', [NotificationController::class, 'count'])->name('count');
+    Route::get('/new', [NotificationController::class, 'new'])->name('new');
+
+    // ⚠️ /read-all DOIT être AVANT /{id}/read
+    Route::post('/read-all', [NotificationController::class, 'readAll'])->name('read-all');
+    Route::post('/{id}/read', [NotificationController::class, 'read'])->name('read');
+});
 
     /*
     |--------------------------------------------------------------------------

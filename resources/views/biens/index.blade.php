@@ -380,6 +380,29 @@ function toggleMobileFilters() {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   STICKY BAR — STABILISATION
+   Empêche la barre de bouger lors de l'ouverture d'un select natif
+═══════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', function () {
+    const bar = document.getElementById('filtersBar');
+    if (!bar) return;
+
+    document.querySelectorAll('.filter-select, .search-input').forEach(el => {
+        el.addEventListener('focus', () => bar.classList.add('is-interacting'));
+        el.addEventListener('blur', () => bar.classList.remove('is-interacting'));
+        el.addEventListener('change', () => bar.classList.remove('is-interacting'));
+        el.addEventListener('click', () => bar.classList.add('is-interacting'));
+    });
+
+    // Ferme l'état "interacting" si on clique ailleurs
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.filters-bar')) {
+            bar.classList.remove('is-interacting');
+        }
+    });
+});
+
+/* ═══════════════════════════════════════════════════════════
    AUTOCOMPLETE
 ═══════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', function () {
@@ -592,18 +615,34 @@ document.addEventListener('DOMContentLoaded', function () {
     max-width: 540px;
 }
 
-/* ═══ FILTRES STICKY ═══ */
+/* ═══════════════════════════════════════════════════════════
+   FILTRES STICKY — STABILISÉ
+   ═══════════════════════════════════════════════════════════ */
 .filters-bar {
     position: sticky;
     top: 0;
     z-index: 90;
-    background: rgba(255, 255, 255, .96);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: #fff;
     border-bottom: 1px solid var(--border);
     padding: 12px var(--container-pad);
     margin-bottom: 20px;
+    /* Stabilise le rendu : évite le repaint lors de l'ouverture
+       des menus natifs <select> */
+    will-change: auto;
+    contain: layout style;
+    /* Force un nouveau stacking context stable */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
 }
+
+/* Quand un select/input a le focus (menu natif ouvert),
+   on neutralise le sticky pour empêcher tout décalage visuel */
+.filters-bar.is-interacting,
+.filters-bar:focus-within {
+    position: relative;
+    top: auto;
+}
+
 .filters-bar__inner {
     max-width: var(--container-max);
     margin: 0 auto;
@@ -636,7 +675,7 @@ document.addEventListener('DOMContentLoaded', function () {
     font-size: 13.5px;
     font-family: inherit;
     background: #fff;
-    transition: all .2s;
+    transition: border-color .2s, box-shadow .2s;
     -webkit-appearance: none;
     appearance: none;
 }
@@ -653,6 +692,8 @@ document.addEventListener('DOMContentLoaded', function () {
     flex: 1;
     flex-wrap: wrap;
 }
+
+/* ─── SELECT STABILISÉ ─── */
 .filter-select {
     padding: 10px 34px 10px 14px;
     border: 1.5px solid var(--border);
@@ -661,16 +702,21 @@ document.addEventListener('DOMContentLoaded', function () {
     font-weight: 500;
     font-family: inherit;
     color: var(--ink);
-    background: #fff;
+    background-color: #fff;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%238A91A0' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
     -webkit-appearance: none;
     appearance: none;
     cursor: pointer;
-    transition: border-color .2s;
+    transition: border-color .2s, box-shadow .2s;
     min-width: 140px;
     flex: 1;
+    /* Stabilise le rendu natif */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 .filter-select:hover { border-color: #d8d8d8; }
 .filter-select:focus {
@@ -912,7 +958,6 @@ document.addEventListener('DOMContentLoaded', function () {
     letter-spacing: .4px;
     white-space: nowrap;
     box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
-    backdrop-filter: blur(6px);
 }
 .badge i { font-size: 9px; }
 
@@ -946,7 +991,6 @@ document.addEventListener('DOMContentLoaded', function () {
     font-size: 11px;
     font-weight: 600;
     z-index: 3;
-    backdrop-filter: blur(4px);
 }
 
 .bien-card__overlay {

@@ -6,11 +6,11 @@
     <title>Nouvelle proposition — DoyaImmo</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
-    
+
     <div style="background-color: #f4f4f4; padding: 40px 20px;">
         <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.1);">
-            
-            <!-- EN-TÊTE AVEC LOGO -->
+
+            {{-- EN-TÊTE --}}
             <div style="background-color: #1A1A2E; padding: 24px 32px; text-align: center;">
                 <table role="presentation" style="margin: 0 auto; border-collapse: collapse;">
                     <tr>
@@ -27,63 +27,78 @@
                     </tr>
                 </table>
             </div>
-            
-            <!-- CONTENU -->
+
+            {{-- CONTENU --}}
             <div style="padding: 32px;">
-                <h2 style="color: #1A1A2E; margin-top: 0; font-size: 22px;"> Nouvelle proposition</h2>
-                
+                <h2 style="color: #1A1A2E; margin-top: 0; font-size: 22px;">
+                    📬 Nouvelle proposition
+                </h2>
+
                 <p style="color: #4A4A6A; font-size: 16px; line-height: 1.6;">
                     Bonjour <strong>{{ $notifiable->prenom }} {{ $notifiable->nom }}</strong>,
                 </p>
-                
+
                 <p style="color: #4A4A6A; font-size: 16px; line-height: 1.6;">
                     L'agence <strong>{{ $proposition->agence->nom_agence ?? 'N/A' }}</strong> a fait une proposition pour votre demande :
                 </p>
-                
+
+                {{-- Détails proposition --}}
                 <div style="background-color: #F7F9FC; border: 1px solid #E8E8F0; border-radius: 8px; padding: 20px; margin: 24px 0;">
-                    <h3 style="color: #1A1A2E; margin-top: 0; font-size: 18px;"> Détails de la proposition</h3>
-                    
+                    <h3 style="color: #1A1A2E; margin-top: 0; font-size: 18px;">
+                        📋 Détails de la proposition
+                    </h3>
+
                     <table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
                         <tr>
                             <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px; width: 40%;">Prix proposé :</td>
-                            <td style="padding: 8px 0; color: #4A4A6A; font-size: 16px; font-weight: bold;">
+                            <td style="padding: 8px 0; color: #B85C3A; font-size: 16px; font-weight: bold;">
                                 {{ number_format($proposition->prix_propose, 0, ',', ' ') }} FCFA
                             </td>
                         </tr>
                         <tr>
-                            <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px;"> Bien :</td>
+                            <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px;">Bien :</td>
                             <td style="padding: 8px 0; color: #4A4A6A; font-size: 16px; font-weight: bold;">
                                 {{ $proposition->bien->titre ?? 'N/A' }}
                             </td>
                         </tr>
                         <tr>
-                            <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px;"> Agence :</td>
+                            <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px;">Agence :</td>
                             <td style="padding: 8px 0; color: #4A4A6A; font-size: 16px; font-weight: bold;">
                                 {{ $proposition->agence->nom_agence ?? 'N/A' }}
                             </td>
                         </tr>
+                        @if($proposition->bien && $proposition->bien->quartier)
+                        <tr>
+                            <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px;">Quartier :</td>
+                            <td style="padding: 8px 0; color: #4A4A6A; font-size: 16px; font-weight: bold;">
+                                {{ $proposition->bien->quartier }}
+                            </td>
+                        </tr>
+                        @endif
                     </table>
                 </div>
-                
+
+                {{-- Astuce --}}
                 <div style="background-color: #F7F9FC; border: 1px solid #E8E8F0; border-radius: 8px; padding: 16px; margin-top: 24px;">
                     <p style="margin: 0; color: #4A4A6A; font-size: 14px; line-height: 1.6;">
-                        <strong> Astuce :</strong> Pour répondre à cette proposition, connectez-vous à votre espace DoyaImmo. Tous les échanges sont sécurisés et suivis.
+                        <strong>💡 Astuce :</strong> Connectez-vous à votre espace DoyaImmo pour consulter les détails et accepter ou refuser cette proposition.
                     </p>
                 </div>
-                
+
+                {{-- CTA --}}
                 <div style="text-align: center; margin: 32px 0;">
-                    <a href="{{ url('/particulier/propositions/' . $proposition->id) }}" 
-                       style="background-color: #2A9D8F; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block; box-shadow: 0 4px 8px rgba(42, 157, 143, 0.3);">
-                         Voir et répondre
+                    <a href="{{ url('/particulier/propositions/' . $proposition->id) }}"
+                       style="background-color: #B85C3A; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block;">
+                        Voir et répondre
                     </a>
                 </div>
-                
+
                 <p style="color: #8A8AA0; font-size: 14px; line-height: 1.6;">
                     Si vous avez des questions, n'hésitez pas à nous contacter.
                 </p>
             </div>
-            
-            <!-- PIED DE PAGE -->
+
+            {{-- PIED --}}
             <div style="background-color: #F7F9FC; padding: 20px 32px; text-align: center; border-top: 1px solid #E8E8F0;">
                 <table role="presentation" style="margin: 0 auto; border-collapse: collapse;">
                     <tr>
@@ -103,9 +118,9 @@
                     © {{ date('Y') }} DoyaImmo. Tous droits réservés.
                 </p>
             </div>
-            
+
         </div>
     </div>
-    
+
 </body>
 </html>

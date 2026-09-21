@@ -12,9 +12,11 @@ class RendezVousDemandeNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(
-        protected RendezVous $rendezVous
-    ) {
+    protected $rendezVous;
+
+    public function __construct(RendezVous $rendezVous)
+    {
+        $this->rendezVous = $rendezVous;
     }
 
     public function via($notifiable): array
@@ -24,32 +26,30 @@ class RendezVousDemandeNotification extends Notification implements ShouldQueue
 
     public function toMail($notifiable): MailMessage
     {
-        $client = $this->rendezVous->particulier->user->prenom ?? 'Client';
-        $bien = $this->rendezVous->proposition->bien->titre ?? 'Bien';
-        $date = $this->rendezVous->date_visite->format('d/m/Y');
-        $heure = \Carbon\Carbon::parse($this->rendezVous->heure_visite)->format('H:i');
-
         return (new MailMessage)
             ->subject(' Nouvelle demande de visite — DoyaImmo')
-            ->markdown('emails.rendez-vous-demande', [
+            ->view('emails.rendez-vous-demande', [
                 'rendezVous' => $this->rendezVous,
-                'client' => $client,
-                'bien' => $bien,
-                'date' => $date,
-                'heure' => $heure,
                 'notifiable' => $notifiable,
             ]);
     }
 
     public function toDatabase($notifiable): array
     {
+        $rdv   = $this->rendezVous;
+        $bien  = $rdv->proposition->bien ?? null;
+        $client = $rdv->particulier->user ?? null;
+
         return [
-            'title' => ' Nouvelle demande de visite',
-            'message' => $this->rendezVous->particulier->user->prenom . ' ' . $this->rendezVous->particulier->user->nom . ' a demandé une visite pour le ' . $this->rendezVous->date_visite->format('d/m/Y') . ' à ' . \Carbon\Carbon::parse($this->rendezVous->heure_visite)->format('H:i'),
-            'type' => 'info',
-            'icon' => 'fa-calendar-plus',
-            'link' => route('agence.rendezvous.show', $this->rendezVous),
-            'rendez_vous_id' => $this->rendezVous->id,
+            'title'          => 'Nouvelle demande de visite',
+            'message'        => 'Un client souhaite visiter "' . ($bien->titre ?? 'un bien') . '".',
+            'type'           => 'info',
+            'icon'           => 'fa-calendar-plus',
+            'link'           => route('agence.rendezvous.show', $rdv),
+            'rendez_vous_id' => $rdv->id,
+            'date_visite'    => $rdv->date_visite?->format('d/m/Y'),
+            'heure_visite'   => $rdv->heure_visite,
+            'client_nom'     => $client ? ($client->prenom . ' ' . $client->nom) : 'Client',
         ];
     }
 

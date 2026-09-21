@@ -56,7 +56,7 @@
         </div>
     </div>
 
-    {{-- ═══ MESSAGE ═══ --}}
+    {{-- ═══ NOTE ═══ --}}
     <div class="attente-note">
         <div class="attente-note__icon">
             <i class="fa-regular fa-envelope"></i>
@@ -89,21 +89,17 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   EN ATTENTE DE VALIDATION — Desktop + iOS natif
+   EN ATTENTE DE VALIDATION — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .attente-page {
     --c-warning:    #E65100;
     --c-warning-bg: #FFF8E1;
-    --c-gold:       #F5A623;
+    --c-danger:     #C62828;
+    --c-danger-bg:  #FEF2F2;
     --surface:      #F7F9FC;
 
-    --ios-bg: #F2F2F7;
     --ios-card: #FFFFFF;
-    --ios-blue: #007AFF;
-    --ios-label: #000000;
-    --ios-label-2: #3C3C43;
-    --ios-label-3: #8E8E93;
     --ios-separator: rgba(60, 60, 67, 0.12);
     --ios-radius-lg: 18px;
 
@@ -114,53 +110,38 @@
 /* ═══ HERO ═══ */
 .attente-hero {
     text-align: center;
-    padding: 40px 24px 32px;
-    background: linear-gradient(135deg, #FFF9F0 0%, #fff 60%);
+    padding: 36px 24px 30px;
+    background: #fff;
     border: 1px solid var(--border);
     border-radius: 18px;
     margin-bottom: 24px;
-    position: relative;
-    overflow: hidden;
-}
-.attente-hero::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--c-gold), #E8901A);
 }
 
 .attente-hero__icon {
-    width: 88px;
-    height: 88px;
+    width: 80px;
+    height: 80px;
     margin: 0 auto 20px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #FFF8E1, #FFECB3);
-    color: var(--c-warning);
+    background: #F5F5F7;
+    color: var(--muted);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 38px;
-    box-shadow: 0 10px 30px rgba(245, 166, 35, .25);
-    animation: pulse 3s ease-in-out infinite;
-}
-@keyframes pulse {
-    0%, 100% { transform: scale(1); box-shadow: 0 10px 30px rgba(245, 166, 35, .25); }
-    50% { transform: scale(1.03); box-shadow: 0 14px 40px rgba(245, 166, 35, .35); }
+    font-size: 34px;
 }
 
 .attente-hero__title {
     font-family: var(--display);
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 700;
     color: var(--ink);
     margin: 0 0 12px;
     line-height: 1.3;
-    letter-spacing: -.4px;
+    letter-spacing: -.3px;
 }
 
 .attente-hero__text {
-    font-size: 15px;
+    font-size: 14.5px;
     color: var(--text-soft);
     line-height: 1.65;
     margin: 0 auto;
@@ -169,8 +150,7 @@
 
 /* ═══ SECTION TITLE ═══ */
 .ios-section-title {
-    font-family: var(--display);
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 700;
     color: var(--muted);
     margin: 0 4px 10px;
@@ -180,9 +160,9 @@
     text-transform: uppercase;
     letter-spacing: .5px;
 }
-.ios-section-title i { color: var(--c-warning); font-size: 12px; }
+.ios-section-title i { color: var(--muted); font-size: 12px; }
 
-/* ═══ LISTE iOS ═══ */
+/* ═══ LISTE ═══ */
 .ios-list {
     background: #fff;
     border: 1px solid var(--border);
@@ -199,7 +179,6 @@
     border-bottom: 1px solid var(--border);
 }
 .ios-list__item:last-child { border-bottom: none; }
-.ios-list__item--static { cursor: default; }
 
 .ios-list__content { min-width: 0; }
 .ios-list__title {
@@ -208,8 +187,8 @@
     font-weight: 500;
 }
 .ios-list__value {
-    font-size: 14.5px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
     color: var(--ink);
     text-align: right;
     flex-shrink: 0;
@@ -224,14 +203,12 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 5px 12px;
+    padding: 4px 11px;
     background: var(--c-warning-bg);
     color: var(--c-warning);
     border-radius: 999px;
     font-size: 11.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .3px;
+    font-weight: 600;
     flex-shrink: 0;
 }
 .attente-status i { font-size: 10px; }
@@ -242,27 +219,26 @@
     align-items: center;
     gap: 12px;
     padding: 14px 18px;
-    background: linear-gradient(135deg, #E8F0FE 0%, #F0F7FF 100%);
-    border: 1px solid #BBDEFB;
+    background: #F5F5F7;
     border-radius: 14px;
     margin-bottom: 24px;
 }
 .attente-note__icon {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     background: #fff;
-    color: #1565C0;
+    color: var(--muted);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 15px;
     flex-shrink: 0;
-    box-shadow: 0 2px 6px rgba(21, 101, 192, .15);
 }
 .attente-note__text {
     font-size: 13.5px;
-    color: #0D47A1;
+    color: var(--text-soft);
     line-height: 1.55;
     font-weight: 500;
 }
@@ -290,7 +266,7 @@
     cursor: pointer;
     border: 1px solid transparent;
     text-decoration: none;
-    transition: all .15s;
+    transition: background-color .15s, border-color .15s, color .15s;
     white-space: nowrap;
     flex: 1;
 }
@@ -302,22 +278,20 @@
     border-color: var(--border);
 }
 .ios-btn--ghost:hover {
-    border-color: var(--rust);
-    color: var(--rust);
-    background: var(--surface);
+    background: #F5F5F7;
+    border-color: #d8d8d8;
+    color: var(--ink);
 }
-.ios-btn--ghost:active { transform: scale(.97); }
 
 .ios-btn--danger {
     background: #fff;
     color: var(--c-danger);
-    border-color: #FFCDD2;
+    border-color: var(--border);
 }
 .ios-btn--danger:hover {
     background: var(--c-danger-bg);
-    border-color: var(--c-danger);
+    border-color: #f5c6c6;
 }
-.ios-btn--danger:active { transform: scale(.97); }
 
 
 /* ═══════════════════════════════════════════════════════════
@@ -331,32 +305,23 @@
         max-width: 100%;
     }
 
-    /* Hero iOS */
     .attente-hero {
         background: var(--ios-card);
         border: none;
         border-radius: var(--ios-radius-lg);
-        padding: 36px 20px 32px;
+        padding: 32px 20px 28px;
         margin-bottom: 16px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
-        position: relative;
-        overflow: hidden;
-    }
-    .attente-hero::before {
-        height: 3px;
-        background: linear-gradient(90deg, var(--c-gold), #E8901A);
-        border-radius: 0;
     }
     .attente-hero__icon {
-        width: 80px;
-        height: 80px;
-        font-size: 34px;
+        width: 72px;
+        height: 72px;
+        font-size: 30px;
         margin-bottom: 16px;
-        box-shadow: 0 8px 24px rgba(245, 166, 35, .3);
+        background: #F5F5F7;
     }
     .attente-hero__title {
-        font-size: 22px;
-        letter-spacing: -.4px;
+        font-size: 20px;
         margin-bottom: 10px;
     }
     .attente-hero__text {
@@ -364,18 +329,12 @@
         line-height: 1.55;
     }
 
-    /* Section title iOS */
     .ios-section-title {
-        font-size: 13px;
-        text-transform: none;
-        letter-spacing: 0;
-        color: var(--ios-label-3);
+        font-size: 12.5px;
         margin: 22px 4px 8px;
-        font-weight: 600;
+        color: var(--muted);
     }
-    .ios-section-title i { font-size: 13px; }
 
-    /* Liste iOS */
     .ios-list {
         background: var(--ios-card);
         border: none;
@@ -388,54 +347,45 @@
         gap: 12px;
         border-bottom: 0.5px solid var(--ios-separator);
     }
-    .ios-list__item:last-child { border-bottom: none; }
     .ios-list__title {
-        font-size: 15px;
-        color: var(--ios-label);
+        font-size: 14px;
+        color: var(--muted);
         font-weight: 500;
-        letter-spacing: -.2px;
     }
     .ios-list__value {
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 600;
-        color: var(--ios-label-3);
+        color: var(--ink);
         max-width: 55%;
     }
 
     .attente-status {
-        font-size: 11px;
+        font-size: 11.5px;
         padding: 4px 10px;
-        text-transform: none;
-        letter-spacing: 0;
-        font-weight: 600;
     }
 
-    /* Note iOS */
     .attente-note {
         background: var(--ios-card);
         border: none;
-        border-left: 3px solid #1565C0;
+        border-left: 3px solid #d8d8d8;
         border-radius: 12px;
         padding: 14px 16px;
         margin-bottom: 20px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
     .attente-note__icon {
-        width: 36px;
-        height: 36px;
-        background: #E3F2FD;
-        color: #1565C0;
-        box-shadow: none;
-        font-size: 15px;
+        width: 34px;
+        height: 34px;
+        background: #F5F5F7;
+        border: none;
+        font-size: 14px;
     }
     .attente-note__text {
         font-size: 13.5px;
-        color: var(--ios-label-2);
-        line-height: 1.5;
+        color: var(--text-soft);
         font-weight: 400;
     }
 
-    /* Actions iOS */
     .attente-actions {
         flex-direction: column-reverse;
         gap: 10px;
@@ -447,39 +397,42 @@
 
     .ios-btn {
         width: 100%;
-        padding: 14px 20px;
-        font-size: 15px;
-        border-radius: 14px;
-        letter-spacing: -.1px;
-        font-weight: 600;
+        padding: 13px 18px;
+        font-size: 14.5px;
+        border-radius: 12px;
     }
     .ios-btn--ghost {
         background: var(--ios-card);
         border: none;
-        color: var(--ios-blue);
+        color: var(--text-soft);
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
-    .ios-btn--ghost:active { background: #EFEFF4; }
     .ios-btn--danger {
         background: var(--ios-card);
         border: none;
         color: var(--c-danger);
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
-    .ios-btn--danger:active { background: #FFEBEE; }
 }
 
 @media (max-width: 480px) {
-    .attente-hero { padding: 30px 18px 26px; }
-    .attente-hero__icon { width: 72px; height: 72px; font-size: 30px; }
-    .attente-hero__title { font-size: 20px; }
+    .attente-hero { padding: 28px 18px 24px; }
+    .attente-hero__icon { width: 66px; height: 66px; font-size: 28px; }
+    .attente-hero__title { font-size: 19px; }
     .attente-hero__text { font-size: 13.5px; }
 
-    .ios-list__title { font-size: 14.5px; }
-    .ios-list__value { font-size: 14.5px; }
+    .ios-list__title { font-size: 13.5px; }
+    .ios-list__value { font-size: 13.5px; }
 
     .attente-note__text { font-size: 13px; }
-    .ios-btn { padding: 13px 18px; font-size: 14.5px; }
+    .ios-btn { padding: 12px 16px; font-size: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 </style>
 @endpush

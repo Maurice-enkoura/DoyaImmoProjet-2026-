@@ -12,7 +12,7 @@
                 <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--rust)">Immo</span></div>
             </a>
         </div>
-        
+
         <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px;">
             <div>
                 <p class="quote" style="font-size:18px;margin:0;max-width:400px;">
@@ -51,13 +51,13 @@
                     <div class="brand-mark">D</div>
                     <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
                 </a>
-                
+
                 <!-- Bouton Accueil -->
                 <a href="{{ route('home') }}" class="btn btn-ghost btn-sm" style="display:inline-flex; align-items:center; gap:6px;">
                     <i class="fa-solid fa-house"></i> Accueil
                 </a>
             </div>
-            
+
             <div class="role-toggle">
                 <a href="{{ route('register.particulier') }}" class="active">
                     <i class="fa-solid fa-user"></i> Espace client
@@ -77,7 +77,7 @@
                     <h3 class="section-title">
                         <span class="step-badge">1</span> Informations personnelles
                     </h3>
-                    
+
                     <div class="form-grid">
                         <div class="field">
                             <label for="nom">Nom <span class="required">*</span></label>
@@ -96,7 +96,7 @@
                     <h3 class="section-title">
                         <span class="step-badge">2</span> Coordonnées
                     </h3>
-                    
+
                     <div class="field">
                         <label for="email">Adresse email <span class="required">*</span></label>
                         <input type="email" id="email" name="email" value="{{ old('email') }}" placeholder="exemple@email.com" required>
@@ -114,7 +114,7 @@
                     <h3 class="section-title">
                         <span class="step-badge">3</span> Sécurité
                     </h3>
-                    
+
                     <div class="field">
                         <label for="mot_de_passe">Mot de passe <span class="required">*</span></label>
                         <div class="password-wrapper">
@@ -130,13 +130,6 @@
                     <div class="field">
                         <label for="mot_de_passe_confirmation">Confirmer le mot de passe <span class="required">*</span></label>
                         <input type="password" id="mot_de_passe_confirmation" name="mot_de_passe_confirmation" placeholder="Confirmer votre mot de passe" required>
-                    </div>
-
-                    <div class="password-strength" style="display:none;margin-top:6px;">
-                        <div style="height:4px;border-radius:2px;background:var(--border);overflow:hidden;">
-                            <div id="strengthBar" style="height:100%;width:0%;transition:width 0.3s;border-radius:2px;"></div>
-                        </div>
-                        <span id="strengthText" style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">Force : Faible</span>
                     </div>
                 </div>
 
@@ -162,15 +155,16 @@
                 <div class="field conditions-field">
                     <label class="check-row">
                         <input type="checkbox" name="conditions" required>
-                        <span>J'accepte les <a href="{{route('cgu')}}" class="link">Conditions d'utilisation</a> et la <a href="{{route('mentions-legales')}}" class="link">Mentions-Legales</a></span>
+                        <span>J'accepte les <a href="{{ route('cgu') }}" class="link">Conditions d'utilisation</a> et la <a href="{{ route('mentions-legales') }}" class="link">Mentions Légales</a></span>
                         <span class="required">*</span>
                     </label>
+                    @error('conditions') <span class="error-message">{{ $message }}</span> @enderror
                 </div>
 
                 <button type="submit" class="btn btn-rust btn-block btn-lg" id="submitBtn">
                     <i class="fas fa-user-plus"></i> Créer mon compte
                 </button>
-                
+
                 <p style="text-align:center;margin-top:10px;font-size:12px;color:var(--muted);">
                     <i class="fas fa-lock" style="margin-right:4px;"></i>
                     Vos données sont sécurisées
@@ -185,12 +179,12 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Toggle password
+    // ═══ TOGGLE PASSWORD ═══
     document.querySelectorAll('.toggle-password').forEach(button => {
         button.addEventListener('click', function() {
             const input = this.closest('.password-wrapper').querySelector('input');
             const icon = this.querySelector('i');
-            
+
             if (input.type === 'password') {
                 input.type = 'text';
                 icon.classList.remove('fa-eye');
@@ -203,58 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Password strength
-    const passwordInput = document.getElementById('mot_de_passe');
-    const strengthBar = document.getElementById('strengthBar');
-    const strengthText = document.getElementById('strengthText');
-    const strengthContainer = document.querySelector('.password-strength');
-
-    if (passwordInput) {
-        passwordInput.addEventListener('input', function() {
-            const password = this.value;
-            
-            if (password.length === 0) {
-                strengthContainer.style.display = 'none';
-                return;
-            }
-
-            strengthContainer.style.display = 'block';
-            
-            let strength = 0;
-            let label = 'Faible';
-            let color = '#C62828';
-
-            if (password.length >= 8) strength += 1;
-            if (password.length >= 12) strength += 1;
-            if (/[A-Z]/.test(password)) strength += 1;
-            if (/[a-z]/.test(password)) strength += 1;
-            if (/[0-9]/.test(password)) strength += 1;
-            if (/[^A-Za-z0-9]/.test(password)) strength += 1;
-
-            let percentage = Math.min((strength / 6) * 100, 100);
-
-            if (strength <= 2) {
-                label = 'Faible';
-                color = '#C62828';
-            } else if (strength <= 4) {
-                label = 'Moyen';
-                color = '#F5A623';
-            } else if (strength <= 5) {
-                label = 'Fort';
-                color = '#4A90D9';
-            } else {
-                label = 'Très fort';
-                color = '#1E7A47';
-            }
-
-            strengthBar.style.width = percentage + '%';
-            strengthBar.style.background = color;
-            strengthText.textContent = 'Force : ' + label;
-            strengthText.style.color = color;
-        });
-    }
-
-    // Form validation
+    // ═══ FORM VALIDATION ═══
     const form = document.getElementById('registerForm');
     const submitBtn = document.getElementById('submitBtn');
 
@@ -264,39 +207,62 @@ document.addEventListener('DOMContentLoaded', function() {
             const confirm = document.getElementById('mot_de_passe_confirmation').value;
             const conditions = document.querySelector('input[name="conditions"]');
 
+            let hasError = false;
+
+            // Reset tous les messages d'erreur JS précédents
+            document.querySelectorAll('.js-error-message').forEach(el => el.remove());
+
             if (password !== confirm) {
                 e.preventDefault();
-                alert('Les mots de passe ne correspondent pas.');
-                return;
+                showJsError('mot_de_passe_confirmation', 'Les mots de passe ne correspondent pas.');
+                hasError = true;
             }
 
             if (password.length < 8) {
                 e.preventDefault();
-                alert('Le mot de passe doit contenir au moins 8 caractères.');
-                return;
+                showJsError('mot_de_passe', 'Le mot de passe doit contenir au moins 8 caractères.');
+                hasError = true;
             }
 
             if (!conditions.checked) {
                 e.preventDefault();
-                alert('Vous devez accepter les conditions d\'utilisation.');
-                return;
+                showJsError('conditions', 'Vous devez accepter les conditions d\'utilisation.');
+                hasError = true;
             }
 
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création en cours...';
+            if (!hasError) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création en cours...';
+            }
         });
     }
 
-    // Auto-capitalisation
-    document.getElementById('nom')?.addEventListener('blur', function() {
-        if (this.value.length > 0) {
-            this.value = this.value.charAt(0).toUpperCase() + this.value.slice(1).toLowerCase();
-        }
-    });
+    function showJsError(fieldName, message) {
+        const field = document.querySelector(`[name="${fieldName}"]`);
+        if (!field) return;
 
-    document.getElementById('prenom')?.addEventListener('blur', function() {
-        if (this.value.length > 0) {
-            this.value = this.value.charAt(0).toUpperCase() + this.value.slice(1).toLowerCase();
+        // Retire l'ancien message JS si présent
+        const existing = field.parentElement.querySelector('.js-error-message');
+        if (existing) existing.remove();
+
+        const errorEl = document.createElement('span');
+        errorEl.className = 'error-message js-error-message';
+        errorEl.textContent = message;
+
+        // Insertion après le champ (ou après le wrapper)
+        const target = field.closest('.password-wrapper') || field;
+        target.insertAdjacentElement('afterend', errorEl);
+    }
+
+    // ═══ AUTO-CAPITALISATION ═══
+    ['nom', 'prenom'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.addEventListener('blur', function() {
+                if (this.value.length > 0) {
+                    this.value = this.value.charAt(0).toUpperCase() + this.value.slice(1).toLowerCase();
+                }
+            });
         }
     });
 });

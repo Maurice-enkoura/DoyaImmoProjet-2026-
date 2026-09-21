@@ -386,4 +386,49 @@ class BienImmobilier extends Model
     {
         return 'slug';
     }
+
+    // ==================== LOCALISATION ====================
+
+/**
+ * Adresse complète formatée pour la recherche
+ * Ex: "57 avenue Dupuy, Mermoz, Dakar, Sénégal"
+ */
+public function getAdresseCompleteAttribute(): string
+{
+    $parts = array_filter([
+        $this->adresse,
+        $this->quartier,
+        'Dakar',      // Ville par défaut
+        'Sénégal',    // Pays par défaut
+    ]);
+
+    return implode(', ', $parts);
+}
+
+/**
+ * URL Google Maps pour ouvrir l'itinéraire
+ */
+public function getGoogleMapsUrlAttribute(): string
+{
+    $query = urlencode($this->adresse_complete);
+    return "https://www.google.com/maps/dir/?api=1&destination={$query}";
+}
+
+/**
+ * URL Apple Maps pour ouvrir l'itinéraire (iOS)
+ */
+public function getAppleMapsUrlAttribute(): string
+{
+    $query = urlencode($this->adresse_complete);
+    return "https://maps.apple.com/?daddr={$query}";
+}
+
+/**
+ * URL OpenStreetMap pour l'itinéraire (fallback)
+ */
+public function getOpenStreetMapUrlAttribute(): string
+{
+    $query = urlencode($this->adresse_complete);
+    return "https://www.openstreetmap.org/search?query={$query}";
+}
 }

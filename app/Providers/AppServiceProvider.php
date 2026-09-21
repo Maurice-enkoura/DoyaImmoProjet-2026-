@@ -33,8 +33,10 @@ class AppServiceProvider extends ServiceProvider
 
 
         
-        // Enregistrer l'Observer pour RendezVous
-        URL::forceScheme('https');
+        // Enregistrer l'Observer pour RendezVous 
+            URL::forceScheme('https');
+        
+        
         RendezVous::observe(RendezVousObserver::class);
     }
 }

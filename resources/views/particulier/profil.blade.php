@@ -16,26 +16,21 @@
         $verifie = $user->email_verified_at ? true : false;
     @endphp
 
-    {{-- ═══ HERO ═══ --}}
-    <div class="ios-profile-hero">
-        <div class="ios-profile-hero__avatar">{{ $initiales }}</div>
-        <div class="ios-profile-hero__info">
-            <h2 class="ios-profile-hero__name">{{ $prenom }} {{ $nom }}</h2>
-            @if($telephone)
-                <div class="ios-profile-hero__phone">+221 {{ $telephone }}</div>
-            @endif
-            @if($verifie)
-                <div class="ios-profile-hero__badge">
-                    <i class="fa-solid fa-check"></i> Vérifié
-                </div>
-            @endif
-        </div>
-    </div>
-
     {{-- ═══ MON COMPTE ═══ --}}
     <div class="ios-section-title">Mon compte</div>
 
     <div class="ios-list">
+        <a href="{{ route('particulier.dashboard') }}" class="ios-list__item">
+            <div class="ios-list__icon ios-list__icon--blue">
+                <i class="fa-solid fa-gauge"></i>
+            </div>
+            <div class="ios-list__content">
+                <span class="ios-list__title">Tableau de bord</span>
+                <span class="ios-list__sub">Vue d'ensemble de mon activité</span>
+            </div>
+            <i class="fa-solid fa-chevron-right ios-list__chevron"></i>
+        </a>
+
         <a href="{{ route('particulier.demandes.index') }}" class="ios-list__item">
             <div class="ios-list__icon ios-list__icon--blue">
                 <i class="fa-solid fa-house-circle-check"></i>
@@ -90,6 +85,22 @@
             </div>
             <i class="fa-solid fa-chevron-right ios-list__chevron"></i>
         </a>
+    </div>
+
+    {{-- ═══ HERO PROFIL ═══ --}}
+    <div class="ios-profile-hero">
+        <div class="ios-profile-hero__avatar">{{ $initiales }}</div>
+        <div class="ios-profile-hero__info">
+            <h2 class="ios-profile-hero__name">{{ $prenom }} {{ $nom }}</h2>
+            @if($telephone)
+                <div class="ios-profile-hero__phone">+221 {{ $telephone }}</div>
+            @endif
+            @if($verifie)
+                <div class="ios-profile-hero__badge">
+                    <i class="fa-solid fa-check"></i> Vérifié
+                </div>
+            @endif
+        </div>
     </div>
 
     {{-- ═══ INFORMATIONS LÉGALES ═══ --}}
@@ -241,6 +252,7 @@
     padding: 0 4px;
     margin: 24px 0 8px;
 }
+.ios-section-title:first-of-type { margin-top: 0; }
 
 /* ═══ LIST GROUPÉE iOS — TOUT ARRONDI ═══ */
 .ios-list {
@@ -383,6 +395,7 @@
         padding: 0 4px;
         margin: 22px 0 8px;
     }
+    .ios-section-title:first-of-type { margin-top: 0; }
 
     /* Listes iOS — coins bien arrondis */
     .ios-list {

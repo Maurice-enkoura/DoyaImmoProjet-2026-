@@ -69,13 +69,23 @@ class NotificationController extends Controller
 
     public function new(Request $request)
     {
-        $notifications = auth()->user()->notifications()
-            ->where('created_at', '>', $request->get('last_check', now()->subMinutes(5)))
-            ->get();
+        $user = auth()->user();
+        $lastCheck = $request->get('last_check');
+
+        $query = $user->unreadNotifications();
+
+        if ($lastCheck) {
+            $query->where('created_at', '>', $lastCheck);
+        } else {
+            $query->where('created_at', '>', now()->subSeconds(35));
+        }
+
+        $notifications = $query->get();
 
         return response()->json([
             'notifications' => $notifications->map(function ($n) {
                 return [
+                    'id'      => $n->id,
                     'title'   => $n->data['title']   ?? 'Notification',
                     'message' => $n->data['message'] ?? '',
                     'type'    => $n->data['type']    ?? 'info',
@@ -83,7 +93,8 @@ class NotificationController extends Controller
                     'link'    => $n->data['link']    ?? null,
                 ];
             }),
-            'count' => auth()->user()->unreadNotifications()->count()
+            'count' => $user->unreadNotifications()->count(),
+            'timestamp' => now()->toDateTimeString(),
         ]);
     }
 }

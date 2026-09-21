@@ -32,7 +32,7 @@
             <p>Vos évaluations des agences avec lesquelles vous avez travaillé</p>
         </div>
         <a href="{{ route('particulier.rendezvous.index') }}" class="btn btn-ghost btn-sm">
-            <i class="fa-solid fa-calendar"></i> Voir mes rendez-vous
+            Voir mes rendez-vous
         </a>
     </div>
 
@@ -40,17 +40,14 @@
     @if($total > 0)
         <div class="avis-stats">
             <div class="avis-stat">
-                <span class="avis-stat__value">
-                    <i class="fa-solid fa-star"></i>
-                    {{ number_format($moyenne, 1) }}
-                </span>
+                <span class="avis-stat__value">{{ number_format($moyenne, 1) }}</span>
                 <span class="avis-stat__label">Moyenne</span>
             </div>
             <div class="avis-stat">
                 <span class="avis-stat__value">{{ $total }}</span>
                 <span class="avis-stat__label">Avis</span>
             </div>
-            <div class="avis-stat {{ $cinqEtoiles > 0 ? 'is-highlight' : '' }}">
+            <div class="avis-stat">
                 <span class="avis-stat__value">{{ $cinqEtoiles }}</span>
                 <span class="avis-stat__label">5 étoiles</span>
             </div>
@@ -75,26 +72,6 @@
                 @endif
             @endforeach
         </nav>
-    @endif
-
-    {{-- ═══ ALERTS ═══ --}}
-    @if(session('error'))
-        <div class="alert alert-error">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            <span>{{ session('error') }}</span>
-        </div>
-    @endif
-    @if(session('info'))
-        <div class="alert alert-info">
-            <i class="fa-solid fa-circle-info"></i>
-            <span>{{ session('info') }}</span>
-        </div>
-    @endif
-    @if(session('success'))
-        <div class="alert alert-success">
-            <i class="fa-solid fa-check-circle"></i>
-            <span>{{ session('success') }}</span>
-        </div>
     @endif
 
     @if($total > 0)
@@ -122,7 +99,6 @@
                             <div class="agency-info">
                                 <strong>{{ $evaluation->agence->nom_agence }}</strong>
                                 <span class="avis-card__date">
-                                    <i class="fa-regular fa-calendar"></i>
                                     Avis du {{ $evaluation->created_at->format('d/m/Y') }}
                                 </span>
                             </div>
@@ -141,7 +117,6 @@
                     {{-- Proposition associée --}}
                     @if($proposition)
                         <div class="avis-card__prop">
-                            <i class="fa-regular fa-file-lines"></i>
                             <span>
                                 Proposition du
                                 <strong>{{ $proposition->created_at->format('d/m/Y') }}</strong>
@@ -163,7 +138,6 @@
                     @if($hasReponse)
                         <div class="reponse-block">
                             <div class="reponse-block__head">
-                                <i class="fa-solid fa-reply"></i>
                                 <span>Réponse de l'agence</span>
                                 @if($evaluation->date_reponse)
                                     <span class="reponse-block__date">
@@ -175,26 +149,26 @@
                         </div>
                     @endif
 
-                    {{-- Actions iOS pleine largeur --}}
+                    {{-- Actions --}}
                     <footer class="avis-card__actions">
                         <a href="{{ route('particulier.evaluations.show', $evaluation->id) }}"
                            class="btn btn-ghost">
-                            <i class="fa-solid fa-eye"></i> Voir le détail
+                            Voir le détail
                         </a>
 
                         @if($isOwner)
                             <a href="{{ route('particulier.evaluations.edit', $evaluation->id) }}"
                                class="btn btn-ghost">
-                                <i class="fa-solid fa-pen"></i> Modifier
+                                Modifier
                             </a>
 
                             <form action="{{ route('particulier.evaluations.destroy', $evaluation->id) }}"
-                                  method="POST" class="inline-form">
+                                  method="POST" class="inline-form avis-card__delete">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-danger-soft"
                                         onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet avis ?')">
-                                    <i class="fa-solid fa-trash-can"></i> Supprimer
+                                    Supprimer
                                 </button>
                             </form>
                         @endif
@@ -218,7 +192,7 @@
             <h3>Aucun avis donné pour le moment</h3>
             <p>Évaluez les agences après avoir terminé une visite. Vos avis aident les autres clients à choisir.</p>
             <a href="{{ route('particulier.rendezvous.index') }}" class="btn btn-rust">
-                <i class="fa-solid fa-calendar"></i> Voir mes rendez-vous
+                Voir mes rendez-vous
             </a>
         </div>
 
@@ -230,23 +204,22 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   MES AVIS DONNÉS — iOS NATIVE
+   MES AVIS DONNÉS — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .avis-donnes {
     --c-warning:    #E65100;
     --c-warning-bg: #FFF8E1;
     --c-success:    #1E7A47;
-    --c-success-bg: #E8F5E9;
+    --c-success-bg: #F1F8F4;
     --c-danger:     #C62828;
-    --c-danger-bg:  #FFEBEE;
-    --c-info:       #0D47A1;
-    --c-info-bg:    #E3F2FD;
+    --c-danger-bg:  #FEF2F2;
+    --c-info:       #1E40AF;
+    --c-info-bg:    #EFF6FF;
     --c-gold:       #F5A623;
     --surface:      #F7F9FC;
     --radius:       14px;
 
-    --ios-bg: #F2F2F7;
     --ios-card: #FFFFFF;
     --ios-blue: #007AFF;
     --ios-label: #000000;
@@ -285,54 +258,6 @@
 /* ═══ FILTRES ═══ */
 .filter-tabs { display: none; }
 
-/* ═══ ALERTS ═══ */
-.alert {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 11px 16px;
-    border-radius: 10px;
-    margin-bottom: 14px;
-    border-left: 4px solid;
-    font-size: 13px;
-    font-weight: 500;
-}
-.alert-success { background: var(--c-success-bg); color: var(--c-success); border-left-color: var(--c-success); }
-.alert-error   { background: var(--c-danger-bg);  color: var(--c-danger);  border-left-color: var(--c-danger); }
-.alert-info    { background: var(--c-info-bg);    color: var(--c-info);    border-left-color: var(--c-info); }
-
-/* ═══ STATS DESKTOP ═══ */
-.summary {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 18px 24px;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    margin-bottom: 18px;
-    flex-wrap: wrap;
-}
-.summary__item { display: flex; flex-direction: column; gap: 2px; }
-.summary__value {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    font-family: var(--display);
-    font-size: 24px;
-    font-weight: 800;
-    line-height: 1;
-    color: var(--text);
-}
-.summary__value i { color: var(--c-gold); font-size: 19px; }
-.summary__value--success { color: var(--c-success); }
-.summary__value--success i { color: var(--c-success); }
-.summary__value--info    { color: var(--c-info); }
-.summary__value--info i { color: var(--c-info); }
-.summary__label { font-size: 12.5px; color: var(--muted); font-weight: 500; }
-.summary__label i { margin-right: 3px; font-size: 10px; }
-.summary__sep { width: 1px; height: 34px; background: var(--border); flex-shrink: 0; }
-
 /* ═══ LISTE AVIS ═══ */
 .avis-list {
     display: flex;
@@ -346,24 +271,11 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 18px 20px;
-    transition: transform .2s ease, box-shadow .2s ease, border-color .2s;
-    overflow: hidden;
+    transition: border-color .15s;
 }
 .avis-card:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, .05);
     border-color: #d8d8d8;
 }
-
-.avis-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; bottom: 0;
-    width: 4px;
-}
-.avis-card--positif::before { background: var(--c-success); }
-.avis-card--neutre::before  { background: var(--c-warning); }
-.avis-card--negatif::before { background: var(--c-danger); }
 
 /* En-tête */
 .avis-card__head {
@@ -378,8 +290,9 @@
 .agency-avatar {
     width: 44px; height: 44px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--rust), #d4754a);
-    color: #fff;
+    background: #F5F5F7;
+    color: var(--text);
+    border: 1px solid var(--border);
     display: flex; align-items: center; justify-content: center;
     font-family: var(--display);
     font-size: 18px; font-weight: 700;
@@ -393,23 +306,20 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .avis-card__date {
-    display: inline-flex; align-items: center; gap: 5px;
+    display: inline-flex; align-items: center;
     font-size: 12px; color: var(--muted);
 }
-.avis-card__date i { font-size: 11px; opacity: .8; }
 
 /* Note */
 .avis-card__rating {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 6px 12px;
+    padding: 5px 11px;
     border-radius: 999px;
     flex-shrink: 0;
+    background: #F5F5F7;
 }
-.avis-card__rating--positif { background: var(--c-success-bg); }
-.avis-card__rating--neutre  { background: var(--c-warning-bg); }
-.avis-card__rating--negatif { background: var(--c-danger-bg); }
 
 .avis-stars { display: inline-flex; gap: 3px; font-size: 14px; }
 .avis-stars .fa-star { color: #D4D8E0; }
@@ -419,11 +329,9 @@
     font-family: var(--display);
     font-size: 15px; font-weight: 800;
     line-height: 1;
+    color: var(--text);
 }
 .avis-card__score small { font-size: 10px; font-weight: 600; opacity: .65; margin-left: 1px; }
-.avis-card__rating--positif .avis-card__score { color: var(--c-success); }
-.avis-card__rating--neutre  .avis-card__score { color: var(--c-warning); }
-.avis-card__rating--negatif .avis-card__score { color: var(--c-danger); }
 
 /* Proposition */
 .avis-card__prop {
@@ -431,45 +339,31 @@
     align-items: center;
     gap: 7px;
     padding: 6px 12px;
-    background: var(--surface);
+    background: #F5F5F7;
     border-radius: 999px;
     font-size: 12px;
     color: var(--muted);
     margin-bottom: 12px;
 }
-.avis-card__prop i { font-size: 11px; color: var(--rust); }
 .avis-card__prop strong { color: var(--text); font-weight: 600; }
 
 /* Commentaire */
 .avis-card__comment {
-    position: relative;
-    padding: 14px 18px 14px 22px;
+    padding: 14px 18px;
     border-radius: 12px;
-    background: var(--surface);
+    background: #F9FAFB;
     font-size: 13.5px;
     line-height: 1.65;
     color: var(--text);
     font-style: italic;
     margin: 0 0 12px;
-    border-left: 3px solid var(--muted);
-}
-.avis-card--positif .avis-card__comment {
-    background: linear-gradient(135deg, rgba(30, 122, 71, .05), rgba(30, 122, 71, .02));
-    border-left-color: var(--c-success);
-}
-.avis-card--neutre .avis-card__comment {
-    background: linear-gradient(135deg, rgba(230, 81, 0, .05), rgba(230, 81, 0, .02));
-    border-left-color: var(--c-warning);
-}
-.avis-card--negatif .avis-card__comment {
-    background: linear-gradient(135deg, rgba(198, 40, 40, .05), rgba(198, 40, 40, .02));
-    border-left-color: var(--c-danger);
+    border-left: 3px solid var(--rust);
 }
 
 /* Réponse */
 .reponse-block {
     padding: 12px 14px;
-    background: var(--c-info-bg);
+    background: #F9FAFB;
     border-radius: 10px;
     border-left: 3px solid var(--c-info);
     margin-bottom: 12px;
@@ -486,7 +380,6 @@
     color: var(--c-info);
     flex-wrap: wrap;
 }
-.reponse-block__head i { font-size: 10px; }
 .reponse-block__date { font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--muted); }
 .reponse-block__text { font-size: 13px; line-height: 1.6; color: var(--text-soft); margin: 0; }
 
@@ -496,7 +389,7 @@
     align-items: center;
     gap: 8px;
     padding-top: 12px;
-    border-top: 1px dashed var(--border);
+    border-top: 1px solid var(--border);
     flex-wrap: wrap;
 }
 .avis-card__delete { margin-left: auto; }
@@ -515,15 +408,18 @@
     border: 1px solid transparent;
     cursor: pointer;
     font-family: inherit;
-    transition: all .2s ease;
+    transition: background-color .15s, border-color .15s, color .15s;
     white-space: nowrap;
 }
 .btn-rust { background: var(--rust); color: #fff; border-color: var(--rust); }
-.btn-rust:hover { background: #9A4523; color: #fff; border-color: #9A4523; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(180, 83, 42, .25); }
+.btn-rust:hover { background: #9A4523; border-color: #9A4523; color: #fff; }
+
 .btn-ghost { background: transparent; color: var(--text-soft); border-color: var(--border); }
-.btn-ghost:hover { background: var(--surface); border-color: var(--rust); color: var(--rust); }
-.btn-danger-soft { background: var(--c-danger-bg); color: var(--c-danger); border-color: #FFCDD2; }
-.btn-danger-soft:hover { background: var(--c-danger); color: #fff; border-color: var(--c-danger); }
+.btn-ghost:hover { background: #F5F5F7; color: var(--text); }
+
+.btn-danger-soft { background: transparent; color: var(--c-danger); border-color: var(--border); }
+.btn-danger-soft:hover { background: var(--c-danger-bg); border-color: #FECACA; }
+
 .btn-sm { padding: 6px 12px; font-size: 12px; }
 
 /* ═══ EMPTY ═══ */
@@ -535,13 +431,13 @@
     border: 1px dashed var(--border);
 }
 .empty-state__icon {
-    width: 76px; height: 76px;
-    margin: 0 auto 18px;
+    width: 72px; height: 72px;
+    margin: 0 auto 16px;
     display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, #FFF8E1, #FFECB3);
+    background: #F5F5F7;
     border-radius: 50%;
-    color: var(--c-gold);
-    font-size: 30px;
+    color: var(--muted);
+    font-size: 28px;
 }
 .empty-state h3 {
     font-family: var(--display);
@@ -572,12 +468,12 @@
     color: var(--text-soft);
     text-decoration: none;
     font-size: 12.5px;
-    transition: all .2s;
+    transition: background-color .15s;
     min-width: 36px;
     text-align: center;
     background: #fff;
 }
-.pagination-wrapper a:hover { background: var(--border); border-color: var(--rust); color: var(--rust); }
+.pagination-wrapper a:hover { background: #F5F5F7; }
 .pagination-wrapper .active span,
 .pagination-wrapper [aria-current="page"] span,
 .pagination-wrapper [aria-current="page"] { background: var(--rust); color: #fff; border-color: var(--rust); }
@@ -591,10 +487,9 @@
 
     .avis-donnes { background: transparent; padding-top: 4px; }
 
-    /* ─── HEADER masqué ─── */
     .page-header { display: none; }
 
-    /* ─── STATS INLINE ─── */
+    /* STATS INLINE */
     .avis-stats {
         display: flex;
         gap: 0;
@@ -632,12 +527,6 @@
         letter-spacing: -.5px;
         line-height: 1;
     }
-    .avis-stat__value i {
-        color: var(--c-gold);
-        font-size: 15px;
-    }
-    .avis-stat.is-highlight .avis-stat__value { color: var(--rust); }
-    .avis-stat.is-highlight .avis-stat__value i { color: var(--rust); }
     .avis-stat__label {
         font-size: 11px;
         font-weight: 500;
@@ -645,7 +534,7 @@
         margin-top: 2px;
     }
 
-    /* ─── FILTRES PILLS iOS ─── */
+    /* FILTRES PILLS iOS */
     .filter-tabs {
         display: flex;
         gap: 8px;
@@ -671,19 +560,16 @@
         color: var(--ios-label-2);
         text-decoration: none;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
-        transition: all .15s ease;
         -webkit-tap-highlight-color: transparent;
         white-space: nowrap;
         flex-shrink: 0;
     }
-    .filter-tab:active { transform: scale(.95); }
-    .filter-tab i { font-size: 12px; opacity: .85; }
+    .filter-tab:active { transform: scale(.98); }
+    .filter-tab i { font-size: 12px; }
     .filter-tab.is-active {
-        background: linear-gradient(135deg, var(--rust), #d4754a);
+        background: var(--rust);
         color: #fff;
-        box-shadow: 0 4px 12px rgba(181, 80, 42, .3);
     }
-    .filter-tab.is-active i { opacity: 1; }
     .filter-tab__count {
         background: rgba(0, 0, 0, .07);
         padding: 1px 8px;
@@ -698,15 +584,14 @@
         color: #fff;
     }
 
-    /* ─── ALERTS iOS ─── */
+    /* ALERTS iOS */
     .alert {
         border-radius: 14px;
-        border: none;
         padding: 14px 16px;
         font-size: 13.5px;
     }
 
-    /* ─── CARTES iOS ─── */
+    /* CARTES iOS */
     .avis-list { gap: 12px; }
 
     .avis-card {
@@ -715,19 +600,9 @@
         border-radius: var(--ios-radius-lg);
         padding: 16px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
-        transition: transform .15s ease;
         overflow: hidden;
     }
-    .avis-card:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,.04); border: none; }
-    .avis-card:active { transform: scale(.985); }
-
-    /* Barre statut : plus fine en haut */
-    .avis-card::before {
-        top: 0; left: 0; right: 0; bottom: auto;
-        width: auto;
-        height: 3px;
-        border-radius: 0;
-    }
+    .avis-card:hover { border: none; }
 
     /* En-tête */
     .avis-card__head {
@@ -735,13 +610,17 @@
         margin-bottom: 12px;
         align-items: flex-start;
     }
-    .agency-avatar { width: 42px; height: 42px; font-size: 17px; }
-    .agency-info strong { font-size: 15px; font-weight: 700; letter-spacing: -.2px; color: var(--ios-label); }
+    .agency-avatar {
+        width: 42px; height: 42px; font-size: 17px;
+        background: #F5F5F7;
+    }
+    .agency-info strong { font-size: 15px; font-weight: 700; color: var(--ios-label); }
     .avis-card__date { font-size: 12.5px; color: var(--ios-label-3); }
 
     .avis-card__rating {
         padding: 5px 10px;
         gap: 7px;
+        background: #F5F5F7;
     }
     .avis-stars { font-size: 13px; gap: 2px; }
     .avis-card__score { font-size: 14px; }
@@ -757,7 +636,7 @@
 
     /* Commentaire */
     .avis-card__comment {
-        padding: 14px 16px 14px 18px;
+        padding: 14px 16px;
         border-radius: 12px;
         font-size: 14px;
         line-height: 1.6;
@@ -770,6 +649,7 @@
         border-radius: 12px;
         padding: 12px 14px;
         margin-bottom: 12px;
+        background: #F9FAFB;
     }
     .reponse-block__head {
         font-size: 11px;
@@ -779,7 +659,7 @@
     }
     .reponse-block__text { font-size: 13.5px; }
 
-    /* ─── Actions iOS ─── */
+    /* Actions iOS */
     .avis-card__actions {
         gap: 8px;
         padding-top: 12px;
@@ -802,23 +682,22 @@
         font-weight: 600;
     }
     .btn-rust {
-        background: linear-gradient(135deg, var(--rust), #d4754a);
+        background: var(--rust);
         border: none;
-        box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
     }
     .btn-ghost {
-        background: var(--ios-card);
-        border: 1px solid #E5E5EA;
+        background: #F5F5F7;
+        border: none;
         color: var(--ios-blue);
     }
     .btn-ghost:active { background: #EFEFF4; }
     .btn-danger-soft {
-        background: rgba(198, 40, 40, .08);
-        border: none;
+        background: transparent;
+        border: 1px solid #FECACA;
         color: var(--c-danger);
     }
 
-    /* ─── EMPTY iOS ─── */
+    /* EMPTY iOS */
     .empty-state {
         background: var(--ios-card);
         border: none;
@@ -827,14 +706,15 @@
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
     .empty-state__icon {
-        width: 68px;
-        height: 68px;
-        font-size: 28px;
+        width: 64px;
+        height: 64px;
+        font-size: 26px;
+        background: #F5F5F7;
     }
-    .empty-state h3 { font-size: 17px; letter-spacing: -.3px; }
+    .empty-state h3 { font-size: 17px; }
     .empty-state p { font-size: 13.5px; color: var(--ios-label-3); }
 
-    /* ─── Pagination iOS ─── */
+    /* Pagination iOS */
     .pagination-wrapper a,
     .pagination-wrapper span:not(.sr-only) {
         background: var(--ios-card);
@@ -848,15 +728,22 @@
 
 @media (max-width: 480px) {
     .avis-stat__value { font-size: 20px; }
-    .avis-stat__value i { font-size: 13px; }
     .avis-stat__label { font-size: 10.5px; }
 
     .avis-card { padding: 14px; }
     .agency-avatar { width: 38px; height: 38px; font-size: 15px; }
     .agency-info strong { font-size: 14px; }
     .avis-stars { font-size: 12px; }
-    .avis-card__comment { font-size: 13px; padding: 12px 14px 12px 16px; }
+    .avis-card__comment { font-size: 13px; padding: 12px 14px; }
     .reponse-block__text { font-size: 13px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 </style>
 @endpush

@@ -48,7 +48,7 @@
                 <span class="biens-stat__value">{{ $countIndispo }}</span>
                 <span class="biens-stat__label">Indisponibles</span>
             </div>
-            <div class="biens-stat {{ $countVedette > 0 ? 'is-highlight' : '' }}">
+            <div class="biens-stat">
                 <span class="biens-stat__value">{{ $countVedette }}</span>
                 <span class="biens-stat__label">Vedettes</span>
             </div>
@@ -80,32 +80,12 @@
             </a>
 
             <a href="{{ route('agence.biens.index', ['vedette' => 'true']) }}"
-               class="filter-tab filter-tab--gold {{ $isVedetteFilter ? 'is-active' : '' }}">
+               class="filter-tab {{ $isVedetteFilter ? 'is-active' : '' }}">
                 <i class="fa-solid fa-star"></i>
                 <span>Vedettes</span>
                 <span class="filter-tab__count">{{ $countVedette }}</span>
             </a>
         </nav>
-    @endif
-
-    {{-- ═══ ALERTS ═══ --}}
-    @if(session('success'))
-        <div class="alert alert-success">
-            <i class="fa-solid fa-check-circle"></i>
-            <span>{{ session('success') }}</span>
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-error">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            <span>{{ session('error') }}</span>
-        </div>
-    @endif
-    @if(session('warning'))
-        <div class="alert alert-warning">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            <span>{{ session('warning') }}</span>
-        </div>
     @endif
 
     {{-- ═══ GRILLE DES BIENS ═══ --}}
@@ -122,7 +102,7 @@
                     $isVedette  = (bool) $bien->est_vedette;
                 @endphp
 
-                <article class="bien-card {{ $isVedette ? 'is-vedette' : '' }}">
+                <article class="bien-card">
 
                     {{-- Image --}}
                     <div class="bien-card__media">
@@ -143,7 +123,6 @@
                         @endif
 
                         <span class="media-badge media-badge--statut {{ $isDispo ? 'is-dispo' : 'is-indispo' }}">
-                            <i class="fa-solid fa-circle"></i>
                             {{ $isDispo ? 'Disponible' : 'Indisponible' }}
                         </span>
 
@@ -224,12 +203,14 @@
                             <div class="dropdown-wrapper">
                                 <button type="button"
                                         class="btn btn-ghost btn-icon"
+                                        data-menu-trigger
+                                        data-menu-id="menu-{{ $bien->id }}"
                                         onclick="toggleMenu(event, 'menu-{{ $bien->id }}')"
                                         aria-label="Plus d'actions">
                                     <i class="fa-solid fa-ellipsis-vertical"></i>
                                 </button>
 
-                                <div class="dropdown-menu" id="menu-{{ $bien->id }}">
+                                <div class="dropdown-menu" id="menu-{{ $bien->id }}" data-menu-content>
                                     @if($isDispo)
                                         <form action="{{ route('agence.biens.desactiver', $bien->slug) }}" method="POST">
                                             @csrf
@@ -242,7 +223,7 @@
                                     @else
                                         <form action="{{ route('agence.biens.activer', $bien->slug) }}" method="POST">
                                             @csrf
-                                            <button type="submit" class="dropdown-menu__item dropdown-menu__item--success"
+                                            <button type="submit" class="dropdown-menu__item"
                                                     onclick="return confirm('Activer ce bien ? Il sera visible par les particuliers.')">
                                                 <i class="fa-solid fa-eye"></i>
                                                 Activer
@@ -252,13 +233,13 @@
 
                                     @if(!$isVedette)
                                         <a href="{{ route('agence.biens.vedette.demander', $bien->slug) }}"
-                                           class="dropdown-menu__item dropdown-menu__item--gold">
+                                           class="dropdown-menu__item">
                                             <i class="fa-solid fa-star"></i>
                                             Demander vedette
                                         </a>
                                     @else
                                         <div class="dropdown-menu__item dropdown-menu__item--muted">
-                                            <i class="fa-solid fa-star" style="color:#F5A623;"></i>
+                                            <i class="fa-solid fa-star"></i>
                                             Déjà en vedette
                                         </div>
                                     @endif
@@ -309,6 +290,15 @@
     @endif
 </div>
 
+{{-- ✅ FAB Publier un bien — mobile uniquement --}}
+@if($peutPublier ?? false)
+    <a href="{{ route('agence.biens.create') }}"
+       class="biens-fab"
+       aria-label="Publier un bien">
+        <i class="fa-solid fa-plus"></i>
+    </a>
+@endif
+
 {{-- Overlay pour fermer les menus --}}
 <div id="menuOverlay" class="menu-overlay" onclick="closeAllMenus()"></div>
 @endsection
@@ -316,69 +306,178 @@
 
 @push('scripts')
 <script>
-    /* ═══════════════════════════════════════════════════════════
-       MENU CONTEXTUEL — STABILISÉ v3
-       → z-index maximal
-       → empêche tout chevauchement avec autres cartes/boutons
-       → bloque le scroll mobile pendant l'ouverture
-    ═══════════════════════════════════════════════════════════ */
-    function toggleMenu(event, menuId) {
-        if (event) {
-            event.stopPropagation();
-            event.preventDefault();
-        }
+/* ═══════════════════════════════════════════════════════════
+   MENU CONTEXTUEL — v5
+   ═══════════════════════════════════════════════════════════ */
 
-        const menu = document.getElementById(menuId);
-        const overlay = document.getElementById('menuOverlay');
-        if (!menu) return;
+let activeMenu = null;
+let activeMenuPlaceholder = null;
 
-        const isOpen = menu.classList.contains('is-open');
+function isMobile() {
+    return window.innerWidth <= 820;
+}
 
+function toggleMenu(event, menuId) {
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+
+    if (activeMenu === menu) {
         closeAllMenus();
-
-        if (!isOpen) {
-            menu.classList.add('is-open');
-            overlay?.classList.add('is-open');
-
-            const card = menu.closest('.bien-card');
-            if (card) card.classList.add('is-menu-open');
-
-            // Sécurité mobile : bloque le scroll de la page sous la bottom sheet
-            if (window.innerWidth <= 820) {
-                document.body.style.overflow = 'hidden';
-            }
-        }
+        return;
     }
 
-    function closeAllMenus() {
-        document.querySelectorAll('.dropdown-menu.is-open').forEach(m => m.classList.remove('is-open'));
-        document.querySelectorAll('.bien-card.is-menu-open').forEach(c => c.classList.remove('is-menu-open'));
-        document.getElementById('menuOverlay')?.classList.remove('is-open');
-        document.body.style.overflow = '';
+    closeAllMenus();
+
+    const trigger = document.querySelector('[data-menu-id="' + menuId + '"]');
+    const card = trigger ? trigger.closest('.bien-card') : null;
+
+    if (isMobile() && menu.parentNode !== document.body) {
+        const placeholder = document.createElement('div');
+        placeholder.style.display = 'none';
+        menu.parentNode.insertBefore(placeholder, menu);
+        document.body.appendChild(menu);
+        activeMenuPlaceholder = placeholder;
     }
 
-    // Assure la fermeture stricte de tous les menus au chargement de la page
-    document.addEventListener('DOMContentLoaded', closeAllMenus);
+    if (card) card.classList.add('is-menu-open');
 
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') closeAllMenus();
+    requestAnimationFrame(() => {
+        menu.classList.add('is-open');
     });
 
-    // Clic sur un item → fermeture après action (sauf submit de form)
-    document.addEventListener('click', e => {
-        const item = e.target.closest('.dropdown-menu__item');
-        if (!item) return;
+    document.getElementById('menuOverlay')?.classList.add('is-open');
 
-        // Ne ferme pas si c'est un bouton submit dans un form
-        if (item.closest('form') && item.tagName === 'BUTTON' && item.type === 'submit') {
-            return;
-        }
+    if (isMobile()) {
+        document.body.classList.add('menu-open');
+    }
 
-        // Ne ferme pas si c'est un item "muté" (Déjà en vedette)
-        if (!item.classList.contains('dropdown-menu__item--muted')) {
-            setTimeout(closeAllMenus, 100);
+    activeMenu = menu;
+}
+
+function closeAllMenus() {
+    const menus = document.querySelectorAll('.dropdown-menu.is-open, body > .dropdown-menu');
+
+    menus.forEach(menu => {
+        menu.classList.remove('is-open');
+
+        if (menu.parentNode === document.body && activeMenuPlaceholder && activeMenuPlaceholder.parentNode) {
+            activeMenuPlaceholder.parentNode.insertBefore(menu, activeMenuPlaceholder);
+            activeMenuPlaceholder.remove();
         }
     });
+
+    document.querySelectorAll('.bien-card.is-menu-open').forEach(c => c.classList.remove('is-menu-open'));
+    document.getElementById('menuOverlay')?.classList.remove('is-open');
+    document.body.classList.remove('menu-open');
+
+    activeMenu = null;
+    activeMenuPlaceholder = null;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    closeAllMenus();
+
+    const style = document.createElement('style');
+    style.textContent = `
+        body.menu-open {
+            overflow: hidden !important;
+            position: fixed !important;
+            width: 100% !important;
+        }
+
+        body > .dropdown-menu {
+            display: block !important;
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            top: auto !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 100% !important;
+            margin: 0 !important;
+            border-radius: 16px 16px 0 0 !important;
+            padding: 8px 0 calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+            box-shadow: 0 -8px 24px rgba(0, 0, 0, .15) !important;
+            z-index: 99999 !important;
+            border: none !important;
+            background: #ffffff !important;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(100%);
+            transition: transform .28s cubic-bezier(.32, .72, 0, 1),
+                        opacity .2s ease,
+                        visibility .28s ease;
+        }
+        body > .dropdown-menu.is-open {
+            opacity: 1 !important;
+            visibility: visible !important;
+            transform: translateY(0) !important;
+            pointer-events: auto !important;
+        }
+        body > .dropdown-menu::before {
+            content: '' !important;
+            display: block !important;
+            width: 36px !important;
+            height: 4px !important;
+            background: #C7C7CC !important;
+            border-radius: 999px !important;
+            margin: 4px auto 8px !important;
+            pointer-events: none !important;
+        }
+        body > .dropdown-menu .dropdown-menu__item {
+            padding: 14px 20px !important;
+            font-size: 15px !important;
+            border-radius: 0 !important;
+            font-weight: 500 !important;
+        }
+        body > .dropdown-menu .dropdown-menu__item i {
+            width: 24px !important;
+            font-size: 17px !important;
+            color: #8A91A0 !important;
+        }
+        body > .dropdown-menu .dropdown-menu__item:active {
+            background: #F5F5F7 !important;
+        }
+        body > .dropdown-menu .dropdown-menu__item--danger,
+        body > .dropdown-menu .dropdown-menu__item--danger i {
+            color: #C62828 !important;
+        }
+        body > .dropdown-menu .dropdown-menu__sep {
+            margin: 6px 20px !important;
+            background: rgba(60, 60, 67, 0.12) !important;
+        }
+    `;
+    document.head.appendChild(style);
+});
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeAllMenus();
+});
+
+document.addEventListener('click', e => {
+    const item = e.target.closest('.dropdown-menu__item');
+    if (!item) return;
+
+    if (item.closest('form') && item.tagName === 'BUTTON' && item.type === 'submit') {
+        closeAllMenus();
+        return;
+    }
+
+    if (!item.classList.contains('dropdown-menu__item--muted')) {
+        setTimeout(closeAllMenus, 100);
+    }
+});
+
+window.addEventListener('resize', () => {
+    if (activeMenu) closeAllMenus();
+});
 </script>
 @endpush
 
@@ -386,7 +485,7 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   MES BIENS — iOS NATIVE
+   MES BIENS — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .biens-page {
@@ -398,22 +497,15 @@
     --c-danger-bg:  #FFEBEE;
     --c-info:       #0D47A1;
     --c-info-bg:    #E3F2FD;
-    --c-gold:       #F5A623;
-    --c-gold-bg:    #FFF8E1;
     --surface:      #F7F9FC;
     --radius:       14px;
 
-    --ios-bg: #F2F2F7;
     --ios-card: #FFFFFF;
-    --ios-blue: #007AFF;
-    --ios-label: #000000;
-    --ios-label-2: #3C3C43;
-    --ios-label-3: #8E8E93;
     --ios-separator: rgba(60, 60, 67, 0.12);
     --ios-radius-lg: 18px;
 }
 
-/* ═══ HEADER DESKTOP ═══ */
+/* ═══ HEADER ═══ */
 .page-header {
     display: flex;
     justify-content: space-between;
@@ -424,20 +516,21 @@
 }
 .page-header__left h2 {
     font-family: var(--display);
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
     margin: 0;
     color: var(--text);
     line-height: 1.2;
+    letter-spacing: -.3px;
 }
 .page-header__left p {
-    font-size: 13.5px;
+    font-size: 13px;
     color: var(--muted);
     margin: 4px 0 0;
 }
 .page-header__left strong {
     color: var(--text);
-    font-weight: 700;
+    font-weight: 600;
 }
 
 /* ═══ STATS ═══ */
@@ -458,15 +551,6 @@
     border: 1px solid var(--border);
     border-radius: 14px;
     position: relative;
-    transition: transform .15s, box-shadow .15s;
-}
-.biens-stat:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(0,0,0,.05);
-}
-.biens-stat.is-highlight {
-    border-color: var(--c-gold);
-    background: linear-gradient(135deg, #FFFBF0, #fff);
 }
 .biens-stat__value {
     font-family: var(--display);
@@ -476,7 +560,6 @@
     letter-spacing: -.5px;
     line-height: 1;
 }
-.biens-stat.is-highlight .biens-stat__value { color: #C77800; }
 .biens-stat__label {
     font-size: 11.5px;
     font-weight: 500;
@@ -501,62 +584,42 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    padding: 9px 15px;
+    padding: 8px 14px;
     border-radius: 10px;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-soft);
     background: #fff;
-    border: 1.5px solid var(--border);
+    border: 1px solid var(--border);
     text-decoration: none;
-    transition: all .2s ease;
+    transition: border-color .15s, background-color .15s, color .15s;
     white-space: nowrap;
     flex-shrink: 0;
 }
-.filter-tab:hover { border-color: var(--rust); transform: translateY(-1px); }
-.filter-tab i { font-size: 12px; opacity: .85; }
+.filter-tab:hover { border-color: #d8d8d8; }
+.filter-tab i { font-size: 11px; color: var(--muted); }
 .filter-tab.is-active {
-    background: var(--rust);
-    color: #fff;
-    border-color: var(--rust);
-    box-shadow: 0 4px 12px rgba(180, 83, 42, .22);
+    background: #F5F5F7;
+    color: var(--ink);
+    border-color: #d8d8d8;
+    font-weight: 600;
 }
-.filter-tab.is-active i { color: #fff; opacity: 1; }
-.filter-tab--gold.is-active {
-    background: var(--c-gold);
-    border-color: var(--c-gold);
-    box-shadow: 0 4px 12px rgba(245, 166, 35, .3);
-}
+.filter-tab.is-active i { color: var(--rust); }
 
 .filter-tab__count {
-    background: rgba(0, 0, 0, .07);
-    padding: 1px 8px;
+    background: #F5F5F7;
+    padding: 1px 7px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 700;
-    min-width: 22px;
+    min-width: 20px;
     text-align: center;
+    color: var(--text-soft);
 }
 .filter-tab.is-active .filter-tab__count {
-    background: rgba(255, 255, 255, .28);
-    color: #fff;
+    background: #fff;
+    color: var(--ink);
 }
-
-/* ═══ ALERTS ═══ */
-.alert {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 11px 16px;
-    border-radius: 10px;
-    margin-bottom: 14px;
-    border-left: 4px solid;
-    font-size: 13px;
-    font-weight: 500;
-}
-.alert-success { background: var(--c-success-bg); color: var(--c-success); border-left-color: var(--c-success); }
-.alert-error   { background: var(--c-danger-bg);  color: var(--c-danger);  border-left-color: var(--c-danger); }
-.alert-warning { background: var(--c-warning-bg); color: var(--c-warning); border-left-color: var(--c-gold); }
 
 /* ═══ GRILLE ═══ */
 .biens-grid {
@@ -572,19 +635,11 @@
     background: #fff;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    overflow: visible;                 /* ← indispensable pour le dropdown */
-    transition: transform .2s ease, box-shadow .2s ease, border-color .2s;
+    overflow: visible;
+    transition: border-color .2s;
     position: relative;
 }
-.bien-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, .07);
-    border-color: #d8d8d8;
-}
-.bien-card.is-vedette {
-    border-color: var(--c-gold);
-    box-shadow: 0 0 0 1px rgba(245, 166, 35, .2);
-}
+.bien-card:hover { border-color: #d8d8d8; }
 
 .bien-card__media {
     position: relative;
@@ -597,15 +652,13 @@
     width: 100%; height: 100%;
     object-fit: cover;
     display: block;
-    transition: transform .3s ease;
 }
-.bien-card:hover .bien-card__media img { transform: scale(1.03); }
 .bien-card__media-placeholder {
     width: 100%; height: 100%;
     display: flex; align-items: center; justify-content: center;
     color: var(--muted);
-    font-size: 40px;
-    opacity: .3;
+    font-size: 36px;
+    opacity: .35;
 }
 
 .media-badge {
@@ -613,40 +666,37 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 10px;
+    padding: 3px 9px;
     border-radius: 999px;
     font-size: 10.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .3px;
+    font-weight: 600;
     white-space: nowrap;
-    backdrop-filter: blur(4px);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, .15);
     z-index: 2;
 }
 .media-badge--vedette {
     top: 10px; left: 10px;
-    background: linear-gradient(135deg, var(--c-gold), #E8901A);
-    color: #fff;
+    background: #fff;
+    color: #B8860B;
+    border: 1px solid #F0E0B0;
 }
 .media-badge--vedette i { font-size: 9px; }
 
 .media-badge--statut {
     top: 10px; right: 10px;
     background: rgba(255, 255, 255, .95);
+    border: 1px solid var(--border);
 }
-.media-badge--statut i { font-size: 5px; }
 .media-badge--statut.is-dispo { color: var(--c-success); }
 .media-badge--statut.is-indispo { color: var(--muted); }
 
 .media-badge--type {
     bottom: 10px; left: 10px;
-    background: rgba(0, 0, 0, .75);
+    background: rgba(0, 0, 0, .7);
     color: #fff;
 }
 .media-badge--count {
     bottom: 10px; right: 10px;
-    background: rgba(0, 0, 0, .7);
+    background: rgba(0, 0, 0, .65);
     color: #fff;
     gap: 8px;
 }
@@ -669,7 +719,7 @@
 .bien-card__title {
     font-family: var(--display);
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 600;
     margin: 0;
     color: var(--text);
     line-height: 1.3;
@@ -683,7 +733,7 @@
 .bien-card__price {
     font-family: var(--display);
     font-size: 15px;
-    font-weight: 800;
+    font-weight: 700;
     color: var(--rust);
     white-space: nowrap;
     line-height: 1.2;
@@ -691,7 +741,7 @@
 }
 .bien-card__price small {
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 500;
     opacity: .7;
     margin-left: 2px;
 }
@@ -704,9 +754,8 @@
     color: var(--muted);
 }
 .bien-card__location i {
-    color: var(--rust);
+    color: var(--muted);
     font-size: 11px;
-    opacity: .8;
 }
 
 .bien-card__meta {
@@ -718,34 +767,34 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 10px;
+    padding: 3px 9px;
     border-radius: 999px;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: #F5F5F7;
     font-size: 11px;
     color: var(--text-soft);
     font-weight: 500;
 }
-.meta-pill i { color: var(--rust); font-size: 10px; opacity: .8; }
+.meta-pill i { color: var(--muted); font-size: 10px; }
 
 .bien-card__views {
     display: inline-flex;
     align-items: center;
     gap: 5px;
     padding: 4px 10px;
-    background: var(--c-info-bg);
-    color: var(--c-info);
+    background: #F5F5F7;
+    color: var(--text-soft);
     border-radius: 999px;
     font-size: 11.5px;
-    font-weight: 600;
+    font-weight: 500;
     align-self: flex-start;
     margin-top: auto;
 }
-.bien-card__views i { font-size: 11px; }
+.bien-card__views i { font-size: 11px; color: var(--muted); }
 .bien-card__views strong {
     font-family: var(--display);
     font-size: 12px;
-    font-weight: 800;
+    font-weight: 700;
+    color: var(--text);
 }
 
 .bien-card__actions {
@@ -758,11 +807,7 @@
     border-radius: 0 0 var(--radius) var(--radius);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   DROPDOWN MENU — STABILISÉ v3
-   → z-index maximal + isolation stricte
-   → items en position relative pour passer au-dessus de tout
-   ═══════════════════════════════════════════════════════════ */
+/* ═══ MENU CONTEXTUEL ═══ */
 .bien-card.is-menu-open,
 .bien-card:has(.dropdown-menu.is-open) {
     z-index: 9999 !important;
@@ -772,12 +817,6 @@
 .dropdown-wrapper {
     position: relative;
     margin-left: auto;
-    isolation: isolate;
-}
-
-.dropdown-wrapper:has(.dropdown-menu.is-open),
-.dropdown-wrapper.is-open {
-    z-index: 10000 !important;
 }
 
 .dropdown-menu {
@@ -785,20 +824,17 @@
     position: absolute;
     bottom: calc(100% + 8px);
     right: 0;
-    min-width: 220px;
+    min-width: 210px;
     background: #fff;
     border: 1px solid var(--border);
     border-radius: 12px;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, .12);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
     padding: 6px;
     z-index: 9999;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
     transition: opacity .15s ease, visibility .15s ease;
-    isolation: isolate;
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
 }
 
 .dropdown-menu.is-open {
@@ -808,7 +844,6 @@
     pointer-events: auto;
 }
 
-/* Pont invisible bouton → menu (10px) */
 .dropdown-menu::before {
     content: '';
     position: absolute;
@@ -817,7 +852,6 @@
     right: 0;
     height: 10px;
     background: transparent;
-    pointer-events: auto;
 }
 
 .dropdown-menu__item {
@@ -835,30 +869,17 @@
     font-family: inherit;
     text-decoration: none;
     cursor: pointer;
-    transition: background-color .15s ease, color .15s ease;
+    transition: background-color .15s ease;
     text-align: left;
-    -webkit-user-select: none;
-    user-select: none;
-    position: relative;
-    z-index: 1;
 }
-.dropdown-menu__item:hover { background: var(--surface); }
-.dropdown-menu__item:active { background: #EEF1F5; }
+.dropdown-menu__item:hover { background: #F5F5F7; }
 .dropdown-menu__item i {
     width: 16px;
     text-align: center;
     font-size: 13px;
     color: var(--muted);
     flex-shrink: 0;
-    transition: color .15s ease;
 }
-.dropdown-menu__item:hover i { color: var(--rust); }
-
-.dropdown-menu__item--success i { color: var(--c-success); }
-.dropdown-menu__item--success:hover { background: var(--c-success-bg); }
-
-.dropdown-menu__item--gold i { color: var(--c-gold); }
-.dropdown-menu__item--gold:hover { background: var(--c-gold-bg); }
 
 .dropdown-menu__item--danger { color: var(--c-danger); }
 .dropdown-menu__item--danger i { color: var(--c-danger); }
@@ -870,6 +891,7 @@
     font-style: italic;
 }
 .dropdown-menu__item--muted:hover { background: transparent; }
+.dropdown-menu__item--muted i { color: #B8860B; }
 
 .dropdown-menu__sep {
     height: 1px;
@@ -877,7 +899,6 @@
     margin: 4px 8px;
 }
 
-/* L'overlay doit rester SOUS le menu mais AU-DESSUS de tout le reste */
 .menu-overlay {
     display: none;
     position: fixed;
@@ -887,6 +908,7 @@
 }
 .menu-overlay.is-open { display: block; }
 
+/* ═══ BOUTONS ═══ */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -900,7 +922,7 @@
     border: 1px solid transparent;
     cursor: pointer;
     font-family: inherit;
-    transition: all .2s ease;
+    transition: background-color .15s, border-color .15s, color .15s;
     white-space: nowrap;
 }
 .btn-rust {
@@ -910,20 +932,18 @@
 }
 .btn-rust:hover {
     background: #9A4523;
-    color: #fff;
     border-color: #9A4523;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(180, 83, 42, .25);
+    color: #fff;
 }
 .btn-ghost {
-    background: transparent;
+    background: #fff;
     color: var(--text-soft);
     border-color: var(--border);
 }
 .btn-ghost:hover {
-    background: var(--surface);
-    border-color: var(--rust);
-    color: var(--rust);
+    background: #F5F5F7;
+    border-color: #d8d8d8;
+    color: var(--ink);
 }
 .btn-icon { padding: 7px 10px; }
 .btn.is-disabled,
@@ -932,36 +952,38 @@
     cursor: not-allowed;
 }
 
+/* ═══ EMPTY ═══ */
 .empty-state {
     text-align: center;
-    padding: 64px 20px;
+    padding: 56px 20px;
     background: #fff;
     border-radius: var(--radius);
     border: 1px dashed var(--border);
 }
 .empty-state__icon {
-    width: 76px; height: 76px;
-    margin: 0 auto 18px;
+    width: 64px; height: 64px;
+    margin: 0 auto 14px;
     display: flex; align-items: center; justify-content: center;
-    background: var(--c-warning-bg);
+    background: #F5F5F7;
     border-radius: 50%;
-    color: var(--rust);
-    font-size: 30px;
+    color: var(--muted);
+    font-size: 26px;
 }
 .empty-state h3 {
     font-family: var(--display);
-    font-size: 17px; font-weight: 700;
-    margin: 0 0 6px;
+    font-size: 16px; font-weight: 700;
+    margin: 0 0 5px;
     color: var(--text);
 }
 .empty-state p {
     color: var(--muted);
-    font-size: 13.5px;
-    margin: 0 auto 18px;
-    max-width: 420px;
+    font-size: 13px;
+    margin: 0 auto 16px;
+    max-width: 400px;
 }
 
-.pagination-wrapper { margin-top: 24px; display: flex; justify-content: center; }
+/* ═══ PAGINATION ═══ */
+.pagination-wrapper { margin-top: 22px; display: flex; justify-content: center; }
 .pagination-wrapper .pagination,
 .pagination-wrapper nav {
     display: flex; gap: 5px; justify-content: center;
@@ -970,22 +992,24 @@
 .pagination-wrapper a,
 .pagination-wrapper span:not(.sr-only) {
     display: inline-block;
-    padding: 7px 12px;
+    padding: 6px 11px;
     border-radius: 8px;
     border: 1px solid var(--border);
     color: var(--text-soft);
     text-decoration: none;
-    font-size: 12.5px;
-    transition: all .2s;
-    min-width: 36px;
+    font-size: 12px;
+    min-width: 34px;
     text-align: center;
     background: #fff;
 }
-.pagination-wrapper a:hover { background: var(--border); border-color: var(--rust); color: var(--rust); }
+.pagination-wrapper a:hover { background: #F5F5F7; }
 .pagination-wrapper .active span,
 .pagination-wrapper [aria-current="page"] span,
 .pagination-wrapper [aria-current="page"] { background: var(--rust); color: #fff; border-color: var(--rust); }
 .pagination-wrapper .disabled span { opacity: .45; cursor: not-allowed; }
+
+/* ═══ FAB (mobile only) ═══ */
+.biens-fab { display: none; }
 
 
 /* ═══════════════════════════════════════════════════════════
@@ -997,14 +1021,14 @@
 
     .page-header { display: none; }
 
+    /* STATS INLINE */
     .biens-stats {
         display: flex;
         gap: 0;
         background: var(--ios-card);
         border-radius: var(--ios-radius-lg);
-        padding: 16px 6px;
+        padding: 14px 6px;
         margin-bottom: 12px;
-        box-shadow: 0 1px 3px rgba(0,0,0,.04);
         grid-template-columns: none;
     }
     .biens-stat {
@@ -1013,9 +1037,8 @@
         background: transparent;
         border: none;
         border-radius: 0;
-        gap: 2px;
+        gap: 3px;
     }
-    .biens-stat:hover { transform: none; box-shadow: none; }
     .biens-stat:not(:last-child)::after {
         content: '';
         position: absolute;
@@ -1026,243 +1049,116 @@
     .biens-stat__value { font-size: 22px; }
     .biens-stat__label {
         font-size: 11px;
-        color: var(--ios-label-3);
+        color: var(--muted);
         text-transform: none;
         letter-spacing: 0;
     }
 
+    /* FILTRES */
     .filter-tabs {
         gap: 8px;
         margin: 0 -16px 14px;
         padding: 0 16px 2px;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
     }
     .filter-tabs::-webkit-scrollbar { display: none; }
 
     .filter-tab {
-        scroll-snap-align: start;
-        padding: 9px 16px;
+        padding: 8px 15px;
         background: var(--ios-card);
         border: none;
         border-radius: 999px;
         font-size: 13px;
-        font-weight: 600;
-        color: var(--ios-label-2);
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
-        transition: all .15s ease;
-        -webkit-tap-highlight-color: transparent;
     }
-    .filter-tab:active { transform: scale(.95); }
     .filter-tab.is-active {
-        background: linear-gradient(135deg, var(--rust), #d4754a);
+        background: var(--rust);
         color: #fff;
-        box-shadow: 0 4px 12px rgba(181, 80, 42, .3);
-    }
-    .filter-tab--gold.is-active {
-        background: linear-gradient(135deg, var(--c-gold), #E8901A);
-        box-shadow: 0 4px 12px rgba(245, 166, 35, .35);
-    }
-    .filter-tab.is-active .filter-tab__count {
-        background: rgba(255, 255, 255, .3);
     }
     .filter-tab__count {
         background: #EFEFF4;
-        color: var(--ios-label-2);
-        font-size: 11px;
-        padding: 1px 8px;
+        color: var(--text-soft);
+    }
+    .filter-tab.is-active .filter-tab__count {
+        background: rgba(255,255,255,.25);
+        color: #fff;
     }
 
+    /* GRILLE */
     .biens-grid {
         grid-template-columns: 1fr;
         gap: 12px;
     }
 
+    /* CARTES iOS */
     .bien-card {
         background: var(--ios-card);
         border: none;
         border-radius: var(--ios-radius-lg);
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
-        overflow: visible;
-        transition: transform .15s ease;
     }
-    .bien-card:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,.04); border: none; }
-    .bien-card:active { transform: scale(.985); }
 
     .bien-card__media {
         aspect-ratio: 16/9;
         border-radius: var(--ios-radius-lg) var(--ios-radius-lg) 0 0;
     }
 
-    .bien-card.is-vedette {
-        border: none;
-        box-shadow: 0 1px 3px rgba(0,0,0,.04);
-    }
-
     .media-badge {
-        font-size: 10px;
-        padding: 4px 10px;
-        text-transform: none;
-        letter-spacing: 0;
-        font-weight: 600;
+        font-size: 10.5px;
+        padding: 3px 9px;
     }
     .media-badge--vedette { top: 12px; left: 12px; }
     .media-badge--statut { top: 12px; right: 12px; }
     .media-badge--type { bottom: 12px; left: 12px; }
     .media-badge--count { bottom: 12px; right: 12px; }
 
-    .bien-card__body {
-        padding: 14px 16px;
-        gap: 8px;
-    }
+    .bien-card__body { padding: 14px 16px; }
 
-    .bien-card__title {
-        font-size: 16px;
-        font-weight: 700;
-        letter-spacing: -.2px;
-        color: var(--ios-label);
-    }
-    .bien-card__price {
-        font-size: 18px;
-        letter-spacing: -.3px;
-    }
+    .bien-card__title { font-size: 15px; }
+    .bien-card__price { font-size: 17px; }
 
-    .bien-card__location {
-        font-size: 13px;
-        color: var(--ios-label-3);
-    }
-    .bien-card__location i { font-size: 12px; color: var(--rust); }
+    .bien-card__location { font-size: 13px; }
 
-    .bien-card__meta { gap: 6px; }
     .meta-pill {
-        background: #EFEFF4;
-        border: none;
-        color: var(--ios-label-2);
+        background: #F5F5F7;
         font-size: 12px;
-        padding: 4px 11px;
+        padding: 4px 10px;
     }
-    .meta-pill i { color: var(--rust); font-size: 11px; }
 
     .bien-card__views {
-        background: #E3F2FD;
-        color: var(--c-info);
+        background: #F5F5F7;
         font-size: 12.5px;
-        padding: 5px 11px;
     }
-    .bien-card__views i { font-size: 12px; }
-    .bien-card__views strong { font-size: 13px; }
 
     .bien-card__actions {
         padding: 12px 16px;
         background: transparent;
         border-top: 0.5px solid var(--ios-separator);
         gap: 8px;
-        flex-wrap: nowrap;
         border-radius: 0 0 var(--ios-radius-lg) var(--ios-radius-lg);
     }
     .bien-card__actions .btn {
         padding: 11px 14px;
         font-size: 14px;
         border-radius: 12px;
-        font-weight: 600;
         flex: 1;
         justify-content: center;
     }
     .bien-card__actions .btn-ghost {
-        background: #EFEFF4;
+        background: #F5F5F7;
         border: none;
-        color: var(--ios-blue);
+        color: var(--text-soft);
     }
-    .bien-card__actions .btn-ghost:active { background: #E0E0E5; }
     .bien-card__actions .btn-rust {
-        background: linear-gradient(135deg, var(--rust), #d4754a);
+        background: var(--rust);
         border: none;
-        box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
     }
     .bien-card__actions .btn-icon {
         flex: 0 0 auto;
         padding: 11px 14px;
-        background: #EFEFF4;
+        background: #F5F5F7;
         border: none;
-        color: var(--ios-label-2);
-    }
-    .bien-card__actions .btn-icon:active { background: #E0E0E5; }
-
-    .bien-card.is-menu-open,
-    .bien-card.is-menu-open:active {
-        transform: none !important;
-        z-index: 99999 !important;
-    }
-
-    .dropdown-wrapper {
-        isolation: auto !important;
-    }
-
-    /* ─── Bottom sheet iOS ─── */
-    .dropdown-menu {
-        display: none !important;
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        top: auto !important;
-        min-width: 100% !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        border-radius: 20px 20px 0 0 !important;
-        padding: 8px 0 calc(12px + env(safe-area-inset-bottom, 0px)) !important;
-        transform: translateY(100%) !important;
-        box-shadow: 0 -20px 60px rgba(0, 0, 0, .25) !important;
-        z-index: 99999 !important;
-        border: none !important;
-        background: #ffffff !important;
-        opacity: 0 !important;
-        visibility: hidden !important;
-        pointer-events: none !important;
-        transition: transform .3s cubic-bezier(.32, .72, 0, 1), opacity .2s ease, visibility .2s ease !important;
-        isolation: auto !important;
-    }
-    .dropdown-menu.is-open {
-        display: block !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        transform: translateY(0) !important;
-        pointer-events: auto !important;
-    }
-    .dropdown-menu::before {
-        /* Reset du pont invisible desktop — inutile en bottom sheet */
-        content: '';
-        display: block;
-        position: static;
-        width: 36px;
-        height: 4px;
-        background: #C7C7CC;
-        border-radius: 999px;
-        margin: 4px auto 8px;
-        pointer-events: none;
-    }
-
-    .dropdown-menu__item {
-        padding: 14px 20px;
-        font-size: 15px;
-        border-radius: 0;
-        font-weight: 500;
-        position: relative;
-        z-index: 1;
-        pointer-events: auto;
-    }
-    .dropdown-menu__item:active { background: #F5F5F7; }
-    .dropdown-menu__item i {
-        width: 24px;
-        font-size: 17px;
-        color: var(--ios-label-2);
-    }
-
-    .dropdown-menu__sep {
-        margin: 6px 20px;
-        background: var(--ios-separator);
+        color: var(--text-soft);
     }
 
     .menu-overlay {
@@ -1279,15 +1175,6 @@
         padding: 48px 24px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
-    .empty-state__icon {
-        width: 68px;
-        height: 68px;
-        background: #EFEFF4;
-        color: var(--ios-label-3);
-        font-size: 28px;
-    }
-    .empty-state h3 { font-size: 17px; letter-spacing: -.3px; }
-    .empty-state p { font-size: 13.5px; color: var(--ios-label-3); }
 
     .pagination-wrapper a,
     .pagination-wrapper span:not(.sr-only) {
@@ -1298,20 +1185,50 @@
         font-size: 13px;
         border-radius: 10px;
     }
+
+    /* ✅ FAB — Publier un bien */
+    .biens-fab {
+        display: flex;
+        position: fixed;
+        right: 16px;
+        bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--rust);
+        color: #fff;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, .18);
+        z-index: 90;
+        text-decoration: none;
+        transition: background-color .15s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .biens-fab:hover { background: #9A4523; color: #fff; }
+    .biens-fab:active { background: #8A3D1F; }
 }
 
 @media (max-width: 480px) {
     .biens-stat__value { font-size: 20px; }
     .biens-stat__label { font-size: 10.5px; }
 
-    .bien-card__title { font-size: 15px; }
-    .bien-card__price { font-size: 17px; }
+    .bien-card__title { font-size: 14.5px; }
+    .bien-card__price { font-size: 16px; }
     .bien-card__body { padding: 12px 14px; }
     .bien-card__actions { padding: 10px 14px; }
 
     .bien-card__actions .btn {
         padding: 10px 12px;
         font-size: 13px;
+    }
+
+    .biens-fab {
+        right: 14px;
+        width: 52px;
+        height: 52px;
+        font-size: 20px;
     }
 }
 

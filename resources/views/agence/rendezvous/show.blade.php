@@ -8,29 +8,78 @@
 <div class="view active ios-rdv-show">
 
     @php
-        $statutValue = $rendezVous->statut->value;
-        $isPhoneVisible = $rendezVous->isPhoneVisible();
-        $bien     = $rendezVous->proposition->bien ?? null;
-        $client   = $rendezVous->particulier->user ?? null;
-        $agence   = $rendezVous->agence ?? null;
-        $images   = $bien ? $bien->medias->where('type_media', 'image')->values() : collect();
-        $videos   = $bien ? $bien->medias->where('type_media', 'video')->values() : collect();
+        $statutValue = is_object($rendezVous->statut)
+            ? $rendezVous->statut->value
+            : (string) $rendezVous->statut;
+        $statutLabel = is_object($rendezVous->statut)
+            ? $rendezVous->statut->label()
+            : ucfirst($statutValue);
+
+        $dateVisite = \Carbon\Carbon::parse($rendezVous->date_visite);
+        $heureVisite = $rendezVous->heure_visite
+            ? \Carbon\Carbon::parse($rendezVous->heure_visite)->format('H:i')
+            : '—';
+
+        $proposition = $rendezVous->proposition;
+        $bien        = $proposition->bien ?? null;
+        $client      = $rendezVous->particulier->user ?? null;
+        $agence      = $rendezVous->agence ?? null;
+
+        // ✅ Téléphone client TOUJOURS visible dès qu'il y a un RDV
+        $hasTel = $client && !empty($client->telephone);
+
+        $images = $bien ? $bien->medias->where('type_media', 'image')->values() : collect();
+        $videos = $bien ? $bien->medias->where('type_media', 'video')->values() : collect();
 
         $lightboxImages = $images->map(fn($m) => asset('storage/' . $m->fichier))->values()->all();
         $initial = strtoupper(mb_substr($client->prenom ?? 'C', 0, 1));
+
+        // ✅ Fenêtre de validation : 24h avant la visite
+        $dateHeureVisite = \Carbon\Carbon::parse($rendezVous->date_visite)
+            ->setTimeFromTimeString($rendezVous->heure_visite ?? '00:00:00');
+        $fenetreValidationOuverte = now()->greaterThanOrEqualTo(
+            $dateHeureVisite->copy()->subHours(24)
+        );
+
+        $peutValiderCode = $statutValue === 'confirme'
+            && !$rendezVous->code_valide
+            && $fenetreValidationOuverte;
+
+        $peutMarquerAbsent = $statutValue === 'confirme'
+            && !$rendezVous->code_valide;
     @endphp
 
+    {{-- ═══ ALERTS ═══ --}}
+    @if(session('success'))
+        <div class="alert alert-success">
+            <i class="fa-solid fa-check-circle"></i>
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-error">
+            <i class="fa-solid fa-exclamation-circle"></i>
+            <span>{{ session('error') }}</span>
+        </div>
+    @endif
+    @if(session('info'))
+        <div class="alert alert-info">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>{{ session('info') }}</span>
+        </div>
+    @endif
+
     {{-- ═══ HERO ═══ --}}
-    <header class="ios-rdv-hero ios-rdv-hero--{{ $statutValue }}">
+    <header class="ios-rdv-hero">
         <div class="ios-rdv-hero__date">
-            <span class="ios-rdv-hero__day">{{ $rendezVous->date_visite->format('d') }}</span>
-            <span class="ios-rdv-hero__month">{{ strtoupper($rendezVous->date_visite->translatedFormat('M')) }}</span>
-            <span class="ios-rdv-hero__year">{{ $rendezVous->date_visite->format('Y') }}</span>
+            <span class="ios-rdv-hero__day">{{ $dateVisite->format('d') }}</span>
+            <span class="ios-rdv-hero__month">{{ strtoupper($dateVisite->translatedFormat('M')) }}</span>
+            <span class="ios-rdv-hero__year">{{ $dateVisite->format('Y') }}</span>
         </div>
 
         <div class="ios-rdv-hero__main">
             <span class="ios-rdv-hero__weekday">
-                {{ $rendezVous->date_visite->translatedFormat('l') }}
+                {{ $dateVisite->translatedFormat('l') }}
             </span>
             <h2 class="ios-rdv-hero__title">
                 {{ $bien->titre ?? 'Visite' }}
@@ -41,48 +90,50 @@
             <div class="ios-rdv-hero__meta">
                 <span>
                     <i class="fa-regular fa-clock"></i>
-                    {{ \Carbon\Carbon::parse($rendezVous->heure_visite)->format('H:i') }}
+                    {{ $heureVisite }}
                 </span>
                 <span class="ios-rdv-hero__meta-sep">•</span>
                 <span>
                     <i class="fa-regular fa-calendar"></i>
-                    {{ $rendezVous->date_visite->format('d/m/Y') }}
+                    {{ $dateVisite->format('d/m/Y') }}
                 </span>
             </div>
         </div>
 
         <div class="ios-rdv-hero__status">
             <span class="ios-badge ios-badge--{{ $statutValue }}">
-                <i class="fa-solid fa-circle"></i>
-                {{ $rendezVous->statut->label() }}
+                {{ $statutLabel }}
             </span>
         </div>
     </header>
 
-    {{-- ═══ BANNIÈRE SÉCURITÉ ═══ --}}
-    @if(!$isPhoneVisible)
-        <div class="ios-banner ios-banner--warning">
+    {{-- ═══ BANNIÈRE STATUT ═══ --}}
+    @if($statutValue === 'client_absent')
+        <div class="ios-banner ios-banner--muted">
             <div class="ios-banner__icon">
-                <i class="fa-solid fa-shield-halved"></i>
+                <i class="fa-solid fa-user-slash"></i>
             </div>
             <div class="ios-banner__body">
-                <strong>Numéros masqués</strong>
-                <p>Les numéros sont masqués tant que le rendez-vous n'est pas confirmé.</p>
+                <strong>Client absent</strong>
+                <p>
+                    Vous avez signalé que le client n'est pas venu à ce rendez-vous.
+                    Le particulier a été notifié et peut choisir un nouveau créneau.
+                </p>
             </div>
         </div>
-    @else
+    @elseif($rendezVous->code_valide)
         <div class="ios-banner ios-banner--success">
             <div class="ios-banner__icon">
                 <i class="fa-solid fa-circle-check"></i>
             </div>
             <div class="ios-banner__body">
-                <strong>Coordonnées visibles</strong>
-                <p>Le rendez-vous est confirmé. Les numéros sont visibles.</p>
+                <strong>Visite validée</strong>
+                <p>Le code de visite a été utilisé. La visite est marquée comme terminée.</p>
             </div>
         </div>
     @endif
 
-    {{-- ═══ CONTENU 2 COLONNES (desktop) ═══ --}}
+    {{-- ═══ CONTENU 2 COLONNES ═══ --}}
     <div class="ios-rdv-layout">
 
         {{-- ═══ COLONNE PRINCIPALE ═══ --}}
@@ -102,6 +153,7 @@
                     </div>
                 </div>
 
+                {{-- Téléphone — TOUJOURS visible --}}
                 <div class="ios-cell">
                     <div class="ios-cell__icon ios-cell__icon--green">
                         <i class="fa-solid fa-phone"></i>
@@ -110,30 +162,14 @@
                         <span class="ios-cell__label">Téléphone</span>
                     </div>
                     <span class="ios-cell__value">
-                        @if($isPhoneVisible)
-                            @if($client && $client->telephone)
-                                <a href="tel:{{ $client->telephone }}" class="ios-cell__value--link">
-                                    {{ $rendezVous->particulier_phone_formatted }}
-                                </a>
-                            @else
-                                <span class="ios-cell__value--muted">Non renseigné</span>
-                            @endif
+                        @if($hasTel)
+                            <a href="tel:{{ preg_replace('/\s+/', '', $client->telephone) }}" class="ios-cell__value--link">
+                                {{ $client->telephone }}
+                            </a>
                         @else
-                            <span class="ios-cell__value--muted">
-                                <i class="fa-solid fa-lock" style="font-size:11px;margin-right:4px;"></i>Masqué
-                            </span>
+                            <span class="ios-cell__value--muted">Non renseigné</span>
                         @endif
                     </span>
-                </div>
-
-                <div class="ios-cell">
-                    <div class="ios-cell__icon ios-cell__icon--blue">
-                        <i class="fa-solid fa-envelope"></i>
-                    </div>
-                    <div class="ios-cell__body">
-                        <span class="ios-cell__label">Email</span>
-                    </div>
-                    <span class="ios-cell__value">{{ $client->email ?? 'Non renseigné' }}</span>
                 </div>
             </div>
 
@@ -151,7 +187,7 @@
                         </span>
                         @if($bien)
                             <span class="ios-cell__sublabel">
-                                {{ $bien->type_bien->label() ?? '—' }}
+                                {{ is_object($bien->type_bien) ? $bien->type_bien->label() : ($bien->type_bien ?? '—') }}
                                 @if($bien->surface) · {{ $bien->surface }} m² @endif
                             </span>
                         @endif
@@ -186,11 +222,88 @@
                         <span class="ios-cell__label">Prix proposé</span>
                     </div>
                     <span class="ios-cell__value ios-cell__value--price">
-                        {{ number_format($rendezVous->proposition->prix_propose, 0, ',', ' ') }}
+                        {{ $proposition ? number_format($proposition->prix_propose, 0, ',', ' ') : '—' }}
                         <small>FCFA</small>
                     </span>
                 </div>
             </div>
+
+            {{-- ═══ CODE DE VISITE ═══ --}}
+            @if($peutValiderCode)
+                <div class="ios-section-header">Code de visite</div>
+
+                <form action="{{ route('agence.rendezvous.valider-code', $rendezVous) }}"
+                      method="POST" class="ios-code-form">
+                    @csrf
+                    <div class="ios-code-form__icon">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <div class="ios-code-form__body">
+                        <label for="code-{{ $rendezVous->id }}" class="ios-code-form__label">
+                            Valider la visite avec le code
+                        </label>
+                        <p class="ios-code-form__hint">
+                            Demandez le code à 6 chiffres au client pour marquer la visite comme terminée.
+                        </p>
+                        <div class="ios-code-form__input-wrapper">
+                            <input
+                                type="text"
+                                id="code-{{ $rendezVous->id }}"
+                                name="code_visite"
+                                class="ios-code-form__input"
+                                placeholder="000000"
+                                maxlength="6"
+                                inputmode="numeric"
+                                pattern="[0-9]{6}"
+                                autocomplete="off"
+                                required
+                            >
+                            <button type="submit" class="ios-code-form__btn">
+                                Valider
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+            @elseif($rendezVous->code_valide)
+                <div class="ios-section-header">Code de visite</div>
+
+                <div class="ios-group">
+                    <div class="ios-cell">
+                        <div class="ios-cell__icon ios-cell__icon--green">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <div class="ios-cell__body">
+                            <span class="ios-cell__label ios-cell__label--strong">
+                                Visite validée
+                            </span>
+                            <span class="ios-cell__sublabel">
+                                Code validé le
+                                {{ $rendezVous->code_valide_le ? $rendezVous->code_valide_le->format('d/m/Y à H:i') : '—' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+            @elseif($statutValue === 'confirme' && !$fenetreValidationOuverte)
+                <div class="ios-section-header">Code de visite</div>
+
+                <div class="ios-group">
+                    <div class="ios-cell">
+                        <div class="ios-cell__icon ios-cell__icon--orange">
+                            <i class="fa-solid fa-hourglass-half"></i>
+                        </div>
+                        <div class="ios-cell__body">
+                            <span class="ios-cell__label ios-cell__label--strong">
+                                En attente de la visite
+                            </span>
+                            <span class="ios-cell__sublabel">
+                                La saisie du code sera possible 24h avant la visite.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             {{-- ═══ GALERIE ═══ --}}
             @if($images->count() > 0 || $videos->count() > 0)
@@ -211,7 +324,7 @@
                 @endif
 
                 @if($videos->count() > 0)
-                    <div class="ios-video-list">
+                    <div class="ios-video-list" style="margin-top: 8px;">
                         @foreach($videos as $media)
                             <div class="ios-video-tile">
                                 <video src="{{ asset('storage/' . $media->fichier) }}" controls preload="metadata">
@@ -221,14 +334,6 @@
                         @endforeach
                     </div>
                 @endif
-            @else
-                <div class="ios-section-header">Galerie</div>
-                <div class="ios-empty ios-empty--compact">
-                    <div class="ios-empty__icon">
-                        <i class="fa-regular fa-image"></i>
-                    </div>
-                    <p class="ios-empty__text">Aucune photo ou vidéo disponible</p>
-                </div>
             @endif
         </div>
 
@@ -252,90 +357,86 @@
                         @endif
                     </div>
                 </div>
-
-                @if($agence && $agence->user && $agence->user->telephone)
-                    <div class="ios-cell">
-                        <div class="ios-cell__icon ios-cell__icon--green">
-                            <i class="fa-solid fa-phone"></i>
-                        </div>
-                        <div class="ios-cell__body">
-                            <span class="ios-cell__label">Téléphone</span>
-                        </div>
-                        <span class="ios-cell__value">{{ $agence->user->telephone }}</span>
-                    </div>
-                @endif
-
-                @if($agence && $agence->user && $agence->user->email)
-                    <div class="ios-cell">
-                        <div class="ios-cell__icon ios-cell__icon--blue">
-                            <i class="fa-solid fa-envelope"></i>
-                        </div>
-                        <div class="ios-cell__body">
-                            <span class="ios-cell__label">Email</span>
-                        </div>
-                        <span class="ios-cell__value">{{ $agence->user->email }}</span>
-                    </div>
-                @endif
             </div>
 
             {{-- ═══ ACTIONS ═══ --}}
             <div class="ios-section-header">Actions</div>
 
             <div class="ios-actions-stack">
+
                 @if($statutValue === 'planifie')
                     <form action="{{ route('agence.rendezvous.confirmer', $rendezVous) }}" method="POST">
                         @csrf
                         <button type="submit" class="ios-btn ios-btn--primary ios-btn--full">
-                            <i class="fa-solid fa-check"></i> Confirmer le rendez-vous
+                            Confirmer le rendez-vous
                         </button>
                     </form>
+
+                    @if($hasTel)
+                        <a href="tel:{{ preg_replace('/\s+/', '', $client->telephone) }}" class="ios-btn ios-btn--green ios-btn--full">
+                            <i class="fa-solid fa-phone"></i> Appeler le client
+                        </a>
+                    @endif
+
                     <form action="{{ route('agence.rendezvous.annuler', $rendezVous) }}" method="POST">
                         @csrf
                         <button type="submit" class="ios-btn ios-btn--red ios-btn--full"
-                                onclick="return confirm('Annuler ce rendez-vous ?')">
-                            <i class="fa-solid fa-xmark"></i> Annuler
+                                onclick="return confirm('Annuler ce rendez-vous ?\n\nToute la sélection sera réinitialisée.')">
+                            Annuler
                         </button>
                     </form>
 
                 @elseif($statutValue === 'confirme')
-                    @if($client && $client->telephone)
-                        <a href="tel:{{ $client->telephone }}" class="ios-btn ios-btn--green ios-btn--full">
+                    @if($hasTel)
+                        <a href="tel:{{ preg_replace('/\s+/', '', $client->telephone) }}" class="ios-btn ios-btn--green ios-btn--full">
                             <i class="fa-solid fa-phone"></i> Appeler le client
                         </a>
                     @endif
-                    <form action="{{ route('agence.rendezvous.termine', $rendezVous) }}" method="POST">
-                        @csrf
-                        <button type="submit" class="ios-btn ios-btn--primary ios-btn--full"
-                                onclick="return confirm('Marquer ce rendez-vous comme terminé ?')">
-                            <i class="fa-solid fa-check-double"></i> Terminer la visite
-                        </button>
-                    </form>
-                    <form action="{{ route('agence.rendezvous.annuler', $rendezVous) }}" method="POST">
-                        @csrf
-                        <button type="submit" class="ios-btn ios-btn--red ios-btn--full"
-                                onclick="return confirm('Annuler ce rendez-vous ?')">
-                            <i class="fa-solid fa-xmark"></i> Annuler
-                        </button>
-                    </form>
+
+                    @if($peutMarquerAbsent)
+                        <form action="{{ route('agence.rendezvous.absent', $rendezVous) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="ios-btn ios-btn--gray ios-btn--full"
+                                    onclick="return confirm('Marquer le client comme ABSENT ?\n\nLe RDV passera à CLIENT_ABSENT.\nLe particulier pourra replanifier.')">
+                                Client absent
+                            </button>
+                        </form>
+                    @endif
+
+                    @if(!$rendezVous->code_valide)
+                        <form action="{{ route('agence.rendezvous.annuler', $rendezVous) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="ios-btn ios-btn--red ios-btn--full"
+                                    onclick="return confirm('Annuler ce rendez-vous ?\n\nToute la sélection sera réinitialisée.')">
+                                Annuler
+                            </button>
+                        </form>
+                    @endif
 
                 @elseif($statutValue === 'termine')
                     <div class="ios-state-pill ios-state-pill--success">
-                        <i class="fa-solid fa-check-circle"></i> Visite terminée
+                        Visite terminée
                     </div>
-                    @if($client && $client->telephone)
-                        <a href="tel:{{ $client->telephone }}" class="ios-btn ios-btn--green ios-btn--full">
+
+                    @if($hasTel)
+                        <a href="tel:{{ preg_replace('/\s+/', '', $client->telephone) }}" class="ios-btn ios-btn--green ios-btn--full">
                             <i class="fa-solid fa-phone"></i> Appeler le client
                         </a>
                     @endif
 
                 @elseif($statutValue === 'annule')
                     <div class="ios-state-pill ios-state-pill--danger">
-                        <i class="fa-solid fa-ban"></i> Rendez-vous annulé
+                        Rendez-vous annulé
+                    </div>
+
+                @elseif($statutValue === 'client_absent')
+                    <div class="ios-state-pill ios-state-pill--muted">
+                        Client absent
                     </div>
                 @endif
 
                 <a href="{{ route('agence.rendezvous.index') }}" class="ios-btn ios-btn--gray ios-btn--full">
-                    <i class="fa-solid fa-list"></i> Tous mes rendez-vous
+                    Tous mes rendez-vous
                 </a>
             </div>
         </aside>
@@ -407,12 +508,14 @@
     });
 
     const lbEl = document.getElementById('lightbox');
-    lbEl.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; });
-    lbEl.addEventListener('touchend', e => {
-        touchEndX = e.changedTouches[0].screenX;
-        const diff = touchEndX - touchStartX;
-        if (Math.abs(diff) > 50) navigateLightbox(diff > 0 ? -1 : 1);
-    });
+    if (lbEl) {
+        lbEl.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; });
+        lbEl.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            const diff = touchEndX - touchStartX;
+            if (Math.abs(diff) > 50) navigateLightbox(diff > 0 ? -1 : 1);
+        });
+    }
 </script>
 @endpush
 
@@ -420,7 +523,7 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   DÉTAIL RDV — iOS NATIVE
+   DÉTAIL RDV (Agence) — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .ios-rdv-show {
@@ -452,7 +555,23 @@
     padding-bottom: 40px;
 }
 
-/* ═══ HERO CARD ═══ */
+/* ═══ ALERTS ═══ */
+.alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 14px;
+    border-left: 3px solid;
+    font-size: 13.5px;
+    font-weight: 500;
+}
+.alert-success { background: rgba(52, 199, 89, 0.12); color: #175C35; border-left-color: var(--ios-green); }
+.alert-error   { background: rgba(255, 59, 48, 0.12); color: #8B1A1A; border-left-color: var(--ios-red); }
+.alert-info    { background: rgba(0, 122, 255, 0.12); color: #0040DD; border-left-color: var(--ios-blue); }
+
+/* ═══ HERO ═══ */
 .ios-rdv-hero {
     display: flex;
     align-items: center;
@@ -461,22 +580,8 @@
     background: var(--ios-card);
     border-radius: var(--ios-radius-lg);
     margin-bottom: 20px;
-    position: relative;
-    overflow: hidden;
     flex-wrap: wrap;
 }
-.ios-rdv-hero::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-    background: var(--ios-gray);
-}
-.ios-rdv-hero--planifie::before { background: var(--ios-orange); }
-.ios-rdv-hero--confirme::before { background: var(--ios-blue); }
-.ios-rdv-hero--termine::before  { background: var(--ios-green); }
-.ios-rdv-hero--annule::before   { background: var(--ios-red); }
-
 .ios-rdv-hero__date {
     display: flex;
     flex-direction: column;
@@ -489,11 +594,6 @@
     flex-shrink: 0;
     background: var(--ios-gray-6);
 }
-.ios-rdv-hero--planifie .ios-rdv-hero__date { background: rgba(255, 149, 0, 0.12); }
-.ios-rdv-hero--confirme .ios-rdv-hero__date { background: rgba(0, 122, 255, 0.12); }
-.ios-rdv-hero--termine  .ios-rdv-hero__date { background: rgba(52, 199, 89, 0.12); }
-.ios-rdv-hero--annule   .ios-rdv-hero__date { background: rgba(255, 59, 48, 0.12); }
-
 .ios-rdv-hero__day {
     font-size: 28px;
     font-weight: 700;
@@ -522,7 +622,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--ios-blue);
+    color: var(--ios-label-2);
     margin-bottom: 3px;
 }
 .ios-rdv-hero__title {
@@ -553,7 +653,6 @@
     opacity: 0.7;
 }
 .ios-rdv-hero__meta-sep { opacity: 0.4; }
-
 .ios-rdv-hero__status { flex-shrink: 0; }
 
 /* ═══ BADGE ═══ */
@@ -568,12 +667,14 @@
     text-transform: uppercase;
     letter-spacing: 0.3px;
     white-space: nowrap;
+    background: var(--ios-gray-5);
+    color: var(--ios-label-2);
 }
-.ios-badge i { font-size: 5px; }
-.ios-badge--planifie { background: rgba(255, 149, 0, 0.15); color: #C93400; }
-.ios-badge--confirme { background: rgba(0, 122, 255, 0.15); color: #0040DD; }
-.ios-badge--annule   { background: rgba(255, 59, 48, 0.15); color: #D70015; }
-.ios-badge--termine  { background: rgba(52, 199, 89, 0.15); color: #007A33; }
+.ios-badge--planifie      { background: rgba(255, 149, 0, 0.15); color: #C93400; }
+.ios-badge--confirme      { background: rgba(0, 122, 255, 0.15); color: #0040DD; }
+.ios-badge--annule        { background: rgba(255, 59, 48, 0.15); color: #D70015; }
+.ios-badge--termine       { background: rgba(52, 199, 89, 0.15); color: #007A33; }
+.ios-badge--client_absent { background: rgba(142, 142, 147, 0.15); color: #6C6C70; }
 
 /* ═══ BANNIÈRE ═══ */
 .ios-banner {
@@ -583,6 +684,7 @@
     padding: 14px 16px;
     border-radius: var(--ios-radius-lg);
     margin-bottom: 20px;
+    background: var(--ios-gray-6);
 }
 .ios-banner__icon {
     flex-shrink: 0;
@@ -594,6 +696,7 @@
     justify-content: center;
     font-size: 15px;
     color: #fff;
+    background: var(--ios-gray);
 }
 .ios-banner__body { min-width: 0; }
 .ios-banner__body strong {
@@ -602,34 +705,20 @@
     font-weight: 600;
     margin-bottom: 2px;
     letter-spacing: -0.2px;
+    color: var(--ios-label);
 }
 .ios-banner__body p {
     font-size: 13px;
     margin: 0;
     line-height: 1.45;
-    opacity: 0.85;
+    color: var(--ios-label-2);
 }
-.ios-banner--warning {
-    background: rgba(255, 149, 0, 0.12);
-    color: #8B4B15;
-}
+.ios-banner--warning { background: rgba(255, 149, 0, 0.1); }
 .ios-banner--warning .ios-banner__icon { background: var(--ios-orange); }
-
-.ios-banner--success {
-    background: rgba(52, 199, 89, 0.12);
-    color: #175C35;
-}
+.ios-banner--success { background: rgba(52, 199, 89, 0.1); }
 .ios-banner--success .ios-banner__icon { background: var(--ios-green); }
-
-/* ═══ LAYOUT 2 COLONNES (desktop) ═══ */
-.ios-rdv-layout {
-    display: grid;
-    grid-template-columns: 1fr 360px;
-    gap: 20px;
-    align-items: start;
-}
-.ios-rdv-layout__main { min-width: 0; }
-.ios-rdv-layout__side { min-width: 0; }
+.ios-banner--muted { background: rgba(142, 142, 147, 0.1); }
+.ios-banner--muted .ios-banner__icon { background: var(--ios-gray); }
 
 /* ═══ SECTION HEADER ═══ */
 .ios-section-header {
@@ -645,7 +734,6 @@
     padding: 0 4px;
 }
 .ios-section-header:first-child { margin-top: 0; }
-.ios-rdv-layout__side .ios-section-header:first-child { margin-top: 0; }
 .ios-section-header__count {
     font-size: 12px;
     font-weight: 500;
@@ -664,7 +752,6 @@
     overflow: hidden;
     margin-bottom: 4px;
 }
-
 .ios-cell {
     display: flex;
     align-items: center;
@@ -673,7 +760,6 @@
     min-height: 44px;
     position: relative;
     background: var(--ios-card);
-    transition: background 0.1s;
 }
 .ios-cell + .ios-cell::before {
     content: '';
@@ -696,13 +782,14 @@
     flex-shrink: 0;
     font-size: 15px;
     color: #fff;
+    background: var(--ios-gray);
 }
 .ios-cell__icon--blue   { background: var(--ios-blue); }
 .ios-cell__icon--green  { background: var(--ios-green); }
 .ios-cell__icon--orange { background: var(--ios-orange); }
 .ios-cell__icon--red    { background: var(--ios-red); }
 .ios-cell__icon--gray   { background: var(--ios-gray); }
-.ios-cell__icon--rust   { background: #B4532A; }
+.ios-cell__icon--rust   { background: var(--rust); }
 
 .ios-cell__body {
     flex: 1;
@@ -759,8 +846,8 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #B4532A, #d4754a);
-    color: #fff;
+    background: var(--ios-gray-6);
+    color: var(--rust);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -768,7 +855,97 @@
     font-weight: 600;
     flex-shrink: 0;
     letter-spacing: -0.3px;
+    border: 1px solid var(--ios-separator);
 }
+
+/* ═══ FORMULAIRE CODE ═══ */
+.ios-code-form {
+    display: flex;
+    gap: 14px;
+    padding: 18px;
+    background: var(--ios-card);
+    border: 1px solid var(--ios-separator);
+    border-radius: var(--ios-radius-lg);
+    margin-bottom: 4px;
+}
+.ios-code-form__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--ios-gray-6);
+    color: var(--rust);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+.ios-code-form__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.ios-code-form__label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ios-label);
+    letter-spacing: -.2px;
+}
+.ios-code-form__hint {
+    font-size: 13px;
+    color: var(--ios-label-2);
+    margin: 0;
+    line-height: 1.5;
+}
+.ios-code-form__input-wrapper {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+}
+.ios-code-form__input {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 16px;
+    font-family: inherit;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 8px;
+    color: var(--ios-label);
+    background: var(--ios-gray-6);
+    border: 1px solid var(--ios-separator);
+    border-radius: 12px;
+    text-align: center;
+    transition: border-color .15s;
+    outline: none;
+}
+.ios-code-form__input::placeholder {
+    color: var(--ios-label-3);
+    letter-spacing: 8px;
+    font-weight: 600;
+}
+.ios-code-form__input:focus {
+    border-color: var(--rust);
+}
+.ios-code-form__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 22px;
+    background: var(--rust);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 14.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color .15s;
+    white-space: nowrap;
+}
+.ios-code-form__btn:hover { background: #9A4523; }
 
 /* ═══ GALERIE ═══ */
 .ios-gallery {
@@ -787,7 +964,6 @@
     background: var(--ios-gray-6);
     overflow: hidden;
 }
-.ios-gallery__item:active { opacity: 0.7; }
 .ios-gallery__item img {
     width: 100%; height: 100%;
     object-fit: cover;
@@ -810,27 +986,6 @@
     aspect-ratio: 16 / 9;
     object-fit: cover;
     display: block;
-}
-
-/* ═══ EMPTY ═══ */
-.ios-empty {
-    text-align: center;
-    padding: 40px 20px;
-    background: var(--ios-card);
-    border-radius: var(--ios-radius-lg);
-    margin-bottom: 4px;
-}
-.ios-empty--compact { padding: 32px 20px; }
-.ios-empty__icon {
-    font-size: 44px;
-    color: var(--ios-gray-3);
-    margin-bottom: 10px;
-}
-.ios-empty__text {
-    font-size: 14px;
-    color: var(--ios-label-2);
-    margin: 0;
-    line-height: 1.5;
 }
 
 /* ═══ ACTIONS STACK ═══ */
@@ -856,17 +1011,28 @@
     cursor: pointer;
     border: none;
     text-decoration: none;
-    transition: opacity 0.1s, transform 0.1s;
+    transition: background-color .15s, transform .1s;
     white-space: nowrap;
     min-height: 48px;
     width: 100%;
 }
-.ios-btn:active { transform: scale(0.98); opacity: 0.85; }
+.ios-btn:not(:disabled):active { transform: scale(0.98); }
 
-.ios-btn--primary { background: #B4532A; color: #fff; }
+.ios-btn--primary { background: var(--rust); color: #fff; }
+.ios-btn--primary:hover { background: #9A4523; }
+
 .ios-btn--green   { background: var(--ios-green); color: #fff; }
+.ios-btn--green:hover { background: #28A745; }
+
 .ios-btn--red     { background: var(--ios-red); color: #fff; }
-.ios-btn--gray    { background: var(--ios-gray-5); color: var(--ios-blue); }
+.ios-btn--red:hover { background: #D62D25; }
+
+.ios-btn--gray {
+    background: var(--ios-gray-5);
+    color: var(--ios-blue);
+}
+.ios-btn--gray:hover { background: #D9D9DE; }
+
 .ios-btn--full    { width: 100%; }
 
 /* ═══ STATE PILL ═══ */
@@ -880,6 +1046,8 @@
     font-size: 15px;
     font-weight: 600;
     min-height: 48px;
+    background: var(--ios-gray-6);
+    color: var(--ios-label-2);
 }
 .ios-state-pill--success {
     background: rgba(52, 199, 89, 0.12);
@@ -888,6 +1056,10 @@
 .ios-state-pill--danger {
     background: rgba(255, 59, 48, 0.12);
     color: #8B1A1A;
+}
+.ios-state-pill--muted {
+    background: rgba(142, 142, 147, 0.12);
+    color: #48484A;
 }
 
 /* ═══ LIGHTBOX ═══ */
@@ -945,13 +1117,20 @@
     justify-content: center;
     z-index: 2;
 }
-.ios-lightbox__close:active { opacity: 0.6; }
 
 /* ═══════════════════════════════════════════════════════════
    RESPONSIVE
    ═══════════════════════════════════════════════════════════ */
 
-/* Desktop : conteneur large mais lisible */
+.ios-rdv-layout {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 20px;
+    align-items: start;
+}
+.ios-rdv-layout__main { min-width: 0; }
+.ios-rdv-layout__side { min-width: 0; }
+
 @media (min-width: 821px) {
     .ios-rdv-show {
         max-width: 1100px;
@@ -960,7 +1139,6 @@
     }
 }
 
-/* Tablette : 1 colonne */
 @media (max-width: 1100px) and (min-width: 821px) {
     .ios-rdv-layout {
         grid-template-columns: 1fr;
@@ -968,7 +1146,6 @@
     }
 }
 
-/* Mobile iOS */
 @media (max-width: 820px) {
     .ios-rdv-show {
         margin: 0 -16px;
@@ -983,6 +1160,33 @@
     .ios-rdv-layout__main,
     .ios-rdv-layout__side {
         display: contents;
+    }
+
+    .ios-code-form {
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+    }
+    .ios-code-form__icon {
+        width: 38px;
+        height: 38px;
+        font-size: 17px;
+    }
+    .ios-code-form__input-wrapper {
+        flex-direction: column;
+    }
+    .ios-code-form__input {
+        padding: 14px;
+        font-size: 24px;
+        letter-spacing: 10px;
+    }
+    .ios-code-form__input::placeholder {
+        font-size: 24px;
+        letter-spacing: 10px;
+    }
+    .ios-code-form__btn {
+        width: 100%;
+        padding: 14px 20px;
     }
 }
 

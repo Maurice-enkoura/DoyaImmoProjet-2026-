@@ -23,47 +23,24 @@ class RendezVousConfirmeNotification extends Notification implements ShouldQueue
 
     public function toMail($notifiable): MailMessage
     {
-        $agence = $this->rendezVous->agence;
-        $dateVisite = $this->rendezVous->date_visite ? $this->rendezVous->date_visite->format('d/m/Y') : 'N/A';
-        $heureVisite = $this->rendezVous->heure_visite ?? $this->rendezVous->creneau->heure_debut ?? 'N/A';
-
-        $message = (new MailMessage)
-            ->subject('Rendez-vous confirmé - DoyaImmo')
-            ->greeting('Bonjour ' . $notifiable->prenom . ' !')
-            ->line('Votre rendez-vous a été confirmé :')
-            ->line('')
-            ->line('**Date :** ' . $dateVisite)
-            ->line('**Heure :** ' . $heureVisite);
-
-        if ($agence) {
-            $message->line('**Agence :** ' . $agence->nom_agence);
-            if ($agence->adresse) {
-                $message->line('**Adresse :** ' . $agence->adresse);
-            }
-            if ($agence->user && $agence->user->telephone) {
-                $message->line('**Téléphone :** ' . $agence->user->telephone);
-            }
-        }
-
-        $message->line('')
-                ->line('Merci de vous présenter à l\'heure convenue.')
-                ->action('Voir le rendez-vous', url('/particulier/rendezvous/' . $this->rendezVous->id))
-                ->line('')
-                ->salutation('L\'équipe DoyaImmo');
-
-        return $message;
+        return (new MailMessage)
+            ->subject(' Rendez-vous confirmé — DoyaImmo')
+            ->view('emails.rendez-vous-confirme', [
+                'rendezVous' => $this->rendezVous,
+                'notifiable' => $notifiable,
+            ]);
     }
 
     public function toDatabase($notifiable): array
     {
         return [
-            'title' => 'Rendez-vous confirmé',
-            'message' => 'Votre rendez-vous du ' . ($this->rendezVous->date_visite ? $this->rendezVous->date_visite->format('d/m/Y') : 'N/A') . ' a été confirmé.',
-            'type' => 'success',
-            'icon' => 'fa-calendar-check',
-            'link' => route('particulier.rendezvous.show', $this->rendezVous),
+            'title'         => 'Rendez-vous confirmé',
+            'message'       => 'Votre rendez-vous du ' . ($this->rendezVous->date_visite ? $this->rendezVous->date_visite->format('d/m/Y') : 'N/A') . ' a été confirmé.',
+            'type'          => 'success',
+            'icon'          => 'fa-calendar-check',
+            'link'          => route('particulier.rendezvous.show', $this->rendezVous),
             'rendezvous_id' => $this->rendezVous->id,
-            'agence_nom' => $this->rendezVous->agence->nom_agence ?? 'N/A',
+            'agence_nom'    => $this->rendezVous->agence->nom_agence ?? 'N/A',
         ];
     }
 

@@ -9,10 +9,10 @@
         <div class="brand" style="display:flex; justify-content:space-between; align-items:center;">
             <a href="{{ route('home') }}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
                 <div class="brand-mark">D</div>
-                <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--rust)">Immo</span></div>
+                <div class="brand-name"style="color:#fff;">Doya<span style="color:var(--rust)">Immo</span></div>
             </a>
         </div>
-        
+
         <!-- Statistiques -->
         <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px;">
             <!-- Citation -->
@@ -56,7 +56,7 @@
                     <div class="brand-mark">D</div>
                     <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
                 </a>
-                
+
                 <!-- Bouton Accueil -->
                 <a href="{{ route('home') }}" class="btn btn-ghost btn-sm" style="display:inline-flex; align-items:center; gap:6px;">
                     <i class="fa-solid fa-house"></i> Accueil
@@ -70,7 +70,7 @@
 
             <!-- Choix des rôles -->
             <div class="choice-container">
-                <a href="{{ route('register.particulier') }}" class="choice-card choice-client">
+                <a href="{{ route('register.particulier') }}" class="choice-card">
                     <div class="choice-icon">
                         <i class="fa-solid fa-user"></i>
                     </div>
@@ -81,10 +81,9 @@
                     <div class="choice-arrow">
                         <i class="fa-solid fa-arrow-right"></i>
                     </div>
-                    <span class="badge">Populaire</span>
                 </a>
 
-                <a href="{{ route('register.agence') }}" class="choice-card choice-agence">
+                <a href="{{ route('register.agence') }}" class="choice-card">
                     <div class="choice-icon">
                         <i class="fa-solid fa-building"></i>
                     </div>
@@ -95,7 +94,6 @@
                     <div class="choice-arrow">
                         <i class="fa-solid fa-arrow-right"></i>
                     </div>
-                    <span class="badge badge-teal">Pro</span>
                 </a>
             </div>
 
@@ -109,7 +107,7 @@
 
 @push('styles')
 <style>
-    /* ===================== AUTH HEADER ===================== */
+    /* ═══ AUTH HEADER ═══ */
     .auth-header {
         text-align: center;
         margin-bottom: 24px;
@@ -127,11 +125,11 @@
         color: var(--muted);
     }
 
-    /* ===================== CHOIX DES RÔLES ===================== */
+    /* ═══ CHOIX DES RÔLES ═══ */
     .choice-container {
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 12px;
         margin-bottom: 24px;
     }
 
@@ -140,10 +138,10 @@
         align-items: center;
         gap: 16px;
         padding: 16px 20px;
-        border: 2px solid var(--border);
+        border: 1px solid var(--border);
         border-radius: 14px;
         text-decoration: none;
-        transition: all 0.25s ease;
+        transition: border-color .15s, background-color .15s;
         background: #fff;
         position: relative;
         cursor: pointer;
@@ -151,12 +149,7 @@
 
     .choice-card:hover {
         border-color: var(--rust);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 28px rgba(181, 80, 42, 0.10);
-    }
-
-    .choice-card:active {
-        transform: translateY(0);
+        background: #FAFBFC;
     }
 
     .choice-card .choice-icon {
@@ -168,27 +161,8 @@
         border-radius: 12px;
         font-size: 18px;
         flex-shrink: 0;
-        transition: background 0.25s;
-    }
-
-    .choice-client .choice-icon {
-        background: var(--rust-soft);
-        color: var(--rust);
-    }
-
-    .choice-client:hover .choice-icon {
-        background: var(--rust);
-        color: #fff;
-    }
-
-    .choice-agence .choice-icon {
-        background: rgba(14, 122, 122, 0.12);
-        color: var(--teal);
-    }
-
-    .choice-agence:hover .choice-icon {
-        background: var(--teal);
-        color: #fff;
+        background: #F5F5F7;
+        color: var(--muted);
     }
 
     .choice-card .choice-content {
@@ -202,15 +176,7 @@
         font-size: 16px;
         font-weight: 700;
         color: var(--ink);
-        transition: color 0.25s;
-    }
-
-    .choice-client:hover .choice-title {
-        color: var(--rust);
-    }
-
-    .choice-agence:hover .choice-title {
-        color: var(--teal);
+        line-height: 1.3;
     }
 
     .choice-card .choice-desc {
@@ -221,44 +187,14 @@
     .choice-card .choice-arrow {
         color: var(--muted);
         font-size: 14px;
-        transition: all 0.25s;
-        opacity: 0;
-        transform: translateX(-8px);
+        flex-shrink: 0;
     }
 
     .choice-card:hover .choice-arrow {
-        opacity: 1;
-        transform: translateX(0);
-    }
-
-    .choice-client:hover .choice-arrow {
         color: var(--rust);
     }
 
-    .choice-agence:hover .choice-arrow {
-        color: var(--teal);
-    }
-
-    /* ===================== BADGES ===================== */
-    .choice-card .badge {
-        position: absolute;
-        top: -8px;
-        right: -6px;
-        background: var(--rust);
-        color: #fff;
-        font-size: 9px;
-        font-weight: 700;
-        text-transform: uppercase;
-        padding: 2px 10px;
-        border-radius: 20px;
-        letter-spacing: 0.5px;
-    }
-
-    .choice-card .badge.badge-teal {
-        background: var(--teal);
-    }
-
-    /* ===================== RESPONSIVE ===================== */
+    /* ═══ RESPONSIVE ═══ */
     @media (max-width: 480px) {
         .auth-header {
             margin-bottom: 20px;
@@ -269,7 +205,7 @@
         }
 
         .choice-container {
-            gap: 12px;
+            gap: 10px;
             margin-bottom: 20px;
         }
 
@@ -295,23 +231,6 @@
 
         .choice-card .choice-arrow {
             font-size: 12px;
-        }
-
-        .choice-card .badge {
-            font-size: 8px;
-            padding: 1px 8px;
-        }
-    }
-
-    @media (max-width: 360px) {
-        .choice-card {
-            flex-wrap: wrap;
-        }
-
-        .choice-card .choice-arrow {
-            opacity: 1;
-            transform: none;
-            margin-left: auto;
         }
     }
 </style>

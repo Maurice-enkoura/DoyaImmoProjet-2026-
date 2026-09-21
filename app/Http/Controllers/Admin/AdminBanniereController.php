@@ -12,7 +12,15 @@ class AdminBanniereController extends Controller
     public function index()
     {
         $bannieres = Banniere::orderBy('ordre', 'asc')->get();
-        return view('admin.bannieres.index', compact('bannieres'));
+
+        $stats = [
+            'total' => $bannieres->count(),
+            'actives' => $bannieres->filter(fn($b) => $b->est_active)->count(),
+            'programmees' => $bannieres->filter(fn($b) => $b->statut_reel === 'Programmée')->count(),
+            'expirees' => $bannieres->filter(fn($b) => $b->statut_reel === 'Expirée')->count(),
+        ];
+
+        return view('admin.bannieres.index', compact('bannieres', 'stats'));
     }
 
     public function create()
@@ -39,15 +47,15 @@ class AdminBanniereController extends Controller
             'sous_titre' => $request->sous_titre,
             'image' => $imagePath,
             'lien' => $request->lien,
-            'ordre' => Banniere::max('ordre') + 1,
+            'ordre' => (Banniere::max('ordre') ?? 0) + 1,
             'est_actif' => true,
             'position_texte' => $request->position_texte,
-            'date_debut' => $request->date_debut,
+            'date_debut' => $request->date_debut ?? now(),
             'date_fin' => $request->date_fin,
         ]);
 
         return redirect()->route('admin.bannieres.index')
-            ->with('success', ' Bannière créée avec succès.');
+            ->with('success', 'Bannière créée avec succès.');
     }
 
     public function show(Banniere $banniere)
@@ -84,15 +92,65 @@ class AdminBanniereController extends Controller
         $banniere->update($data);
 
         return redirect()->route('admin.bannieres.index')
-            ->with('success', ' Bannière mise à jour avec succès.');
+            ->with('success', 'Bannière mise à jour avec succès.');
     }
 
-    public function toggleActif(Banniere $banniere)
+    /**
+     * Active une bannière (avec reprogrammation si nécessaire)
+     */
+    public function activer(Request $request, Banniere $banniere)
     {
-        $banniere->update(['est_actif' => !$banniere->est_actif]);
-        $statut = $banniere->est_actif ? 'activée' : 'désactivée';
+        if ($request->has('date_debut')) {
+            $request->validate([
+                'date_debut' => 'required|date',
+                'date_fin' => 'nullable|date|after:date_debut',
+            ]);
+
+            $banniere->update([
+                'est_actif' => true,
+                'date_debut' => $request->date_debut,
+                'date_fin' => $request->date_fin,
+            ]);
+
+            return redirect()->route('admin.bannieres.index')
+                ->with('success', 'Bannière activée et reprogrammée avec succès.');
+        }
+
+        $banniere->update(['est_actif' => true]);
+
         return redirect()->route('admin.bannieres.index')
-            ->with('success', " Bannière {$statut} avec succès.");
+            ->with('success', 'Bannière activée avec succès.');
+    }
+
+    /**
+     * Désactive une bannière
+     */
+    public function desactiver(Banniere $banniere)
+    {
+        $banniere->update(['est_actif' => false]);
+
+        return redirect()->route('admin.bannieres.index')
+            ->with('success', 'Bannière désactivée avec succès.');
+    }
+
+    /**
+     * Toggle : active ou désactive
+     */
+    public function toggleActif(Request $request, Banniere $banniere)
+    {
+        if ($banniere->est_actif) {
+            return $this->desactiver($banniere);
+        }
+
+        if ($banniere->necessiteReprogrammation() && !$request->has('date_debut')) {
+            return redirect()->route('admin.bannieres.index')
+                ->with('reprogrammer_id', $banniere->id)
+                ->with('reprogrammer_titre', $banniere->titre)
+                ->with('reprogrammer_date_debut', now()->format('Y-m-d'))
+                ->with('reprogrammer_date_fin', $banniere->date_fin?->format('Y-m-d'));
+        }
+
+        return $this->activer($request, $banniere);
     }
 
     public function reordonner(Request $request)
@@ -117,6 +175,6 @@ class AdminBanniereController extends Controller
         $banniere->delete();
 
         return redirect()->route('admin.bannieres.index')
-            ->with('success', ' Bannière supprimée avec succès.');
+            ->with('success', 'Bannière supprimée avec succès.');
     }
 }

@@ -8,20 +8,28 @@
 <div class="view active offre-detail">
 
     @php
-        $isVedette  = $proposition->bien && $proposition->bien->est_vedette;
+        use App\Enums\StatutPropositionEnum;
+
+        $bien       = $proposition->bien;
+        $isVedette  = $bien && $bien->est_vedette;
         $statut     = is_object($proposition->statut) ? $proposition->statut->value : $proposition->statut;
         $statutLabel = is_object($proposition->statut) ? $proposition->statut->label() : ucfirst($proposition->statut);
-        $score      = $proposition->score_matching;
-        $scoreClass = $score >= 80 ? 'excellent' : ($score >= 60 ? 'moyen' : 'faible');
+        $score      = (int) ($proposition->score_matching ?? 0);
 
         $prenom  = $proposition->particulier->user->prenom ?? '';
         $nom     = $proposition->particulier->user->nom    ?? '';
         $initial = strtoupper(mb_substr($prenom ?: 'C', 0, 1));
 
+        // ✅ Téléphone client (robuste)
+        $clientTelephone = $proposition->particulier->user->telephone
+            ?? $proposition->particulier->telephone
+            ?? null;
+
+        // ✅ Médias
         $images     = $proposition->medias->where('type_media', 'image')->values();
         $videos     = $proposition->medias->where('type_media', 'video')->values();
-        $bienImages = $proposition->bien->medias->where('type_media', 'image')->values();
-        $bienVideos = $proposition->bien->medias->where('type_media', 'video')->values();
+        $bienImages = $bien ? $bien->medias->where('type_media', 'image')->values() : collect();
+        $bienVideos = $bien ? $bien->medias->where('type_media', 'video')->values() : collect();
 
         $lightboxImages = collect()
             ->merge($images->map(fn($m) => asset('storage/' . $m->fichier)))
@@ -35,31 +43,40 @@
             || $proposition->charges !== null
             || $proposition->disponibilite !== null
             || $proposition->conditions_particulieres !== null;
+
+        // ✅ RDV lié
+        $rendezVous = $proposition->rendezVous->sortByDesc('created_at')->first();
+        $hasRdv     = $rendezVous !== null;
+        $rdvStatut  = $rendezVous && is_object($rendezVous->statut)
+            ? $rendezVous->statut->value
+            : ($rendezVous->statut ?? null);
+        $rdvStatutLabel = $rendezVous && is_object($rendezVous->statut)
+            ? $rendezVous->statut->label()
+            : ucfirst((string) $rdvStatut);
+
+        // ✅ Peut-on annuler ?
+        $peutAnnuler = in_array($statut, ['en_attente', 'acceptee']) && !$hasRdv;
+
+        // ✅ Proposition réactivée ?
+        $estReactivee = $statut === 'en_attente'
+            && $proposition->updated_at->gt($proposition->created_at->copy()->addMinute());
     @endphp
 
-    {{-- ═══ ALERTS ═══ --}}
-    @if(session('success'))
-        <div class="alert alert-success">
-            <i class="fa-solid fa-check-circle"></i>
-            <span>{{ session('success') }}</span>
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-error">
-            <i class="fa-solid fa-exclamation-circle"></i>
-            <span>{{ session('error') }}</span>
-        </div>
-    @endif
-
     {{-- ═══ HERO ═══ --}}
-    <header class="offre-hero {{ $isVedette ? 'is-vedette' : '' }}">
-
+    <header class="offre-hero">
         <div class="offre-hero__badges">
             <span class="offre-status offre-status--{{ $statut }}">
-                <i class="fa-solid fa-circle"></i> {{ $statutLabel }}
+                {{ $statutLabel }}
             </span>
+
+            @if($estReactivee)
+                <span class="offre-badge">
+                    <i class="fa-solid fa-rotate-right"></i> Réactivée
+                </span>
+            @endif
+
             @if($isVedette)
-                <span class="offre-badge offre-badge--vedette">
+                <span class="offre-badge">
                     <i class="fa-solid fa-star"></i> Vedette
                 </span>
             @endif
@@ -85,8 +102,7 @@
 
         @if($score)
             <div class="offre-hero__score">
-                <div class="score-ring score-ring--lg score-ring--{{ $scoreClass }}"
-                     style="--score: {{ $score }};">
+                <div class="score-ring score-ring--lg" style="--score: {{ $score }};">
                     <svg viewBox="0 0 36 36" aria-hidden="true">
                         <circle class="score-ring__bg" cx="18" cy="18" r="16"/>
                         <circle class="score-ring__fill" cx="18" cy="18" r="16"/>
@@ -94,7 +110,7 @@
                     <span class="score-ring__value">{{ $score }}<small>%</small></span>
                 </div>
                 <div class="offre-hero__score-text">
-                    <span class="score-label score-label--{{ $scoreClass }}">
+                    <span class="score-label">
                         {{ $score >= 80 ? 'Excellent match' : ($score >= 60 ? 'Bon match' : 'Match faible') }}
                     </span>
                     <span class="offre-hero__score-hint">Compatibilité</span>
@@ -103,7 +119,49 @@
         @endif
     </header>
 
-    {{-- ═══ CLIENT (coordonnées masquées) ═══ --}}
+    {{-- ═══ RDV PLANIFIÉ ═══ --}}
+    @if($hasRdv)
+        <div class="ios-section-title">
+            <i class="fa-regular fa-calendar-check"></i> Rendez-vous planifié
+        </div>
+
+        <div class="rdv-card">
+            <div class="rdv-card__header">
+                <span class="rdv-status rdv-status--{{ $rdvStatut }}">
+                    {{ $rdvStatutLabel }}
+                </span>
+                <span class="rdv-card__code">
+                    <i class="fa-solid fa-key"></i>
+                    Code : <strong>{{ $rendezVous->code_visite ?? '—' }}</strong>
+                </span>
+            </div>
+
+            <div class="rdv-card__body">
+                <div class="rdv-info">
+                    <i class="fa-regular fa-calendar"></i>
+                    <div>
+                        <span class="rdv-info__label">Date de visite</span>
+                        <span class="rdv-info__value">
+                            {{ $rendezVous->date_visite ? $rendezVous->date_visite->format('d/m/Y') : '—' }}
+                        </span>
+                    </div>
+                </div>
+                <div class="rdv-info">
+                    <i class="fa-regular fa-clock"></i>
+                    <div>
+                        <span class="rdv-info__label">Heure</span>
+                        <span class="rdv-info__value">{{ $rendezVous->heure_visite ?? '—' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <a href="{{ route('agence.rendezvous.show', $rendezVous) }}" class="btn-rust btn-block">
+                <i class="fa-solid fa-eye"></i> Voir le rendez-vous
+            </a>
+        </div>
+    @endif
+
+    {{-- ═══ CLIENT ═══ --}}
     <div class="ios-section-title">
         <i class="fa-regular fa-user"></i> Client
     </div>
@@ -113,25 +171,31 @@
 
         <div class="client-card__info">
             <h3>{{ $prenom }} {{ $nom }}</h3>
-            <p class="client-card__note">
-                <i class="fa-solid fa-shield-halved"></i>
-                 Les coordonnées seront visibles après confirmation du rendez-vous
-            </p>
+
+            @if($hasRdv && $rdvStatut === 'confirme' && $clientTelephone)
+                {{-- ✅ RDV confirmé : téléphone visible --}}
+                <a href="tel:{{ preg_replace('/\s+/', '', $clientTelephone) }}" class="client-card__phone">
+                    <i class="fa-solid fa-phone"></i>
+                    {{ $clientTelephone }}
+                </a>
+            @elseif($hasRdv && $rdvStatut === 'confirme' && !$clientTelephone)
+                <p class="client-card__note">Téléphone non renseigné</p>
+            @else
+                <p class="client-card__note">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Les coordonnées seront visibles après confirmation du rendez-vous
+                </p>
+            @endif
         </div>
     </div>
 
-    {{-- Prix proposé --}}
+    {{-- ═══ PRIX PROPOSÉ ═══ --}}
     <div class="prix-card">
         <span class="prix-card__label">Prix proposé</span>
         <span class="prix-card__value">
             {{ number_format($proposition->prix_propose, 0, ',', ' ') }}
             <small>FCFA</small>
         </span>
-        @if($isVedette)
-            <span class="prix-card__vedette">
-                <i class="fa-solid fa-star"></i> Bien en vedette
-            </span>
-        @endif
     </div>
 
     {{-- ═══ CONDITIONS COMMERCIALES ═══ --}}
@@ -140,45 +204,13 @@
             <i class="fa-solid fa-file-signature"></i> Conditions commerciales
         </div>
 
-        {{-- Récap caution --}}
-        @if($proposition->caution_mois !== null)
-            <div class="conditions-recap">
-                <div class="recap-card recap-card--info">
-                    <div class="recap-card__icon">
-                        <i class="fa-solid fa-shield-halved"></i>
-                    </div>
-                    <div class="recap-card__body">
-                        <span class="recap-card__label">À l'avance</span>
-                        <span class="recap-card__value">
-                            {{ $proposition->caution_mois > 0 ? $proposition->caution_mois . ' mois' : 'Aucune' }}
-                        </span>
-                    </div>
-                </div>
-
-                <div class="recap-card recap-card--success">
-                    <div class="recap-card__icon">
-                        <i class="fa-solid fa-rotate-left"></i>
-                    </div>
-                    <div class="recap-card__body">
-                        <span class="recap-card__label">À la sortie</span>
-                        <span class="recap-card__value">
-                            {{ $proposition->caution_mois > 0 ? $proposition->caution_mois . ' mois' : '—' }}
-                        </span>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        {{-- Détails --}}
         <div class="ios-list">
             @if($proposition->disponibilite)
                 <div class="ios-list__item ios-list__item--static">
                     <div class="ios-list__content">
                         <span class="ios-list__title">Disponibilité</span>
                     </div>
-                    <span class="ios-list__value">
-                        {{ $proposition->disponibilite_label }}
-                    </span>
+                    <span class="ios-list__value">{{ $proposition->disponibilite_label }}</span>
                 </div>
             @endif
 
@@ -187,9 +219,7 @@
                     <div class="ios-list__content">
                         <span class="ios-list__title">Caution</span>
                     </div>
-                    <span class="ios-list__value">
-                        {{ $proposition->caution_label ?? 'Aucune' }}
-                    </span>
+                    <span class="ios-list__value">{{ $proposition->caution_label ?? 'Aucune' }}</span>
                 </div>
             @endif
 
@@ -198,9 +228,7 @@
                     <div class="ios-list__content">
                         <span class="ios-list__title">Avance de loyer</span>
                     </div>
-                    <span class="ios-list__value">
-                        {{ $proposition->avance_label ?? 'Aucune' }}
-                    </span>
+                    <span class="ios-list__value">{{ $proposition->avance_label ?? 'Aucune' }}</span>
                 </div>
             @endif
 
@@ -209,9 +237,7 @@
                     <div class="ios-list__content">
                         <span class="ios-list__title">Honoraires</span>
                     </div>
-                    <span class="ios-list__value">
-                        {{ $proposition->honoraires_formate }}
-                    </span>
+                    <span class="ios-list__value">{{ $proposition->honoraires_formate }}</span>
                 </div>
             @endif
 
@@ -220,22 +246,16 @@
                     <div class="ios-list__content">
                         <span class="ios-list__title">Charges</span>
                     </div>
-                    <span class="ios-list__value">
-                        {{ $proposition->charges_formate }}
-                    </span>
+                    <span class="ios-list__value">{{ $proposition->charges_formate }}</span>
                 </div>
             @endif
         </div>
 
-        {{-- Coût total --}}
         @if($proposition->cout_entree_total > 0)
             <div class="conditions-total">
                 <div class="conditions-total__left">
                     <i class="fa-solid fa-coins"></i>
-                    <div>
-                        <span class="conditions-total__label">Coût total à l'entrée</span>
-                        <span class="conditions-total__hint">Caution + Avance + Honoraires + Charges</span>
-                    </div>
+                    <span class="conditions-total__label">Coût total à l'entrée</span>
                 </div>
                 <span class="conditions-total__value">
                     {{ $proposition->cout_entree_total_formate }}
@@ -243,9 +263,8 @@
             </div>
         @endif
 
-        {{-- Notes --}}
         @if($proposition->conditions_particulieres)
-            <blockquote class="quote-block quote-block--rust">
+            <blockquote class="quote-block quote-block--italic">
                 {{ $proposition->conditions_particulieres }}
             </blockquote>
         @endif
@@ -273,11 +292,6 @@
                 @php $url = asset('storage/' . $media->fichier); @endphp
                 <div class="gallery-item" onclick="openLightbox('{{ $url }}', {{ $index }})">
                     <img src="{{ $url }}" alt="Photo" loading="lazy">
-                    @if($isVedette)
-                        <span class="gallery-item__badge">
-                            <i class="fa-solid fa-star"></i>
-                        </span>
-                    @endif
                 </div>
             @endforeach
         </div>
@@ -300,148 +314,142 @@
     @endif
 
     {{-- ═══ BIEN PROPOSÉ ═══ --}}
-    <div class="ios-section-title">
-        <i class="fa-regular fa-building"></i> Bien proposé
-        @if($isVedette)
-            <span class="ios-section-count ios-section-count--gold">
-                <i class="fa-solid fa-star"></i> Vedette
-            </span>
-        @endif
-    </div>
-
-    <div class="ios-list">
-        <div class="ios-list__item ios-list__item--static">
-            <div class="ios-list__content">
-                <span class="ios-list__title">Titre</span>
-            </div>
-            <span class="ios-list__value">{{ $proposition->bien->titre }}</span>
-        </div>
-
-        <div class="ios-list__item ios-list__item--static">
-            <div class="ios-list__content">
-                <span class="ios-list__title">Type</span>
-            </div>
-            <span class="ios-list__value">{{ $proposition->bien->type_bien->label() }}</span>
-        </div>
-
-        <div class="ios-list__item ios-list__item--static">
-            <div class="ios-list__content">
-                <span class="ios-list__title">Contrat</span>
-            </div>
-            <span class="ios-list__value">{{ $proposition->bien->type_contrat->label() }}</span>
-        </div>
-
-        <div class="ios-list__item ios-list__item--static">
-            <div class="ios-list__content">
-                <span class="ios-list__title">Surface</span>
-            </div>
-            <span class="ios-list__value">{{ $proposition->bien->surface }} m²</span>
-        </div>
-
-        <div class="ios-list__item ios-list__item--static">
-            <div class="ios-list__content">
-                <span class="ios-list__title">Chambres</span>
-            </div>
-            <span class="ios-list__value">{{ $proposition->bien->nombre_chambres }}</span>
-        </div>
-
-        <div class="ios-list__item ios-list__item--static">
-            <div class="ios-list__content">
-                <span class="ios-list__title">Salles de bain</span>
-            </div>
-            <span class="ios-list__value">{{ $proposition->bien->nombre_salles_bain }}</span>
-        </div>
-
-        <div class="ios-list__item ios-list__item--static">
-            <div class="ios-list__content">
-                <span class="ios-list__title">Parking</span>
-            </div>
-            <span class="ios-list__value">
-                <i class="fa-solid {{ $proposition->bien->parking_disponible ? 'fa-circle-check is-yes' : 'fa-circle-xmark is-no' }}"></i>
-                {{ $proposition->bien->parking_disponible ? 'Disponible' : 'Non' }}
-            </span>
-        </div>
-
-        <div class="ios-list__item ios-list__item--static">
-            <div class="ios-list__content">
-                <span class="ios-list__title">Meublé</span>
-            </div>
-            <span class="ios-list__value">
-                <i class="fa-solid {{ $proposition->bien->est_meuble ? 'fa-circle-check is-yes' : 'fa-circle-xmark is-no' }}"></i>
-                {{ $proposition->bien->est_meuble ? 'Oui' : 'Non' }}
-            </span>
-        </div>
-    </div>
-
-    {{-- Adresse --}}
-    @if($proposition->bien->adresse)
-        <div class="address-card">
-            <i class="fa-solid fa-location-dot"></i>
-            <span>{{ $proposition->bien->adresse }}</span>
-        </div>
-    @endif
-
-    {{-- Équipements --}}
-    @php $equipementsBien = $proposition->bien->equipements ?? []; @endphp
-    @if(count($equipementsBien) > 0)
+    @if($bien)
         <div class="ios-section-title">
-            <i class="fa-solid fa-cogs"></i> Équipements
-            <span class="ios-section-count">{{ count($equipementsBien) }}</span>
+            <i class="fa-regular fa-building"></i> Bien proposé
         </div>
 
-        <div class="equipements-grid">
-            @foreach($equipementsBien as $equipement)
-                <span class="equipement-pill">
-                    <i class="fa-solid fa-check-circle"></i> {{ $equipement }}
+        <div class="ios-list">
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Titre</span>
+                </div>
+                <span class="ios-list__value">{{ $bien->titre ?? '—' }}</span>
+            </div>
+
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Type</span>
+                </div>
+                <span class="ios-list__value">
+                    {{ is_object($bien->type_bien) ? $bien->type_bien->label() : ($bien->type_bien ?? '—') }}
                 </span>
-            @endforeach
-        </div>
-    @endif
+            </div>
 
-    {{-- Description --}}
-    @if($proposition->bien->description)
-        <div class="ios-section-title">
-            <i class="fa-regular fa-file-lines"></i> Description du bien
-        </div>
-        <blockquote class="quote-block quote-block--rust">
-            {{ $proposition->bien->description }}
-        </blockquote>
-    @endif
-
-    {{-- ═══ PHOTOS BIEN PLATEFORME ═══ --}}
-    @if($bienImages->count() > 0)
-        <div class="ios-section-title">
-            <i class="fa-regular fa-image"></i> Photos du bien sur la plateforme
-            <span class="ios-section-count">{{ $bienImages->count() }}</span>
-        </div>
-
-        <div class="gallery-grid">
-            @foreach($bienImages as $index => $media)
-                @php
-                    $url = asset('storage/' . $media->fichier);
-                    $globalIndex = $images->count() + $index;
-                @endphp
-                <div class="gallery-item" onclick="openLightbox('{{ $url }}', {{ $globalIndex }})">
-                    <img src="{{ $url }}" alt="Photo du bien" loading="lazy">
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Contrat</span>
                 </div>
-            @endforeach
-        </div>
-    @endif
+                <span class="ios-list__value">
+                    {{ is_object($bien->type_contrat) ? $bien->type_contrat->label() : ($bien->type_contrat ?? '—') }}
+                </span>
+            </div>
 
-    {{-- ═══ VIDÉOS BIEN PLATEFORME ═══ --}}
-    @if($bienVideos->count() > 0)
-        <div class="ios-section-title">
-            <i class="fa-regular fa-circle-play"></i> Vidéos du bien sur la plateforme
-            <span class="ios-section-count">{{ $bienVideos->count() }}</span>
-        </div>
-
-        <div class="video-grid">
-            @foreach($bienVideos as $media)
-                <div class="video-tile">
-                    <video src="{{ asset('storage/' . $media->fichier) }}" controls preload="metadata"></video>
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Surface</span>
                 </div>
-            @endforeach
+                <span class="ios-list__value">{{ $bien->surface ?? '—' }} m²</span>
+            </div>
+
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Chambres</span>
+                </div>
+                <span class="ios-list__value">{{ $bien->nombre_chambres ?? '—' }}</span>
+            </div>
+
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Salles de bain</span>
+                </div>
+                <span class="ios-list__value">{{ $bien->nombre_salles_bain ?? '—' }}</span>
+            </div>
+
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Parking</span>
+                </div>
+                <span class="ios-list__value">
+                    {{ $bien->parking_disponible ? 'Disponible' : 'Non' }}
+                </span>
+            </div>
+
+            <div class="ios-list__item ios-list__item--static">
+                <div class="ios-list__content">
+                    <span class="ios-list__title">Meublé</span>
+                </div>
+                <span class="ios-list__value">
+                    {{ $bien->est_meuble ? 'Oui' : 'Non' }}
+                </span>
+            </div>
         </div>
+
+        @if($bien->adresse)
+            <div class="address-card">
+                <i class="fa-solid fa-location-dot"></i>
+                <span>{{ $bien->adresse }}</span>
+            </div>
+        @endif
+
+        @php $equipementsBien = $bien->equipements ?? []; @endphp
+        @if(count($equipementsBien) > 0)
+            <div class="ios-section-title">
+                <i class="fa-solid fa-cogs"></i> Équipements
+                <span class="ios-section-count">{{ count($equipementsBien) }}</span>
+            </div>
+
+            <div class="equipements-grid">
+                @foreach($equipementsBien as $equipement)
+                    <span class="equipement-pill">
+                        <i class="fa-solid fa-check"></i> {{ $equipement }}
+                    </span>
+                @endforeach
+            </div>
+        @endif
+
+        @if($bien->description)
+            <div class="ios-section-title">
+                <i class="fa-regular fa-file-lines"></i> Description du bien
+            </div>
+            <blockquote class="quote-block quote-block--italic">
+                {{ $bien->description }}
+            </blockquote>
+        @endif
+
+        @if($bienImages->count() > 0)
+            <div class="ios-section-title">
+                <i class="fa-regular fa-image"></i> Photos du bien sur la plateforme
+                <span class="ios-section-count">{{ $bienImages->count() }}</span>
+            </div>
+
+            <div class="gallery-grid">
+                @foreach($bienImages as $index => $media)
+                    @php
+                        $url = asset('storage/' . $media->fichier);
+                        $globalIndex = $images->count() + $index;
+                    @endphp
+                    <div class="gallery-item" onclick="openLightbox('{{ $url }}', {{ $globalIndex }})">
+                        <img src="{{ $url }}" alt="Photo du bien" loading="lazy">
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+        @if($bienVideos->count() > 0)
+            <div class="ios-section-title">
+                <i class="fa-regular fa-circle-play"></i> Vidéos du bien sur la plateforme
+                <span class="ios-section-count">{{ $bienVideos->count() }}</span>
+            </div>
+
+            <div class="video-grid">
+                @foreach($bienVideos as $media)
+                    <div class="video-tile">
+                        <video src="{{ asset('storage/' . $media->fichier) }}" controls preload="metadata"></video>
+                    </div>
+                @endforeach
+            </div>
+        @endif
     @endif
 
     {{-- ═══ ACTIONS FIXES ═══ --}}
@@ -451,13 +459,15 @@
             Toutes mes offres
         </a>
 
-        @if($statut === 'en_attente')
-            <form action="{{ route('agence.propositions.annuler', $proposition) }}" method="POST" class="ios-form-actions__form">
+        @if($peutAnnuler)
+            <form action="{{ route('agence.propositions.annuler', $proposition) }}"
+                  method="POST"
+                  class="ios-form-actions__form">
                 @csrf
                 <button type="submit" class="ios-btn ios-btn--danger"
-                        onclick="return confirm('Annuler cette proposition ?')">
+                        onclick="return confirm('⚠️ Annuler cette proposition ?\n\n{{ $statut === 'acceptee' ? 'La demande du particulier repassera en attente.' : 'Cette offre sera retirée.' }}')">
                     <i class="fa-solid fa-xmark"></i>
-                    Annuler
+                    Annuler l'offre
                 </button>
             </form>
         @endif
@@ -548,71 +558,47 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   DÉTAIL OFFRE (Agence) — iOS NATIVE
+   DÉTAIL OFFRE (Agence) — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .offre-detail {
     --c-warning:    #E65100;
     --c-warning-bg: #FFF8E1;
     --c-success:    #1E7A47;
-    --c-success-bg: #E8F5E9;
+    --c-success-bg: #F1F8F4;
     --c-danger:     #C62828;
-    --c-danger-bg:  #FFEBEE;
-    --c-info:       #0D47A1;
-    --c-info-bg:    #E3F2FD;
-    --c-gold:       #F5A623;
+    --c-danger-bg:  #FEF2F2;
+    --c-info:       #1E40AF;
+    --c-info-bg:    #EFF6FF;
     --surface:      #F7F9FC;
     --radius:       14px;
 
-    --ios-bg: #F2F2F7;
     --ios-card: #FFFFFF;
-    --ios-blue: #007AFF;
-    --ios-label: #000000;
-    --ios-label-2: #3C3C43;
-    --ios-label-3: #8E8E93;
     --ios-separator: rgba(60, 60, 67, 0.12);
     --ios-radius-lg: 18px;
 }
 
-/* ═══ ALERTS ═══ */
-.alert {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 16px;
-    border-radius: 12px;
-    margin-bottom: 14px;
-    border-left: 4px solid;
-    font-size: 13.5px;
-    font-weight: 500;
-}
-.alert-success { background: var(--c-success-bg); color: var(--c-success); border-left-color: var(--c-success); }
-.alert-error   { background: var(--c-danger-bg);  color: var(--c-danger);  border-left-color: var(--c-danger); }
-
 /* ═══ SECTION TITLES ═══ */
 .ios-section-title {
     font-family: var(--display);
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--ink);
     margin: 22px 0 10px;
     display: flex;
     align-items: center;
     gap: 8px;
+    letter-spacing: -.2px;
 }
-.ios-section-title i { color: var(--rust); font-size: 15px; }
+.ios-section-title i { color: var(--muted); font-size: 14px; }
 .ios-section-count {
     margin-left: auto;
     font-size: 11px;
     font-weight: 700;
-    padding: 3px 10px;
-    background: var(--c-warning-bg);
-    color: var(--rust);
+    padding: 2px 9px;
+    background: #F5F5F7;
+    color: var(--text-soft);
     border-radius: 999px;
-}
-.ios-section-count--gold {
-    background: linear-gradient(135deg, var(--c-gold), #E8901A);
-    color: #fff;
 }
 
 /* ═══ HERO ═══ */
@@ -622,21 +608,6 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     margin-bottom: 14px;
-    position: relative;
-    overflow: hidden;
-}
-.offre-hero::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-    background: var(--muted);
-}
-.offre-hero.is-vedette::before {
-    background: linear-gradient(90deg, var(--c-gold), #E8901A);
-}
-.offre-hero.is-vedette {
-    background: linear-gradient(135deg, #FFFDF5 0%, #fff 60%);
 }
 
 .offre-hero__badges {
@@ -657,7 +628,7 @@
     letter-spacing: -.3px;
 }
 .offre-hero__title-sep {
-    color: var(--muted);
+    color: var(--border);
     font-weight: 400;
     margin: 0 4px;
 }
@@ -673,10 +644,9 @@
 .offre-hero__meta i {
     font-size: 12px;
     margin-right: 5px;
-    opacity: .8;
 }
 .offre-hero__meta strong { color: var(--ink); font-weight: 600; }
-.offre-hero__meta-sep { opacity: .4; }
+.offre-hero__meta-sep { color: var(--border); }
 
 .offre-hero__score {
     display: flex;
@@ -684,7 +654,7 @@
     gap: 14px;
     margin-top: 14px;
     padding-top: 14px;
-    border-top: 0.5px dashed var(--border);
+    border-top: 1px solid var(--border);
 }
 .offre-hero__score-text {
     display: flex;
@@ -705,7 +675,7 @@
     width: 60px;
     height: 60px;
 }
-.score-ring--lg { width: 72px; height: 72px; }
+.score-ring--lg { width: 64px; height: 64px; }
 .score-ring svg {
     transform: rotate(-90deg);
     width: 100%; height: 100%;
@@ -715,12 +685,10 @@
 .score-ring__bg { stroke: var(--border); }
 .score-ring__fill {
     stroke-linecap: round;
+    stroke: var(--rust);
     stroke-dasharray: calc(var(--score, 0) * 1.005) 100.5;
     transition: stroke-dasharray .6s ease;
 }
-.score-ring--excellent .score-ring__fill { stroke: var(--c-success); }
-.score-ring--moyen     .score-ring__fill { stroke: var(--c-warning); }
-.score-ring--faible    .score-ring__fill { stroke: var(--c-danger); }
 
 .score-ring__value {
     position: absolute;
@@ -732,36 +700,30 @@
     font-weight: 800;
     line-height: 1;
     font-size: 14px;
+    color: var(--ink);
 }
-.score-ring--lg .score-ring__value { font-size: 18px; }
-.score-ring--excellent .score-ring__value { color: var(--c-success); }
-.score-ring--moyen     .score-ring__value { color: var(--c-warning); }
-.score-ring--faible    .score-ring__value { color: var(--c-danger); }
-.score-ring__value small { font-size: 9px; margin-left: 1px; font-weight: 700; }
-.score-ring--lg .score-ring__value small { font-size: 11px; }
+.score-ring--lg .score-ring__value { font-size: 17px; }
+.score-ring__value small { font-size: 9px; margin-left: 1px; font-weight: 700; color: var(--muted); }
+.score-ring--lg .score-ring__value small { font-size: 10px; }
 
 .score-label {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
+    color: var(--ink);
 }
-.score-label--excellent { color: var(--c-success); }
-.score-label--moyen     { color: var(--c-warning); }
-.score-label--faible    { color: var(--c-danger); }
 
 /* ═══ STATUTS ═══ */
 .offre-status {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 12px;
+    padding: 3px 10px;
     border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .4px;
+    font-size: 11.5px;
+    font-weight: 600;
     white-space: nowrap;
+    background: #F5F5F7;
+    color: var(--text-soft);
 }
-.offre-status i { font-size: 6px; }
 .offre-status--en_attente { background: var(--c-warning-bg); color: var(--c-warning); }
 .offre-status--acceptee   { background: var(--c-success-bg); color: var(--c-success); }
 .offre-status--refusee    { background: var(--c-danger-bg);  color: var(--c-danger); }
@@ -770,19 +732,109 @@
 .offre-badge {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 4px 11px;
+    gap: 4px;
+    padding: 3px 9px;
     border-radius: 999px;
-    font-size: 10.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .3px;
+    font-size: 11px;
+    font-weight: 500;
     white-space: nowrap;
+    background: #F5F5F7;
+    color: var(--text-soft);
 }
-.offre-badge--vedette {
-    background: linear-gradient(135deg, var(--c-gold), #E8901A);
-    color: #fff;
-    box-shadow: 0 2px 6px rgba(245, 166, 35, .3);
+.offre-badge i { font-size: 10px; color: var(--muted); }
+
+/* ═══ RDV CARD ═══ */
+.rdv-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 14px;
+}
+
+.rdv-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+.rdv-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    background: #F5F5F7;
+    color: var(--text-soft);
+}
+.rdv-status--planifie { background: var(--c-warning-bg); color: var(--c-warning); }
+.rdv-status--confirme { background: var(--c-info-bg);    color: var(--c-info); }
+.rdv-status--termine  { background: var(--c-success-bg); color: var(--c-success); }
+.rdv-status--annule   { background: var(--c-danger-bg);  color: var(--c-danger); }
+
+.rdv-card__code {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--text-soft);
+    padding: 5px 11px;
+    background: #F5F5F7;
+    border-radius: 8px;
+}
+.rdv-card__code i { color: var(--muted); font-size: 11px; }
+.rdv-card__code strong {
+    font-family: monospace;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: 1.5px;
+}
+
+.rdv-card__body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.rdv-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #F5F5F7;
+    border-radius: 10px;
+}
+.rdv-info > i {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+}
+.rdv-info__label {
+    display: block;
+    font-size: 10.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    font-weight: 600;
+}
+.rdv-info__value {
+    display: block;
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-top: 2px;
 }
 
 /* ═══ CLIENT CARD ═══ */
@@ -790,37 +842,37 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 18px 20px;
+    padding: 16px 20px;
     background: #fff;
     border: 1px solid var(--border);
-    border-left: 3px solid var(--rust);
     border-radius: var(--radius);
     margin-bottom: 14px;
 }
 .client-card__avatar {
-    width: 54px;
-    height: 54px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--rust), #d4754a);
-    color: #fff;
+    background: #F5F5F7;
+    color: var(--text);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: var(--display);
-    font-size: 22px;
+    font-size: 18px;
     font-weight: 700;
     flex-shrink: 0;
 }
 .client-card__info { flex: 1; min-width: 0; }
 .client-card__info h3 {
     font-family: var(--display);
-    font-size: 16.5px;
+    font-size: 15.5px;
     font-weight: 700;
     margin: 0;
     color: var(--ink);
+    letter-spacing: -.2px;
 }
 
-/* ═══ NOTE CLIENT (coordonnées masquées) ═══ */
 .client-card__note {
     display: inline-flex;
     align-items: center;
@@ -828,15 +880,26 @@
     margin: 6px 0 0;
     font-size: 12.5px;
     color: var(--muted);
-    font-style: italic;
     line-height: 1.5;
 }
 .client-card__note i {
-    font-size: 12px;
-    color: var(--rust);
-    opacity: .8;
-    font-style: normal;
+    font-size: 11px;
+    color: var(--muted);
 }
+
+.client-card__phone {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-soft);
+    text-decoration: none;
+    transition: color .15s;
+}
+.client-card__phone:hover { color: var(--rust); }
+.client-card__phone i { font-size: 11px; color: var(--muted); }
 
 /* ═══ PRIX CARD ═══ */
 .prix-card {
@@ -845,7 +908,7 @@
     justify-content: space-between;
     gap: 14px;
     padding: 16px 20px;
-    background: linear-gradient(135deg, #FFF9F5 0%, #fff 60%);
+    background: #fff;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     margin-bottom: 14px;
@@ -860,7 +923,7 @@
 }
 .prix-card__value {
     font-family: var(--display);
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 800;
     color: var(--rust);
     line-height: 1.1;
@@ -872,86 +935,16 @@
     opacity: .7;
     margin-left: 3px;
 }
-.prix-card__vedette {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 11px;
-    background: #FFF8E1;
-    color: #E8901A;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .3px;
-}
-.prix-card__vedette i { font-size: 10px; color: var(--c-gold); }
 
 /* ═══ CONDITIONS ═══ */
-.conditions-recap {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 14px;
-}
-.recap-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 14px 16px;
-    border-radius: 12px;
-    border: 1px solid transparent;
-}
-.recap-card--info {
-    background: var(--c-info-bg);
-    border-color: #BBDEFB;
-}
-.recap-card--success {
-    background: var(--c-success-bg);
-    border-color: #C8E6C9;
-}
-.recap-card__icon {
-    width: 40px; height: 40px;
-    border-radius: 10px;
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-size: 16px;
-}
-.recap-card--info    .recap-card__icon { color: var(--c-info); }
-.recap-card--success .recap-card__icon { color: var(--c-success); }
-.recap-card__body { min-width: 0; }
-.recap-card__label {
-    display: block;
-    font-size: 10.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-    opacity: .75;
-    margin-bottom: 2px;
-}
-.recap-card--info    .recap-card__label { color: var(--c-info); }
-.recap-card--success .recap-card__label { color: var(--c-success); }
-.recap-card__value {
-    display: block;
-    font-family: var(--display);
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--ink);
-    line-height: 1.2;
-}
-
 .conditions-total {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
     padding: 14px 18px;
-    background: linear-gradient(135deg, #FFF4EC 0%, #FFE8D9 100%);
-    border: 1px solid #FFD4B8;
-    border-radius: 14px;
+    background: #F5F5F7;
+    border-radius: 12px;
     margin-bottom: 14px;
     flex-wrap: wrap;
 }
@@ -962,34 +955,26 @@
     min-width: 0;
 }
 .conditions-total__left > i {
-    width: 40px; height: 40px;
+    width: 36px; height: 36px;
     border-radius: 10px;
-    background: linear-gradient(135deg, var(--rust), #d4754a);
-    color: #fff;
+    background: #fff;
+    color: var(--muted);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 14px;
     flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
 }
 .conditions-total__label {
     display: block;
-    font-family: var(--display);
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 13.5px;
+    font-weight: 600;
     color: var(--ink);
-    line-height: 1.2;
-}
-.conditions-total__hint {
-    display: block;
-    font-size: 11.5px;
-    color: var(--muted);
-    margin-top: 2px;
 }
 .conditions-total__value {
     font-family: var(--display);
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 800;
     color: var(--rust);
     white-space: nowrap;
@@ -1023,14 +1008,12 @@
     font-weight: 500;
 }
 .ios-list__value {
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 13.5px;
+    font-weight: 600;
     color: var(--ink);
     text-align: right;
     flex-shrink: 0;
 }
-.ios-list__value .is-yes { color: var(--c-success); margin-right: 4px; }
-.ios-list__value .is-no  { color: var(--c-danger);  margin-right: 4px; }
 
 /* ═══ ADRESSE ═══ */
 .address-card {
@@ -1042,18 +1025,18 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     margin-bottom: 14px;
-    font-size: 14px;
-    color: var(--ink);
+    font-size: 13.5px;
+    color: var(--text-soft);
 }
 .address-card i {
-    width: 36px; height: 36px;
+    width: 34px; height: 34px;
     border-radius: 9px;
-    background: var(--c-warning-bg);
-    color: var(--rust);
+    background: #F5F5F7;
+    color: var(--muted);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
+    font-size: 14px;
     flex-shrink: 0;
 }
 
@@ -1062,19 +1045,14 @@
     padding: 14px 18px;
     border-radius: 12px;
     font-size: 13.5px;
-    line-height: 1.75;
-    color: var(--ink);
+    line-height: 1.7;
+    color: var(--text-soft);
     margin: 0 0 14px;
-    border-left: 4px solid var(--rust);
     background: #fff;
-    border-top: 1px solid var(--border);
-    border-right: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
+    border: 1px solid var(--border);
+    border-left: 3px solid #d8d8d8;
 }
-.quote-block--rust {
-    background: linear-gradient(135deg, rgba(180, 83, 42, .06), rgba(180, 83, 42, .02));
-    font-style: italic;
-}
+.quote-block--italic { font-style: italic; }
 
 /* ═══ GALERIE ═══ */
 .gallery-grid {
@@ -1089,33 +1067,13 @@
     border-radius: 10px;
     overflow: hidden;
     cursor: pointer;
-    background: var(--surface);
+    background: #F5F5F7;
     border: 1px solid var(--border);
-    transition: transform .2s, box-shadow .2s;
-}
-.gallery-item:hover {
-    transform: scale(1.02);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, .1);
 }
 .gallery-item img {
     width: 100%; height: 100%;
     object-fit: cover;
     display: block;
-}
-.gallery-item__badge {
-    position: absolute;
-    top: 8px; left: 8px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--c-gold), #E8901A);
-    color: #fff;
-    font-size: 10px;
-    box-shadow: 0 2px 6px rgba(245, 166, 35, .4);
-    z-index: 2;
 }
 
 /* ═══ VIDÉOS ═══ */
@@ -1149,15 +1107,14 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 6px 13px;
-    background: var(--c-info-bg);
-    color: var(--c-info);
-    border: 1px solid #BBDEFB;
+    padding: 5px 12px;
+    background: #F5F5F7;
+    color: var(--text-soft);
     border-radius: 999px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
 }
-.equipement-pill i { font-size: 10px; }
+.equipement-pill i { font-size: 10px; color: var(--muted); }
 
 /* ═══ ACTIONS ═══ */
 .ios-form-actions {
@@ -1183,17 +1140,28 @@
     cursor: pointer;
     border: 1px solid transparent;
     text-decoration: none;
-    transition: all .15s;
+    transition: background-color .15s, border-color .15s, color .15s;
     white-space: nowrap;
     flex: 1;
 }
-.ios-btn--primary {
+.btn-block { display: inline-flex; width: 100%; justify-content: center; }
+.btn-rust {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 18px;
     background: var(--rust);
     color: #fff;
-    border-color: var(--rust);
-    box-shadow: 0 4px 12px rgba(181,80,42,.2);
+    border: none;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color .15s;
 }
-.ios-btn--primary:hover { background: #9A4523; transform: translateY(-1px); }
+.btn-rust:hover { background: #9A4523; color: #fff; }
 .ios-btn--ghost {
     background: #fff;
     color: var(--text-soft);
@@ -1201,14 +1169,17 @@
     flex: 0 0 auto;
     padding: 12px 18px;
 }
-.ios-btn--ghost:hover { border-color: var(--rust); color: var(--rust); }
+.ios-btn--ghost:hover {
+    background: #F5F5F7;
+    border-color: #d8d8d8;
+    color: var(--ink);
+}
 .ios-btn--danger {
     background: #fff;
     color: var(--c-danger);
-    border-color: #FFCDD2;
+    border-color: var(--border);
 }
-.ios-btn--danger:hover { background: var(--c-danger-bg); border-color: var(--c-danger); }
-.ios-btn--danger:active { transform: scale(.97); }
+.ios-btn--danger:hover { background: var(--c-danger-bg); border-color: #f5c6c6; }
 
 /* ═══ LIGHTBOX ═══ */
 .lightbox {
@@ -1263,9 +1234,9 @@
     justify-content: center;
     font-family: sans-serif;
     z-index: 2;
-    transition: all .2s;
+    transition: background-color .2s;
 }
-.lightbox__close:hover { background: rgba(255, 255, 255, .25); transform: scale(1.05); }
+.lightbox__close:hover { background: rgba(255, 255, 255, .25); }
 .lightbox__nav {
     position: absolute;
     top: 50%;
@@ -1281,9 +1252,9 @@
     align-items: center;
     justify-content: center;
     z-index: 2;
-    transition: all .2s;
+    transition: background-color .2s;
 }
-.lightbox__nav:hover { background: rgba(255, 255, 255, .28); transform: translateY(-50%) scale(1.06); }
+.lightbox__nav:hover { background: rgba(255, 255, 255, .28); }
 .lightbox__nav--prev { left: 24px; }
 .lightbox__nav--next { right: 24px; }
 
@@ -1297,59 +1268,34 @@
 
     .offre-detail { background: transparent; padding-top: 4px; }
 
-    /* ─── SECTION TITLES iOS ─── */
     .ios-section-title {
-        font-size: 17px;
-        font-weight: 700;
-        color: var(--ios-label);
-        letter-spacing: -.3px;
-        margin: 22px 4px 10px;
+        font-size: 15px;
+        margin: 20px 4px 10px;
+        color: var(--ink);
     }
-    .ios-section-title i { font-size: 15px; color: var(--rust); }
+    .ios-section-title i { font-size: 13px; }
 
-    /* ─── HERO iOS ─── */
     .offre-hero {
         background: var(--ios-card);
         border: none;
         border-radius: var(--ios-radius-lg);
-        padding: 20px;
+        padding: 18px;
         margin-bottom: 12px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
-        overflow: hidden;
-    }
-    .offre-hero::before {
-        left: 0; right: 0;
-        height: 3px;
-        border-radius: 0;
-    }
-    .offre-hero.is-vedette {
-        background: linear-gradient(135deg, #FFFDF5 0%, #fff 40%);
     }
     .offre-hero__badges { gap: 6px; margin-bottom: 8px; }
-    .offre-status {
-        font-size: 10.5px;
-        text-transform: none;
-        letter-spacing: 0;
-        padding: 4px 10px;
-        font-weight: 600;
-    }
-    .offre-status i { font-size: 7px; }
-    .offre-badge { font-size: 11px; padding: 4px 10px; text-transform: none; letter-spacing: 0; }
+    .offre-status { font-size: 11.5px; padding: 3px 10px; }
+    .offre-badge { font-size: 11px; padding: 3px 9px; }
 
     .offre-hero__title {
-        font-size: 22px;
-        letter-spacing: -.4px;
-        color: var(--ios-label);
-        font-weight: 700;
-        margin: 0 0 8px;
+        font-size: 20px;
+        letter-spacing: -.3px;
+        margin-bottom: 8px;
     }
     .offre-hero__meta {
-        font-size: 13.5px;
-        color: var(--ios-label-3);
+        font-size: 13px;
         gap: 6px;
     }
-    .offre-hero__meta i { color: var(--ios-label-3); }
-    .offre-hero__meta strong { color: var(--ios-label); }
     .offre-hero__meta-sep { display: none; }
 
     .offre-hero__score {
@@ -1358,47 +1304,46 @@
         margin-top: 14px;
         border-top: 0.5px solid var(--ios-separator);
     }
-    .score-ring--lg { width: 64px; height: 64px; }
-    .score-ring--lg .score-ring__value { font-size: 16px; }
-    .score-label { font-size: 14px; font-weight: 700; }
+    .score-ring--lg { width: 58px; height: 58px; }
+    .score-ring--lg .score-ring__value { font-size: 15px; }
+    .score-label { font-size: 14px; }
     .offre-hero__score-hint {
         font-size: 12px;
-        color: var(--ios-label-3);
         text-transform: none;
         letter-spacing: 0;
         font-weight: 400;
     }
 
-    /* ─── CLIENT iOS ─── */
+    .rdv-card {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .rdv-card__body {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .rdv-info { background: #F5F5F7; padding: 10px; gap: 8px; }
+    .rdv-info > i { width: 32px; height: 32px; border: none; background: #fff; }
+    .rdv-info__value { font-size: 13.5px; }
+
     .client-card {
         background: var(--ios-card);
         border: none;
-        border-left: none;
         border-radius: var(--ios-radius-lg);
         padding: 16px;
         gap: 14px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
         margin-bottom: 12px;
-        position: relative;
-        overflow: hidden;
     }
-    .client-card::before {
-        content: '';
-        position: absolute;
-        left: 0; top: 0; bottom: 0;
-        width: 3px;
-        background: var(--rust);
-        border-radius: 0 3px 3px 0;
-    }
-    .client-card__avatar { width: 52px; height: 52px; font-size: 20px; }
-    .client-card__info h3 { font-size: 17px; font-weight: 700; letter-spacing: -.2px; margin: 0; }
-    .client-card__note {
-        font-size: 13px;
-        margin-top: 6px;
-        color: var(--ios-label-3);
-    }
+    .client-card__avatar { width: 48px; height: 48px; font-size: 18px; background: #F5F5F7; border: none; }
+    .client-card__info h3 { font-size: 16px; }
+    .client-card__note { font-size: 13px; margin-top: 6px; }
+    .client-card__phone { font-size: 13.5px; }
 
-    /* ─── PRIX iOS ─── */
     .prix-card {
         background: var(--ios-card);
         border: none;
@@ -1410,44 +1355,20 @@
         align-items: flex-start;
         gap: 6px;
     }
-    .prix-card__label {
-        font-size: 12px;
-        text-transform: none;
-        letter-spacing: 0;
-        color: var(--ios-label-3);
-        font-weight: 500;
-    }
-    .prix-card__value {
-        font-size: 26px;
-        letter-spacing: -.5px;
-        align-self: flex-end;
-    }
-
-    /* ─── CONDITIONS iOS ─── */
-    .conditions-recap { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .recap-card { padding: 12px; gap: 10px; }
-    .recap-card__icon { width: 36px; height: 36px; font-size: 14px; border-radius: 9px; }
-    .recap-card__label { font-size: 10px; }
-    .recap-card__value { font-size: 14px; }
+    .prix-card__label { font-size: 12px; text-transform: none; letter-spacing: 0; }
+    .prix-card__value { font-size: 24px; align-self: flex-end; }
 
     .conditions-total {
         flex-direction: column;
         align-items: stretch;
         gap: 12px;
         padding: 14px 16px;
+        background: #F5F5F7;
         border-radius: 14px;
     }
-    .conditions-total__left > i {
-        width: 38px; height: 38px;
-    }
-    .conditions-total__label { font-size: 14px; }
-    .conditions-total__value {
-        font-size: 22px;
-        align-self: flex-end;
-        letter-spacing: -.4px;
-    }
+    .conditions-total__left > i { background: #fff; border: none; }
+    .conditions-total__value { font-size: 20px; align-self: flex-end; }
 
-    /* ─── LISTE iOS ─── */
     .ios-list {
         display: block;
         background: var(--ios-card);
@@ -1461,22 +1382,20 @@
         padding: 14px 16px;
         gap: 12px;
         border-bottom: 0.5px solid var(--ios-separator);
-        font-size: 15px;
+        font-size: 14px;
     }
     .ios-list__item:last-child { border-bottom: none; }
     .ios-list__title {
-        font-size: 15px;
-        color: var(--ios-label);
+        font-size: 14px;
+        color: var(--ink);
         font-weight: 500;
-        letter-spacing: -.2px;
     }
     .ios-list__value {
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 600;
-        color: var(--ios-label-3);
+        color: var(--muted);
     }
 
-    /* ─── ADRESSE iOS ─── */
     .address-card {
         background: var(--ios-card);
         border: none;
@@ -1484,32 +1403,23 @@
         padding: 14px 16px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
         margin-bottom: 12px;
-        font-size: 14px;
+        font-size: 13.5px;
         gap: 10px;
     }
-    .address-card i {
-        width: 34px; height: 34px;
-        border-radius: 9px;
-    }
+    .address-card i { background: #F5F5F7; }
 
-    /* ─── QUOTES iOS ─── */
     .quote-block {
         background: var(--ios-card);
         border: none;
-        border-left: 3px solid var(--rust);
+        border-left: 3px solid #d8d8d8;
         border-radius: 12px;
         padding: 16px 18px;
-        font-size: 14px;
+        font-size: 13.5px;
         line-height: 1.65;
-        color: var(--ios-label-2);
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
         margin-bottom: 12px;
     }
-    .quote-block--rust {
-        background: var(--ios-card);
-    }
 
-    /* ─── GALERIE iOS ─── */
     .gallery-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 8px;
@@ -1517,24 +1427,18 @@
     }
     .gallery-item { border-radius: 12px; border: none; }
 
-    /* ─── VIDÉOS iOS ─── */
     .video-grid { grid-template-columns: 1fr; gap: 10px; margin-bottom: 12px; }
     .video-tile { border-radius: 12px; border: none; }
 
-    /* ─── ÉQUIPEMENTS iOS ─── */
     .equipements-grid { gap: 8px; margin-bottom: 12px; }
     .equipement-pill {
         background: var(--ios-card);
-        color: var(--ios-label);
-        border: none;
-        padding: 8px 14px;
-        font-size: 13px;
-        font-weight: 500;
+        color: var(--text-soft);
+        padding: 7px 13px;
+        font-size: 12.5px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
-    .equipement-pill i { color: var(--c-success); font-size: 12px; }
 
-    /* ─── ACTIONS FIXES ─── */
     .ios-form-actions {
         position: fixed;
         bottom: 0;
@@ -1553,35 +1457,29 @@
     }
     .ios-form-actions__form { flex: 1; }
     .ios-btn {
-        padding: 14px 18px;
-        font-size: 15px;
-        font-weight: 600;
-        border-radius: 14px;
+        padding: 13px 18px;
+        font-size: 14.5px;
+        border-radius: 12px;
         flex: 1;
-        letter-spacing: -.1px;
     }
     .ios-btn--ghost {
         background: var(--ios-card);
         border: none;
-        color: var(--ios-blue);
+        color: var(--text-soft);
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
         flex: 0 0 auto;
-        padding: 14px 16px;
     }
-    .ios-btn--ghost:active { background: #EFEFF4; }
     .ios-btn--danger {
         background: var(--ios-card);
         border: none;
         color: var(--c-danger);
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
-    .ios-btn--danger:active { background: #FFEBEE; }
 
     .offre-detail {
         padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
     }
 
-    /* ─── LIGHTBOX iOS ─── */
     .lightbox__nav { width: 44px; height: 44px; font-size: 17px; }
     .lightbox__nav--prev { left: 12px; }
     .lightbox__nav--next { right: 12px; }
@@ -1590,21 +1488,26 @@
 
 @media (max-width: 480px) {
     .offre-hero { padding: 16px; }
-    .offre-hero__title { font-size: 20px; }
+    .offre-hero__title { font-size: 19px; }
 
-    .score-ring--lg { width: 58px; height: 58px; }
-    .score-ring--lg .score-ring__value { font-size: 15px; }
-    .score-ring--lg .score-ring__value small { font-size: 10px; }
+    .score-ring--lg { width: 54px; height: 54px; }
+    .score-ring--lg .score-ring__value { font-size: 14px; }
+    .score-ring--lg .score-ring__value small { font-size: 9px; }
 
-    .client-card__avatar { width: 46px; height: 46px; font-size: 18px; }
-    .client-card__info h3 { font-size: 16px; }
+    .client-card__avatar { width: 44px; height: 44px; font-size: 17px; }
+    .client-card__info h3 { font-size: 15px; }
 
-    .prix-card__value { font-size: 24px; }
+    .prix-card__value { font-size: 22px; }
+    .conditions-total__value { font-size: 18px; }
 
-    .conditions-recap { grid-template-columns: 1fr; }
-    .conditions-total__value { font-size: 20px; }
+    .rdv-card__body { grid-template-columns: 1fr; }
+}
 
-    .ios-section-title { font-size: 16px; }
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 </style>
 @endpush

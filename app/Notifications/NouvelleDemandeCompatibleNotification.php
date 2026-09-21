@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\Agence;
 use App\Models\DemandeImmobiliere;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -12,8 +13,10 @@ class NouvelleDemandeCompatibleNotification extends Notification implements Shou
 {
     use Queueable;
 
-    public function __construct(protected DemandeImmobiliere $demande, protected int $score)
-    {
+    public function __construct(
+        protected DemandeImmobiliere $demande,
+        protected Agence $agence
+    ) {
     }
 
     public function via($notifiable): array
@@ -24,10 +27,10 @@ class NouvelleDemandeCompatibleNotification extends Notification implements Shou
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject(' Nouvelle demande compatible avec vos biens')
-            ->markdown('emails.nouvelle-demande-compatible', [
-                'demande' => $this->demande,
-                'score' => $this->score,
+            ->subject('📬 Nouvelle demande compatible avec vos biens — DoyaImmo')
+            ->view('emails.nouvelle-demande-compatible', [
+                'demande'    => $this->demande,
+                'agence'     => $this->agence,
                 'notifiable' => $notifiable,
             ]);
     }
@@ -35,13 +38,12 @@ class NouvelleDemandeCompatibleNotification extends Notification implements Shou
     public function toDatabase($notifiable): array
     {
         return [
-            'title' => 'Nouvelle demande compatible',
-            'message' => 'Un nouveau besoin compatible avec vos biens est disponible.',
-            'type' => 'info',
-            'icon' => 'fa-bell',
-            'link' => route('agence.demandes.show', $this->demande),
-            'demande_id' => $this->demande->id,
-            'score' => $this->score,
+            'title'           => 'Nouvelle demande compatible',
+            'message'         => 'Un nouveau besoin compatible avec vos biens est disponible.',
+            'type'            => 'info',
+            'icon'            => 'fa-bell',
+            'link'            => route('agence.demandes.show', $this->demande),
+            'demande_id'      => $this->demande->id,
             'zone_recherchee' => $this->demande->zone_recherchee,
         ];
     }

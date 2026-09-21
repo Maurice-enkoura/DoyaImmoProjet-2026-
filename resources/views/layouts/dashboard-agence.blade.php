@@ -400,6 +400,7 @@
         .dropdown__head button:hover { background: var(--rust-soft); }
 
         .dropdown__item {
+            position: relative;
             display: flex; gap: 12px;
             align-items: flex-start;
             padding: 12px 18px;
@@ -420,16 +421,38 @@
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             flex-shrink: 0; font-size: 15px;
+            cursor: pointer;
         }
         .dropdown__item-icon.info    { background: var(--c-info-bg);    color: var(--c-info); }
         .dropdown__item-icon.success { background: var(--c-success-bg); color: var(--c-success); }
         .dropdown__item-icon.warning { background: var(--c-warning-bg); color: var(--c-warning); }
         .dropdown__item-icon.danger  { background: var(--c-danger-bg);  color: var(--c-danger); }
 
-        .dropdown__item-content { flex: 1; min-width: 0; }
+        .dropdown__item-content { flex: 1; min-width: 0; cursor: pointer; }
         .dropdown__item-title { font-weight: 600; font-size: 13px; color: var(--ink); }
         .dropdown__item-desc { font-size: 12.5px; color: var(--text-soft); margin-top: 2px; line-height: 1.5; }
         .dropdown__item-time { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+        /* ✅ Bouton close sur chaque notification */
+        .dropdown__item-close {
+            align-self: flex-start;
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 13px;
+            padding: 6px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            opacity: .5;
+            transition: all .15s;
+            font-family: inherit;
+            line-height: 1;
+            z-index: 2;
+        }
+        .dropdown__item:hover .dropdown__item-close { opacity: 1; }
+        .dropdown__item-close:hover { background: var(--c-danger-bg); color: var(--c-danger); }
+        .dropdown__item-close:active { transform: scale(.9); }
 
         .dropdown__empty { padding: 40px 20px; text-align: center; color: var(--muted); }
         .dropdown__empty i { font-size: 32px; display: block; margin-bottom: 12px; opacity: .3; }
@@ -975,6 +998,30 @@
             @php
                 $isDashboard = request()->routeIs('agence.dashboard');
                 $pageTitle = trim($__env->yieldContent('page_title', 'Tableau de bord'));
+
+                // ✅ Retour intelligent : le parent logique selon la route actuelle
+                $currentRoute = request()->route() ? request()->route()->getName() : '';
+                $isProfil = request()->routeIs('agence.profil');
+
+                // Mapping des routes "show" → leur index parent
+                $routeParentMap = [
+                    'agence.demandes.show'      => 'agence.demandes.index',
+                    'agence.propositions.show'  => 'agence.propositions.index',
+                    'agence.rendezvous.show'    => 'agence.rendezvous.index',
+                    'agence.biens.show'         => 'agence.biens.index',
+                    'agence.evaluations.show'   => 'agence.evaluations.index',
+                ];
+
+                // Détermine l'URL de retour
+                if ($isProfil) {
+                    $backUrl = route('agence.dashboard');
+                } elseif (isset($routeParentMap[$currentRoute])) {
+                    // Page de détail → retour vers son index parent
+                    $backUrl = route($routeParentMap[$currentRoute]);
+                } else {
+                    // Page index, create, edit, etc. → retour au dashboard
+                    $backUrl = route('agence.dashboard');
+                }
             @endphp
 
             {{-- ═══ iOS HEADER (mobile) ═══ --}}
@@ -998,15 +1045,6 @@
                             </a>
                         </div>
                     @else
-                        @php
-                            $isProfil = request()->routeIs('agence.profil');
-                            $backUrl = $isProfil
-                                ? route('agence.dashboard')
-                                : (url()->previous() !== url()->current()
-                                    ? url()->previous()
-                                    : route('agence.dashboard'));
-                        @endphp
-
                         <a href="{{ $backUrl }}" class="ios-header__back" aria-label="Retour">
                             <i class="fa-solid fa-chevron-left"></i>
                         </a>
@@ -1047,15 +1085,7 @@
                     </button>
 
                     @unless($isDashboard)
-                        @php
-                            $isProfilDesktop = request()->routeIs('agence.profil');
-                            $backUrlDesktop = $isProfilDesktop
-                                ? route('agence.dashboard')
-                                : (url()->previous() !== url()->current()
-                                    ? url()->previous()
-                                    : route('agence.dashboard'));
-                        @endphp
-                        <a href="{{ $backUrlDesktop }}" class="topbar-back" aria-label="Retour">
+                        <a href="{{ $backUrl }}" class="topbar-back" aria-label="Retour">
                             <i class="fa-solid fa-arrow-left"></i>
                         </a>
                     @endunless
@@ -1081,21 +1111,32 @@
                                     <button onclick="markAllAsRead()">Tout marquer lu</button>
                                 @endif
                             </div>
-                            <div>
+                            <div data-notif-list>
                                 @if(isset($notifications) && $notifications->count() > 0)
                                     @foreach($notifications as $notification)
                                         <div class="dropdown__item {{ $notification->read_at ? '' : 'is-unread' }}"
-                                             onclick="markNotificationRead('{{ $notification->id }}')">
-                                            <div class="dropdown__item-icon {{ $notification->data['type'] ?? 'info' }}">
+                                             data-notif-id="{{ $notification->id }}">
+                                            <div class="dropdown__item-icon {{ $notification->data['type'] ?? 'info' }}"
+                                                 onclick="markNotificationRead('{{ $notification->id }}')">
                                                 <i class="{{ $notification->data['icon'] ?? 'fa-regular fa-bell' }}"></i>
                                             </div>
-                                            <div class="dropdown__item-content">
+                                            <div class="dropdown__item-content"
+                                                 onclick="markNotificationRead('{{ $notification->id }}')">
                                                 <div class="dropdown__item-title">{{ $notification->data['title'] ?? 'Notification' }}</div>
                                                 <div class="dropdown__item-desc">{{ $notification->data['message'] ?? '' }}</div>
                                                 <div class="dropdown__item-time">{{ $notification->created_at->diffForHumans() }}</div>
                                             </div>
+                                            <button type="button" class="dropdown__item-close"
+                                                    onclick="event.stopPropagation(); dismissNotification('{{ $notification->id }}', this)"
+                                                    aria-label="Fermer">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
                                         </div>
                                     @endforeach
+                                    <div class="dropdown__empty" style="display:none;">
+                                        <i class="fa-regular fa-bell-slash"></i>
+                                        <span>Aucune notification</span>
+                                    </div>
                                 @else
                                     <div class="dropdown__empty">
                                         <i class="fa-regular fa-bell-slash"></i>
@@ -1160,21 +1201,32 @@
                         <button onclick="markAllAsRead()">Tout marquer lu</button>
                     @endif
                 </div>
-                <div>
+                <div data-notif-list>
                     @if(isset($notifications) && $notifications->count() > 0)
                         @foreach($notifications as $notification)
                             <div class="dropdown__item {{ $notification->read_at ? '' : 'is-unread' }}"
-                                 onclick="markNotificationRead('{{ $notification->id }}')">
-                                <div class="dropdown__item-icon {{ $notification->data['type'] ?? 'info' }}">
+                                 data-notif-id="{{ $notification->id }}">
+                                <div class="dropdown__item-icon {{ $notification->data['type'] ?? 'info' }}"
+                                     onclick="markNotificationRead('{{ $notification->id }}')">
                                     <i class="{{ $notification->data['icon'] ?? 'fa-regular fa-bell' }}"></i>
                                 </div>
-                                <div class="dropdown__item-content">
+                                <div class="dropdown__item-content"
+                                     onclick="markNotificationRead('{{ $notification->id }}')">
                                     <div class="dropdown__item-title">{{ $notification->data['title'] ?? 'Notification' }}</div>
                                     <div class="dropdown__item-desc">{{ $notification->data['message'] ?? '' }}</div>
                                     <div class="dropdown__item-time">{{ $notification->created_at->diffForHumans() }}</div>
                                 </div>
+                                <button type="button" class="dropdown__item-close"
+                                        onclick="event.stopPropagation(); dismissNotification('{{ $notification->id }}', this)"
+                                        aria-label="Fermer">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
                             </div>
                         @endforeach
+                        <div class="dropdown__empty" style="display:none;">
+                            <i class="fa-regular fa-bell-slash"></i>
+                            <span>Aucune notification</span>
+                        </div>
                     @else
                         <div class="dropdown__empty">
                             <i class="fa-regular fa-bell-slash"></i>
@@ -1295,14 +1347,13 @@
         }
 
         document.addEventListener('click', e => {
-            if (
-                !e.target.closest('.topbar-avatar-wrapper') &&
-                !e.target.closest('.topbar__actions') &&
-                !e.target.closest('.ios-header__actions') &&
-                !e.target.closest('.dropdown')
-            ) {
-                closeAllDropdowns();
+            if (e.target.closest('.dropdown') ||
+                e.target.closest('.topbar-avatar-wrapper') ||
+                e.target.closest('.ios-header__actions') ||
+                e.target.closest('.dropdown__item-close')) {
+                return;
             }
+            closeAllDropdowns();
         });
 
         /* ═══════════════════════════════════════════════════════
@@ -1314,14 +1365,80 @@
             fetch(`/api/notifications/${id}/read`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json' }
-            }).then(r => r.json()).then(d => { if (d.success) location.reload(); });
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    document.querySelectorAll(`[data-notif-id="${id}"]`).forEach(el => {
+                        el.classList.remove('is-unread');
+                    });
+                    const badge = document.getElementById('notificationBadge');
+                    if (badge) {
+                        const n = Math.max(0, parseInt(badge.textContent, 10) - 1);
+                        badge.textContent = n;
+                        if (n <= 0) badge.style.display = 'none';
+                    }
+                }
+            })
+            .catch(() => {});
+        }
+
+        function dismissNotification(id, btn) {
+            const item = btn.closest('.dropdown__item');
+            if (!item) return;
+
+            item.style.transition = 'all .25s ease';
+            item.style.opacity = '0';
+            item.style.height = '0';
+            item.style.paddingTop = '0';
+            item.style.paddingBottom = '0';
+            item.style.marginTop = '0';
+            item.style.marginBottom = '0';
+            item.style.overflow = 'hidden';
+
+            if (item.classList.contains('is-unread')) {
+                const badge = document.getElementById('notificationBadge');
+                if (badge) {
+                    const n = Math.max(0, parseInt(badge.textContent, 10) - 1);
+                    badge.textContent = n;
+                    if (n <= 0) badge.style.display = 'none';
+                }
+            }
+
+            setTimeout(() => {
+                item.remove();
+                document.querySelectorAll('.dropdown').forEach(dropdown => {
+                    const list = dropdown.querySelector('[data-notif-list]');
+                    if (list) {
+                        const remaining = list.querySelectorAll('.dropdown__item').length;
+                        if (remaining === 0) {
+                            const empty = list.querySelector('.dropdown__empty');
+                            if (empty) empty.style.display = 'block';
+                        }
+                    }
+                });
+            }, 260);
         }
 
         function markAllAsRead() {
             fetch('/api/notifications/read-all', {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json' }
-            }).then(r => r.json()).then(d => { if (d.success) location.reload(); });
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    document.querySelectorAll('.dropdown__item.is-unread').forEach(el => {
+                        el.classList.remove('is-unread');
+                    });
+                    const badge = document.getElementById('notificationBadge');
+                    if (badge) {
+                        badge.textContent = '0';
+                        badge.style.display = 'none';
+                    }
+                }
+            })
+            .catch(() => {});
         }
 
         /* ═══════════════════════════════════════════════════════
@@ -1354,19 +1471,30 @@
             }, 6000);
         }
 
+        let lastNotifCheck = null;
         function checkNewNotifications() {
-            fetch('/api/notifications/new', {
+            let url = '/api/notifications/new';
+            if (lastNotifCheck) {
+                url += '?last_check=' + encodeURIComponent(lastNotifCheck);
+            }
+            fetch(url, {
                 headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json' }
             })
             .then(r => r.json())
             .then(data => {
+                if (data.timestamp) {
+                    lastNotifCheck = data.timestamp;
+                }
                 if (data.notifications?.length) {
                     data.notifications.forEach(n => {
                         showToast(n.title || 'Nouvelle notification', n.message || '', n.type || 'info', n.icon || null);
                     });
-                    if (data.count > 0) {
-                        const badge = document.getElementById('notificationBadge');
-                        if (badge) badge.textContent = data.count;
+                }
+                if (typeof data.count !== 'undefined') {
+                    const badge = document.getElementById('notificationBadge');
+                    if (badge) {
+                        badge.textContent = data.count;
+                        badge.style.display = data.count > 0 ? 'inline-block' : 'none';
                     }
                 }
             })

@@ -6,11 +6,18 @@
     <title>Nouvelle demande compatible — DoyaImmo</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
-    
+
+    @php
+        $isLocation = is_object($demande->type_operation)
+            ? $demande->type_operation->value === 'location'
+            : $demande->type_operation === 'location';
+        $budgetLabel = $isLocation ? 'F/mois' : 'FCFA';
+    @endphp
+
     <div style="background-color: #f4f4f4; padding: 40px 20px;">
         <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.1);">
-            
-            <!-- EN-TÊTE AVEC LOGO -->
+
+            {{-- EN-TÊTE --}}
             <div style="background-color: #1A1A2E; padding: 24px 32px; text-align: center;">
                 <table role="presentation" style="margin: 0 auto; border-collapse: collapse;">
                     <tr>
@@ -27,86 +34,92 @@
                     </tr>
                 </table>
             </div>
-            
-            <!-- CONTENU -->
+
+            {{-- CONTENU --}}
             <div style="padding: 32px;">
-                <h2 style="color: #1A1A2E; margin-top: 0; font-size: 22px;"> Nouvelle demande compatible</h2>
-                
+                <h2 style="color: #1A1A2E; margin-top: 0; font-size: 22px;">
+                    📬 Nouvelle demande compatible
+                </h2>
+
                 <p style="color: #4A4A6A; font-size: 16px; line-height: 1.6;">
-                    Bonjour <strong>{{ $notifiable->agence->nom_agence ?? $notifiable->prenom }}</strong>,
+                    Bonjour <strong>{{ $notifiable->prenom }} {{ $notifiable->nom }}</strong>,
                 </p>
-                
+
                 <p style="color: #4A4A6A; font-size: 16px; line-height: 1.6;">
-                    Un nouveau besoin correspond à vos biens :
+                    Une nouvelle demande de logement compatible avec vos biens vient d'être publiée :
                 </p>
-                
+
+                {{-- Détails --}}
                 <div style="background-color: #F7F9FC; border: 1px solid #E8E8F0; border-radius: 8px; padding: 20px; margin: 24px 0;">
-                    <h3 style="color: #1A1A2E; margin-top: 0; font-size: 18px;"> Détails de la demande</h3>
-                    
+                    <h3 style="color: #1A1A2E; margin-top: 0; font-size: 18px;">
+                        📋 Détails de la demande
+                    </h3>
+
                     <table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
                         <tr>
-                            <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px; width: 40%;"> Type de bien :</td>
+                            <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px; width: 40%;">Type de bien :</td>
                             <td style="padding: 8px 0; color: #4A4A6A; font-size: 16px; font-weight: bold;">
-                                {{ $demande->type_bien->label() ?? $demande->type_bien }}
+                                {{ is_object($demande->type_bien) ? $demande->type_bien->label() : ucfirst($demande->type_bien) }}
                             </td>
                         </tr>
                         <tr>
-                            <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px;"> Type d'opération :</td>
+                            <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px;">Type d'opération :</td>
                             <td style="padding: 8px 0; color: #4A4A6A; font-size: 16px; font-weight: bold;">
-                                {{ $demande->type_operation->label() ?? $demande->type_operation }}
+                                {{ is_object($demande->type_operation) ? $demande->type_operation->label() : ucfirst($demande->type_operation) }}
                             </td>
                         </tr>
                         <tr>
-                            <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px;"> Zone recherchée :</td>
+                            <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px;">Budget :</td>
+                            <td style="padding: 8px 0; color: #B85C3A; font-size: 16px; font-weight: bold;">
+                                {{ number_format($demande->budget_maximum, 0, ',', ' ') }} {{ $budgetLabel }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px;">Zone recherchée :</td>
                             <td style="padding: 8px 0; color: #4A4A6A; font-size: 16px; font-weight: bold;">
                                 {{ $demande->zone_recherchee }}
                             </td>
                         </tr>
+                        @if($demande->surface_minimum)
                         <tr>
-                            <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px;"> Budget :</td>
+                            <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px;">Surface min. :</td>
                             <td style="padding: 8px 0; color: #4A4A6A; font-size: 16px; font-weight: bold;">
-                                {{ number_format($demande->budget_maximum, 0, ',', ' ') }} FCFA
+                                {{ $demande->surface_minimum }} m²
                             </td>
                         </tr>
+                        @endif
+                        @if($demande->nombre_chambres)
                         <tr>
-                            <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px;"> Score de compatibilité :</td>
+                            <td style="padding: 8px 0; color: #8A8AA0; font-size: 14px;">Chambres :</td>
                             <td style="padding: 8px 0; color: #4A4A6A; font-size: 16px; font-weight: bold;">
-                                {{ $score }}%
+                                {{ $demande->nombre_chambres }}
                             </td>
                         </tr>
+                        @endif
                     </table>
                 </div>
-                
-                <!-- Badge de compatibilité -->
-                <div style="text-align: center; margin: 20px 0;">
-                    @if($score >= 80)
-                        <span style="background-color: #2E7D32; color: #ffffff; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold;">🏆 Excellente compatibilité !</span>
-                    @elseif($score >= 60)
-                        <span style="background-color: #1976D2; color: #ffffff; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold;">👍 Bonne compatibilité</span>
-                    @elseif($score >= 40)
-                        <span style="background-color: #F57C00; color: #ffffff; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold;">📊 Compatibilité moyenne</span>
-                    @else
-                        <span style="background-color: #C62828; color: #ffffff; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold;">📈 Compatibilité à améliorer</span>
-                    @endif
+
+                {{-- Astuce --}}
+                <div style="background-color: #FFF8E1; border: 1px solid #FFE0B2; border-radius: 8px; padding: 16px; margin-top: 24px;">
+                    <p style="margin: 0; color: #8B4B15; font-size: 14px; line-height: 1.6;">
+                        <strong>💡 Astuce :</strong> Connectez-vous rapidement pour proposer vos biens. Les premières offres ont plus de chances d'être sélectionnées !
+                    </p>
                 </div>
-                
-                <p style="color: #4A4A6A; font-size: 16px; line-height: 1.6;">
-                    Répondez rapidement pour maximiser vos chances !
-                </p>
-                
+
+                {{-- CTA --}}
                 <div style="text-align: center; margin: 32px 0;">
-                    <a href="{{ url('/agence/demandes/' . $demande->id) }}" 
-                       style="background-color: #2A9D8F; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block; box-shadow: 0 4px 8px rgba(42, 157, 143, 0.3);">
-                         Voir et proposer
+                    <a href="{{ url('/agence/demandes/' . $demande->slug) }}"
+                       style="background-color: #B85C3A; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block;">
+                        Voir la demande
                     </a>
                 </div>
-                
+
                 <p style="color: #8A8AA0; font-size: 14px; line-height: 1.6;">
                     Si vous avez des questions, n'hésitez pas à nous contacter.
                 </p>
             </div>
-            
-            <!-- PIED DE PAGE -->
+
+            {{-- PIED --}}
             <div style="background-color: #F7F9FC; padding: 20px 32px; text-align: center; border-top: 1px solid #E8E8F0;">
                 <table role="presentation" style="margin: 0 auto; border-collapse: collapse;">
                     <tr>
@@ -126,9 +139,9 @@
                     © {{ date('Y') }} DoyaImmo. Tous droits réservés.
                 </p>
             </div>
-            
+
         </div>
     </div>
-    
+
 </body>
 </html>

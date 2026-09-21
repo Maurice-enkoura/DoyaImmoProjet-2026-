@@ -20,7 +20,7 @@
         </div>
     </div>
 
-    {{-- ═══ ALERTES ═══ --}}
+    {{-- ═══ ALERTES DE VALIDATION ═══ --}}
     @if($errors->any())
         <div class="ios-alert ios-alert--error">
             <i class="fa-solid fa-circle-exclamation"></i>
@@ -42,9 +42,7 @@
 
         @csrf
 
-        {{-- ═══════════════════════════════════════════
-             ÉTAPE 1 — INFOS PRINCIPALES
-        ═══════════════════════════════════════════ --}}
+        {{-- ═══ ÉTAPE 1 — INFOS PRINCIPALES ═══ --}}
         <div class="ios-step is-active" data-step="1">
 
             <div class="ios-section-title">
@@ -107,9 +105,7 @@
             </div>
         </div>
 
-        {{-- ═══════════════════════════════════════════
-             ÉTAPE 2 — LOCALISATION
-        ═══════════════════════════════════════════ --}}
+        {{-- ═══ ÉTAPE 2 — LOCALISATION ═══ --}}
         <div class="ios-step" data-step="2">
 
             <div class="ios-section-title">
@@ -150,9 +146,7 @@
             </div>
         </div>
 
-        {{-- ═══════════════════════════════════════════
-             ÉTAPE 3 — CARACTÉRISTIQUES + ÉQUIPEMENTS
-        ═══════════════════════════════════════════ --}}
+        {{-- ═══ ÉTAPE 3 — CARACTÉRISTIQUES + ÉQUIPEMENTS ═══ --}}
         <div class="ios-step" data-step="3">
 
             <div class="ios-section-title">
@@ -257,9 +251,7 @@
             </div>
         </div>
 
-        {{-- ═══════════════════════════════════════════
-             ÉTAPE 4 — PHOTOS + VIDÉOS
-        ═══════════════════════════════════════════ --}}
+        {{-- ═══ ÉTAPE 4 — PHOTOS + VIDÉOS ═══ --}}
         <div class="ios-step" data-step="4">
 
             <div class="ios-section-title">
@@ -340,9 +332,7 @@
 
 @push('scripts')
 <script>
-/* ═══════════════════════════════════════════
-   WIZARD
-   ═══════════════════════════════════════════ */
+/* ═══ WIZARD ═══ */
 let currentStep = 1;
 const totalSteps = 4;
 
@@ -389,9 +379,7 @@ document.getElementById('nextBtn')?.addEventListener('click', () => {
 
 document.getElementById('prevBtn')?.addEventListener('click', () => goToStep(currentStep - 1));
 
-/* ═══════════════════════════════════════════
-   ADAPTATION PAR TYPE DE BIEN
-   ═══════════════════════════════════════════ */
+/* ═══ ADAPTATION PAR TYPE DE BIEN ═══ */
 document.getElementById('type_bien')?.addEventListener('change', function () {
     const type = this.value;
 
@@ -489,9 +477,7 @@ document.getElementById('type_bien')?.addEventListener('change', function () {
     }
 });
 
-/* ═══════════════════════════════════════════
-   ADAPTATION PAR CONTRAT
-   ═══════════════════════════════════════════ */
+/* ═══ ADAPTATION PAR CONTRAT ═══ */
 document.getElementById('type_contrat')?.addEventListener('change', function () {
     const value = this.value;
     const prixHint = document.getElementById('prixHint');
@@ -505,9 +491,7 @@ document.getElementById('type_contrat')?.addEventListener('change', function () 
     }
 });
 
-/* ═══════════════════════════════════════════
-   UPLOAD PHOTOS
-   ═══════════════════════════════════════════ */
+/* ═══ UPLOAD PHOTOS ═══ */
 document.getElementById('imageInput')?.addEventListener('change', function () {
     const container = document.getElementById('imagePreviewContainer');
     const files = Array.from(this.files);
@@ -537,9 +521,7 @@ document.getElementById('imageInput')?.addEventListener('change', function () {
     });
 });
 
-/* ═══════════════════════════════════════════
-   UPLOAD VIDÉOS
-   ═══════════════════════════════════════════ */
+/* ═══ UPLOAD VIDÉOS ═══ */
 document.getElementById('videoInput')?.addEventListener('change', function () {
     const container = document.getElementById('videoPreviewContainer');
     const files = Array.from(this.files);
@@ -570,9 +552,7 @@ document.getElementById('videoInput')?.addEventListener('change', function () {
     });
 });
 
-/* ═══════════════════════════════════════════
-   COMPTEUR DESCRIPTION
-   ═══════════════════════════════════════════ */
+/* ═══ COMPTEUR DESCRIPTION ═══ */
 document.querySelector('textarea[name="description"]')?.addEventListener('input', function () {
     const len = this.value.length;
     const counter = document.getElementById('descCounter');
@@ -582,9 +562,7 @@ document.querySelector('textarea[name="description"]')?.addEventListener('input'
     }
 });
 
-/* ═══════════════════════════════════════════
-   SUBMIT
-   ═══════════════════════════════════════════ */
+/* ═══ SUBMIT ═══ */
 document.getElementById('bienForm')?.addEventListener('submit', function () {
     const btn = document.getElementById('submitBtn');
     if (btn) {
@@ -593,9 +571,7 @@ document.getElementById('bienForm')?.addEventListener('submit', function () {
     }
 });
 
-/* ═══════════════════════════════════════════
-   INIT
-   ═══════════════════════════════════════════ */
+/* ═══ INIT ═══ */
 document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('type_bien')?.dispatchEvent(new Event('change'));
     document.getElementById('type_contrat')?.dispatchEvent(new Event('change'));
@@ -608,7 +584,7 @@ document.addEventListener('DOMContentLoaded', function () {
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   PUBLIER UN BIEN — iOS NATIVE
+   PUBLIER UN BIEN — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .bien-create {
@@ -617,20 +593,15 @@ document.addEventListener('DOMContentLoaded', function () {
     --c-danger: #C62828; --c-danger-bg: #FFEBEE;
     --c-info: #0D47A1; --c-info-bg: #E3F2FD;
     --surface: #F7F9FC;
+    --radius: 14px;
 
-    --ios-bg: #F2F2F7;
     --ios-card: #FFFFFF;
-    --ios-blue: #007AFF;
-    --ios-label: #000000;
-    --ios-label-2: #3C3C43;
-    --ios-label-3: #8E8E93;
     --ios-separator: rgba(60, 60, 67, 0.12);
     --ios-radius-lg: 18px;
 }
 
-/* ═══ STEPPER (desktop) ═══ */
+/* ═══ STEPPER ═══ */
 .ios-stepper {
-    display: block;
     margin-bottom: 24px;
     padding: 0 4px;
     max-width: 720px;
@@ -644,7 +615,7 @@ document.addEventListener('DOMContentLoaded', function () {
 }
 .ios-stepper__fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--rust), #d4754a);
+    background: var(--rust);
     border-radius: 999px;
     transition: width .4s cubic-bezier(.4,0,.2,1);
 }
@@ -653,19 +624,18 @@ document.addEventListener('DOMContentLoaded', function () {
     justify-content: space-between;
     gap: 4px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--muted);
-    letter-spacing: -.1px;
 }
 .ios-stepper__labels span {
-    transition: color .3s;
+    transition: color .2s;
     text-align: center;
     flex: 1;
 }
 .ios-stepper__labels span.is-active { color: var(--rust); font-weight: 700; }
 .ios-stepper__labels span.is-done { color: var(--text-soft); }
 
-/* ═══ ALERT ═══ */
+/* ═══ ALERT DE VALIDATION ═══ */
 .ios-alert {
     display: flex;
     gap: 12px;
@@ -675,8 +645,8 @@ document.addEventListener('DOMContentLoaded', function () {
     font-size: 13px;
 }
 .ios-alert--error {
-    background: #FFEBEE;
-    color: #C62828;
+    background: var(--c-danger-bg);
+    color: var(--c-danger);
     border: 1px solid #FFCDD2;
 }
 .ios-alert i { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
@@ -691,25 +661,26 @@ document.addEventListener('DOMContentLoaded', function () {
 /* ═══ SECTION TITLES ═══ */
 .ios-section-title {
     font-family: var(--display);
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--ink);
     margin: 24px 0 6px;
     display: flex;
     align-items: center;
     gap: 8px;
+    letter-spacing: -.2px;
 }
 .ios-section-title:first-child { margin-top: 0; }
-.ios-section-title i { color: var(--rust); font-size: 16px; }
-.ios-section-title .req { color: #C62828; }
+.ios-section-title i { color: var(--muted); font-size: 15px; }
+.ios-section-title .req { color: var(--c-danger); }
 .ios-section-sub {
-    font-size: 13.5px;
+    font-size: 13px;
     color: var(--muted);
     margin: 0 0 18px;
     line-height: 1.5;
 }
 
-/* ═══ FORM GRID (desktop) ═══ */
+/* ═══ FORM GRID ═══ */
 .ios-form-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -726,12 +697,12 @@ document.addEventListener('DOMContentLoaded', function () {
 .ios-field { margin-bottom: 0; }
 .ios-field label {
     display: block;
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text-soft);
     margin-bottom: 8px;
 }
-.ios-field label .req { color: #C62828; }
+.ios-field label .req { color: var(--c-danger); }
 .ios-field label small {
     color: var(--muted);
     font-weight: 400;
@@ -743,22 +714,21 @@ document.addEventListener('DOMContentLoaded', function () {
     padding: 13px 16px;
     border: 1px solid var(--border);
     border-radius: 12px;
-    font-size: 14.5px;
+    font-size: 14px;
     font-family: inherit;
     background: #fff;
     color: var(--ink);
-    transition: all .15s;
+    transition: border-color .15s;
     -webkit-appearance: none;
     appearance: none;
 }
 .ios-input:focus {
     outline: none;
     border-color: var(--rust);
-    box-shadow: 0 0 0 3px var(--rust-soft);
 }
-.ios-input.is-invalid { border-color: #C62828; }
+.ios-input.is-invalid { border-color: var(--c-danger); }
 .ios-input:disabled {
-    background: #EFEFF4;
+    background: #F5F5F7;
     color: var(--muted);
     cursor: not-allowed;
 }
@@ -804,13 +774,13 @@ select.ios-input {
 
 .err {
     display: block;
-    color: #C62828;
+    color: var(--c-danger);
     font-size: 12.5px;
     margin-top: 6px;
     font-weight: 500;
 }
 
-/* ═══ ÉQUIPEMENTS (desktop) ═══ */
+/* ═══ ÉQUIPEMENTS ═══ */
 .ios-equipments {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -823,15 +793,14 @@ select.ios-input {
     gap: 10px;
     padding: 14px 16px;
     background: #fff;
-    border: 1.5px solid var(--border);
+    border: 1px solid var(--border);
     border-radius: 12px;
     cursor: pointer;
     font-size: 13.5px;
     font-weight: 500;
     color: var(--text-soft);
-    transition: all .15s ease;
+    transition: border-color .15s, background-color .15s, color .15s;
     user-select: none;
-    -webkit-tap-highlight-color: transparent;
 }
 .ios-equipment input { display: none; }
 .ios-equipment i {
@@ -856,11 +825,7 @@ select.ios-input {
     font-weight: 600;
 }
 .ios-equipment:has(input:checked) i { color: var(--rust); }
-.ios-equipment:hover {
-    border-color: var(--rust);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(0,0,0,.04);
-}
+.ios-equipment:hover { border-color: #d8d8d8; }
 
 /* ═══ NOTE ═══ */
 .ios-note {
@@ -869,21 +834,18 @@ select.ios-input {
     gap: 10px;
     padding: 14px 18px;
     border-radius: 12px;
-    font-size: 13.5px;
+    font-size: 13px;
     line-height: 1.5;
+    background: #F5F5F7;
+    color: var(--text-soft);
 }
-.ios-note--warning {
-    background: #FFF8E1;
-    color: #E65100;
-    border: 1px solid #FFE0B2;
-}
-.ios-note i { font-size: 16px; flex-shrink: 0; }
+.ios-note i { font-size: 16px; flex-shrink: 0; color: var(--muted); }
 
 /* ═══ UPLOAD MÉDIAS ═══ */
 .media-upload {
     background: #fff;
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: 14px;
     padding: 20px;
     margin-bottom: 22px;
 }
@@ -894,28 +856,28 @@ select.ios-input {
     justify-content: center;
     gap: 12px;
     padding: 32px 24px;
-    background: var(--surface);
-    border: 2px dashed var(--border);
-    border-radius: 14px;
+    background: #F5F5F7;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
     cursor: pointer;
-    transition: all .2s;
+    transition: border-color .15s, background-color .15s;
     text-align: center;
 }
 .upload-zone:hover {
     border-color: var(--rust);
-    background: var(--rust-soft);
+    background: var(--surface);
 }
 .upload-zone__icon {
-    width: 56px;
-    height: 56px;
+    width: 52px;
+    height: 52px;
     border-radius: 50%;
     background: #fff;
-    color: var(--rust);
+    color: var(--muted);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    box-shadow: 0 4px 12px rgba(181, 80, 42, .12);
+    font-size: 22px;
+    border: 1px solid var(--border);
 }
 .upload-zone__text {
     display: flex;
@@ -924,7 +886,7 @@ select.ios-input {
 }
 .upload-zone__text strong {
     font-family: var(--display);
-    font-size: 15px;
+    font-size: 14.5px;
     font-weight: 700;
     color: var(--ink);
 }
@@ -986,7 +948,7 @@ select.ios-input {
     font-weight: 500;
 }
 
-/* ═══ ACTIONS (desktop) ═══ */
+/* ═══ ACTIONS ═══ */
 .ios-form-actions {
     display: flex;
     gap: 10px;
@@ -1008,27 +970,28 @@ select.ios-input {
     cursor: pointer;
     border: 1px solid transparent;
     text-decoration: none;
-    transition: all .15s;
+    transition: background-color .15s, border-color .15s, color .15s;
     white-space: nowrap;
 }
 .ios-btn--primary {
     background: var(--rust);
     color: #fff;
     border-color: var(--rust);
-    box-shadow: 0 4px 12px rgba(181,80,42,.2);
 }
-.ios-btn--primary:hover { background: #9A4523; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(181,80,42,.3); }
-.ios-btn--primary:active { transform: scale(.97); }
-.ios-btn--primary:disabled { opacity: .7; cursor: not-allowed; transform: none; }
+.ios-btn--primary:hover {
+    background: #9A4523;
+    border-color: #9A4523;
+    color: #fff;
+}
+.ios-btn--primary:disabled { opacity: .7; cursor: not-allowed; }
 .ios-btn--ghost {
     background: #fff;
     color: var(--text-soft);
     border-color: var(--border);
 }
-.ios-btn--ghost:hover { border-color: var(--rust); color: var(--rust); background: var(--surface); }
-.ios-btn--ghost:active { transform: scale(.97); }
+.ios-btn--ghost:hover { border-color: #d8d8d8; color: var(--ink); background: #F5F5F7; }
 
-/* ═══ ANIMATION SHAKE ═══ */
+/* ═══ SHAKE ═══ */
 @keyframes shake {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-6px); }
@@ -1036,9 +999,7 @@ select.ios-input {
 }
 .shake { animation: shake .3s ease; }
 
-/* ═══════════════════════════════════════════════════════════
-   DESKTOP : conteneur large
-   ═══════════════════════════════════════════════════════════ */
+/* ═══ DESKTOP ═══ */
 @media (min-width: 1000px) {
     .bien-create {
         max-width: 960px;
@@ -1052,9 +1013,7 @@ select.ios-input {
     .ios-form-grid--3 {
         grid-template-columns: 1fr 1fr;
     }
-    .ios-equipments {
-        grid-template-columns: repeat(3, 1fr);
-    }
+    .ios-equipments { grid-template-columns: repeat(3, 1fr); }
     .bien-create {
         max-width: 720px;
         margin: 0 auto;
@@ -1076,14 +1035,13 @@ select.ios-input {
         margin: 0;
     }
 
-    /* ─── STEPPER ─── */
+    /* STEPPER */
     .ios-stepper {
-        display: block;
         margin-bottom: 20px;
         padding: 0 4px;
     }
 
-    /* ─── FORM GRID → 1 colonne ─── */
+    /* GRID → 1 colonne */
     .ios-form-grid,
     .ios-form-grid--3 {
         grid-template-columns: 1fr;
@@ -1091,92 +1049,62 @@ select.ios-input {
     }
     .ios-field--full { grid-column: auto; }
 
-    /* ─── SECTION TITLES ─── */
+    /* SECTION TITLES */
     .ios-section-title {
-        font-size: 17px;
-        font-weight: 700;
-        color: var(--ios-label);
-        letter-spacing: -.3px;
-        margin: 24px 4px 6px;
+        font-size: 15px;
+        margin: 20px 4px 6px;
+        color: var(--ink);
     }
-    .ios-section-title i { font-size: 15px; color: var(--rust); }
-    .ios-section-sub {
-        font-size: 13px;
-        color: var(--ios-label-3);
-        margin: 0 4px 16px;
-    }
+    .ios-section-title i { font-size: 14px; }
+    .ios-section-sub { font-size: 13px; margin: 0 4px 16px; }
 
-    /* ─── FIELDS iOS ─── */
-    .ios-field { margin-bottom: 0; }
+    /* FIELDS */
     .ios-field label {
         font-size: 13px;
-        color: var(--ios-label-3);
-        font-weight: 500;
         margin-bottom: 6px;
         padding-left: 4px;
     }
-    .ios-field label .req { color: var(--rust); font-weight: 700; }
-
     .ios-input {
         background: var(--ios-card);
         border: none;
-        border-radius: 14px;
+        border-radius: 12px;
         padding: 14px 16px;
         font-size: 16px;
-        font-weight: 500;
-        color: var(--ios-label);
+        color: var(--ink);
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
     .ios-input:focus {
-        box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 0 0 3px rgba(181, 80, 42, .15);
+        box-shadow: 0 0 0 2px rgba(181, 80, 42, .25);
     }
-    .ios-input.is-invalid { box-shadow: 0 0 0 2px rgba(198, 40, 40, .3); }
+    .ios-input.is-invalid { box-shadow: 0 0 0 2px rgba(198, 40, 40, .25); }
     .ios-input:disabled {
         background: #EFEFF4;
-        color: var(--ios-label-3);
         box-shadow: none;
     }
     textarea.ios-input {
         min-height: 120px;
         padding: 16px;
-        line-height: 1.55;
-        font-size: 16px;
+        line-height: 1.5;
     }
     select.ios-input {
         padding: 14px 36px 14px 16px;
         background-position: right 16px center;
         font-size: 16px;
-        font-weight: 500;
     }
 
-    .ios-hint {
-        font-size: 12.5px;
-        color: var(--ios-label-3);
-        margin-top: 6px;
-        padding-left: 4px;
-    }
+    .ios-hint { font-size: 12.5px; padding-left: 4px; margin-top: 6px; }
+    .ios-counter { font-size: 12px; padding-left: 4px; margin-top: 6px; }
+    .err { font-size: 12.5px; padding-left: 4px; margin-top: 6px; }
 
-    .ios-counter {
-        font-size: 12px;
-        padding-left: 4px;
-        margin-top: 6px;
-    }
-
-    .err {
-        font-size: 12.5px;
-        margin-top: 6px;
-        padding-left: 4px;
-    }
-
-    /* ─── ÉQUIPEMENTS iOS ─── */
+    /* ÉQUIPEMENTS */
     .ios-equipments {
         grid-template-columns: 1fr 1fr;
         gap: 10px;
     }
     .ios-equipment {
         background: var(--ios-card);
-        border: 1.5px solid transparent;
-        border-radius: 14px;
+        border: 1px solid transparent;
+        border-radius: 12px;
         padding: 14px 12px;
         flex-direction: column;
         gap: 8px;
@@ -1187,27 +1115,30 @@ select.ios-input {
         justify-content: center;
     }
     .ios-equipment i { font-size: 22px; width: auto; }
-    .ios-equipment span { white-space: normal; font-size: 12.5px; line-height: 1.3; }
-    .ios-equipment:has(input:checked) {
-        background: linear-gradient(135deg, #FFF4EC, #FFE8D9);
-        border-color: var(--rust);
-        box-shadow: 0 4px 12px rgba(181,80,42,.15);
+    .ios-equipment span {
+        white-space: normal;
+        font-size: 12.5px;
+        line-height: 1.3;
     }
-    .ios-equipment:hover { transform: none; }
+    .ios-equipment:has(input:checked) {
+        background: var(--rust-soft);
+        border-color: var(--rust);
+        color: var(--rust);
+    }
+    .ios-equipment:hover { border-color: transparent; }
 
-    /* ─── NOTE iOS ─── */
+    /* NOTE */
     .ios-note {
         background: var(--ios-card);
         border: none;
-        border-left: 3px solid var(--c-warning);
+        border-left: 3px solid var(--muted);
         border-radius: 12px;
         padding: 14px 16px;
-        font-size: 13.5px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
-    .ios-note--warning { color: var(--ios-label-2); }
+    .ios-note i { color: var(--muted); }
 
-    /* ─── UPLOAD iOS ─── */
+    /* UPLOAD */
     .media-upload {
         background: var(--ios-card);
         border: none;
@@ -1217,37 +1148,28 @@ select.ios-input {
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
     .upload-zone {
-        background: #EFEFF4;
-        border: 2px dashed transparent;
-        border-radius: 14px;
+        background: #F5F5F7;
+        border: 1px dashed transparent;
+        border-radius: 12px;
         padding: 22px 16px;
         gap: 12px;
     }
-    .upload-zone:active {
-        background: #E5E5EA;
-        transform: none;
-    }
     .upload-zone__icon {
-        width: 56px;
-        height: 56px;
-        background: linear-gradient(135deg, var(--rust), #d4754a);
-        color: #fff;
-        font-size: 24px;
-        box-shadow: 0 6px 16px rgba(181, 80, 42, .3);
+        width: 52px;
+        height: 52px;
+        background: #fff;
+        color: var(--muted);
+        font-size: 22px;
+        border: 1px solid var(--border);
     }
-    .upload-zone__text strong { font-size: 15px; font-weight: 600; color: var(--ios-label); }
-    .upload-zone__text span { font-size: 12.5px; color: var(--ios-label-3); }
+    .upload-zone__text strong { font-size: 14.5px; font-weight: 600; }
+    .upload-zone__text span { font-size: 12.5px; }
 
     .media-preview { gap: 6px; }
     .media-thumb { border-radius: 12px; border: none; }
+    .upload-count { font-size: 12px; padding: 0 4px; }
 
-    .upload-count {
-        font-size: 12px;
-        color: var(--ios-label-3);
-        padding: 0 4px;
-    }
-
-    /* ─── ACTIONS FIXES ─── */
+    /* ACTIONS FIXES */
     .ios-form-actions {
         position: fixed;
         bottom: 0;
@@ -1266,38 +1188,27 @@ select.ios-input {
     .ios-btn {
         padding: 14px 20px;
         font-size: 15px;
-        font-weight: 600;
-        border-radius: 14px;
+        border-radius: 12px;
         flex: 1;
-        letter-spacing: -.1px;
     }
     .ios-btn--primary {
-        background: linear-gradient(135deg, var(--rust), #d4754a);
+        background: var(--rust);
         border: none;
-        box-shadow: 0 4px 12px rgba(181, 80, 42, .3);
-    }
-    .ios-btn--primary:active {
-        transform: scale(.97);
-        box-shadow: 0 2px 6px rgba(181, 80, 42, .4);
     }
     .ios-btn--ghost {
         background: var(--ios-card);
         border: none;
-        color: var(--ios-label-2);
+        color: var(--text-soft);
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
         flex: 0 0 auto;
         padding: 14px 18px;
     }
-    .ios-btn--ghost:active { background: #EFEFF4; }
 }
 
 @media (max-width: 480px) {
     .ios-equipments { grid-template-columns: 1fr 1fr; }
     .ios-stepper__labels { font-size: 10px; }
-
-    .ios-section-title { font-size: 16px; }
-    .ios-field label { font-size: 12.5px; }
-    .ios-input { font-size: 16px; }
+    .ios-section-title { font-size: 14.5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

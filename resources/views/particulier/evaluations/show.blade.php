@@ -11,11 +11,11 @@
         $note        = (int) $evaluation->note;
         $sentiment   = $note >= 4 ? 'positif' : ($note === 3 ? 'neutre' : 'negatif');
         $sentimentLabel = match (true) {
-            $note === 5 => 'Très satisfait 🤩',
-            $note === 4 => 'Satisfait 😊',
-            $note === 3 => 'Neutre 😐',
-            $note === 2 => 'Insatisfait 😕',
-            default     => 'Très insatisfait 😞',
+            $note === 5 => 'Très satisfait',
+            $note === 4 => 'Satisfait',
+            $note === 3 => 'Neutre',
+            $note === 2 => 'Insatisfait',
+            default     => 'Très insatisfait',
         };
 
         $agence      = $evaluation->agence;
@@ -28,9 +28,8 @@
         $nbAvis      = $agence->evaluations->count();
     @endphp
 
-    {{-- ═══ HERO — NOTE EN GROS ═══ --}}
-    <header class="note-hero note-hero--{{ $sentiment }}">
-
+    {{-- ═══ HERO — NOTE ═══ --}}
+    <header class="note-hero">
         <div class="note-hero__stars">
             @for($i = 1; $i <= 5; $i++)
                 <i class="fa-solid fa-star {{ $i <= $note ? 'is-on' : '' }}"></i>
@@ -46,7 +45,6 @@
         </div>
 
         <div class="note-hero__date">
-            <i class="fa-regular fa-calendar"></i>
             Publié le {{ $evaluation->created_at->format('d F Y') }}
         </div>
     </header>
@@ -64,23 +62,19 @@
                 <h3 class="agency-block__name">{{ $agence->nom_agence }}</h3>
 
                 <div class="agency-block__rating">
-                    <span class="rating-stars">
-                        <i class="fa-solid fa-star"></i>
-                        <strong>{{ number_format($noteMoyenne, 1) }}</strong>
-                        <span class="rating-max">/ 5</span>
-                    </span>
-                    <span class="rating-reviews">
-                        ({{ $nbAvis }} avis)
-                    </span>
+                    <i class="fa-solid fa-star"></i>
+                    <strong>{{ number_format($noteMoyenne, 1) }}</strong>
+                    <span class="rating-max">/ 5</span>
+                    <span class="rating-reviews">({{ $nbAvis }} avis)</span>
                 </div>
 
                 @if($agence->quartier || $agence->adresse)
                     <div class="agency-block__meta">
                         @if($agence->quartier)
-                            <span><i class="fa-solid fa-map-pin"></i> {{ $agence->quartier }}</span>
+                            <span>{{ $agence->quartier }}</span>
                         @endif
                         @if($agence->adresse)
-                            <span><i class="fa-solid fa-location-dot"></i> {{ $agence->adresse }}</span>
+                            <span>{{ $agence->adresse }}</span>
                         @endif
                     </div>
                 @endif
@@ -89,7 +83,7 @@
 
         <a href="{{ route('agences.public.show', $agence->slug) }}"
            class="btn btn-ghost btn-block">
-            <i class="fa-solid fa-eye"></i> Voir le profil de l'agence
+            Voir le profil de l'agence
         </a>
     </div>
 
@@ -99,12 +93,11 @@
     </div>
 
     @if($evaluation->commentaire)
-        <blockquote class="comment-block comment-block--{{ $sentiment }}">
+        <blockquote class="comment-block">
             {{ $evaluation->commentaire }}
         </blockquote>
     @else
         <div class="comment-empty">
-            <i class="fa-regular fa-comment"></i>
             <span>Vous n'avez pas laissé de commentaire.</span>
         </div>
     @endif
@@ -116,29 +109,23 @@
         </div>
 
         <div class="ios-list">
-            <div class="ios-list__item ios-list__item--static">
-                <div class="ios-list__content">
-                    <span class="ios-list__title">Date</span>
-                </div>
+            <div class="ios-list__item">
+                <span class="ios-list__title">Date</span>
                 <span class="ios-list__value">
                     {{ $proposition->created_at->format('d/m/Y') }}
                 </span>
             </div>
 
-            <div class="ios-list__item ios-list__item--static">
-                <div class="ios-list__content">
-                    <span class="ios-list__title">Prix proposé</span>
-                </div>
+            <div class="ios-list__item">
+                <span class="ios-list__title">Prix proposé</span>
                 <span class="ios-list__value ios-list__value--rust">
                     {{ number_format($proposition->prix_propose, 0, ',', ' ') }} FCFA
                 </span>
             </div>
 
             @if($bien)
-                <div class="ios-list__item ios-list__item--static">
-                    <div class="ios-list__content">
-                        <span class="ios-list__title">Bien</span>
-                    </div>
+                <div class="ios-list__item">
+                    <span class="ios-list__title">Bien</span>
                     <span class="ios-list__value">
                         {{ $bien->titre ?? 'Non spécifié' }}
                     </span>
@@ -151,7 +138,7 @@
     <div class="ios-section-title">
         <i class="fa-solid fa-reply"></i> Réponse de l'agence
         @if($hasReponse && $evaluation->date_reponse)
-            <span class="ios-section-count ios-section-count--info">
+            <span class="ios-section-count">
                 {{ $evaluation->date_reponse->format('d/m/Y') }}
             </span>
         @endif
@@ -167,9 +154,6 @@
         </div>
     @else
         <div class="reponse-empty">
-            <div class="reponse-empty__icon">
-                <i class="fa-regular fa-hourglass-half"></i>
-            </div>
             <div class="reponse-empty__body">
                 <strong>Aucune réponse pour le moment</strong>
                 <p>L'agence n'a pas encore répondu à votre avis.</p>
@@ -180,7 +164,7 @@
     {{-- ═══ ACTIONS ═══ --}}
     <footer class="avis-actions">
         <a href="{{ route('particulier.evaluations.index') }}" class="btn btn-ghost btn-block">
-            <i class="fa-solid fa-list"></i> Tous mes avis
+            Tous mes avis
         </a>
     </footer>
 </div>
@@ -190,23 +174,22 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   DÉTAIL AVIS — iOS NATIVE
+   DÉTAIL AVIS — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .avis-show {
     --c-warning:    #E65100;
     --c-warning-bg: #FFF8E1;
     --c-success:    #1E7A47;
-    --c-success-bg: #E8F5E9;
+    --c-success-bg: #F1F8F4;
     --c-danger:     #C62828;
-    --c-danger-bg:  #FFEBEE;
-    --c-info:       #0D47A1;
-    --c-info-bg:    #E3F2FD;
+    --c-danger-bg:  #FEF2F2;
+    --c-info:       #1E40AF;
+    --c-info-bg:    #EFF6FF;
     --c-gold:       #F5A623;
     --surface:      #F7F9FC;
     --radius:       14px;
 
-    --ios-bg: #F2F2F7;
     --ios-card: #FFFFFF;
     --ios-blue: #007AFF;
     --ios-label: #000000;
@@ -228,19 +211,15 @@
     gap: 8px;
 }
 .ios-section-title:first-of-type { margin-top: 0; }
-.ios-section-title i { color: var(--rust); font-size: 15px; }
+.ios-section-title i { color: var(--muted); font-size: 15px; }
 .ios-section-count {
     margin-left: auto;
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
     padding: 3px 10px;
-    background: var(--c-warning-bg);
-    color: var(--rust);
+    background: #F5F5F7;
+    color: var(--muted);
     border-radius: 999px;
-}
-.ios-section-count--info {
-    background: var(--c-info-bg);
-    color: var(--c-info);
 }
 
 /* ═══ HERO NOTE ═══ */
@@ -253,67 +232,31 @@
     padding: 32px 24px;
     border-radius: var(--radius);
     margin-bottom: 14px;
-    position: relative;
-    overflow: hidden;
+    background: #fff;
+    border: 1px solid var(--border);
     text-align: center;
-    border: 1px solid;
-}
-.note-hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: .5;
-    pointer-events: none;
-}
-
-.note-hero--positif {
-    background: linear-gradient(135deg, #F0FBF4 0%, #fff 70%);
-    border-color: #C8E6C9;
-}
-.note-hero--positif::before {
-    background: radial-gradient(circle at top, rgba(30, 122, 71, .06), transparent 60%);
-}
-.note-hero--neutre {
-    background: linear-gradient(135deg, #FFF9F0 0%, #fff 70%);
-    border-color: #FFE0B2;
-}
-.note-hero--neutre::before {
-    background: radial-gradient(circle at top, rgba(230, 81, 0, .06), transparent 60%);
-}
-.note-hero--negatif {
-    background: linear-gradient(135deg, #FFF5F5 0%, #fff 70%);
-    border-color: #FFCDD2;
-}
-.note-hero--negatif::before {
-    background: radial-gradient(circle at top, rgba(198, 40, 40, .06), transparent 60%);
 }
 
 .note-hero__stars {
     display: inline-flex;
     gap: 6px;
-    font-size: 32px;
-    position: relative;
+    font-size: 30px;
 }
 .note-hero__stars .fa-star {
     color: #D4D8E0;
-    transition: transform .3s ease;
 }
 .note-hero__stars .fa-star.is-on {
     color: var(--c-gold);
-    filter: drop-shadow(0 4px 8px rgba(245, 166, 35, .35));
 }
 
 .note-hero__value {
     font-family: var(--display);
-    font-size: 52px;
+    font-size: 48px;
     font-weight: 800;
     line-height: 1;
     letter-spacing: -.03em;
-    position: relative;
+    color: var(--text);
 }
-.note-hero--positif .note-hero__value { color: var(--c-success); }
-.note-hero--neutre  .note-hero__value { color: var(--c-warning); }
-.note-hero--negatif .note-hero__value { color: var(--c-danger); }
 .note-hero__value small {
     font-size: 20px;
     font-weight: 600;
@@ -323,28 +266,16 @@
 
 .note-hero__label {
     font-family: var(--display);
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 700;
-    position: relative;
+    color: var(--text);
 }
-.note-hero--positif .note-hero__label { color: var(--c-success); }
-.note-hero--neutre  .note-hero__label { color: var(--c-warning); }
-.note-hero--negatif .note-hero__label { color: var(--c-danger); }
 
 .note-hero__date {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
     font-size: 12.5px;
     color: var(--muted);
     margin-top: 6px;
-    padding: 4px 12px;
-    background: rgba(255, 255, 255, .7);
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    position: relative;
 }
-.note-hero__date i { font-size: 11px; opacity: .8; }
 
 /* ═══ PANELS ═══ */
 .panel {
@@ -367,8 +298,9 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--rust), #d4754a);
-    color: #fff;
+    background: #F5F5F7;
+    color: var(--text);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -376,7 +308,6 @@
     font-size: 22px;
     font-weight: 700;
     flex-shrink: 0;
-    box-shadow: 0 6px 16px rgba(180, 83, 42, .2);
 }
 .agency-block__info { flex: 1; min-width: 180px; }
 .agency-block__name {
@@ -389,20 +320,19 @@
 .agency-block__rating {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     font-size: 13px;
     margin-bottom: 6px;
     flex-wrap: wrap;
 }
-.rating-stars { display: inline-flex; align-items: center; gap: 4px; }
-.rating-stars i { color: var(--c-gold); font-size: 13px; }
-.rating-stars strong {
+.agency-block__rating i { color: var(--c-gold); font-size: 13px; }
+.agency-block__rating strong {
     font-family: var(--display);
     font-size: 14px;
-    font-weight: 800;
+    font-weight: 700;
     color: var(--text);
 }
-.rating-max { color: var(--muted); font-size: 12px; font-weight: 500; }
+.rating-max { color: var(--muted); font-size: 12px; }
 .rating-reviews { color: var(--muted); font-size: 12px; }
 
 .agency-block__meta {
@@ -412,42 +342,21 @@
     font-size: 12.5px;
     color: var(--muted);
 }
-.agency-block__meta i {
-    color: var(--rust);
-    font-size: 11px;
-    margin-right: 5px;
-}
 
 /* ═══ COMMENTAIRE ═══ */
 .comment-block {
-    position: relative;
-    padding: 16px 20px 16px 26px;
+    padding: 16px 20px;
     border-radius: 12px;
     font-size: 14.5px;
     line-height: 1.75;
     color: var(--text);
     font-style: italic;
     margin: 0 0 14px;
-    border-left: 4px solid var(--muted);
-    background: var(--surface);
-}
-.comment-block--positif {
-    background: linear-gradient(135deg, rgba(30, 122, 71, .06), rgba(30, 122, 71, .02));
-    border-left-color: var(--c-success);
-}
-.comment-block--neutre {
-    background: linear-gradient(135deg, rgba(230, 81, 0, .06), rgba(230, 81, 0, .02));
-    border-left-color: var(--c-warning);
-}
-.comment-block--negatif {
-    background: linear-gradient(135deg, rgba(198, 40, 40, .06), rgba(198, 40, 40, .02));
-    border-left-color: var(--c-danger);
+    border-left: 3px solid var(--rust);
+    background: #F9FAFB;
 }
 
 .comment-empty {
-    display: flex;
-    align-items: center;
-    gap: 10px;
     padding: 16px 20px;
     background: #fff;
     border-radius: 12px;
@@ -457,7 +366,6 @@
     font-style: italic;
     margin-bottom: 14px;
 }
-.comment-empty i { font-size: 18px; opacity: .5; }
 
 /* ═══ LISTE iOS ═══ */
 .ios-list {
@@ -478,8 +386,6 @@
     border-bottom: 1px solid var(--border);
     font-size: 13.5px;
 }
-.ios-list__item--static { cursor: default; }
-.ios-list__content { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ios-list__title {
     font-size: 12.5px;
     color: var(--muted);
@@ -487,7 +393,7 @@
 }
 .ios-list__value {
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--text);
     text-align: right;
     flex-shrink: 0;
@@ -496,9 +402,10 @@
 
 /* ═══ RÉPONSE AGENCE ═══ */
 .reponse-card {
-    background: linear-gradient(135deg, #F0F7FF 0%, #fff 60%);
-    border: 1px solid #BBDEFB;
-    border-radius: 14px;
+    background: #F9FAFB;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--c-info);
+    border-radius: 12px;
     padding: 16px 18px;
     margin-bottom: 14px;
 }
@@ -512,8 +419,9 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--c-info), #1565C0);
-    color: #fff;
+    background: #F5F5F7;
+    color: var(--text);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -524,8 +432,8 @@
 }
 .reponse-card__head strong {
     font-size: 13.5px;
-    font-weight: 700;
-    color: var(--c-info);
+    font-weight: 600;
+    color: var(--text);
 }
 .reponse-card__text {
     font-size: 14px;
@@ -537,32 +445,16 @@
 
 /* Réponse vide */
 .reponse-empty {
-    display: flex;
-    align-items: center;
-    gap: 14px;
     padding: 16px 18px;
     background: #fff;
-    border-radius: 14px;
+    border-radius: 12px;
     border: 1px dashed var(--border);
     margin-bottom: 14px;
-}
-.reponse-empty__icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: var(--surface);
-    color: var(--muted);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    flex-shrink: 0;
-    opacity: .6;
 }
 .reponse-empty__body strong {
     display: block;
     font-size: 13.5px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--text-soft);
     margin-bottom: 2px;
 }
@@ -600,13 +492,15 @@
     border: 1px solid transparent;
     cursor: pointer;
     font-family: inherit;
-    transition: all .2s ease;
+    transition: background-color .15s, border-color .15s, color .15s;
     white-space: nowrap;
 }
 .btn-rust { background: var(--rust); color: #fff; border-color: var(--rust); }
-.btn-rust:hover { background: #9A4523; color: #fff; border-color: #9A4523; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(180, 83, 42, .25); }
+.btn-rust:hover { background: #9A4523; border-color: #9A4523; color: #fff; }
+
 .btn-ghost { background: transparent; color: var(--text-soft); border-color: var(--border); }
-.btn-ghost:hover { background: var(--surface); border-color: var(--rust); color: var(--rust); }
+.btn-ghost:hover { background: #F5F5F7; color: var(--text); }
+
 .btn-block { width: 100%; justify-content: center; }
 .btn-sm { padding: 6px 13px; font-size: 12px; }
 
@@ -618,7 +512,7 @@
 
     .avis-show { background: transparent; padding-top: 4px; }
 
-    /* ─── HERO NOTE iOS ─── */
+    /* HERO NOTE iOS */
     .note-hero {
         background: var(--ios-card);
         border: none;
@@ -627,61 +521,40 @@
         margin-bottom: 16px;
         gap: 10px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
-        position: relative;
-        overflow: hidden;
     }
-    /* Bande colorée en haut */
-    .note-hero::after {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 4px;
-        border-radius: var(--ios-radius-lg) var(--ios-radius-lg) 0 0;
-    }
-    .note-hero--positif::after { background: linear-gradient(90deg, var(--c-success), #4CAF50); }
-    .note-hero--neutre::after  { background: linear-gradient(90deg, var(--c-warning), #FF9800); }
-    .note-hero--negatif::after { background: linear-gradient(90deg, var(--c-danger), #E53935); }
-
-    .note-hero::before { display: none; }
-    .note-hero--positif,
-    .note-hero--neutre,
-    .note-hero--negatif { background: var(--ios-card); border: none; }
 
     .note-hero__stars {
-        font-size: 34px;
-        gap: 8px;
-        margin-bottom: 8px;
-    }
-    .note-hero__stars .fa-star.is-on {
-        filter: drop-shadow(0 6px 12px rgba(245, 166, 35, .4));
+        font-size: 32px;
+        gap: 6px;
+        margin-bottom: 6px;
     }
 
     .note-hero__value {
-        font-size: 56px;
+        font-size: 52px;
         letter-spacing: -.04em;
         margin-bottom: 2px;
     }
     .note-hero__value small {
-        font-size: 22px;
-        margin-left: 5px;
+        font-size: 20px;
+        margin-left: 4px;
     }
 
     .note-hero__label {
-        font-size: 18px;
+        font-size: 17px;
         font-weight: 700;
-        letter-spacing: -.2px;
+        color: var(--ios-label);
     }
 
     .note-hero__date {
-        font-size: 13px;
+        font-size: 12.5px;
         padding: 5px 14px;
-        margin-top: 10px;
+        margin-top: 8px;
         background: #EFEFF4;
-        border: none;
+        border-radius: 999px;
         color: var(--ios-label-3);
     }
 
-    /* ─── SECTION TITLES iOS ─── */
+    /* SECTION TITLES iOS */
     .ios-section-title {
         font-size: 17px;
         font-weight: 700;
@@ -689,13 +562,13 @@
         letter-spacing: -.3px;
         margin: 22px 4px 10px;
     }
-    .ios-section-title i { font-size: 15px; color: var(--rust); }
+    .ios-section-title i { font-size: 15px; color: var(--muted); }
     .ios-section-count {
         font-size: 11px;
         padding: 3px 10px;
     }
 
-    /* ─── PANELS iOS ─── */
+    /* PANELS iOS */
     .panel {
         background: var(--ios-card);
         border: none;
@@ -705,7 +578,7 @@
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
 
-    /* ─── AGENCE iOS ─── */
+    /* AGENCE iOS */
     .agency-block {
         flex-direction: column;
         align-items: flex-start;
@@ -714,14 +587,18 @@
         margin-bottom: 14px;
         border-bottom: 0.5px solid var(--ios-separator);
     }
-    .agency-block__avatar { width: 52px; height: 52px; font-size: 20px; }
+    .agency-block__avatar {
+        width: 52px;
+        height: 52px;
+        font-size: 20px;
+        background: #F5F5F7;
+    }
     .agency-block__info { width: 100%; }
     .agency-block__name { font-size: 18px; font-weight: 700; letter-spacing: -.2px; }
     .agency-block__rating { font-size: 13px; }
-    .rating-stars strong { font-size: 14px; }
     .agency-block__meta { font-size: 13px; gap: 6px 12px; }
 
-    /* ─── COMMENTAIRE iOS ─── */
+    /* COMMENTAIRE iOS */
     .comment-block {
         background: var(--ios-card);
         border: none;
@@ -734,9 +611,6 @@
         margin: 0 0 16px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
-    .comment-block--positif { border-left-color: var(--c-success); background: var(--ios-card); }
-    .comment-block--neutre  { border-left-color: var(--c-warning); background: var(--ios-card); }
-    .comment-block--negatif { border-left-color: var(--c-danger);  background: var(--ios-card); }
 
     .comment-empty {
         background: var(--ios-card);
@@ -749,7 +623,7 @@
         margin-bottom: 12px;
     }
 
-    /* ─── LISTE iOS ─── */
+    /* LISTE iOS */
     .ios-list {
         display: block;
         background: var(--ios-card);
@@ -770,17 +644,16 @@
         font-size: 15px;
         color: var(--ios-label);
         font-weight: 500;
-        letter-spacing: -.2px;
     }
     .ios-list__value {
         font-size: 15px;
-        font-weight: 600;
+        font-weight: 500;
         color: var(--ios-label-3);
         text-align: right;
     }
     .ios-list__value--rust { color: var(--rust); }
 
-    /* ─── RÉPONSE iOS ─── */
+    /* RÉPONSE iOS */
     .reponse-card {
         background: var(--ios-card);
         border: none;
@@ -798,8 +671,7 @@
         width: 34px;
         height: 34px;
         font-size: 14px;
-        background: linear-gradient(135deg, var(--c-info), #1565C0);
-        box-shadow: 0 3px 8px rgba(13, 71, 161, .2);
+        background: #F5F5F7;
     }
     .reponse-card__head strong { font-size: 14px; }
     .reponse-card__text {
@@ -816,15 +688,6 @@
         padding: 18px;
         margin-bottom: 12px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
-        gap: 14px;
-    }
-    .reponse-empty__icon {
-        width: 46px;
-        height: 46px;
-        background: #EFEFF4;
-        font-size: 20px;
-        opacity: 1;
-        color: var(--ios-label-3);
     }
     .reponse-empty__body strong {
         font-size: 14px;
@@ -835,7 +698,7 @@
         color: var(--ios-label-3);
     }
 
-    /* ─── ACTIONS iOS ─── */
+    /* ACTIONS iOS */
     .avis-actions {
         background: var(--ios-card);
         border: none;
@@ -850,24 +713,19 @@
         border-radius: 12px;
         font-weight: 600;
     }
-    .btn-rust {
-        background: linear-gradient(135deg, var(--rust), #d4754a);
-        border: none;
-        box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
-    }
     .btn-ghost {
-        background: #EFEFF4;
+        background: #F5F5F7;
         border: none;
         color: var(--ios-blue);
     }
-    .btn-ghost:active { background: #E0E0E5; }
+    .btn-ghost:active { background: #EFEFF4; }
 }
 
 @media (max-width: 480px) {
     .note-hero { padding: 28px 16px; }
-    .note-hero__stars { font-size: 30px; gap: 6px; }
-    .note-hero__value { font-size: 48px; }
-    .note-hero__value small { font-size: 20px; }
+    .note-hero__stars { font-size: 28px; gap: 5px; }
+    .note-hero__value { font-size: 44px; }
+    .note-hero__value small { font-size: 18px; }
     .note-hero__label { font-size: 16px; }
 
     .agency-block__avatar { width: 48px; height: 48px; font-size: 18px; }
@@ -878,6 +736,14 @@
     .reponse-card__text { padding-left: 0; margin-top: 4px; }
 
     .ios-section-title { font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 </style>
 @endpush

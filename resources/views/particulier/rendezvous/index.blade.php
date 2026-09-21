@@ -8,106 +8,61 @@
 <div class="view active rdv-page">
 
     @php
-        $current = request('statut', '');
+        $total        = $stats['total']         ?? 0;
+        $nbPlanifie   = $stats['planifie']      ?? 0;
+        $nbConfirme   = $stats['confirme']      ?? 0;
+        $nbTermine    = $stats['termine']       ?? 0;
+        $nbClientAbs  = $stats['client_absent'] ?? 0;
 
-        // Compteurs
-        $total = $rendezVous->total();
-        $counts = [
-            ''         => $total,
-            'planifie' => $rendezVous->where('statut.value', 'planifie')->count(),
-            'confirme' => $rendezVous->where('statut.value', 'confirme')->count(),
-            'termine'  => $rendezVous->where('statut.value', 'termine')->count(),
-            'annule'   => $rendezVous->where('statut.value', 'annule')->count(),
+        $statutIcons = [
+            'planifie'      => 'fa-clock',
+            'confirme'      => 'fa-check-circle',
+            'termine'       => 'fa-flag-checkered',
+            'client_absent' => 'fa-user-slash',
         ];
-
-        $tabs = [
-            ''         => ['label' => 'Tous',      'icon' => 'fa-list'],
-            'planifie' => ['label' => 'En attente','icon' => 'fa-clock'],
-            'confirme' => ['label' => 'Confirmés', 'icon' => 'fa-check-circle'],
-            'termine'  => ['label' => 'Terminés',  'icon' => 'fa-flag-checkered'],
-            'annule'   => ['label' => 'Annulés',   'icon' => 'fa-ban'],
-        ];
-
-        // Prochain RDV (pour le highlight dans les stats)
-        $prochainRdv = $rendezVous
-            ->filter(fn($r) => in_array($r->statut->value, ['planifie', 'confirme']))
-            ->sortBy('date_visite')
-            ->first();
     @endphp
 
-    {{-- ═══ HEADER DESKTOP ═══ --}}
-    <div class="page-header">
-        <div class="page-header__left">
-            <h2>Mes rendez-vous</h2>
-            <p>Vos visites planifiées avec les agences</p>
-        </div>
-    </div>
-
-    {{-- ═══ STATS INLINE (mobile) ═══ --}}
+    {{-- ═══ STATS ═══ --}}
     <div class="rdv-stats">
         <div class="rdv-stat">
-            <span class="rdv-stat__value">{{ $counts[''] }}</span>
+            <span class="rdv-stat__value">{{ $total }}</span>
             <span class="rdv-stat__label">Total</span>
         </div>
-        <div class="rdv-stat {{ $counts['planifie'] > 0 ? 'is-highlight' : '' }}">
-            <span class="rdv-stat__value">{{ $counts['planifie'] }}</span>
+        <div class="rdv-stat">
+            <span class="rdv-stat__value">{{ $nbPlanifie }}</span>
             <span class="rdv-stat__label">En attente</span>
         </div>
         <div class="rdv-stat">
-            <span class="rdv-stat__value">{{ $counts['confirme'] }}</span>
+            <span class="rdv-stat__value">{{ $nbConfirme }}</span>
             <span class="rdv-stat__label">Confirmés</span>
         </div>
         <div class="rdv-stat">
-            <span class="rdv-stat__value">{{ $counts['termine'] }}</span>
+            <span class="rdv-stat__value">{{ $nbTermine }}</span>
             <span class="rdv-stat__label">Terminés</span>
         </div>
     </div>
 
-    {{-- ═══ FILTRES PILLS ═══ --}}
-    @if($total > 0)
-        <nav class="filter-tabs" aria-label="Filtrer par statut">
-            @foreach($tabs as $key => $meta)
-                <a href="{{ route('particulier.rendezvous.index', $key ? ['statut' => $key] : []) }}"
-                   class="filter-tab {{ $current === $key ? 'is-active' : '' }}">
-                    <i class="fa-solid {{ $meta['icon'] }}"></i>
-                    <span>{{ $meta['label'] }}</span>
-                    <span class="filter-tab__count">{{ $counts[$key] }}</span>
-                </a>
-            @endforeach
-        </nav>
-    @endif
-
-    {{-- ═══ FLASH MESSAGES ═══ --}}
-    @if(session('error'))
-        <div class="flash flash--error">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            <span>{{ session('error') }}</span>
-        </div>
-    @endif
-    @if(session('info'))
-        <div class="flash flash--info">
-            <i class="fa-solid fa-info-circle"></i>
-            <span>{{ session('info') }}</span>
-        </div>
-    @endif
-    @if(session('success'))
-        <div class="flash flash--success">
-            <i class="fa-solid fa-check-circle"></i>
-            <span>{{ session('success') }}</span>
-        </div>
-    @endif
-
     @if($rendezVous->count() > 0)
 
-        {{-- ═══ LISTE DES RENDEZ-VOUS ═══ --}}
         <div class="rdv-list">
             @foreach($rendezVous as $rdv)
+
                 @php
-                    $statutValue = $rdv->statut->value;
+                    $statutValue = is_object($rdv->statut)
+                        ? $rdv->statut->value
+                        : (string) $rdv->statut;
+                    $statutLabel = is_object($rdv->statut)
+                        ? $rdv->statut->label()
+                        : ucfirst($statutValue);
+
                     $bien        = $rdv->proposition->bien ?? null;
                     $agence      = $rdv->agence ?? null;
-                    $telVisible  = in_array($statutValue, ['confirme', 'termine']);
-                    $hasTel      = $agence && $agence->user && !empty($agence->user->telephone);
+                    $agenceUser  = $agence->user ?? null;
+
+                    // ✅ Téléphone visible dès que l'agence a confirmé le RDV (à un moment ou un autre)
+                    $telVisible = in_array($statutValue, ['confirme', 'termine', 'client_absent']);
+                    $hasTel     = $agenceUser && !empty($agenceUser->telephone);
+                    $showTel    = $telVisible && $hasTel;
 
                     $dejaEvalue = false;
                     if ($statutValue === 'termine') {
@@ -116,191 +71,248 @@
                             ->exists();
                     }
 
-                    // Marquer "aujourd'hui" / "demain"
-                    $dateRdv = \Carbon\Carbon::parse($rdv->date_visite);
-                    $isToday = $dateRdv->isToday();
+                    $dateRdv    = \Carbon\Carbon::parse($rdv->date_visite);
+                    $isToday    = $dateRdv->isToday();
                     $isTomorrow = $dateRdv->isTomorrow();
+
+                    $dateHeureVisite = \Carbon\Carbon::parse($rdv->date_visite)
+                        ->setTimeFromTimeString($rdv->heure_visite ?? '00:00:00');
+
+                    // ✅ Code visible uniquement quand confirmé et non encore validé (24h avant)
+                    $codeVisible = $statutValue === 'confirme'
+                        && !$rdv->code_valide
+                        && now()->greaterThanOrEqualTo($dateHeureVisite->copy()->subHours(24));
+
+                    $propositionStatut = $rdv->proposition
+                        ? (is_object($rdv->proposition->statut)
+                            ? $rdv->proposition->statut->value
+                            : (string) $rdv->proposition->statut)
+                        : null;
+
+                    $aRdvActif = $rdv->proposition
+                        ? $rdv->proposition->rendezVous()
+                            ->whereIn('statut', [
+                                \App\Enums\StatutRendezVousEnum::PLANIFIE->value,
+                                \App\Enums\StatutRendezVousEnum::CONFIRME->value,
+                            ])
+                            ->exists()
+                        : false;
+
+                    $peutReplanifier = $statutValue === 'client_absent'
+                        && $propositionStatut
+                        && in_array($propositionStatut, ['acceptee', 'en_attente'])
+                        && !$aRdvActif;
                 @endphp
 
-                <article class="rdv-card rdv-card--{{ $statutValue }} {{ $isToday ? 'is-today' : '' }}">
+                <article class="rdv-card rdv-card--{{ $statutValue }}">
 
-                    {{-- ═══ Date block ═══ --}}
-                    <div class="rdv-card__date">
-                        <span class="rdv-card__day">{{ $dateRdv->format('d') }}</span>
-                        <span class="rdv-card__month">{{ strtoupper($dateRdv->translatedFormat('M')) }}</span>
-                        @if($isToday)
-                            <span class="rdv-card__badge rdv-card__badge--today">Auj.</span>
-                        @elseif($isTomorrow)
-                            <span class="rdv-card__badge rdv-card__badge--soon">Demain</span>
-                        @endif
-                    </div>
+                    {{-- En-tête --}}
+                    <header class="rdv-card__header">
+                        <div class="rdv-date-pill">
+                            <span class="rdv-date-pill__day">{{ $dateRdv->format('d') }}</span>
+                            <span class="rdv-date-pill__month">{{ strtoupper($dateRdv->translatedFormat('M')) }}</span>
+                        </div>
+                        <div class="rdv-card__heading">
+                            <h3 class="rdv-card__title">{{ $bien->titre ?? 'Visite' }}</h3>
+                        </div>
+                    </header>
 
-                    {{-- ═══ Corps ═══ --}}
-                    <div class="rdv-card__body">
+                    {{-- Meta --}}
+                    <div class="rdv-card__meta">
+                        <span class="rdv-meta-item">
+                            <i class="fa-regular fa-clock"></i>
+                            {{ \Carbon\Carbon::parse($rdv->heure_visite)->format('H:i') }}
+                            @if($isToday)
+                                · Aujourd'hui
+                            @elseif($isTomorrow)
+                                · Demain
+                            @endif
+                        </span>
 
-                        {{-- En-tête --}}
-                        <header class="rdv-card__head">
-                            <h3 class="rdv-card__title">
-                                {{ $bien->titre ?? 'Visite' }}
-                            </h3>
-                            <span class="rdv-status rdv-status--{{ $statutValue }}">
-                                <i class="fa-solid fa-circle"></i>
-                                {{ $rdv->statut->label() }}
+                        @if($bien && $bien->quartier)
+                            <span class="rdv-meta-sep">·</span>
+                            <span class="rdv-meta-item">
+                                <i class="fa-solid fa-location-dot"></i>
+                                {{ $bien->quartier }}
                             </span>
-                        </header>
+                        @endif
 
-                        {{-- Heure + Quartier --}}
-                        <div class="rdv-card__meta">
-                            @if($isToday || $isTomorrow)
-                                <span class="rdv-meta-item rdv-meta-item--accent">
-                                    <i class="fa-regular fa-clock"></i>
-                                    {{ \Carbon\Carbon::parse($rdv->heure_visite)->format('H:i') }}
-                                    @if($isToday) · Aujourd'hui
-                                    @else · Demain
-                                    @endif
-                                </span>
-                            @else
-                                <span class="rdv-meta-item">
-                                    <i class="fa-regular fa-clock"></i>
-                                    {{ \Carbon\Carbon::parse($rdv->heure_visite)->format('H:i') }}
-                                </span>
-                            @endif
-
-                            @if($bien && $bien->quartier)
-                                <span class="rdv-meta-item">
-                                    <i class="fa-solid fa-location-dot"></i>
-                                    {{ $bien->quartier }}
-                                </span>
-                            @endif
-                        </div>
-
-                        {{-- Agence --}}
-                        <div class="rdv-card__agency">
-                            <div class="rdv-agency-avatar">
-                                {{ strtoupper(mb_substr($agence->nom_agence ?? 'A', 0, 1)) }}
-                            </div>
-                            <div class="rdv-agency-info">
-                                <strong>{{ $agence->nom_agence ?? 'Agence' }}</strong>
-
-                                @if($telVisible)
-                                    @if($hasTel)
-                                        <a href="tel:{{ $agence->user->telephone }}" class="rdv-agency-phone">
-                                            <i class="fa-solid fa-phone"></i>
-                                            {{ $agence->user->telephone }}
-                                            <i class="fa-solid fa-circle-check rdv-agency-check"></i>
-                                        </a>
-                                    @else
-                                        <span class="rdv-agency-muted">Téléphone non renseigné</span>
-                                    @endif
-                                @else
-                                    <span class="rdv-agency-locked">
-                                        <i class="fa-solid fa-lock"></i>
-                                        En attente de confirmation
-                                    </span>
-                                @endif
-                            </div>
-                        </div>
-
-                        {{-- ═══ Actions iOS (empilées) ═══ --}}
-                        <footer class="rdv-card__actions">
-
-                            @if($statutValue === 'planifie')
-                                <span class="rdv-state-pill rdv-state-pill--warning">
-                                    <i class="fa-solid fa-clock"></i>
-                                    En attente de confirmation
-                                </span>
-                                <a href="{{ route('particulier.rendezvous.show', $rdv) }}" class="btn btn-ghost">
-                                    <i class="fa-solid fa-eye"></i> Détails
-                                </a>
-                                <form action="{{ route('particulier.rendezvous.annuler', $rdv) }}" method="POST" class="rdv-action-form">
-                                    @csrf
-                                    <button type="submit" class="btn btn-danger-soft"
-                                            onclick="return confirm('Annuler ce rendez-vous ?')">
-                                        <i class="fa-solid fa-xmark"></i> Annuler
-                                    </button>
-                                </form>
-
-                            @elseif($statutValue === 'confirme')
-                                @if($hasTel)
-                                    <a href="tel:{{ $agence->user->telephone }}" class="btn btn-success">
-                                        <i class="fa-solid fa-phone"></i> Appeler l'agence
-                                    </a>
-                                @endif
-                                <a href="{{ route('particulier.rendezvous.show', $rdv) }}" class="btn btn-ghost">
-                                    <i class="fa-solid fa-eye"></i> Détails
-                                </a>
-                                <form action="{{ route('particulier.rendezvous.annuler', $rdv) }}" method="POST" class="rdv-action-form">
-                                    @csrf
-                                    <button type="submit" class="btn btn-danger-soft"
-                                            onclick="return confirm('Annuler ce rendez-vous ?')">
-                                        <i class="fa-solid fa-xmark"></i> Annuler
-                                    </button>
-                                </form>
-
-                            @elseif($statutValue === 'termine')
-                                @if(!$dejaEvalue)
-                                    <a href="{{ route('particulier.evaluations.create', $rdv->proposition) }}" class="btn btn-rust">
-                                        <i class="fa-solid fa-star"></i> Évaluer l'agence
-                                    </a>
-                                @else
-                                    <span class="rdv-state-pill rdv-state-pill--success">
-                                        <i class="fa-solid fa-circle-check"></i>
-                                        Déjà évalué
-                                    </span>
-                                @endif
-                                @if($hasTel)
-                                    <a href="tel:{{ $agence->user->telephone }}" class="btn btn-success">
-                                        <i class="fa-solid fa-phone"></i> Appeler
-                                    </a>
-                                @endif
-                                <a href="{{ route('particulier.rendezvous.show', $rdv) }}" class="btn btn-ghost">
-                                    <i class="fa-solid fa-eye"></i> Détails
-                                </a>
-
-                            @elseif($statutValue === 'annule')
-                                <span class="rdv-state-pill rdv-state-pill--danger">
-                                    <i class="fa-solid fa-ban"></i>
-                                    Rendez-vous annulé
-                                </span>
-                                <a href="{{ route('particulier.rendezvous.show', $rdv) }}" class="btn btn-ghost">
-                                    <i class="fa-solid fa-eye"></i> Détails
-                                </a>
-                            @endif
-
-                        </footer>
+                        <span class="rdv-meta-sep">·</span>
+                        <span class="rdv-status rdv-status--{{ $statutValue }}">
+                            {{ $statutLabel }}
+                        </span>
                     </div>
+
+                    {{-- Encart code visite --}}
+                    @if($codeVisible)
+                        <div class="rdv-code">
+                            <div class="rdv-code__icon">
+                                <i class="fa-solid fa-shield-halved"></i>
+                            </div>
+                            <div class="rdv-code__body">
+                                <span class="rdv-code__label">Code de visite</span>
+                                <div class="rdv-code__digits">
+                                    @foreach(str_split($rdv->code_visite ?? '------') as $digit)
+                                        <span class="rdv-code__digit">{{ $digit }}</span>
+                                    @endforeach
+                                </div>
+                                <span class="rdv-code__hint">
+                                    Présentez ce code à l'agence pour valider la visite
+                                </span>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Alerte CLIENT_ABSENT --}}
+                    @if($statutValue === 'client_absent')
+                        <div class="rdv-alert">
+                            <i class="fa-solid fa-user-slash"></i>
+                            <div>
+                                <strong>Vous n'êtes pas venu à cette visite</strong>
+                                <p>L'agence a signalé votre absence. Si vous êtes toujours intéressé, choisissez un nouveau créneau.</p>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Agence + téléphone --}}
+                    <div class="rdv-card__agency">
+                        <div class="rdv-agency-avatar">
+                            {{ strtoupper(mb_substr($agence->nom_agence ?? 'A', 0, 1)) }}
+                        </div>
+                        <div class="rdv-agency-info">
+                            <strong>{{ $agence->nom_agence ?? 'Agence' }}</strong>
+
+                            @if($showTel)
+                                <a href="tel:{{ $agenceUser->telephone }}" class="rdv-agency-phone">
+                                    <i class="fa-solid fa-phone"></i>
+                                    {{ $agenceUser->telephone }}
+                                </a>
+                            @elseif($telVisible && !$hasTel)
+                                <span class="rdv-agency-muted">Téléphone non renseigné</span>
+                            @else
+                                <span class="rdv-agency-locked">
+                                    <i class="fa-solid fa-lock"></i>
+                                    Contact visible après confirmation
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Actions --}}
+                    <footer class="rdv-card__actions">
+
+                        @if($statutValue === 'planifie')
+                            <span class="rdv-state-pill rdv-state-pill--warning">
+                                En attente de confirmation
+                            </span>
+                            <div class="rdv-secondary-actions">
+                                <a href="{{ route('particulier.rendezvous.show', $rdv) }}" class="rdv-link">
+                                    Détails
+                                </a>
+                                <span class="rdv-link-sep">·</span>
+                                <form action="{{ route('particulier.rendezvous.annuler', $rdv) }}" method="POST" class="rdv-inline-form">
+                                    @csrf
+                                    <button type="submit" class="rdv-link rdv-link--danger"
+                                            onclick="return confirm('Annuler ce rendez-vous ?')">
+                                        Annuler
+                                    </button>
+                                </form>
+                            </div>
+
+                        @elseif($statutValue === 'confirme')
+                            @if($showTel)
+                                <a href="tel:{{ $agenceUser->telephone }}" class="rdv-btn rdv-btn--primary">
+                                    <i class="fa-solid fa-phone"></i>
+                                    Appeler l'agence
+                                </a>
+                            @endif
+
+                            <div class="rdv-secondary-actions">
+                                <a href="{{ route('particulier.rendezvous.show', $rdv) }}" class="rdv-link">
+                                    Détails
+                                </a>
+                                <span class="rdv-link-sep">·</span>
+                                <form action="{{ route('particulier.rendezvous.annuler', $rdv) }}" method="POST" class="rdv-inline-form">
+                                    @csrf
+                                    <button type="submit" class="rdv-link rdv-link--danger"
+                                            onclick="return confirm('Annuler ce rendez-vous ?')">
+                                        Annuler
+                                    </button>
+                                </form>
+                            </div>
+
+                        @elseif($statutValue === 'termine')
+                            @if(!$dejaEvalue)
+                                <a href="{{ route('particulier.evaluations.create', $rdv->proposition) }}" class="rdv-btn rdv-btn--primary">
+                                    <i class="fa-solid fa-star"></i>
+                                    Évaluer l'agence
+                                </a>
+                            @else
+                                <span class="rdv-state-pill rdv-state-pill--success">
+                                    Déjà évalué
+                                </span>
+                            @endif
+
+                            @if($showTel)
+                                <a href="tel:{{ $agenceUser->telephone }}" class="rdv-btn rdv-btn--primary">
+                                    <i class="fa-solid fa-phone"></i>
+                                    Rappeler l'agence
+                                </a>
+                            @endif
+
+                            <div class="rdv-secondary-actions">
+                                <a href="{{ route('particulier.rendezvous.show', $rdv) }}" class="rdv-link">
+                                    Voir les détails
+                                </a>
+                            </div>
+
+                        @elseif($statutValue === 'client_absent')
+                            <span class="rdv-state-pill rdv-state-pill--warning">
+                                Visite non honorée
+                            </span>
+
+                            @if($showTel)
+                                <a href="tel:{{ $agenceUser->telephone }}" class="rdv-btn rdv-btn--primary">
+                                    <i class="fa-solid fa-phone"></i>
+                                    Appeler l'agence
+                                </a>
+                            @endif
+
+                            @if($peutReplanifier)
+                                <a href="{{ route('particulier.rendezvous.create', $rdv->proposition_id) }}"
+                                   class="rdv-btn rdv-btn--primary">
+                                    <i class="fa-solid fa-calendar-plus"></i>
+                                    Choisir un nouveau créneau
+                                </a>
+                            @endif
+
+                            <div class="rdv-secondary-actions">
+                                <a href="{{ route('particulier.rendezvous.show', $rdv) }}" class="rdv-link">
+                                    Voir les détails
+                                </a>
+                            </div>
+                        @endif
+
+                    </footer>
                 </article>
             @endforeach
         </div>
 
-        {{-- ═══ Pagination ═══ --}}
         <div class="pagination-wrapper">
             {{ $rendezVous->appends(request()->query())->links() }}
         </div>
 
     @else
-
-        {{-- ═══ EMPTY STATE ═══ --}}
         <div class="empty-state">
             <div class="empty-state__icon">
                 <i class="fa-regular fa-calendar-days"></i>
             </div>
-
-            @if(request('statut'))
-                <h3>Aucun rendez-vous dans ce filtre</h3>
-                <p>Essayez un autre filtre ou revenez à la vue complète.</p>
-                <a href="{{ route('particulier.rendezvous.index') }}" class="btn btn-ghost">
-                    <i class="fa-solid fa-rotate"></i> Voir tous les RDV
-                </a>
-            @else
-                <h3>Aucun rendez-vous planifié</h3>
-                <p>Les rendez-vous apparaîtront ici après avoir accepté une proposition d'agence.</p>
-                <a href="{{ route('particulier.demandes.create') }}" class="btn btn-rust">
-                    <i class="fa-solid fa-plus"></i> Publier un besoin
-                </a>
-            @endif
+            <h3>Aucun rendez-vous planifié</h3>
+            <p>Les rendez-vous apparaîtront ici après avoir accepté une proposition d'agence.</p>
+            <a href="{{ route('particulier.demandes.create') }}" class="rdv-btn rdv-btn--primary">
+                <i class="fa-solid fa-plus"></i> Publier un besoin
+            </a>
         </div>
-
     @endif
 </div>
 @endsection
@@ -309,411 +321,420 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   MES RENDEZ-VOUS — iOS NATIVE
+   MES RENDEZ-VOUS — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .rdv-page {
     --c-warning:    #E65100;
     --c-warning-bg: #FFF8E1;
     --c-success:    #1E7A47;
-    --c-success-bg: #E8F5E9;
+    --c-success-bg: #F1F8F4;
     --c-danger:     #C62828;
-    --c-danger-bg:  #FFEBEE;
-    --c-info:       #0D47A1;
-    --c-info-bg:    #E3F2FD;
+    --c-danger-bg:  #FEF2F2;
+    --c-info:       #1E40AF;
+    --c-info-bg:    #EFF6FF;
     --surface:      #F7F9FC;
-    --radius:       12px;
+    --radius:       16px;
 
-    --ios-bg: #F2F2F7;
     --ios-card: #FFFFFF;
-    --ios-blue: #007AFF;
-    --ios-label: #000000;
-    --ios-label-2: #3C3C43;
-    --ios-label-3: #8E8E93;
     --ios-separator: rgba(60, 60, 67, 0.12);
     --ios-radius-lg: 18px;
 }
 
-/* ═══ HEADER DESKTOP ═══ */
-.page-header {
+/* ═══ STATS ═══ */
+.rdv-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.rdv-stat {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 14px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-}
-.page-header__left h2 {
-    font-family: var(--display);
-    font-size: 21px;
-    font-weight: 700;
-    margin: 0;
-    color: var(--text);
-    line-height: 1.2;
-}
-.page-header__left p {
-    font-size: 13px;
-    color: var(--muted);
-    margin: 3px 0 0;
-}
-
-/* ═══ STATS INLINE (mobile) ═══ */
-.rdv-stats { display: none; }
-
-/* ═══ FILTRES ═══ */
-.filter-tabs {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    scrollbar-width: thin;
-}
-.filter-tabs::-webkit-scrollbar { height: 4px; }
-.filter-tabs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
-
-.filter-tab {
-    display: inline-flex;
+    flex-direction: column;
     align-items: center;
-    gap: 7px;
-    padding: 9px 15px;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-soft);
+    justify-content: center;
+    gap: 4px;
+    padding: 16px 12px;
     background: #fff;
-    border: 1.5px solid var(--border);
-    text-decoration: none;
-    transition: all .2s ease;
-    white-space: nowrap;
-    flex-shrink: 0;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    position: relative;
 }
-.filter-tab:hover { border-color: var(--rust); transform: translateY(-1px); }
-.filter-tab i { font-size: 12px; opacity: .85; }
-.filter-tab.is-active {
-    background: var(--rust);
-    color: #fff;
-    border-color: var(--rust);
-    box-shadow: 0 4px 12px rgba(180, 83, 42, .22);
+.rdv-stat__value {
+    font-family: var(--display);
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -.5px;
+    line-height: 1;
 }
-.filter-tab.is-active i { color: #fff; opacity: 1; }
-
-.filter-tab__count {
-    background: rgba(0, 0, 0, .07);
-    padding: 1px 8px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-    min-width: 22px;
-    text-align: center;
-}
-.filter-tab.is-active .filter-tab__count {
-    background: rgba(255, 255, 255, .25);
-    color: #fff;
-}
-
-/* ═══ FLASH ═══ */
-.flash {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 11px 16px;
-    border-radius: 10px;
-    margin-bottom: 14px;
-    font-size: 13px;
+.rdv-stat__label {
+    font-size: 11.5px;
     font-weight: 500;
-    border: 1px solid;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .3px;
 }
-.flash--success { background: var(--c-success-bg); border-color: #C8E6C9; color: var(--c-success); }
-.flash--error   { background: var(--c-danger-bg);  border-color: #FFCDD2; color: var(--c-danger); }
-.flash--info    { background: var(--c-info-bg);    border-color: #BBDEFB; color: var(--c-info); }
 
 /* ═══ LISTE ═══ */
 .rdv-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 14px;
 }
 
-/* ═══ CARTE ═══ */
+/* ═══ CARTE RDV ═══ */
 .rdv-card {
-    display: grid;
-    grid-template-columns: 76px 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 14px;
-    padding: 12px 16px;
+    padding: 18px 20px;
     background: #fff;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    transition: transform .2s ease, box-shadow .2s ease, border-color .2s;
     position: relative;
+    transition: border-color .2s;
 }
-.rdv-card:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, .05);
-    border-color: #d8d8d8;
-}
+.rdv-card:hover { border-color: #d8d8d8; }
 
-/* Bande colorée statut */
-.rdv-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 16px;
-    right: 16px;
-    height: 2.5px;
-    border-radius: 0 0 4px 4px;
-    background: var(--muted);
+/* Header */
+.rdv-card__header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
 }
-.rdv-card--planifie::before { background: var(--c-warning); }
-.rdv-card--confirme::before { background: var(--c-info); }
-.rdv-card--termine::before  { background: var(--c-success); }
-.rdv-card--annule::before   { background: var(--c-danger); }
-
-/* ═══ Date ═══ */
-.rdv-card__date {
+.rdv-date-pill {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1px;
-    padding: 8px 6px;
-    border-radius: 10px;
+    width: 62px;
+    height: 62px;
+    border-radius: 14px;
     flex-shrink: 0;
-    border: 1px solid transparent;
-    position: relative;
+    background: #F5F5F7;
 }
-.rdv-card--planifie .rdv-card__date { background: var(--c-warning-bg); border-color: rgba(230, 81, 0, .1); }
-.rdv-card--confirme .rdv-card__date { background: var(--c-info-bg);    border-color: rgba(13, 71, 161, .1); }
-.rdv-card--termine  .rdv-card__date { background: var(--c-success-bg); border-color: rgba(30, 122, 71, .1); }
-.rdv-card--annule   .rdv-card__date { background: var(--c-danger-bg);  border-color: rgba(198, 40, 40, .1); }
-
-.rdv-card__day {
+.rdv-date-pill__day {
     font-family: var(--display);
-    font-size: 21px;
+    font-size: 24px;
     font-weight: 800;
     line-height: 1;
+    letter-spacing: -1px;
     color: var(--text);
 }
-.rdv-card__month {
-    font-size: 10px;
+.rdv-date-pill__month {
+    font-size: 10.5px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: .5px;
+    letter-spacing: .8px;
+    margin-top: 2px;
     color: var(--muted);
 }
-.rdv-card__badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 1px 7px;
-    border-radius: 999px;
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .3px;
-    margin-top: 3px;
-}
-.rdv-card__badge--today {
-    background: var(--c-danger);
-    color: #fff;
-}
-.rdv-card__badge--soon {
-    background: var(--c-warning);
-    color: #fff;
-}
 
-/* ═══ Corps ═══ */
-.rdv-card__body {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-width: 0;
-}
-
-.rdv-card__head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
+.rdv-card__heading { flex: 1; min-width: 0; }
 .rdv-card__title {
     font-family: var(--display);
-    font-size: 14.5px;
+    font-size: 17px;
     font-weight: 700;
     margin: 0;
-    color: var(--text);
+    color: var(--ink);
     line-height: 1.3;
-    min-width: 0;
+    letter-spacing: -.3px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
-.rdv-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-.rdv-status i { font-size: 5px; }
-.rdv-status--planifie { background: var(--c-warning-bg); color: var(--c-warning); }
-.rdv-status--confirme { background: var(--c-info-bg);    color: var(--c-info); }
-.rdv-status--termine  { background: var(--c-success-bg); color: var(--c-success); }
-.rdv-status--annule   { background: var(--c-danger-bg);  color: var(--c-danger); }
-
-/* ═══ Meta ═══ */
+/* Meta */
 .rdv-card__meta {
     display: flex;
+    align-items: center;
     flex-wrap: wrap;
-    gap: 4px 14px;
-    font-size: 12.5px;
+    gap: 8px;
+    font-size: 13.5px;
     color: var(--text-soft);
 }
 .rdv-meta-item {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
+    font-weight: 500;
 }
 .rdv-meta-item i {
+    font-size: 12px;
+    color: var(--muted);
+}
+.rdv-meta-sep { color: var(--border); font-weight: 700; }
+
+.rdv-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    background: #F5F5F7;
+    color: #4A5260;
+}
+.rdv-status--planifie      { background: var(--c-warning-bg); color: var(--c-warning); }
+.rdv-status--confirme      { background: var(--c-info-bg);    color: var(--c-info); }
+.rdv-status--termine       { background: var(--c-success-bg); color: var(--c-success); }
+.rdv-status--client_absent { background: #F5F5F7;             color: #6C6C70; }
+
+/* ═══ ENCART CODE DE VISITE ═══ */
+.rdv-code {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    background: #F9FAFB;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+.rdv-code__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: #fff;
     color: var(--rust);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+}
+.rdv-code__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.rdv-code__label {
     font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--muted);
+}
+.rdv-code__digits {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.rdv-code__digit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 42px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: var(--display);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+}
+.rdv-code__hint {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+/* ═══ ALERTE CLIENT ABSENT ═══ */
+.rdv-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: #FFFBF0;
+    border-left: 3px solid #E65100;
+}
+.rdv-alert i {
+    font-size: 16px;
+    color: #E65100;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.rdv-alert strong {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #8B4B15;
+    margin-bottom: 3px;
+}
+.rdv-alert p {
+    margin: 0;
+    font-size: 12.5px;
+    color: #8B4B15;
+    line-height: 1.5;
     opacity: .85;
 }
-.rdv-meta-item--accent {
-    color: var(--c-danger);
-    font-weight: 600;
-}
-.rdv-meta-item--accent i { color: var(--c-danger); opacity: 1; }
 
-/* ═══ Agence ═══ */
+/* ═══ AGENCE ═══ */
 .rdv-card__agency {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    background: var(--surface);
-    border-radius: 10px;
+    gap: 12px;
+    padding: 12px 14px;
+    background: #F9FAFB;
+    border-radius: 12px;
+    border: 1px solid var(--border);
 }
 .rdv-agency-avatar {
-    width: 34px;
-    height: 34px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--rust), #d4754a);
-    color: #fff;
+    background: #F5F5F7;
+    color: var(--text);
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: var(--display);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     flex-shrink: 0;
+    border: 1px solid var(--border);
 }
 .rdv-agency-info {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 3px;
     min-width: 0;
 }
 .rdv-agency-info strong {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.2;
 }
 .rdv-agency-phone {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    font-size: 12.5px;
-    font-weight: 600;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
     color: var(--text-soft);
     text-decoration: none;
-    transition: color .2s;
+    transition: color .15s;
 }
 .rdv-agency-phone:hover { color: var(--rust); }
-.rdv-agency-phone i:first-child {
+.rdv-agency-phone i {
     font-size: 11px;
-    color: var(--rust);
-}
-.rdv-agency-check {
-    color: var(--c-success) !important;
-    font-size: 10px !important;
-}
-.rdv-agency-muted {
-    font-size: 12px;
     color: var(--muted);
-    font-style: italic;
 }
+.rdv-agency-muted,
 .rdv-agency-locked {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    font-size: 11.5px;
+    font-size: 12.5px;
     color: var(--muted);
-    font-style: italic;
 }
 .rdv-agency-locked i {
-    font-size: 9px;
-    color: var(--rust) !important;
+    font-size: 10px;
 }
 
-/* ═══ Actions ═══ */
+/* ═══ ACTIONS ═══ */
 .rdv-card__actions {
     display: flex;
-    align-items: center;
-    gap: 6px;
-    padding-top: 8px;
-    border-top: 1px dashed var(--border);
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 2px;
 }
-.rdv-action-form { display: inline; }
+.rdv-primary-form,
+.rdv-inline-form { margin: 0; display: block; }
 
-.rdv-state-pill {
+.rdv-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: 9px;
-    font-size: 11.5px;
-    font-weight: 600;
-    border: 1px solid;
-}
-.rdv-state-pill--warning { background: var(--c-warning-bg); color: var(--c-warning); border-color: #FFE0B2; }
-.rdv-state-pill--success { background: var(--c-success-bg); color: var(--c-success); border-color: #C8E6C9; }
-.rdv-state-pill--danger  { background: var(--c-danger-bg);  color: var(--c-danger);  border-color: #FFCDD2; }
-
-/* ═══ BOUTONS ═══ */
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 6px 12px;
-    border-radius: 9px;
-    font-size: 12px;
+    justify-content: center;
+    gap: 8px;
+    padding: 13px 20px;
+    border-radius: 12px;
+    font-size: 14px;
     font-weight: 600;
     text-decoration: none;
     border: 1px solid transparent;
     cursor: pointer;
     font-family: inherit;
-    transition: all .2s ease;
-    white-space: nowrap;
+    transition: background-color .15s;
+    width: 100%;
 }
-.btn-rust { background: var(--rust); color: #fff; border-color: var(--rust); }
-.btn-rust:hover { background: #9A4523; color: #fff; border-color: #9A4523; transform: translateY(-1px); box-shadow: 0 3px 8px rgba(180, 83, 42, .22); }
-.btn-ghost { background: transparent; color: var(--text-soft); border-color: var(--border); }
-.btn-ghost:hover { background: var(--surface); border-color: var(--rust); color: var(--rust); }
-.btn-danger-soft { background: var(--c-danger-bg); color: var(--c-danger); border-color: #FFCDD2; }
-.btn-danger-soft:hover { background: var(--c-danger); color: #fff; border-color: var(--c-danger); }
-.btn-success { background: #25D366; color: #fff; border-color: #25D366; }
-.btn-success:hover { background: #1DA851; color: #fff; border-color: #1DA851; transform: translateY(-1px); box-shadow: 0 3px 8px rgba(37, 211, 102, .22); }
-.btn-sm { padding: 5px 11px; font-size: 11.5px; }
+.rdv-btn i { font-size: 13px; }
+
+.rdv-btn--primary {
+    background: var(--rust);
+    color: #fff;
+    border-color: var(--rust);
+}
+.rdv-btn--primary:hover {
+    background: #9A4523;
+    border-color: #9A4523;
+    color: #fff;
+}
+.rdv-btn--primary:active { transform: scale(.99); }
+
+.rdv-secondary-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+.rdv-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 10px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background-color .15s, color .15s;
+}
+.rdv-link:hover {
+    color: var(--text);
+    background: #F5F5F7;
+}
+.rdv-link--danger { color: var(--muted); }
+.rdv-link--danger:hover {
+    color: var(--c-danger);
+    background: var(--c-danger-bg);
+}
+.rdv-link-sep {
+    color: var(--border);
+    font-weight: 700;
+    font-size: 12px;
+    user-select: none;
+}
+
+.rdv-state-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    font-weight: 500;
+    width: 100%;
+    background: #F5F5F7;
+    color: var(--text-soft);
+}
+.rdv-state-pill--warning { background: var(--c-warning-bg); color: var(--c-warning); }
+.rdv-state-pill--success { background: var(--c-success-bg); color: var(--c-success); }
 
 /* ═══ EMPTY ═══ */
 .empty-state {
@@ -730,17 +751,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--c-info-bg);
+    background: #F5F5F7;
     border-radius: 50%;
-    color: var(--rust);
-    font-size: 26px;
+    color: var(--muted);
+    font-size: 24px;
 }
 .empty-state h3 {
     font-family: var(--display);
     font-size: 16px;
     font-weight: 700;
     margin: 0 0 5px;
-    color: var(--text);
+    color: var(--ink);
 }
 .empty-state p {
     color: var(--muted);
@@ -750,7 +771,7 @@
 }
 
 /* ═══ PAGINATION ═══ */
-.pagination-wrapper { margin-top: 20px; display: flex; justify-content: center; }
+.pagination-wrapper { margin-top: 22px; display: flex; justify-content: center; }
 .pagination-wrapper .pagination,
 .pagination-wrapper nav {
     display: flex; gap: 5px; justify-content: center;
@@ -765,12 +786,12 @@
     color: var(--text-soft);
     text-decoration: none;
     font-size: 12px;
-    transition: all .2s;
+    transition: background-color .15s;
     min-width: 34px;
     text-align: center;
     background: #fff;
 }
-.pagination-wrapper a:hover { background: var(--border); border-color: var(--rust); color: var(--rust); }
+.pagination-wrapper a:hover { background: #F5F5F7; }
 .pagination-wrapper .active span,
 .pagination-wrapper [aria-current="page"] span,
 .pagination-wrapper [aria-current="page"] { background: var(--rust); color: #fff; border-color: var(--rust); }
@@ -778,33 +799,29 @@
 
 
 /* ═══════════════════════════════════════════════════════════
-   📱 MOBILE — iOS NATIVE
+   📱 MOBILE iOS
    ═══════════════════════════════════════════════════════════ */
 @media (max-width: 820px) {
 
     .rdv-page { background: transparent; padding-top: 4px; }
 
-    /* ─── HEADER masqué ─── */
-    .page-header { display: none; }
-
-    /* ─── STATS INLINE ─── */
     .rdv-stats {
         display: flex;
         gap: 0;
         background: var(--ios-card);
         border-radius: var(--ios-radius-lg);
         padding: 16px 6px;
-        margin-bottom: 12px;
+        margin-bottom: 16px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        grid-template-columns: none;
     }
     .rdv-stat {
         flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-        position: relative;
         padding: 0 4px;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        gap: 3px;
     }
     .rdv-stat:not(:last-child)::after {
         content: '';
@@ -814,233 +831,79 @@
         width: 0.5px;
         background: var(--ios-separator);
     }
-    .rdv-stat__value {
-        font-family: var(--display);
-        font-size: 22px;
-        font-weight: 800;
-        color: var(--ios-label);
-        letter-spacing: -.5px;
-        line-height: 1;
-    }
-    .rdv-stat.is-highlight .rdv-stat__value { color: var(--rust); }
+    .rdv-stat__value { font-size: 22px; }
     .rdv-stat__label {
         font-size: 11px;
+        color: var(--muted);
+        text-transform: none;
+        letter-spacing: 0;
         font-weight: 500;
-        color: var(--ios-label-3);
-        margin-top: 2px;
     }
 
-    /* ─── FILTRES PILLS iOS ─── */
-    .filter-tabs {
-        gap: 8px;
-        margin: 0 -16px 14px;
-        padding: 0 16px 2px;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-    }
-    .filter-tabs::-webkit-scrollbar { display: none; }
-    .filter-tab {
-        scroll-snap-align: start;
-        padding: 9px 16px;
-        background: var(--ios-card);
-        border: none;
-        border-radius: 999px;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--ios-label-2);
-        box-shadow: 0 1px 3px rgba(0,0,0,.04);
-        -webkit-tap-highlight-color: transparent;
-    }
-    .filter-tab:active { transform: scale(.95); }
-    .filter-tab.is-active {
-        background: linear-gradient(135deg, var(--rust), #d4754a);
-        color: #fff;
-        box-shadow: 0 4px 12px rgba(181, 80, 42, .3);
-    }
-    .filter-tab.is-active .filter-tab__count {
-        background: rgba(255, 255, 255, .3);
-    }
-    .filter-tab__count {
-        background: #EFEFF4;
-        color: var(--ios-label-2);
-        font-size: 11px;
-        padding: 1px 8px;
-    }
-
-    /* ─── FLASH iOS ─── */
-    .flash {
-        border-radius: 14px;
-        border: none;
-        padding: 14px 16px;
-        font-size: 13.5px;
-    }
-
-    /* ─── CARTES iOS ─── */
     .rdv-list { gap: 12px; }
 
     .rdv-card {
-        display: block;
-        background: var(--ios-card);
+        padding: 16px;
+        gap: 12px;
         border: none;
         border-radius: var(--ios-radius-lg);
-        padding: 16px;
+        background: var(--ios-card);
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
-        transition: transform .15s ease;
-        overflow: hidden;
-        position: relative;
-        margin-bottom: 0;
     }
-    .rdv-card:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,.04); border: none; }
-    .rdv-card:active { transform: scale(.985); }
+    .rdv-card:hover { border: none; }
 
-    /* Barre statut en haut */
-    .rdv-card::before {
-        left: 0; right: 0;
-        height: 3px;
-        border-radius: 0;
-    }
+    .rdv-card__header { gap: 12px; }
+    .rdv-date-pill { width: 56px; height: 56px; border-radius: 14px; background: #F5F5F7; }
+    .rdv-date-pill__day { font-size: 22px; }
+    .rdv-date-pill__month { font-size: 10px; }
 
-    /* ─── Date block horizontal iOS ─── */
-    .rdv-card__date {
-        flex-direction: row;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 10px;
-        padding: 12px 14px;
-        margin-bottom: 12px;
-        border-radius: 14px;
-        border: none;
-        background: #EFEFF4 !important;
-    }
-    .rdv-card--planifie .rdv-card__date { background: #FFF4EC !important; }
-    .rdv-card--confirme .rdv-card__date { background: #E8F0FE !important; }
-    .rdv-card--termine  .rdv-card__date { background: #E8F5E9 !important; }
-    .rdv-card--annule   .rdv-card__date { background: #FFEBEE !important; }
+    .rdv-card__title { font-size: 16px; }
 
-    .rdv-card__day {
-        font-size: 22px;
-        font-weight: 800;
-        letter-spacing: -.5px;
-    }
-    .rdv-card__month {
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: .3px;
-    }
-    .rdv-card__badge {
-        margin-top: 0;
-        margin-left: auto;
-        padding: 2px 10px;
-        font-size: 10px;
-    }
+    .rdv-card__meta { font-size: 13.5px; gap: 6px; }
 
-    /* ─── Corps ─── */
-    .rdv-card__body { gap: 10px; }
+    .rdv-status { font-size: 11.5px; padding: 3px 10px; }
 
-    .rdv-card__head {
-        flex-direction: row;
-        align-items: flex-start;
-        gap: 8px;
-        justify-content: space-between;
+    /* Code iOS */
+    .rdv-code { padding: 14px; gap: 12px; border-radius: 14px; }
+    .rdv-code__icon { width: 40px; height: 40px; font-size: 16px; }
+    .rdv-code__label { font-size: 10.5px; letter-spacing: .5px; }
+    .rdv-code__digits { gap: 5px; }
+    .rdv-code__digit {
+        width: 32px;
+        height: 40px;
+        font-size: 18px;
+        border-radius: 9px;
     }
-    .rdv-card__title {
-        font-size: 16px;
-        font-weight: 700;
-        letter-spacing: -.2px;
-        color: var(--ios-label);
-        white-space: normal;
-        line-height: 1.3;
-        flex: 1;
-    }
-    .rdv-status {
-        font-size: 10.5px;
-        text-transform: none;
-        letter-spacing: 0;
-        padding: 4px 10px;
-        font-weight: 600;
-        flex-shrink: 0;
-    }
-    .rdv-status i { font-size: 7px; }
+    .rdv-code__hint { font-size: 11.5px; }
 
-    /* Meta iOS */
-    .rdv-card__meta {
-        font-size: 13.5px;
-        gap: 6px 14px;
-        color: var(--ios-label-3);
-    }
-    .rdv-meta-item i { color: var(--ios-label-3); opacity: 1; }
-    .rdv-meta-item--accent {
-        color: var(--rust);
-        font-weight: 600;
-    }
-    .rdv-meta-item--accent i { color: var(--rust); }
+    /* Alerte iOS */
+    .rdv-alert { padding: 12px 14px; border-radius: 10px; }
+    .rdv-alert i { font-size: 15px; }
+    .rdv-alert strong { font-size: 13px; }
+    .rdv-alert p { font-size: 12px; }
 
     /* Agence iOS */
-    .rdv-card__agency {
-        background: #F5F5F7;
-        border-radius: 12px;
-        padding: 10px 12px;
-        gap: 10px;
-    }
-    .rdv-agency-avatar { width: 36px; height: 36px; font-size: 14px; }
-    .rdv-agency-info strong { font-size: 14px; font-weight: 600; }
+    .rdv-card__agency { padding: 11px 13px; border-radius: 12px; gap: 11px; }
+    .rdv-agency-avatar { width: 36px; height: 36px; font-size: 13px; }
+    .rdv-agency-info strong { font-size: 14px; }
     .rdv-agency-phone { font-size: 13px; }
-    .rdv-agency-muted,
-    .rdv-agency-locked { font-size: 12.5px; }
 
-    /* ─── Actions iOS pleine largeur ─── */
-    .rdv-card__actions {
-        gap: 8px;
-        padding-top: 12px;
-        border-top: 0.5px solid var(--ios-separator);
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .rdv-card__actions .btn,
-    .rdv-card__actions form,
-    .rdv-card__actions .rdv-state-pill {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .btn {
-        padding: 12px 18px;
+    /* Actions iOS */
+    .rdv-card__actions { gap: 10px; }
+    .rdv-btn {
+        padding: 13px 18px;
         font-size: 14px;
         border-radius: 12px;
-        font-weight: 600;
     }
-    .btn-rust {
-        background: linear-gradient(135deg, var(--rust), #d4754a);
-        border: none;
-        box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
-    }
-    .btn-ghost {
-        background: var(--ios-card);
-        border: 1px solid #E5E5EA;
-        color: var(--ios-blue);
-    }
-    .btn-ghost:active { background: #EFEFF4; }
-    .btn-danger-soft {
-        background: rgba(198, 40, 40, .08);
-        border: none;
-        color: var(--c-danger);
-    }
-    .btn-success {
-        background: linear-gradient(135deg, #25D366, #1DA851);
-        border: none;
-        box-shadow: 0 4px 12px rgba(37, 211, 102, .25);
-    }
+    .rdv-secondary-actions { gap: 2px; }
+    .rdv-link { font-size: 13.5px; padding: 8px 12px; }
 
     .rdv-state-pill {
         padding: 12px 16px;
-        font-size: 14px;
+        font-size: 13.5px;
         border-radius: 12px;
-        justify-content: center;
     }
 
-    /* ─── EMPTY iOS ─── */
     .empty-state {
         background: var(--ios-card);
         border: none;
@@ -1048,21 +911,8 @@
         padding: 48px 24px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
-    .empty-state__icon {
-        width: 68px;
-        height: 68px;
-        font-size: 28px;
-    }
-    .empty-state h3 {
-        font-size: 17px;
-        letter-spacing: -.3px;
-    }
-    .empty-state p {
-        font-size: 13.5px;
-        color: var(--ios-label-3);
-    }
+    .empty-state__icon { width: 64px; height: 64px; font-size: 26px; }
 
-    /* ─── Pagination iOS ─── */
     .pagination-wrapper a,
     .pagination-wrapper span:not(.sr-only) {
         background: var(--ios-card);
@@ -1078,9 +928,31 @@
     .rdv-stat__value { font-size: 20px; }
     .rdv-stat__label { font-size: 10.5px; }
 
-    .rdv-card { padding: 14px; }
+    .rdv-card { padding: 14px; gap: 11px; }
     .rdv-card__title { font-size: 15px; }
-    .rdv-card__day { font-size: 20px; }
+    .rdv-date-pill { width: 52px; height: 52px; border-radius: 12px; }
+    .rdv-date-pill__day { font-size: 20px; }
+    .rdv-date-pill__month { font-size: 9.5px; }
+    .rdv-agency-avatar { width: 34px; height: 34px; font-size: 12px; }
+    .rdv-btn { padding: 12px 16px; font-size: 13.5px; }
+
+    .rdv-code { padding: 12px; gap: 10px; }
+    .rdv-code__icon { width: 36px; height: 36px; font-size: 15px; }
+    .rdv-code__digit {
+        width: 28px;
+        height: 36px;
+        font-size: 17px;
+        border-radius: 8px;
+    }
+    .rdv-code__digits { gap: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 </style>
 @endpush

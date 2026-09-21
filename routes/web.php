@@ -128,19 +128,12 @@ Route::post('/register/agence', [AuthController::class, 'registerAgence']);
 |--------------------------------------------------------------------------
 */
 Route::middleware('guest')->group(function () {
-    // Formulaire de demande
     Route::get('/mot-de-passe-oublie', [ForgotPasswordController::class, 'showLinkRequestForm'])
         ->name('password.request');
-
-    // Envoi du lien
     Route::post('/mot-de-passe-oublie', [ForgotPasswordController::class, 'sendResetLinkEmail'])
         ->name('password.email');
-
-    // Formulaire de réinitialisation
     Route::get('/reinitialiser-mot-de-passe/{token}', [ResetPasswordController::class, 'showResetForm'])
         ->name('password.reset');
-
-    // Réinitialisation
     Route::post('/reinitialiser-mot-de-passe', [ResetPasswordController::class, 'reset'])
         ->name('password.update');
 });
@@ -151,19 +144,12 @@ Route::middleware('guest')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('agence')->name('agence.')->middleware('guest')->group(function () {
-    // Formulaire de demande
     Route::get('/mot-de-passe-oublie', [ForgotPasswordController::class, 'showLinkRequestFormAgence'])
         ->name('password.request');
-
-    // Envoi du lien
     Route::post('/mot-de-passe-oublie', [ForgotPasswordController::class, 'sendResetLinkEmailAgence'])
         ->name('password.email');
-
-    // Formulaire de réinitialisation
     Route::get('/reinitialiser-mot-de-passe/{token}', [ResetPasswordController::class, 'showResetFormAgence'])
         ->name('password.reset');
-
-    // Réinitialisation
     Route::post('/reinitialiser-mot-de-passe', [ResetPasswordController::class, 'resetAgence'])
         ->name('password.update');
 });
@@ -197,30 +183,26 @@ Route::middleware(['auth'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | ROUTES NOTIFICATIONS (avec le contrôleur)
+    | ROUTES NOTIFICATIONS
     |--------------------------------------------------------------------------
     */
-   Route::prefix('notifications')->name('notifications.')->group(function () {
-    Route::get('/', [NotificationController::class, 'index'])->name('index');
-
-    // ⚠️ /read-all DOIT être AVANT /{id}/read
-    Route::post('/read-all', [NotificationController::class, 'readAll'])->name('read-all');
-    Route::post('/{id}/read', [NotificationController::class, 'read'])->name('read');
-});
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [NotificationController::class, 'index'])->name('index');
+        Route::post('/read-all', [NotificationController::class, 'readAll'])->name('read-all');
+        Route::post('/{id}/read', [NotificationController::class, 'read'])->name('read');
+    });
 
     /*
     |--------------------------------------------------------------------------
     | ROUTES API NOTIFICATIONS
     |--------------------------------------------------------------------------
     */
-  Route::prefix('api/notifications')->name('api.notifications.')->group(function () {
-    Route::get('/count', [NotificationController::class, 'count'])->name('count');
-    Route::get('/new', [NotificationController::class, 'new'])->name('new');
-
-    // ⚠️ /read-all DOIT être AVANT /{id}/read
-    Route::post('/read-all', [NotificationController::class, 'readAll'])->name('read-all');
-    Route::post('/{id}/read', [NotificationController::class, 'read'])->name('read');
-});
+    Route::prefix('api/notifications')->name('api.notifications.')->group(function () {
+        Route::get('/count', [NotificationController::class, 'count'])->name('count');
+        Route::get('/new', [NotificationController::class, 'new'])->name('new');
+        Route::post('/read-all', [NotificationController::class, 'readAll'])->name('read-all');
+        Route::post('/{id}/read', [NotificationController::class, 'read'])->name('read');
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -241,15 +223,19 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/demandes/{demande:slug}', [DemandeController::class, 'destroy'])->name('demandes.destroy');
         Route::get('/demandes/{demande:slug}/offres', [DemandeController::class, 'offres'])->name('demandes.offres');
 
-        // Propositions - ON GARDE L'ID CAR CE SONT DES RELATIONS INTERNES
+        // Propositions
         Route::get('/propositions', [ParticulierPropositionController::class, 'index'])->name('propositions.index');
         Route::get('/propositions/{proposition}', [ParticulierPropositionController::class, 'show'])->name('propositions.show');
         Route::post('/propositions/{proposition}/selectionner', [ParticulierPropositionController::class, 'selectionner'])->name('propositions.selectionner');
-
-        // ✅ AJOUTER CETTE ROUTE POUR REFUSER UNE PROPOSITION
+        // ✅ Choix d'une offre + redirection vers planification
+Route::post('/propositions/{proposition}/choisir-et-planifier', 
+    [ParticulierPropositionController::class, 'choisirEtPlanifier'])
+    ->name('propositions.choisir-et-planifier');
         Route::post('/propositions/{proposition}/refuser', [ParticulierPropositionController::class, 'refuser'])->name('propositions.refuser');
+        Route::post('/propositions/{proposition}/annuler-selection', [ParticulierPropositionController::class, 'annulerSelection'])
+    ->name('propositions.annuler-selection');
 
-        // Rendez-vous - ON GARDE L'ID
+        // Rendez-vous
         Route::get('/rendezvous', [ParticulierRendezVousController::class, 'index'])->name('rendezvous.index');
         Route::get('/rendezvous/create/{proposition}', [ParticulierRendezVousController::class, 'create'])->name('rendezvous.create');
         Route::post('/rendezvous', [ParticulierRendezVousController::class, 'store'])->name('rendezvous.store');
@@ -257,7 +243,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/rendezvous/{rendezVous}/confirmer', [ParticulierRendezVousController::class, 'confirmer'])->name('rendezvous.confirmer');
         Route::post('/rendezvous/{rendezVous}/annuler', [ParticulierRendezVousController::class, 'annuler'])->name('rendezvous.annuler');
 
-        // ✅ Évaluations
+        // Évaluations
         Route::get('/evaluations', [ParticulierEvaluationController::class, 'index'])->name('evaluations.index');
         Route::get('/evaluations/create/{proposition}', [ParticulierEvaluationController::class, 'create'])->name('evaluations.create');
         Route::post('/evaluations', [ParticulierEvaluationController::class, 'store'])->name('evaluations.store');
@@ -294,7 +280,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/attente-validation', [\App\Http\Controllers\Agence\AttenteValidationController::class, 'index'])
             ->name('attente-validation');
 
-
         // Demandes (consultation) - AVEC SLUG
         Route::get('/demandes', [AgenceController::class, 'demandes'])->name('demandes.index');
         Route::get('/demandes/{demande:slug}', [AgenceController::class, 'demandesShow'])->name('demandes.show');
@@ -316,7 +301,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/creneaux/date', [AgenceController::class, 'supprimerCreneauxDate'])->name('creneaux.supprimerDate');
         Route::post('/creneaux/date/supprimer', [AgenceController::class, 'supprimerCreneauxDate'])->name('creneaux.supprimerDatePost');
 
-        // ============ RENDEZ-VOUS - ON GARDE L'ID ============
+        // ============ RENDEZ-VOUS ============
         Route::get('/rendezvous', [AgenceController::class, 'rendezvous'])->name('rendezvous.index');
         Route::get('/rendezvous/{rendezVous}', [AgenceController::class, 'rendezvousShow'])->name('rendezvous.show');
         Route::put('/rendezvous/{rendezVous}', [AgenceController::class, 'rendezvousUpdate'])->name('rendezvous.update');
@@ -324,13 +309,21 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/rendezvous/{rendezVous}/annuler', [AgenceController::class, 'rendezvousAnnuler'])->name('rendezvous.annuler');
         Route::post('/rendezvous/{rendezVous}/termine', [AgenceController::class, 'rendezvousTermine'])->name('rendezvous.termine');
 
-        // Évaluations - ON GARDE L'ID
+        // ✅ NOUVELLES ROUTES : Visite effectuée / Client absent
+        //Route::post('/rendezvous/{rendezVous}/effectue', [AgenceController::class, 'rendezvousEffectue'])->name('rendezvous.effectue');
+        Route::post(
+            '/rendezvous/{rendezVous}/valider-code',
+            [AgenceController::class, 'validerCode']
+        )
+            ->name('rendezvous.valider-code');
+        Route::post('/rendezvous/{rendezVous}/absent', [AgenceController::class, 'rendezvousAbsent'])->name('rendezvous.absent');
+
+        // Évaluations
         Route::get('/evaluations', [AgenceController::class, 'evaluations'])->name('evaluations.index');
         Route::get('/evaluations/{evaluation}', [AgenceController::class, 'evaluationsShow'])->name('evaluations.show');
         Route::post('/evaluations/{evaluation}/repondre', [AgenceController::class, 'evaluationsRepondre'])->name('evaluations.repondre');
 
         // ============ ABONNEMENT - MASQUÉ SI MODE GRATUIT ============
-        // ✅ Utilisation de PHP pur, pas de directives Blade
         if (config('abonnement.actif', false)) {
             Route::get('/abonnement', [AgenceController::class, 'abonnement'])->name('abonnement');
             Route::post('/abonnement/souscrire', [AgenceController::class, 'souscrire'])->name('abonnement.souscrire');
@@ -338,7 +331,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/abonnement/{abonnement}/annuler', [AgenceController::class, 'annuler'])->name('abonnement.annuler');
         }
 
-        // ============ MISES EN VEDETTE - ON GARDE L'ID ============
+        // ============ MISES EN VEDETTE ============
         Route::get('/biens/{bien}/vedette/demander', [AgenceController::class, 'demandeVedette'])->name('biens.vedette.demander');
         Route::post('/biens/{bien}/vedette', [AgenceController::class, 'demanderVedette'])->name('biens.vedette.store');
         Route::get('/vedette/contact/{mise}', [AgenceController::class, 'contactVedette'])->name('biens.vedette.contact');
@@ -372,117 +365,118 @@ Route::middleware(['auth'])->group(function () {
     | ROUTES ADMINISTRATEUR
     |--------------------------------------------------------------------------
     */
-   
-/*
-|--------------------------------------------------------------------------
-| ROUTES ADMINISTRATEUR
-|--------------------------------------------------------------------------
-*/
-Route::prefix('admin')->name('admin.')->middleware(['role:admin'])->group(function () {
-    // Dashboard
-    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
-    Route::get('/statistiques', [AdminStatistiqueController::class, 'index'])->name('statistiques');
-    Route::get('/statistiques/export', [AdminStatistiqueController::class, 'export'])->name('statistiques.export');
+    Route::prefix('admin')->name('admin.')->middleware(['role:admin'])->group(function () {
+        // Dashboard
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/statistiques', [AdminStatistiqueController::class, 'index'])->name('statistiques');
+        Route::get('/statistiques/export', [AdminStatistiqueController::class, 'export'])->name('statistiques.export');
 
-    // Agences - AVEC SLUG
-    Route::get('/agences', [AdminAgenceController::class, 'index'])->name('agences.index');
-    Route::get('/agences/{agence:slug}', [AdminAgenceController::class, 'show'])->name('agences.show');
-    Route::get('/agences/{agence:slug}/documents', [AdminAgenceController::class, 'documents'])->name('agences.documents');
-    Route::post('/agences/{agence:slug}/documents/valider', [AdminAgenceController::class, 'validerDocuments'])->name('agences.valider-documents');
-    
-    // ✅ Rejeter un document spécifique
-    Route::post('/agences/{agence:slug}/documents/{document}/rejeter', 
-        [AdminAgenceController::class, 'rejeterDocument'])
-        ->name('agences.rejeter-document');
-    
-    Route::post('/agences/{agence:slug}/valider', [AdminAgenceController::class, 'valider'])->name('agences.valider');
-    Route::post('/agences/{agence:slug}/refuser', [AdminAgenceController::class, 'refuser'])->name('agences.refuser');
-    Route::post('/agences/{agence:slug}/reactiver', [AdminAgenceController::class, 'reactiver'])->name('agences.reactiver');
-    Route::post('/agences/{agence:slug}/bloquer', [AdminAgenceController::class, 'bloquer'])->name('agences.bloquer');
-    Route::post('/agences/{agence:slug}/debloquer', [AdminAgenceController::class, 'debloquer'])->name('agences.debloquer');
-    Route::delete('/agences/{agence:slug}', [AdminAgenceController::class, 'destroy'])->name('agences.destroy');
+        // Agences - AVEC SLUG
+        Route::get('/agences', [AdminAgenceController::class, 'index'])->name('agences.index');
+        Route::get('/agences/{agence:slug}', [AdminAgenceController::class, 'show'])->name('agences.show');
+        Route::get('/agences/{agence:slug}/documents', [AdminAgenceController::class, 'documents'])->name('agences.documents');
+        Route::post('/agences/{agence:slug}/documents/valider', [AdminAgenceController::class, 'validerDocuments'])->name('agences.valider-documents');
 
-    // Utilisateurs - ON GARDE L'ID (les users n'ont pas de slug)
-    Route::get('/utilisateurs', [AdminUtilisateurController::class, 'index'])->name('utilisateurs.index');
-    Route::get('/utilisateurs/create', [AdminUtilisateurController::class, 'create'])->name('utilisateurs.create');
-    Route::post('/utilisateurs', [AdminUtilisateurController::class, 'store'])->name('utilisateurs.store');
-    Route::get('/utilisateurs/{user}', [AdminUtilisateurController::class, 'show'])->name('utilisateurs.show');
-    Route::get('/utilisateurs/{user}/edit', [AdminUtilisateurController::class, 'edit'])->name('utilisateurs.edit');
-    Route::put('/utilisateurs/{user}', [AdminUtilisateurController::class, 'update'])->name('utilisateurs.update');
-    Route::delete('/utilisateurs/{user}', [AdminUtilisateurController::class, 'destroy'])->name('utilisateurs.destroy');
-    Route::post('/utilisateurs/{user}/toggle-block', [AdminUtilisateurController::class, 'toggleBlock'])->name('utilisateurs.toggle-block');
+        Route::post(
+            '/agences/{agence:slug}/documents/{document}/rejeter',
+            [AdminAgenceController::class, 'rejeterDocument']
+        )
+            ->name('agences.rejeter-document');
 
-    // Quartiers - ON GARDE L'ID
-    Route::get('/quartiers', [AdminQuartierController::class, 'index'])->name('quartiers.index');
-    Route::get('/quartiers/create', [AdminQuartierController::class, 'create'])->name('quartiers.create');
-    Route::post('/quartiers', [AdminQuartierController::class, 'store'])->name('quartiers.store');
-    Route::get('/quartiers/{quartier}', [AdminQuartierController::class, 'show'])->name('quartiers.show');
-    Route::get('/quartiers/{quartier}/edit', [AdminQuartierController::class, 'edit'])->name('quartiers.edit');
-    Route::put('/quartiers/{quartier}', [AdminQuartierController::class, 'update'])->name('quartiers.update');
-    Route::delete('/quartiers/{quartier}', [AdminQuartierController::class, 'destroy'])->name('quartiers.destroy');
-    Route::post('/quartiers/{quartier}/toggle', [AdminQuartierController::class, 'toggleStatut'])->name('quartiers.toggle');
-    Route::post('/quartiers/import', [AdminQuartierController::class, 'import'])->name('quartiers.import');
-    Route::get('/quartiers/export', [AdminQuartierController::class, 'export'])->name('quartiers.export');
+        Route::post('/agences/{agence:slug}/valider', [AdminAgenceController::class, 'valider'])->name('agences.valider');
+        Route::post('/agences/{agence:slug}/refuser', [AdminAgenceController::class, 'refuser'])->name('agences.refuser');
+        Route::post('/agences/{agence:slug}/reactiver', [AdminAgenceController::class, 'reactiver'])->name('agences.reactiver');
+        Route::post('/agences/{agence:slug}/bloquer', [AdminAgenceController::class, 'bloquer'])->name('agences.bloquer');
+        Route::post('/agences/{agence:slug}/debloquer', [AdminAgenceController::class, 'debloquer'])->name('agences.debloquer');
+        Route::delete('/agences/{agence:slug}', [AdminAgenceController::class, 'destroy'])->name('agences.destroy');
 
-    // Signalements - ON GARDE L'ID
-    Route::get('/signalements', [AdminSignalementController::class, 'index'])->name('signalements.index');
-    Route::get('/signalements/{signalement}', [AdminSignalementController::class, 'show'])->name('signalements.show');
-    Route::post('/signalements/{signalement}/traiter', [AdminSignalementController::class, 'traiter'])->name('signalements.traiter');
-    Route::post('/signalements/{signalement}/rejeter', [AdminSignalementController::class, 'rejeter'])->name('signalements.rejeter');
-    Route::post('/signalements/{signalement}/sanctionner', [AdminSignalementController::class, 'sanctionner'])->name('signalements.sanctionner');
+        // Utilisateurs
+        Route::get('/utilisateurs', [AdminUtilisateurController::class, 'index'])->name('utilisateurs.index');
+        Route::get('/utilisateurs/create', [AdminUtilisateurController::class, 'create'])->name('utilisateurs.create');
+        Route::post('/utilisateurs', [AdminUtilisateurController::class, 'store'])->name('utilisateurs.store');
+        Route::get('/utilisateurs/{user}', [AdminUtilisateurController::class, 'show'])->name('utilisateurs.show');
+        Route::get('/utilisateurs/{user}/edit', [AdminUtilisateurController::class, 'edit'])->name('utilisateurs.edit');
+        Route::put('/utilisateurs/{user}', [AdminUtilisateurController::class, 'update'])->name('utilisateurs.update');
+        Route::delete('/utilisateurs/{user}', [AdminUtilisateurController::class, 'destroy'])->name('utilisateurs.destroy');
+        Route::post('/utilisateurs/{user}/toggle-block', [AdminUtilisateurController::class, 'toggleBlock'])->name('utilisateurs.toggle-block');
 
-    // Abonnements - ON GARDE L'ID
-    Route::get('/abonnements', [AdminAbonnementController::class, 'index'])->name('abonnements.index');
-    Route::get('/abonnements/{abonnement}', [AdminAbonnementController::class, 'show'])->name('abonnements.show');
-    Route::put('/abonnements/{abonnement}/activer', [AdminAbonnementController::class, 'activer'])->name('abonnements.activer');
-    Route::put('/abonnements/{abonnement}/desactiver', [AdminAbonnementController::class, 'desactiver'])->name('abonnements.desactiver');
-    Route::delete('/abonnements/{abonnement}', [AdminAbonnementController::class, 'destroy'])->name('abonnements.destroy');
+        // Quartiers
+        Route::get('/quartiers', [AdminQuartierController::class, 'index'])->name('quartiers.index');
+        Route::get('/quartiers/create', [AdminQuartierController::class, 'create'])->name('quartiers.create');
+        Route::post('/quartiers', [AdminQuartierController::class, 'store'])->name('quartiers.store');
+        Route::get('/quartiers/{quartier}', [AdminQuartierController::class, 'show'])->name('quartiers.show');
+        Route::get('/quartiers/{quartier}/edit', [AdminQuartierController::class, 'edit'])->name('quartiers.edit');
+        Route::put('/quartiers/{quartier}', [AdminQuartierController::class, 'update'])->name('quartiers.update');
+        Route::delete('/quartiers/{quartier}', [AdminQuartierController::class, 'destroy'])->name('quartiers.destroy');
+        Route::post('/quartiers/{quartier}/toggle', [AdminQuartierController::class, 'toggleStatut'])->name('quartiers.toggle');
+        Route::post('/quartiers/import', [AdminQuartierController::class, 'import'])->name('quartiers.import');
+        Route::get('/quartiers/export', [AdminQuartierController::class, 'export'])->name('quartiers.export');
 
-    // Biens - AVEC SLUG
-    Route::get('/biens', [AdminBienController::class, 'index'])->name('biens.index');
-    Route::get('/biens/vedette', [AdminBienController::class, 'vedette'])->name('biens.vedette');
-    Route::get('/biens/{bien:slug}', [AdminBienController::class, 'show'])->name('biens.show');
-    Route::post('/biens/{bien:slug}/desactiver', [AdminBienController::class, 'desactiver'])->name('biens.desactiver');
-    Route::post('/biens/{bien:slug}/activer', [AdminBienController::class, 'activer'])->name('biens.activer');
-    Route::delete('/biens/{bien:slug}', [AdminBienController::class, 'destroy'])->name('biens.destroy');
+        // Signalements
+        Route::get('/signalements', [AdminSignalementController::class, 'index'])->name('signalements.index');
+        Route::get('/signalements/{signalement}', [AdminSignalementController::class, 'show'])->name('signalements.show');
+        Route::post('/signalements/{signalement}/traiter', [AdminSignalementController::class, 'traiter'])->name('signalements.traiter');
+        Route::post('/signalements/{signalement}/rejeter', [AdminSignalementController::class, 'rejeter'])->name('signalements.rejeter');
+        Route::post('/signalements/{signalement}/sanctionner', [AdminSignalementController::class, 'sanctionner'])->name('signalements.sanctionner');
 
-    // Vedette - ON GARDE L'ID POUR LES ACTIONS
-    Route::post('/biens/{bien:slug}/vedette', [AdminBienController::class, 'mettreEnVedette'])->name('biens.vedette.mettre');
-    Route::delete('/biens/{bien:slug}/vedette', [AdminBienController::class, 'retirerVedette'])->name('biens.vedette.retirer');
-    Route::post('/biens/{bien:slug}/vedette/prolonger', [AdminBienController::class, 'prolongerVedette'])->name('biens.vedette.prolonger');
+        // Abonnements
+        Route::get('/abonnements', [AdminAbonnementController::class, 'index'])->name('abonnements.index');
+        Route::get('/abonnements/{abonnement}', [AdminAbonnementController::class, 'show'])->name('abonnements.show');
+        Route::put('/abonnements/{abonnement}/activer', [AdminAbonnementController::class, 'activer'])->name('abonnements.activer');
+        Route::put('/abonnements/{abonnement}/desactiver', [AdminAbonnementController::class, 'desactiver'])->name('abonnements.desactiver');
+        Route::delete('/abonnements/{abonnement}', [AdminAbonnementController::class, 'destroy'])->name('abonnements.destroy');
 
-    Route::get('/mises-vedette', [AdminMiseEnVedetteController::class, 'index'])->name('mises-vedette.index');
-    Route::get('/mises-vedette/{mise}', [AdminMiseEnVedetteController::class, 'show'])->name('mises-vedette.show');
-    Route::post('/mises-vedette/{mise}/valider', [AdminMiseEnVedetteController::class, 'valider'])->name('mises-vedette.valider');
-    Route::post('/mises-vedette/{mise}/annuler', [AdminMiseEnVedetteController::class, 'annuler'])->name('mises-vedette.annuler');
+        // Biens - AVEC SLUG
+        Route::get('/biens', [AdminBienController::class, 'index'])->name('biens.index');
+        Route::get('/biens/vedette', [AdminBienController::class, 'vedette'])->name('biens.vedette');
+        Route::get('/biens/{bien:slug}', [AdminBienController::class, 'show'])->name('biens.show');
+        Route::post('/biens/{bien:slug}/desactiver', [AdminBienController::class, 'desactiver'])->name('biens.desactiver');
+        Route::post('/biens/{bien:slug}/activer', [AdminBienController::class, 'activer'])->name('biens.activer');
+        Route::delete('/biens/{bien:slug}', [AdminBienController::class, 'destroy'])->name('biens.destroy');
 
-    // Demandes - AVEC SLUG
-    Route::get('/demandes', [AdminDemandeController::class, 'index'])->name('demandes.index');
-    Route::get('/demandes/{demande:slug}', [AdminDemandeController::class, 'show'])->name('demandes.show');
-    Route::delete('/demandes/{demande:slug}', [AdminDemandeController::class, 'destroy'])->name('demandes.destroy');
+        // Vedette
+        Route::post('/biens/{bien:slug}/vedette', [AdminBienController::class, 'mettreEnVedette'])->name('biens.vedette.mettre');
+        Route::delete('/biens/{bien:slug}/vedette', [AdminBienController::class, 'retirerVedette'])->name('biens.vedette.retirer');
+        Route::post('/biens/{bien:slug}/vedette/prolonger', [AdminBienController::class, 'prolongerVedette'])->name('biens.vedette.prolonger');
 
-    // Propositions (lecture seule) - ON GARDE L'ID
-    Route::get('/propositions', [AdminPropositionController::class, 'index'])->name('propositions.index');
-    Route::get('/propositions/{proposition}', [AdminPropositionController::class, 'show'])->name('propositions.show');
+        Route::get('/mises-vedette', [AdminMiseEnVedetteController::class, 'index'])->name('mises-vedette.index');
+        Route::get('/mises-vedette/{mise}', [AdminMiseEnVedetteController::class, 'show'])->name('mises-vedette.show');
+        Route::post('/mises-vedette/{mise}/valider', [AdminMiseEnVedetteController::class, 'valider'])->name('mises-vedette.valider');
+        Route::post('/mises-vedette/{mise}/annuler', [AdminMiseEnVedetteController::class, 'annuler'])->name('mises-vedette.annuler');
 
-    // Rendez-vous (lecture seule) - ON GARDE L'ID
-    Route::get('/rendezvous', [AdminRendezVousController::class, 'index'])->name('rendezvous.index');
-    Route::get('/rendezvous/{rendezVous}', [AdminRendezVousController::class, 'show'])->name('rendezvous.show');
+        // Demandes - AVEC SLUG
+        Route::get('/demandes', [AdminDemandeController::class, 'index'])->name('demandes.index');
+        Route::get('/demandes/{demande:slug}', [AdminDemandeController::class, 'show'])->name('demandes.show');
+        Route::delete('/demandes/{demande:slug}', [AdminDemandeController::class, 'destroy'])->name('demandes.destroy');
 
-    // Profil
-    Route::get('/profil', [AdminProfilController::class, 'index'])->name('profil');
-    Route::put('/profil', [AdminProfilController::class, 'update'])->name('profil.update');
-    Route::put('/profil/password', [AdminProfilController::class, 'updatePassword'])->name('profil.password');
+        // Propositions (lecture seule)
+        Route::get('/propositions', [AdminPropositionController::class, 'index'])->name('propositions.index');
+        Route::get('/propositions/{proposition}', [AdminPropositionController::class, 'show'])->name('propositions.show');
 
-    // Bannières - ON GARDE L'ID
-    Route::get('/bannieres', [AdminBanniereController::class, 'index'])->name('bannieres.index');
-    Route::get('/bannieres/create', [AdminBanniereController::class, 'create'])->name('bannieres.create');
-    Route::post('/bannieres', [AdminBanniereController::class, 'store'])->name('bannieres.store');
-    Route::get('/bannieres/{banniere}', [AdminBanniereController::class, 'show'])->name('bannieres.show');
-    Route::get('/bannieres/{banniere}/edit', [AdminBanniereController::class, 'edit'])->name('bannieres.edit');
-    Route::put('/bannieres/{banniere}', [AdminBanniereController::class, 'update'])->name('bannieres.update');
-    Route::delete('/bannieres/{banniere}', [AdminBanniereController::class, 'destroy'])->name('bannieres.destroy');
-    Route::post('/bannieres/{banniere}/toggle', [AdminBanniereController::class, 'toggleActif'])->name('bannieres.toggle');
-    Route::post('/bannieres/reordonner', [AdminBanniereController::class, 'reordonner'])->name('bannieres.reordonner');
-});
+        // Rendez-vous (lecture seule)
+        Route::get('/rendezvous', [AdminRendezVousController::class, 'index'])->name('rendezvous.index');
+        Route::get('/rendezvous/{rendezVous}', [AdminRendezVousController::class, 'show'])->name('rendezvous.show');
+
+        // Profil
+        Route::get('/profil', [AdminProfilController::class, 'index'])->name('profil');
+        Route::put('/profil', [AdminProfilController::class, 'update'])->name('profil.update');
+        Route::put('/profil/password', [AdminProfilController::class, 'updatePassword'])->name('profil.password');
+
+        // Bannières
+         // ==================== BANNIÈRES ====================
+    Route::resource('bannieres', AdminBanniereController::class);
+
+    // Actions personnalisées
+    Route::patch('bannieres/{banniere}/toggle', [AdminBanniereController::class, 'toggleActif'])
+        ->name('bannieres.toggle');
+
+    Route::patch('bannieres/{banniere}/activer', [AdminBanniereController::class, 'activer'])
+        ->name('bannieres.activer');
+
+    Route::patch('bannieres/{banniere}/desactiver', [AdminBanniereController::class, 'desactiver'])
+        ->name('bannieres.desactiver');
+
+    Route::post('bannieres/reordonner', [AdminBanniereController::class, 'reordonner'])
+        ->name('bannieres.reordonner');
+    });
 });

@@ -21,36 +21,29 @@
         $totalAvis     = $stats['total_evaluations'] ?? 0;
         $totalRdv      = $stats['rendezvous_a_venir'] ?? 0;
 
-        // ✅ Logique : l'utilisateur a-t-il de l'activité ?
         $aDeLActivite = ($totalDemandes + $totalOffres + $totalRdv + $totalAvis) > 0;
     @endphp
 
-    {{-- ═══════════════════════════════════════════
-         HERO DE BIENVENUE (desktop)
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ HERO DE BIENVENUE (desktop) ═══ --}}
     <section class="desk-hero">
         <div class="desk-hero__left">
             <div class="desk-hero__avatar">{{ $initiales }}</div>
             <div class="desk-hero__text">
-                <h1 class="desk-hero__title">{{ $salutation }}, {{ $prenom }} </h1>
+                <h1 class="desk-hero__title">{{ $salutation }}, {{ $prenom }}</h1>
                 <span class="desk-hero__date">
-                    <i class="fa-regular fa-calendar"></i>
                     {{ now()->translatedFormat('l d F Y') }}
                 </span>
             </div>
         </div>
 
         <a href="{{ route('particulier.demandes.create') }}" class="desk-hero__cta">
-            <i class="fa-solid fa-plus"></i>
             Nouveau besoin
         </a>
     </section>
 
-    {{-- ═══════════════════════════════════════════
-         STATS — 4 CARDS (desktop)
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ STATS — 4 CARDS (desktop) ═══ --}}
     <section class="desk-stats">
-        <a href="{{ route('particulier.demandes.index') }}" class="desk-stat desk-stat--rust">
+        <a href="{{ route('particulier.demandes.index') }}" class="desk-stat">
             <div class="desk-stat__icon">
                 <i class="fa-solid fa-house-circle-check"></i>
             </div>
@@ -63,8 +56,7 @@
             </div>
         </a>
 
-        <a href="{{ route('particulier.propositions.index') }}"
-           class="desk-stat desk-stat--blue {{ $nouvelles > 0 ? 'has-badge' : '' }}">
+        <a href="{{ route('particulier.propositions.index') }}" class="desk-stat">
             <div class="desk-stat__icon">
                 <i class="fa-solid fa-file-invoice"></i>
             </div>
@@ -72,10 +64,7 @@
                 <span class="desk-stat__value">{{ $totalOffres }}</span>
                 <span class="desk-stat__label">Offres reçues</span>
                 @if($nouvelles > 0)
-                    <span class="desk-stat__sub desk-stat__sub--accent">
-                        <i class="fa-solid fa-circle"></i>
-                        {{ $nouvelles }} en attente
-                    </span>
+                    <span class="desk-stat__sub">{{ $nouvelles }} en attente</span>
                 @endif
             </div>
             @if($nouvelles > 0)
@@ -83,7 +72,7 @@
             @endif
         </a>
 
-        <a href="{{ route('particulier.rendezvous.index') }}" class="desk-stat desk-stat--gold">
+        <a href="{{ route('particulier.rendezvous.index') }}" class="desk-stat">
             <div class="desk-stat__icon">
                 <i class="fa-solid fa-calendar-days"></i>
             </div>
@@ -94,7 +83,7 @@
             </div>
         </a>
 
-        <a href="{{ route('particulier.evaluations.index') }}" class="desk-stat desk-stat--green">
+        <a href="{{ route('particulier.evaluations.index') }}" class="desk-stat">
             <div class="desk-stat__icon">
                 <i class="fa-solid fa-star"></i>
             </div>
@@ -105,9 +94,7 @@
         </a>
     </section>
 
-    {{-- ═══════════════════════════════════════════
-         BANNIÈRE NOUVELLES OFFRES
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ BANNIÈRE NOUVELLES OFFRES ═══ --}}
     @if($nouvelles > 0)
         <a href="{{ route('particulier.propositions.index') }}" class="desk-alert">
             <div class="desk-alert__icon">
@@ -119,14 +106,11 @@
             </div>
             <span class="desk-alert__cta">
                 Voir les offres
-                <i class="fa-solid fa-arrow-right"></i>
             </span>
         </a>
     @endif
 
-    {{-- ═══════════════════════════════════════════
-         LAYOUT 2 COLONNES (desktop)
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ LAYOUT 2 COLONNES (desktop) ═══ --}}
     <div class="desk-layout">
 
         {{-- ════ COLONNE PRINCIPALE ════ --}}
@@ -154,7 +138,7 @@
                 </div>
 
                 <a href="{{ route('particulier.rendezvous.show', $prochainRendezVous) }}" class="desk-rdv">
-                    <div class="desk-rdv__date {{ $isToday ? 'is-today' : '' }}">
+                    <div class="desk-rdv__date">
                         <span class="desk-rdv__day">{{ $dateVisite->format('d') }}</span>
                         <span class="desk-rdv__month">{{ strtoupper($dateVisite->translatedFormat('M')) }}</span>
                     </div>
@@ -165,7 +149,7 @@
                             <div class="desk-rdv__badges">
                                 <span class="desk-badge desk-badge--{{ $statutValue }}">{{ $statutLabel }}</span>
                                 @if($isToday)
-                                    <span class="desk-badge desk-badge--danger"><i class="fa-solid fa-fire"></i> Aujourd'hui</span>
+                                    <span class="desk-badge desk-badge--danger">Aujourd'hui</span>
                                 @elseif($isTomorrow)
                                     <span class="desk-badge desk-badge--warning">Demain</span>
                                 @elseif($daysUntil > 0 && $daysUntil <= 3)
@@ -175,15 +159,13 @@
                         </div>
 
                         <div class="desk-rdv__meta">
-                            <span><i class="fa-regular fa-building"></i> {{ $agence->nom_agence ?? 'Agence' }}</span>
-                            <span><i class="fa-regular fa-clock"></i> {{ \Carbon\Carbon::parse($prochainRendezVous->heure_visite)->format('H:i') }}</span>
+                            <span>{{ $agence->nom_agence ?? 'Agence' }}</span>
+                            <span>{{ \Carbon\Carbon::parse($prochainRendezVous->heure_visite)->format('H:i') }}</span>
                             @if($bien && $bien->adresse)
-                                <span><i class="fa-solid fa-location-dot"></i> {{ $bien->adresse }}</span>
+                                <span>{{ $bien->adresse }}</span>
                             @endif
                         </div>
                     </div>
-
-                    <i class="fa-solid fa-chevron-right desk-rdv__arrow"></i>
                 </a>
             @endif
 
@@ -203,7 +185,7 @@
                     <span>Meilleure offre</span>
                     @if($autres > 0)
                         <a href="{{ route('particulier.propositions.index') }}" class="desk-section-title__link">
-                            Tout voir <i class="fa-solid fa-arrow-right"></i>
+                            Tout voir
                         </a>
                     @endif
                 </div>
@@ -217,12 +199,6 @@
                                 <i class="fa-regular fa-image"></i>
                             </div>
                         @endif
-
-                        @if($autres > 0)
-                            <span class="desk-offer__tag">
-                                <i class="fa-solid fa-trophy"></i> Meilleure correspondance
-                            </span>
-                        @endif
                     </div>
 
                     <div class="desk-offer__body">
@@ -231,7 +207,6 @@
                             <div class="desk-offer__agency-info">
                                 <strong>{{ $agence->nom_agence ?? 'Agence' }}</strong>
                                 <span>
-                                    <i class="fa-solid fa-star"></i>
                                     {{ number_format($agence->note_moyenne ?? 0, 1) }}
                                     <span class="desk-offer__reviews">({{ $agence->evaluations->count() ?? 0 }} avis)</span>
                                 </span>
@@ -242,7 +217,7 @@
 
                         @if($bien && $bien->adresse)
                             <div class="desk-offer__address">
-                                <i class="fa-solid fa-location-dot"></i> {{ $bien->adresse }}
+                                {{ $bien->adresse }}
                             </div>
                         @endif
 
@@ -253,22 +228,22 @@
 
                         <div class="desk-offer__specs">
                             @if($bien && $bien->surface)
-                                <span><i class="fa-solid fa-vector-square"></i> {{ $bien->surface }} m²</span>
+                                <span>{{ $bien->surface }} m²</span>
                             @endif
                             @if($bien && $bien->nombre_chambres)
-                                <span><i class="fa-solid fa-bed"></i> {{ $bien->nombre_chambres }} ch.</span>
+                                <span>{{ $bien->nombre_chambres }} ch.</span>
                             @endif
                         </div>
 
                         <div class="desk-offer__actions">
                             <a href="{{ route('particulier.propositions.show', $meilleureOffre->id) }}" class="desk-btn desk-btn--ghost">
-                                <i class="fa-solid fa-eye"></i> Détails
+                                Détails
                             </a>
                             <form action="{{ route('particulier.propositions.selectionner', $meilleureOffre->id) }}" method="POST">
                                 @csrf
                                 <button type="submit" class="desk-btn desk-btn--primary"
                                         onclick="return confirm('Choisir cette offre ? Cela clôturera les autres offres en attente.')">
-                                    <i class="fa-solid fa-check"></i> Choisir cette offre
+                                    Choisir cette offre
                                 </button>
                             </form>
                         </div>
@@ -280,7 +255,7 @@
             <div class="desk-section-title">
                 <span>Mes besoins actifs</span>
                 <a href="{{ route('particulier.demandes.index') }}" class="desk-section-title__link">
-                    Tout voir <i class="fa-solid fa-arrow-right"></i>
+                    Tout voir
                 </a>
             </div>
 
@@ -293,15 +268,15 @@
                             $nbOffres = $demande->propositions->count();
                         @endphp
                         <a href="{{ route('particulier.demandes.show', $demande) }}" class="desk-list__item">
-                            <div class="desk-list__icon desk-list__icon--rust">
+                            <div class="desk-list__icon">
                                 <i class="fa-solid fa-house"></i>
                             </div>
                             <div class="desk-list__content">
                                 <span class="desk-list__title">{{ $demande->type_bien->label() }}</span>
                                 <div class="desk-list__sub">
-                                    <span><i class="fa-solid fa-location-dot"></i> {{ $demande->zone_recherchee }}</span>
+                                    <span>{{ $demande->zone_recherchee }}</span>
                                     <span class="desk-list__dot">·</span>
-                                    <span><i class="fa-solid fa-wallet"></i> {{ number_format($demande->budget_maximum, 0, ',', ' ') }} F</span>
+                                    <span>{{ number_format($demande->budget_maximum, 0, ',', ' ') }} F</span>
                                 </div>
                             </div>
                             <div class="desk-list__right">
@@ -310,7 +285,6 @@
                                 @endif
                                 <span class="desk-badge desk-badge--{{ $statutValue }}">{{ $statutLabel }}</span>
                             </div>
-                            <i class="fa-solid fa-chevron-right desk-list__chevron"></i>
                         </a>
                     @endforeach
                 </div>
@@ -322,7 +296,7 @@
                     <h4>Aucun besoin actif</h4>
                     <p>Publiez un besoin pour recevoir des propositions d'agences.</p>
                     <a href="{{ route('particulier.demandes.create') }}" class="desk-btn desk-btn--primary">
-                        <i class="fa-solid fa-plus"></i> Publier un besoin
+                        Publier un besoin
                     </a>
                 </div>
             @endif
@@ -369,19 +343,19 @@
                 </div>
                 <div class="desk-shortcuts">
                     <a href="{{ route('particulier.demandes.create') }}" class="desk-shortcut">
-                        <div class="desk-shortcut__icon desk-shortcut__icon--rust"><i class="fa-solid fa-plus"></i></div>
+                        <div class="desk-shortcut__icon"><i class="fa-solid fa-plus"></i></div>
                         <span>Publier un besoin</span>
                     </a>
                     <a href="{{ route('particulier.propositions.index') }}" class="desk-shortcut">
-                        <div class="desk-shortcut__icon desk-shortcut__icon--blue"><i class="fa-solid fa-file-invoice"></i></div>
+                        <div class="desk-shortcut__icon"><i class="fa-solid fa-file-invoice"></i></div>
                         <span>Voir les offres</span>
                     </a>
                     <a href="{{ route('particulier.rendezvous.index') }}" class="desk-shortcut">
-                        <div class="desk-shortcut__icon desk-shortcut__icon--gold"><i class="fa-solid fa-calendar-days"></i></div>
+                        <div class="desk-shortcut__icon"><i class="fa-solid fa-calendar-days"></i></div>
                         <span>Mes rendez-vous</span>
                     </a>
                     <a href="{{ route('particulier.historique') }}" class="desk-shortcut">
-                        <div class="desk-shortcut__icon desk-shortcut__icon--gray"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                        <div class="desk-shortcut__icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
                         <span>Historique</span>
                     </a>
                 </div>
@@ -389,12 +363,9 @@
         </aside>
     </div>
 
-    {{-- ═══════════════════════════════════════════
-         📱 VERSION MOBILE — Logique conditionnelle
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ VERSION MOBILE ═══ --}}
     <div class="ios-mobile-only">
 
-        {{-- Hero simple --}}
         <div class="ios-hero-mobile">
             <h1 class="ios-hero-mobile__title">{{ $salutation }}, {{ $prenom }}</h1>
             <span class="ios-hero-mobile__date">
@@ -404,9 +375,6 @@
 
         @if($aDeLActivite)
 
-            {{-- ═══ UTILISATEUR ACTIF ═══ --}}
-
-            {{-- Stats en 1 ligne --}}
             <div class="ios-stats-line">
                 <a href="{{ route('particulier.demandes.index') }}" class="ios-stat-line">
                     <strong>{{ $totalDemandes }}</strong>
@@ -426,7 +394,6 @@
                 </a>
             </div>
 
-            {{-- Mes besoins --}}
             @if($derniersBesoins->count() > 0)
                 <div class="ios-section-header">
                     Mes besoins
@@ -466,8 +433,6 @@
 
         @else
 
-            {{-- ═══ UTILISATEUR NOUVEAU — ONBOARDING ═══ --}}
-
             <div class="ios-onboarding">
                 <div class="ios-onboarding__icon">
                     <i class="fa-solid fa-rocket"></i>
@@ -484,28 +449,28 @@
 
             <div class="ios-shortcuts-grid">
                 <a href="{{ route('particulier.demandes.create') }}" class="ios-shortcut">
-                    <div class="ios-shortcut__icon ios-shortcut__icon--rust">
+                    <div class="ios-shortcut__icon">
                         <i class="fa-solid fa-plus"></i>
                     </div>
                     <span class="ios-shortcut__label">Publier un besoin</span>
                 </a>
 
                 <a href="{{ route('particulier.propositions.index') }}" class="ios-shortcut">
-                    <div class="ios-shortcut__icon ios-shortcut__icon--blue">
+                    <div class="ios-shortcut__icon">
                         <i class="fa-solid fa-file-invoice"></i>
                     </div>
                     <span class="ios-shortcut__label">Voir les offres</span>
                 </a>
 
                 <a href="{{ route('particulier.rendezvous.index') }}" class="ios-shortcut">
-                    <div class="ios-shortcut__icon ios-shortcut__icon--gold">
+                    <div class="ios-shortcut__icon">
                         <i class="fa-solid fa-calendar-days"></i>
                     </div>
                     <span class="ios-shortcut__label">Mes rendez-vous</span>
                 </a>
 
                 <a href="{{ route('particulier.historique') }}" class="ios-shortcut">
-                    <div class="ios-shortcut__icon ios-shortcut__icon--gray">
+                    <div class="ios-shortcut__icon">
                         <i class="fa-solid fa-clock-rotate-left"></i>
                     </div>
                     <span class="ios-shortcut__label">Historique</span>
@@ -523,14 +488,14 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   DASHBOARD PARTICULIER
+   DASHBOARD PARTICULIER — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .particulier-dashboard {
-    --c-success: #1E7A47; --c-success-bg: #E8F5E9;
+    --c-success: #1E7A47; --c-success-bg: #F1F8F4;
     --c-warning: #E65100; --c-warning-bg: #FFF8E1;
-    --c-danger: #C62828; --c-danger-bg: #FFEBEE;
-    --c-info: #0D47A1; --c-info-bg: #E3F2FD;
+    --c-danger: #C62828; --c-danger-bg: #FEF2F2;
+    --c-info: #1E40AF; --c-info-bg: #EFF6FF;
     --c-gold: #F5A623;
     --surface: #F7F9FC;
 
@@ -549,17 +514,19 @@
 .desk-hero {
     display: flex; align-items: center; justify-content: space-between;
     gap: 20px; padding: 24px 28px;
-    background: linear-gradient(135deg, #FFF9F5 0%, #fff 60%);
+    background: #fff;
     border: 1px solid var(--border); border-radius: 16px;
     margin-bottom: 18px; flex-wrap: wrap;
 }
 .desk-hero__left { display: flex; align-items: center; gap: 16px; min-width: 0; }
 .desk-hero__avatar {
     width: 56px; height: 56px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--rust), #d4754a);
-    color: #fff; display: flex; align-items: center; justify-content: center;
+    background: #F5F5F7;
+    color: var(--text);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
     font-family: var(--display); font-size: 20px; font-weight: 700;
-    flex-shrink: 0; box-shadow: 0 6px 16px rgba(181, 80, 42, .25);
+    flex-shrink: 0;
 }
 .desk-hero__text { min-width: 0; }
 .desk-hero__title {
@@ -570,16 +537,16 @@
     display: inline-flex; align-items: center; gap: 6px;
     font-size: 13px; color: var(--muted);
 }
-.desk-hero__date i { font-size: 12px; opacity: .8; }
 .desk-hero__cta {
     display: inline-flex; align-items: center; gap: 8px;
     padding: 12px 20px;
-    background: linear-gradient(135deg, var(--rust), #d4754a);
+    background: var(--rust);
     color: #fff; border-radius: 12px; font-size: 13.5px; font-weight: 600;
-    text-decoration: none; box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
-    transition: transform .2s, box-shadow .2s; white-space: nowrap;
+    text-decoration: none;
+    transition: background-color .15s;
+    white-space: nowrap;
 }
-.desk-hero__cta:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(181, 80, 42, .35); }
+.desk-hero__cta:hover { background: #9A4523; color: #fff; }
 
 /* Stats */
 .desk-stats {
@@ -590,73 +557,59 @@
     position: relative; display: flex; align-items: center; gap: 14px;
     padding: 18px 20px; background: #fff; border: 1px solid var(--border);
     border-radius: 14px; text-decoration: none; color: inherit;
-    transition: all .2s; overflow: hidden;
+    transition: border-color .15s; overflow: hidden;
 }
-.desk-stat:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, .06); }
-.desk-stat::before {
-    content: ''; position: absolute; left: 0; top: 50%;
-    transform: translateY(-50%); width: 3px; height: 40%;
-    border-radius: 0 3px 3px 0; background: var(--rust);
-}
-.desk-stat--rust::before { background: var(--rust); }
-.desk-stat--blue::before { background: #1565C0; }
-.desk-stat--gold::before { background: var(--c-gold); }
-.desk-stat--green::before { background: var(--c-success); }
+.desk-stat:hover { border-color: #d8d8d8; }
+
 .desk-stat__icon {
     width: 44px; height: 44px; border-radius: 12px;
+    background: #F5F5F7;
+    color: var(--text-soft);
     display: flex; align-items: center; justify-content: center;
     font-size: 18px; flex-shrink: 0;
 }
-.desk-stat--rust .desk-stat__icon { background: var(--rust-soft); color: var(--rust); }
-.desk-stat--blue .desk-stat__icon { background: #E3F2FD; color: #1565C0; }
-.desk-stat--gold .desk-stat__icon { background: #FFF8E1; color: var(--c-gold); }
-.desk-stat--green .desk-stat__icon { background: #E8F5E9; color: var(--c-success); }
 .desk-stat__body { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
 .desk-stat__value {
     font-family: var(--display); font-size: 26px; font-weight: 800;
     color: var(--ink); line-height: 1; letter-spacing: -.5px;
 }
 .desk-stat__label { font-size: 12.5px; font-weight: 500; color: var(--muted); margin-top: 3px; }
-.desk-stat__sub { font-size: 11.5px; color: var(--text-soft); font-weight: 600; margin-top: 2px; }
-.desk-stat__sub--accent { color: var(--rust); display: inline-flex; align-items: center; gap: 5px; }
-.desk-stat__sub--accent i { font-size: 6px; color: var(--rust); animation: pulse 1.8s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.desk-stat__sub { font-size: 11.5px; color: var(--text-soft); font-weight: 500; margin-top: 2px; }
 .desk-stat__badge {
     position: absolute; top: 14px; right: 16px;
     display: inline-flex; align-items: center; justify-content: center;
     min-width: 22px; height: 22px; padding: 0 7px;
     background: var(--rust); color: #fff; border-radius: 999px;
-    font-family: var(--display); font-size: 11.5px; font-weight: 800;
-    box-shadow: 0 2px 6px rgba(181, 80, 42, .3);
+    font-family: var(--display); font-size: 11.5px; font-weight: 700;
 }
 
 /* Alert */
 .desk-alert {
     display: flex; align-items: center; gap: 16px;
     padding: 16px 22px;
-    background: linear-gradient(135deg, #FFF4EC 0%, #FFE8D9 100%);
-    border: 1px solid #FFD4B8; border-radius: 14px;
+    background: #FFF8F2;
+    border: 1px solid #FCE4D2;
+    border-radius: 14px;
     margin-bottom: 18px; text-decoration: none; color: inherit;
-    transition: all .2s;
+    transition: background-color .15s;
 }
-.desk-alert:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(181, 80, 42, .15); }
+.desk-alert:hover { background: #FFF3E8; }
 .desk-alert__icon {
     width: 44px; height: 44px; border-radius: 12px;
-    background: var(--rust); color: #fff;
+    background: #fff; color: var(--rust);
+    border: 1px solid #FCE4D2;
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(181, 80, 42, .35);
+    font-size: 18px; flex-shrink: 0;
 }
 .desk-alert__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .desk-alert__text strong { font-family: var(--display); font-size: 15px; font-weight: 700; color: var(--ink); }
 .desk-alert__text span { font-size: 13px; color: var(--text-soft); }
 .desk-alert__cta {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 8px 16px; background: #fff; color: var(--rust);
-    border-radius: 10px; font-size: 13px; font-weight: 700;
-    border: 1.5px solid var(--rust); transition: all .2s; flex-shrink: 0;
+    padding: 8px 16px; background: var(--rust); color: #fff;
+    border-radius: 10px; font-size: 13px; font-weight: 600;
+    flex-shrink: 0;
 }
-.desk-alert:hover .desk-alert__cta { background: var(--rust); color: #fff; gap: 10px; }
-.desk-alert__cta i { font-size: 11px; }
 
 /* Layout */
 .desk-layout {
@@ -679,10 +632,9 @@
 .desk-section-title__link {
     display: inline-flex; align-items: center; gap: 6px;
     font-size: 12.5px; font-weight: 600; color: var(--rust);
-    text-decoration: none; transition: gap .2s;
+    text-decoration: none;
 }
-.desk-section-title__link:hover { gap: 9px; }
-.desk-section-title__link i { font-size: 10px; }
+.desk-section-title__link:hover { text-decoration: underline; }
 
 /* RDV Card */
 .desk-rdv {
@@ -690,36 +642,30 @@
     padding: 18px 22px; background: #fff;
     border: 1px solid var(--border); border-radius: 14px;
     text-decoration: none; color: inherit; margin-bottom: 14px;
-    transition: all .2s;
+    transition: border-color .15s;
 }
-.desk-rdv:hover { border-color: var(--rust); box-shadow: 0 8px 20px rgba(0, 0, 0, .06); transform: translateY(-1px); }
+.desk-rdv:hover { border-color: var(--rust); }
 .desk-rdv__date {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 2px; width: 64px; padding: 10px 6px;
-    background: var(--c-info-bg); border-radius: 12px; flex-shrink: 0;
+    background: #F5F5F7; border-radius: 12px; flex-shrink: 0;
 }
-.desk-rdv__date.is-today { background: var(--c-warning-bg); }
-.desk-rdv__day { font-family: var(--display); font-size: 24px; font-weight: 800; line-height: 1; color: var(--c-info); }
-.desk-rdv__date.is-today .desk-rdv__day { color: var(--c-warning); }
-.desk-rdv__month { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--c-info); opacity: .85; }
-.desk-rdv__date.is-today .desk-rdv__month { color: var(--c-warning); }
+.desk-rdv__day { font-family: var(--display); font-size: 24px; font-weight: 800; line-height: 1; color: var(--text); }
+.desk-rdv__month { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
 .desk-rdv__content { flex: 1; min-width: 0; }
 .desk-rdv__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
 .desk-rdv__title { font-family: var(--display); font-size: 16px; font-weight: 700; color: var(--ink); margin: 0; line-height: 1.3; }
 .desk-rdv__badges { display: flex; gap: 6px; flex-wrap: wrap; }
 .desk-rdv__meta { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--text-soft); }
-.desk-rdv__meta i { color: var(--rust); font-size: 11px; margin-right: 5px; opacity: .85; }
-.desk-rdv__arrow { color: var(--muted); font-size: 16px; flex-shrink: 0; opacity: .4; transition: transform .2s, color .2s; }
-.desk-rdv:hover .desk-rdv__arrow { color: var(--rust); transform: translateX(4px); }
 
 /* Badges */
 .desk-badge {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 4px 11px; border-radius: 999px;
-    font-size: 11px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .3px; white-space: nowrap;
+    font-size: 11px; font-weight: 600;
+    white-space: nowrap;
+    background: #F5F5F7; color: var(--text-soft);
 }
-.desk-badge i { font-size: 9px; }
 .desk-badge--en_attente, .desk-badge--planifie { background: var(--c-warning-bg); color: var(--c-warning); }
 .desk-badge--en_cours, .desk-badge--confirme { background: var(--c-info-bg); color: var(--c-info); }
 .desk-badge--terminee, .desk-badge--termine, .desk-badge--acceptee { background: var(--c-success-bg); color: var(--c-success); }
@@ -731,42 +677,33 @@
 .desk-offer {
     display: grid; grid-template-columns: 220px 1fr;
     background: #fff; border: 1px solid var(--border);
-    border-radius: 14px; overflow: hidden; margin-bottom: 14px; transition: all .2s;
+    border-radius: 14px; overflow: hidden; margin-bottom: 14px;
+    transition: border-color .15s;
 }
-.desk-offer:hover { box-shadow: 0 8px 24px rgba(0, 0, 0, .06); border-color: #d8d8d8; }
+.desk-offer:hover { border-color: #d8d8d8; }
 .desk-offer__media { position: relative; background: var(--surface); overflow: hidden; }
 .desk-offer__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .desk-offer__media-empty { width: 100%; height: 100%; min-height: 200px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 32px; opacity: .4; }
-.desk-offer__tag {
-    position: absolute; top: 12px; left: 12px;
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 5px 12px; background: linear-gradient(135deg, var(--c-gold), #E8901A);
-    color: #fff; border-radius: 999px; font-size: 10.5px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .3px;
-    box-shadow: 0 4px 10px rgba(245, 166, 35, .35);
-}
-.desk-offer__tag i { font-size: 10px; }
 .desk-offer__body { padding: 18px 22px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .desk-offer__agency { display: flex; align-items: center; gap: 10px; }
 .desk-offer__agency-avatar {
     width: 38px; height: 38px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--rust), #d4754a);
-    color: #fff; display: flex; align-items: center; justify-content: center;
+    background: #F5F5F7;
+    color: var(--text);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
     font-family: var(--display); font-size: 15px; font-weight: 700; flex-shrink: 0;
 }
 .desk-offer__agency-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.desk-offer__agency-info strong { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.desk-offer__agency-info strong { font-size: 13.5px; font-weight: 600; color: var(--ink); }
 .desk-offer__agency-info span { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-soft); }
-.desk-offer__agency-info i { color: var(--c-gold); font-size: 10px; }
 .desk-offer__reviews { color: var(--muted); }
 .desk-offer__title { font-family: var(--display); font-size: 17px; font-weight: 700; color: var(--ink); margin: 0; line-height: 1.3; }
 .desk-offer__address { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
-.desk-offer__address i { color: var(--rust); font-size: 11px; }
 .desk-offer__price { font-family: var(--display); font-size: 24px; font-weight: 800; color: var(--rust); line-height: 1.1; letter-spacing: -.3px; }
 .desk-offer__price small { font-size: 13px; font-weight: 600; opacity: .7; margin-left: 4px; }
 .desk-offer__specs { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
 .desk-offer__specs span { display: inline-flex; align-items: center; gap: 5px; }
-.desk-offer__specs i { font-size: 11px; color: var(--rust); opacity: .8; }
 .desk-offer__actions { display: flex; gap: 8px; margin-top: auto; padding-top: 8px; }
 .desk-offer__actions form { flex: 1; margin: 0; }
 .desk-offer__actions form .desk-btn { width: 100%; justify-content: center; }
@@ -777,57 +714,55 @@
     gap: 7px; padding: 11px 20px; border-radius: 11px;
     font-size: 13.5px; font-weight: 600; text-decoration: none;
     border: 1px solid transparent; cursor: pointer;
-    font-family: inherit; transition: all .2s; white-space: nowrap;
+    font-family: inherit; transition: background-color .15s, border-color .15s, color .15s;
+    white-space: nowrap;
 }
 .desk-btn--primary {
-    background: linear-gradient(135deg, var(--rust), #d4754a);
+    background: var(--rust);
     color: #fff; border-color: var(--rust);
-    box-shadow: 0 4px 12px rgba(181, 80, 42, .2);
 }
-.desk-btn--primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(181, 80, 42, .3); }
+.desk-btn--primary:hover { background: #9A4523; border-color: #9A4523; color: #fff; }
 .desk-btn--ghost { background: #fff; color: var(--text-soft); border-color: var(--border); }
-.desk-btn--ghost:hover { border-color: var(--rust); color: var(--rust); background: var(--surface); }
+.desk-btn--ghost:hover { border-color: var(--rust); color: var(--rust); background: #F5F5F7; }
 
 /* List */
 .desk-list { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
 .desk-list__item {
     display: flex; align-items: center; gap: 14px;
     padding: 14px 18px; border-bottom: 1px solid var(--border);
-    text-decoration: none; color: inherit; transition: background .15s;
+    text-decoration: none; color: inherit; transition: background-color .15s;
 }
 .desk-list__item:last-child { border-bottom: none; }
 .desk-list__item:hover { background: #FAFBFC; }
 .desk-list__icon {
     width: 40px; height: 40px; border-radius: 11px;
+    background: #F5F5F7;
+    color: var(--text-soft);
     display: flex; align-items: center; justify-content: center;
     font-size: 15px; flex-shrink: 0;
 }
-.desk-list__icon--rust { background: var(--rust-soft); color: var(--rust); }
 .desk-list__content { flex: 1; min-width: 0; }
 .desk-list__title {
-    display: block; font-family: var(--display); font-size: 14px; font-weight: 700;
+    display: block; font-family: var(--display); font-size: 14px; font-weight: 600;
     color: var(--ink); margin-bottom: 3px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .desk-list__sub { display: flex; flex-wrap: wrap; gap: 3px 10px; font-size: 12.5px; color: var(--muted); }
-.desk-list__sub i { color: var(--rust); font-size: 10px; margin-right: 3px; opacity: .8; }
 .desk-list__dot { opacity: .5; }
 .desk-list__right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .desk-list__count {
     display: inline-flex; align-items: center; justify-content: center;
     min-width: 24px; height: 24px; padding: 0 8px;
     background: var(--rust); color: #fff; border-radius: 999px;
-    font-family: var(--display); font-size: 12px; font-weight: 800;
+    font-family: var(--display); font-size: 12px; font-weight: 700;
 }
-.desk-list__chevron { color: var(--muted); font-size: 13px; opacity: .4; transition: transform .2s, color .2s; }
-.desk-list__item:hover .desk-list__chevron { color: var(--rust); transform: translateX(3px); }
 
 /* Empty */
 .desk-empty { background: #fff; border: 1px dashed var(--border); border-radius: 14px; padding: 40px 24px; text-align: center; }
 .desk-empty__icon {
     width: 60px; height: 60px; margin: 0 auto 16px;
     border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    background: var(--surface); color: var(--muted); font-size: 24px;
+    background: #F5F5F7; color: var(--muted); font-size: 24px;
 }
 .desk-empty h4 { font-family: var(--display); font-size: 15px; font-weight: 700; color: var(--ink); margin: 0 0 6px; }
 .desk-empty p { font-size: 13px; color: var(--muted); margin: 0 0 18px; max-width: 320px; margin-inline: auto; line-height: 1.5; }
@@ -840,14 +775,14 @@
     border-bottom: 1px solid var(--border);
 }
 .desk-side-card__head h4 { font-family: var(--display); font-size: 14px; font-weight: 700; color: var(--ink); margin: 0; }
-.desk-side-card__link { font-size: 12px; font-weight: 600; color: var(--rust); text-decoration: none; transition: opacity .15s; }
-.desk-side-card__link:hover { opacity: .7; }
+.desk-side-card__link { font-size: 12px; font-weight: 600; color: var(--rust); text-decoration: none; }
+.desk-side-card__link:hover { text-decoration: underline; }
 .desk-side-list { display: flex; flex-direction: column; gap: 10px; }
-.desk-side-item { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 10px; text-decoration: none; color: inherit; transition: background .15s; }
-.desk-side-item:hover { background: var(--surface); }
+.desk-side-item { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 10px; text-decoration: none; color: inherit; transition: background-color .15s; }
+.desk-side-item:hover { background: #F5F5F7; }
 .desk-side-item__date {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    width: 42px; padding: 5px 3px; background: var(--surface); border-radius: 9px; flex-shrink: 0;
+    width: 42px; padding: 5px 3px; background: #F5F5F7; border-radius: 9px; flex-shrink: 0;
 }
 .desk-side-item__day { font-family: var(--display); font-size: 15px; font-weight: 800; line-height: 1; color: var(--ink); }
 .desk-side-item__month { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-top: 1px; }
@@ -861,15 +796,16 @@
 .desk-shortcuts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .desk-shortcut {
     display: flex; flex-direction: column; align-items: center; gap: 8px;
-    padding: 14px 8px; border-radius: 12px; background: var(--surface);
-    text-decoration: none; color: inherit; transition: all .2s; text-align: center;
+    padding: 14px 8px; border-radius: 12px; background: #F5F5F7;
+    text-decoration: none; color: inherit; transition: background-color .15s; text-align: center;
 }
-.desk-shortcut:hover { background: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, .06); transform: translateY(-2px); }
-.desk-shortcut__icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
-.desk-shortcut__icon--rust { background: var(--rust-soft); color: var(--rust); }
-.desk-shortcut__icon--blue { background: #E3F2FD; color: #1565C0; }
-.desk-shortcut__icon--gold { background: #FFF8E1; color: var(--c-gold); }
-.desk-shortcut__icon--gray { background: #F2F2F7; color: #8E8E93; }
+.desk-shortcut:hover { background: #EFEFF4; }
+.desk-shortcut__icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: #fff; color: var(--text-soft);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+}
 .desk-shortcut span { font-size: 11.5px; font-weight: 600; color: var(--text-soft); line-height: 1.3; }
 
 @media (max-width: 1200px) {
@@ -882,14 +818,13 @@
 
 
 /* ═══════════════════════════════════════════════════════════
-   📱 MOBILE — Version simplifiée conditionnelle
+   📱 MOBILE
    ═══════════════════════════════════════════════════════════ */
 
 .ios-mobile-only { display: none; }
 
 @media (max-width: 820px) {
 
-    /* Masquer tout le desktop */
     .desk-hero,
     .desk-stats,
     .desk-alert,
@@ -900,10 +835,9 @@
     .desk-empty,
     .desk-layout { display: none; }
 
-    /* Afficher le mobile */
     .ios-mobile-only { display: block; padding: 4px 0; }
 
-    /* ─── HERO ─── */
+    /* HERO */
     .ios-hero-mobile { margin-bottom: 18px; }
     .ios-hero-mobile__title {
         font-size: 24px; font-weight: 700; color: var(--ios-label);
@@ -914,7 +848,7 @@
         text-transform: capitalize; letter-spacing: -0.1px;
     }
 
-    /* ─── STATS 1 LIGNE ─── */
+    /* STATS 1 LIGNE */
     .ios-stats-line {
         display: flex; align-items: stretch;
         background: var(--ios-card); border-radius: var(--ios-radius-lg);
@@ -940,7 +874,7 @@
         letter-spacing: -0.05px;
     }
 
-    /* ─── SECTION HEADER ─── */
+    /* SECTION HEADER */
     .ios-section-header {
         display: flex; align-items: center; justify-content: space-between;
         font-size: 13px; font-weight: 600; text-transform: uppercase;
@@ -952,7 +886,7 @@
         text-decoration: none; text-transform: none; letter-spacing: 0;
     }
 
-    /* ─── LISTE BESOINS ─── */
+    /* LISTE BESOINS */
     .ios-list-mobile { display: flex; flex-direction: column; gap: 8px; }
     .ios-item-mobile {
         display: flex; align-items: center; gap: 12px;
@@ -965,8 +899,9 @@
     .ios-item-mobile:active { transform: scale(0.98); background: #F5F5F7; }
     .ios-item-mobile__icon {
         width: 38px; height: 38px; border-radius: 10px;
-        background: linear-gradient(135deg, #B4532A, #d4754a);
-        color: #fff; display: flex; align-items: center; justify-content: center;
+        background: #F5F5F7;
+        color: var(--rust);
+        display: flex; align-items: center; justify-content: center;
         font-size: 15px; flex-shrink: 0;
     }
     .ios-item-mobile__body {
@@ -984,38 +919,11 @@
         overflow: hidden; text-overflow: ellipsis;
     }
     .ios-item-mobile__arrow {
-        color: var(--ios-label-3); font-size: 13px;
-        flex-shrink: 0; opacity: 0.5;
+        color: var(--ios-gray-3); font-size: 13px;
+        flex-shrink: 0;
     }
 
-    /* ─── EMPTY ─── */
-    .ios-empty-mobile {
-        text-align: center; padding: 32px 20px;
-        background: var(--ios-card); border-radius: var(--ios-radius-lg);
-    }
-    .ios-empty-mobile > i {
-        font-size: 36px; color: var(--ios-gray-3);
-        margin-bottom: 10px; display: block;
-    }
-    .ios-empty-mobile p {
-        font-size: 14px; color: var(--ios-label-2); margin: 0 0 16px;
-    }
-
-    /* ─── BOUTON ─── */
-    .ios-btn-mobile {
-        display: inline-flex; align-items: center; justify-content: center;
-        gap: 6px; padding: 11px 18px; border-radius: 11px;
-        font-size: 14px; font-weight: 600; text-decoration: none;
-        transition: opacity 0.15s, transform 0.15s;
-        letter-spacing: -0.2px;
-    }
-    .ios-btn-mobile:active { transform: scale(0.97); opacity: 0.85; }
-    .ios-btn-mobile--primary {
-        background: linear-gradient(135deg, var(--rust), #d4754a);
-        color: #fff; box-shadow: 0 4px 12px rgba(181, 80, 42, 0.25);
-    }
-
-    /* ─── ONBOARDING ─── */
+    /* ONBOARDING */
     .ios-onboarding {
         text-align: center; padding: 28px 20px;
         background: var(--ios-card); border-radius: var(--ios-radius-lg);
@@ -1024,9 +932,10 @@
     .ios-onboarding__icon {
         width: 64px; height: 64px; margin: 0 auto 14px;
         border-radius: 50%;
-        background: linear-gradient(135deg, var(--rust), #d4754a);
-        color: #fff; display: flex; align-items: center; justify-content: center;
-        font-size: 26px; box-shadow: 0 6px 20px rgba(181, 80, 42, 0.3);
+        background: #F5F5F7;
+        color: var(--rust);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 26px;
     }
     .ios-onboarding__title {
         font-size: 18px; font-weight: 700; color: var(--ios-label);
@@ -1038,7 +947,7 @@
         line-height: 1.5; letter-spacing: -0.1px;
     }
 
-    /* ─── ACCÈS RAPIDES ─── */
+    /* ACCÈS RAPIDES */
     .ios-shortcuts-grid {
         display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
     }
@@ -1054,24 +963,10 @@
     .ios-shortcut:active { transform: scale(0.97); background: #F5F5F7; }
     .ios-shortcut__icon {
         width: 48px; height: 48px; border-radius: 14px;
+        background: #F5F5F7;
+        color: var(--rust);
         display: flex; align-items: center; justify-content: center;
         font-size: 20px; flex-shrink: 0;
-    }
-    .ios-shortcut__icon--rust {
-        background: linear-gradient(135deg, #B4532A, #d4754a);
-        color: #fff; box-shadow: 0 4px 12px rgba(181, 80, 42, 0.25);
-    }
-    .ios-shortcut__icon--blue {
-        background: linear-gradient(135deg, #007AFF, #0055CC);
-        color: #fff; box-shadow: 0 4px 12px rgba(0, 122, 255, 0.25);
-    }
-    .ios-shortcut__icon--gold {
-        background: linear-gradient(135deg, #FFCC00, #F5A623);
-        color: #fff; box-shadow: 0 4px 12px rgba(245, 166, 35, 0.25);
-    }
-    .ios-shortcut__icon--gray {
-        background: linear-gradient(135deg, #8E8E93, #636366);
-        color: #fff; box-shadow: 0 4px 12px rgba(142, 142, 147, 0.25);
     }
     .ios-shortcut__label {
         font-size: 13px; font-weight: 600; color: var(--ios-label);

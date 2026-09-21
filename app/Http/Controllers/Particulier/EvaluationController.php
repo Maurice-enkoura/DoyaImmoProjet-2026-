@@ -9,6 +9,7 @@ use App\Models\Agence;
 use App\Models\Proposition;
 use App\Enums\StatutPropositionEnum;
 use Illuminate\Support\Facades\Auth;
+use App\Notifications\NouvelleEvaluationNotification;
 
 class EvaluationController extends Controller
 {
@@ -61,48 +62,59 @@ class EvaluationController extends Controller
      * Stocker une nouvelle évaluation
      */
     public function store(EvaluationRequest $request)
-    {
-        $particulier = Auth::user()->particulier;
+{
+    $particulier = Auth::user()->particulier;
 
-        // ✅ Vérifier la proposition
-        $proposition = Proposition::findOrFail($request->proposition_id);
+    // ✅ Vérifier la proposition
+    $proposition = Proposition::findOrFail($request->proposition_id);
 
-        // ✅ Vérifier que la proposition appartient au particulier
-        if ($proposition->particulier_id !== $particulier->id) {
-            abort(403, 'Cette proposition ne vous appartient pas.');
-        }
-
-        // ✅ Vérifier que la proposition est terminée - CORRIGÉ pour gérer les Enums
-        $statutValue = $proposition->statut instanceof \UnitEnum ? $proposition->statut->value : $proposition->statut;
-        
-        if ($statutValue !== StatutPropositionEnum::TERMINEE->value) {
-            return redirect()->route('particulier.propositions.index')
-                ->with('error', 'Vous ne pouvez évaluer que les propositions terminées.');
-        }
-
-        // ✅ Vérifier qu'il n'y a pas d'évaluation existante pour cette proposition
-        $existe = Evaluation::where('particulier_id', $particulier->id)
-            ->where('proposition_id', $proposition->id)
-            ->exists();
-
-        if ($existe) {
-            return redirect()->route('particulier.evaluations.index')
-                ->with('error', 'Vous avez déjà évalué cette proposition.');
-        }
-
-        // ✅ Créer l'évaluation
-        $evaluation = Evaluation::create([
-            'particulier_id' => $particulier->id,
-            'agence_id' => $proposition->agence_id,
-            'proposition_id' => $proposition->id,
-            'note' => $request->note,
-            'commentaire' => $request->commentaire,
-            'date_evaluation' => now(),
-        ]);
-
-        return redirect()->route('particulier.evaluations.index')
-            ->with('success', 'Évaluation envoyée avec succès.');
+    // ✅ Vérifier que la proposition appartient au particulier
+    if ($proposition->particulier_id !== $particulier->id) {
+        abort(403, 'Cette proposition ne vous appartient pas.');
     }
+
+    // ✅ Vérifier que la proposition est terminée - CORRIGÉ pour gérer les Enums
+    $statutValue = $proposition->statut instanceof \UnitEnum ? $proposition->statut->value : $proposition->statut;
+
+    if ($statutValue !== StatutPropositionEnum::TERMINEE->value) {
+        return redirect()->route('particulier.propositions.index')
+            ->with('error', 'Vous ne pouvez évaluer que les propositions terminées.');
+    }
+
+    // ✅ Vérifier qu'il n'y a pas d'évaluation existante pour cette proposition
+    $existe = Evaluation::where('particulier_id', $particulier->id)
+        ->where('proposition_id', $proposition->id)
+        ->exists();
+
+    if ($existe) {
+        return redirect()->route('particulier.evaluations.index')
+            ->with('error', 'Vous avez déjà évalué cette proposition.');
+    }
+
+    // ✅ Créer l'évaluation
+    $evaluation = Evaluation::create([
+        'particulier_id' => $particulier->id,
+        'agence_id' => $proposition->agence_id,
+        'proposition_id' => $proposition->id,
+        'note' => $request->note,
+        'commentaire' => $request->commentaire,
+        'date_evaluation' => now(),
+    ]);
+
+    // ✅ NOUVEAU : Notifier l'agence du nouvel avis
+    try {
+        if ($evaluation->agence?->user) {
+            $evaluation->agence->user->notify(
+                new \App\Notifications\NouvelleEvaluationNotification($evaluation)
+            );
+        }
+    } catch (\Exception $e) {
+        \Log::error('Erreur notification avis: ' . $e->getMessage());
+    }
+
+    return redirect()->route('particulier.evaluations.index')
+        ->with('success', 'Évaluation envoyée avec succès.');
+}
 
     /**
      * Afficher une évaluation

@@ -8,19 +8,29 @@
 <div class="view active offre-show">
 
     @php
-        $bien     = $proposition->bien;
-        $agence   = $proposition->agence;
-        $agenceUser = $agence->user ?? null;
-        $isVedette = $bien && $bien->est_vedette;
+        use App\Enums\StatutPropositionEnum;
+        use App\Enums\StatutRendezVousEnum;
 
-        $statutValue = is_object($proposition->statut) ? $proposition->statut->value : $proposition->statut;
-        $statusLabels = [
-            'en_attente' => 'En attente',
-            'acceptee'   => 'Acceptée',
-            'refusee'    => 'Refusée',
-            'terminee'   => 'Terminée',
-        ];
-        $statutLabel = $statusLabels[$statutValue] ?? $statutValue;
+        $bien       = $proposition->bien;
+        $agence     = $proposition->agence;
+        $agenceUser = $agence->user ?? null;
+        $isVedette  = $bien && $bien->est_vedette;
+
+        $statutValue = is_object($proposition->statut)
+            ? $proposition->statut->value
+            : (string) $proposition->statut;
+        $statutLabel = is_object($proposition->statut)
+            ? $proposition->statut->label()
+            : ucfirst($statutValue);
+
+        $hasRdvActif = $proposition->rendezVous()
+            ->whereIn('statut', [
+                StatutRendezVousEnum::PLANIFIE->value,
+                StatutRendezVousEnum::CONFIRME->value,
+            ])
+            ->exists();
+
+        $hasAnyRdv = $proposition->rendezVous()->exists();
 
         $score = (int) ($proposition->score_matching ?? 0);
         $scoreClass = $score >= 80 ? 'excellent' : ($score >= 60 ? 'moyen' : 'faible');
@@ -46,6 +56,11 @@
 
         $initial = strtoupper(mb_substr($agence->nom_agence ?? 'A', 0, 1));
 
+        $noteAgence = (float) ($agence->note_moyenne ?? 0);
+        $nbAvis = $agence->evaluations->count() ?? 0;
+
+        $quartierBien = $bien->quartier ?? null;
+
         $hasConditions = $proposition->caution_mois !== null
             || $proposition->avance_loyer_mois !== null
             || $proposition->honoraires !== null
@@ -54,30 +69,16 @@
             || $proposition->conditions_particulieres !== null;
     @endphp
 
-    {{-- ═══ ALERTS ═══ --}}
-    @if(session('success'))
-        <div class="alert alert-success">
-            <i class="fa-solid fa-check-circle"></i>
-            <span>{{ session('success') }}</span>
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-error">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            <span>{{ session('error') }}</span>
-        </div>
-    @endif
-
     {{-- ═══ HERO ═══ --}}
-    <header class="offre-hero offre-hero--{{ $statutValue }} {{ $isVedette ? 'is-vedette' : '' }}">
+    <header class="offre-hero">
 
         <div class="offre-hero__badges">
             <span class="offre-status offre-status--{{ $statutValue }}">
-                <i class="fa-solid fa-circle"></i> {{ $statutLabel }}
+                {{ $statutLabel }}
             </span>
             @if($isVedette)
                 <span class="offre-badge offre-badge--vedette">
-                    <i class="fa-solid fa-star"></i> En vedette
+                    En vedette
                 </span>
             @endif
         </div>
@@ -100,7 +101,6 @@
             </span>
         </div>
 
-        {{-- Score ring --}}
         @if($score)
             <div class="offre-hero__score">
                 <div class="score-ring score-ring--lg score-ring--{{ $scoreClass }}"
@@ -134,45 +134,37 @@
                 <h3 class="agency-block__name">{{ $agence->nom_agence ?? 'Agence' }}</h3>
 
                 <div class="agency-block__rating">
-                    <span class="rating-stars">
-                        <i class="fa-solid fa-star"></i>
-                        <strong>{{ number_format($agence->note_moyenne ?? 0, 1) }}</strong>
-                        <span class="rating-max">/ 5</span>
-                    </span>
-                    <span class="rating-reviews">
-                        ({{ $agence->evaluations->count() ?? 0 }} avis)
-                    </span>
+                    <i class="fa-solid fa-star"></i>
+                    <strong>{{ number_format($noteAgence, 1) }}</strong>
+                    <span class="rating-max">/ 5</span>
+                    <span class="rating-reviews">({{ $nbAvis }} avis)</span>
                 </div>
 
-                <div class="agency-block__contact">
-                    @if($agence->adresse)
-                        <span><i class="fa-solid fa-location-dot"></i> {{ $agence->adresse }}</span>
-                    @endif
-                    @if($agenceUser && $agenceUser->telephone)
-                        <a href="tel:{{ $agenceUser->telephone }}" class="contact-link">
-                            <i class="fa-solid fa-phone"></i> {{ $agenceUser->telephone }}
-                        </a>
-                    @endif
-                    @if($agenceUser && $agenceUser->email)
-                        <a href="mailto:{{ $agenceUser->email }}" class="contact-link">
-                            <i class="fa-solid fa-envelope"></i> {{ $agenceUser->email }}
-                        </a>
-                    @endif
-                </div>
+                @if($agence->adresse)
+                    <div class="agency-block__contact">
+                        <span>
+                            <i class="fa-solid fa-location-dot"></i>
+                            {{ $agence->adresse }}
+                        </span>
+                    </div>
+                @endif
             </div>
         </div>
 
         <div class="agency-block__price">
-            <span class="price-label">Prix proposé</span>
+            <div class="price-info">
+                <span class="price-label">Prix proposé</span>
+                @if($quartierBien)
+                    <span class="price-quartier">
+                        <i class="fa-solid fa-location-dot"></i>
+                        {{ $quartierBien }}
+                    </span>
+                @endif
+            </div>
             <span class="price-value">
                 {{ number_format($proposition->prix_propose, 0, ',', ' ') }}
                 <small>FCFA</small>
             </span>
-            @if($isVedette)
-                <span class="price-vedette">
-                    <i class="fa-solid fa-star"></i> Bien en vedette
-                </span>
-            @endif
         </div>
     </div>
 
@@ -183,7 +175,6 @@
         </div>
 
         <div class="panel panel--conditions">
-            {{-- Récap caution --}}
             @if($proposition->caution_mois !== null)
                 <div class="conditions-recap">
                     <div class="recap-card recap-card--info">
@@ -191,93 +182,58 @@
                             <i class="fa-solid fa-shield-halved"></i>
                         </div>
                         <div class="recap-card__body">
-                            <span class="recap-card__label">À l'avance</span>
+                            <span class="recap-card__label">Caution demandée</span>
                             <span class="recap-card__value">
                                 {{ $proposition->caution_mois > 0 ? $proposition->caution_mois . ' mois' : 'Aucune' }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="recap-card recap-card--success">
-                        <div class="recap-card__icon">
-                            <i class="fa-solid fa-rotate-left"></i>
-                        </div>
-                        <div class="recap-card__body">
-                            <span class="recap-card__label">À la sortie</span>
-                            <span class="recap-card__value">
-                                {{ $proposition->caution_mois > 0 ? $proposition->caution_mois . ' mois' : '—' }}
                             </span>
                         </div>
                     </div>
                 </div>
             @endif
 
-            {{-- Détails --}}
             <div class="conditions-grid">
                 @if($proposition->disponibilite)
                     <div class="condition-item">
-                        <span class="condition-item__label">
-                            <i class="fa-regular fa-calendar"></i> Disponibilité
-                        </span>
-                        <span class="condition-item__value">
-                            {{ $proposition->disponibilite_label }}
-                        </span>
+                        <span class="condition-item__label">Disponibilité</span>
+                        <span class="condition-item__value">{{ $proposition->disponibilite_label }}</span>
                     </div>
                 @endif
 
                 @if($proposition->caution_mois !== null)
                     <div class="condition-item">
-                        <span class="condition-item__label">
-                            <i class="fa-solid fa-shield-halved"></i> Caution
-                        </span>
-                        <span class="condition-item__value">
-                            {{ $proposition->caution_label ?? 'Aucune' }}
-                        </span>
+                        <span class="condition-item__label">Caution</span>
+                        <span class="condition-item__value">{{ $proposition->caution_label ?? 'Aucune' }}</span>
                     </div>
                 @endif
 
                 @if($proposition->avance_loyer_mois !== null)
                     <div class="condition-item">
-                        <span class="condition-item__label">
-                            <i class="fa-solid fa-money-bill-wave"></i> Avance loyer
-                        </span>
-                        <span class="condition-item__value">
-                            {{ $proposition->avance_label ?? 'Aucune' }}
-                        </span>
+                        <span class="condition-item__label">Avance loyer</span>
+                        <span class="condition-item__value">{{ $proposition->avance_label ?? 'Aucune' }}</span>
                     </div>
                 @endif
 
                 @if($proposition->honoraires !== null)
                     <div class="condition-item">
-                        <span class="condition-item__label">
-                            <i class="fa-solid fa-hand-holding-dollar"></i> Honoraires
-                        </span>
-                        <span class="condition-item__value">
-                            {{ $proposition->honoraires_formate }}
-                        </span>
+                        <span class="condition-item__label">Honoraires</span>
+                        <span class="condition-item__value">{{ $proposition->honoraires_formate }}</span>
                     </div>
                 @endif
 
                 @if($proposition->charges !== null)
                     <div class="condition-item">
-                        <span class="condition-item__label">
-                            <i class="fa-solid fa-receipt"></i> Charges
-                        </span>
-                        <span class="condition-item__value">
-                            {{ $proposition->charges_formate }}
-                        </span>
+                        <span class="condition-item__label">Charges</span>
+                        <span class="condition-item__value">{{ $proposition->charges_formate }}</span>
                     </div>
                 @endif
             </div>
 
-            {{-- Coût total --}}
             @if($proposition->cout_entree_total > 0)
                 <div class="conditions-total">
                     <div class="conditions-total__left">
                         <i class="fa-solid fa-coins"></i>
                         <div>
                             <span class="conditions-total__label">Coût total à l'entrée</span>
-                            <span class="conditions-total__hint">Caution + Avance + Honoraires + Charges</span>
                         </div>
                     </div>
                     <span class="conditions-total__value">
@@ -286,12 +242,9 @@
                 </div>
             @endif
 
-            {{-- Notes --}}
             @if($proposition->conditions_particulieres)
                 <div class="conditions-notes">
-                    <span class="conditions-notes__label">
-                        <i class="fa-regular fa-file-lines"></i> Conditions particulières
-                    </span>
+                    <span class="conditions-notes__label">Conditions particulières</span>
                     <p class="conditions-notes__text">{{ $proposition->conditions_particulieres }}</p>
                 </div>
             @endif
@@ -311,9 +264,6 @@
                     @php $url = asset('storage/' . $media->fichier); @endphp
                     <div class="gallery-item" onclick="openLightbox('{{ $url }}', {{ $index }})">
                         <img src="{{ $url }}" alt="Photo" loading="lazy">
-                        <div class="gallery-item__overlay">
-                            <i class="fa-solid fa-magnifying-glass-plus"></i>
-                        </div>
                     </div>
                 @endforeach
             </div>
@@ -322,7 +272,6 @@
         @if($propVideos->count() > 0)
             <div class="video-section">
                 <h5 class="video-section__title">
-                    <i class="fa-regular fa-circle-play"></i>
                     Vidéos
                     <span class="video-section__count">{{ $propVideos->count() }}</span>
                 </h5>
@@ -361,82 +310,54 @@
     @if($bien)
         <div class="ios-section-title">
             <i class="fa-regular fa-list-check"></i> Caractéristiques du bien
-            @if($isVedette)
-                <span class="ios-section-count ios-section-count--gold">
-                    <i class="fa-solid fa-star"></i> Vedette
-                </span>
-            @endif
         </div>
 
         <div class="ios-list">
-            <div class="ios-list__item ios-list__item--static">
-                <div class="ios-list__content">
-                    <span class="ios-list__title">Titre</span>
-                </div>
+            <div class="ios-list__item">
+                <span class="ios-list__title">Titre</span>
                 <span class="ios-list__value">{{ $bien->titre ?? '—' }}</span>
             </div>
 
-            <div class="ios-list__item ios-list__item--static">
-                <div class="ios-list__content">
-                    <span class="ios-list__title">Type</span>
-                </div>
+            <div class="ios-list__item">
+                <span class="ios-list__title">Type</span>
                 <span class="ios-list__value">
                     {{ is_object($bien->type_bien) ? $bien->type_bien->label() : ($bien->type_bien ?? '—') }}
                 </span>
             </div>
 
-            <div class="ios-list__item ios-list__item--static">
-                <div class="ios-list__content">
-                    <span class="ios-list__title">Contrat</span>
-                </div>
+            <div class="ios-list__item">
+                <span class="ios-list__title">Contrat</span>
                 <span class="ios-list__value">
                     {{ is_object($bien->type_contrat) ? $bien->type_contrat->label() : ($bien->type_contrat ?? '—') }}
                 </span>
             </div>
 
-            <div class="ios-list__item ios-list__item--static">
-                <div class="ios-list__content">
-                    <span class="ios-list__title">Surface</span>
-                </div>
+            <div class="ios-list__item">
+                <span class="ios-list__title">Surface</span>
                 <span class="ios-list__value">{{ $bien->surface ?? '—' }} m²</span>
             </div>
 
-            <div class="ios-list__item ios-list__item--static">
-                <div class="ios-list__content">
-                    <span class="ios-list__title">Chambres</span>
-                </div>
+            <div class="ios-list__item">
+                <span class="ios-list__title">Chambres</span>
                 <span class="ios-list__value">{{ $bien->nombre_chambres ?? '—' }}</span>
             </div>
 
-            <div class="ios-list__item ios-list__item--static">
-                <div class="ios-list__content">
-                    <span class="ios-list__title">Salles de bain</span>
-                </div>
+            <div class="ios-list__item">
+                <span class="ios-list__title">Salles de bain</span>
                 <span class="ios-list__value">{{ $bien->nombre_salles_bain ?? '—' }}</span>
             </div>
 
-            <div class="ios-list__item ios-list__item--static">
-                <div class="ios-list__content">
-                    <span class="ios-list__title">Parking</span>
-                </div>
-                <span class="ios-list__value">
-                    <i class="fa-solid {{ $bien->parking_disponible ? 'fa-circle-check is-yes' : 'fa-circle-xmark is-no' }}"></i>
-                    {{ $bien->parking_disponible ? 'Oui' : 'Non' }}
-                </span>
+            <div class="ios-list__item">
+                <span class="ios-list__title">Parking</span>
+                <span class="ios-list__value">{{ $bien->parking_disponible ? 'Oui' : 'Non' }}</span>
             </div>
 
-            <div class="ios-list__item ios-list__item--static">
-                <div class="ios-list__content">
-                    <span class="ios-list__title">Meublé</span>
-                </div>
-                <span class="ios-list__value">
-                    <i class="fa-solid {{ $bien->est_meuble ? 'fa-circle-check is-yes' : 'fa-circle-xmark is-no' }}"></i>
-                    {{ $bien->est_meuble ? 'Oui' : 'Non' }}
-                </span>
+            <div class="ios-list__item">
+                <span class="ios-list__title">Meublé</span>
+                <span class="ios-list__value">{{ $bien->est_meuble ? 'Oui' : 'Non' }}</span>
             </div>
         </div>
 
-        {{-- Adresse --}}
         @if($bien->adresse)
             <div class="panel panel--address">
                 <div class="address-block">
@@ -446,7 +367,6 @@
             </div>
         @endif
 
-        {{-- Équipements --}}
         @if(count($equipementsBien) > 0)
             <div class="ios-section-title">
                 <i class="fa-solid fa-cogs"></i> Équipements
@@ -454,19 +374,16 @@
             </div>
             <div class="equipements-grid">
                 @foreach($equipementsBien as $equipement)
-                    <span class="equipement-pill">
-                        <i class="fa-solid fa-check-circle"></i> {{ $equipement }}
-                    </span>
+                    <span class="equipement-pill">{{ $equipement }}</span>
                 @endforeach
             </div>
         @endif
 
-        {{-- Description --}}
         @if($bien->description)
             <div class="ios-section-title">
                 <i class="fa-regular fa-file-lines"></i> Description
             </div>
-            <blockquote class="quote-block quote-block--rust">
+            <blockquote class="quote-block">
                 {{ $bien->description }}
             </blockquote>
         @endif
@@ -475,52 +392,65 @@
     {{-- ═══ ACTIONS ═══ --}}
     <footer class="offre-actions">
         <div class="offre-actions__main">
+
             @if($statutValue === 'en_attente')
-                <form action="{{ route('particulier.propositions.selectionner', $proposition) }}"
+                <form action="{{ route('particulier.propositions.choisir-et-planifier', $proposition) }}"
                       method="POST" class="inline-form">
                     @csrf
                     <button type="submit" class="btn btn-rust"
-                            onclick="return confirm('✅ Sélectionner cette offre ? Cela clôturera les autres offres en attente.')">
-                        <i class="fa-solid fa-check"></i> Choisir cette agence
+                            onclick="return confirm('Choisir cette agence et planifier une visite ?\n\nLes autres offres seront automatiquement refusées.')">
+                        Choisir et planifier
                     </button>
                 </form>
-
-                <a href="{{ route('particulier.rendezvous.create', $proposition) }}" class="btn btn-ghost">
-                    <i class="fa-solid fa-calendar-plus"></i> Planifier une visite
-                </a>
 
                 <form action="{{ route('particulier.propositions.refuser', $proposition) }}"
                       method="POST" class="inline-form">
                     @csrf
                     <button type="submit" class="btn btn-danger-soft"
-                            onclick="return confirm('❌ Refuser cette offre ?')">
-                        <i class="fa-solid fa-times"></i> Refuser
+                            onclick="return confirm('Refuser cette offre ?')">
+                        Refuser
                     </button>
                 </form>
 
             @elseif($statutValue === 'acceptee')
                 <span class="state-pill state-pill--success">
-                    <i class="fa-solid fa-circle-check"></i> Offre acceptée
+                    Offre acceptée
                 </span>
-                <a href="{{ route('particulier.rendezvous.create', $proposition) }}" class="btn btn-rust">
-                    <i class="fa-solid fa-calendar-check"></i> Planifier la visite
-                </a>
+
+                @if($hasRdvActif)
+                    <a href="{{ route('particulier.rendezvous.index') }}" class="btn btn-ghost">
+                        Voir la visite planifiée
+                    </a>
+                @else
+                    <a href="{{ route('particulier.rendezvous.create', $proposition) }}" class="btn btn-rust">
+                        Planifier la visite
+                    </a>
+
+                    <form action="{{ route('particulier.propositions.annuler-selection', $proposition) }}"
+                          method="POST" class="inline-form">
+                        @csrf
+                        <button type="submit" class="btn btn-ghost-danger"
+                                onclick="return confirm('Annuler l\'acceptation ?\n\nLa demande repassera en attente.\nLes offres refusées automatiquement seront réactivées.\nVos refus volontaires resteront bloqués.')">
+                            Annuler l'acceptation
+                        </button>
+                    </form>
+                @endif
 
             @elseif($statutValue === 'refusee')
                 <span class="state-pill state-pill--muted">
-                    <i class="fa-regular fa-eye-slash"></i> Offre ignorée
+                    Offre ignorée
                 </span>
 
             @elseif($statutValue === 'terminee')
                 <span class="state-pill state-pill--info">
-                    <i class="fa-solid fa-check-double"></i> Offre terminée
+                    Offre terminée
                 </span>
             @endif
         </div>
 
         <a href="{{ route('particulier.signalements.create-proposition', $proposition) }}"
            class="btn btn-ghost-danger offre-actions__report">
-            <i class="fa-solid fa-flag"></i> Signaler
+            Signaler
         </a>
     </footer>
 </div>
@@ -625,18 +555,18 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   DÉTAIL OFFRE — iOS NATIVE
+   DÉTAIL OFFRE — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .offre-show {
     --c-warning:    #E65100;
     --c-warning-bg: #FFF8E1;
     --c-success:    #1E7A47;
-    --c-success-bg: #E8F5E9;
+    --c-success-bg: #F1F8F4;
     --c-danger:     #C62828;
-    --c-danger-bg:  #FFEBEE;
-    --c-info:       #0D47A1;
-    --c-info-bg:    #E3F2FD;
+    --c-danger-bg:  #FEF2F2;
+    --c-info:       #1E40AF;
+    --c-info-bg:    #EFF6FF;
     --c-gold:       #F5A623;
     --surface:      #F7F9FC;
     --radius:       14px;
@@ -651,21 +581,6 @@
     --ios-radius-lg: 18px;
 }
 
-/* ═══ ALERTS ═══ */
-.alert {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 11px 16px;
-    border-radius: 10px;
-    margin-bottom: 14px;
-    border-left: 4px solid;
-    font-size: 13px;
-    font-weight: 500;
-}
-.alert-success { background: var(--c-success-bg); color: var(--c-success); border-left-color: var(--c-success); }
-.alert-error   { background: var(--c-danger-bg);  color: var(--c-danger);  border-left-color: var(--c-danger); }
-
 /* ═══ SECTION TITLES ═══ */
 .ios-section-title {
     font-family: var(--display);
@@ -677,19 +592,15 @@
     align-items: center;
     gap: 8px;
 }
-.ios-section-title i { color: var(--rust); font-size: 15px; }
+.ios-section-title i { color: var(--muted); font-size: 15px; }
 .ios-section-title .ios-section-count {
     margin-left: auto;
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
     padding: 3px 10px;
-    background: var(--c-warning-bg);
-    color: var(--rust);
+    background: #F5F5F7;
+    color: var(--muted);
     border-radius: 999px;
-}
-.ios-section-title .ios-section-count--gold {
-    background: linear-gradient(135deg, var(--c-gold), #E8901A);
-    color: #fff;
 }
 
 /* ═══ HERO ═══ */
@@ -704,24 +615,6 @@
     border-radius: var(--radius);
     margin-bottom: 14px;
     flex-wrap: wrap;
-    position: relative;
-    overflow: hidden;
-}
-.offre-hero::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-    background: var(--muted);
-}
-.offre-hero--en_attente::before { background: var(--c-warning); }
-.offre-hero--acceptee::before   { background: var(--c-success); }
-.offre-hero--refusee::before    { background: var(--c-danger); }
-.offre-hero--terminee::before   { background: var(--c-info); }
-
-.offre-hero.is-vedette {
-    background: linear-gradient(135deg, #FFFDF5 0%, #fff 60%);
-    border-color: var(--c-gold);
 }
 
 .offre-hero__badges {
@@ -757,7 +650,7 @@
     color: var(--muted);
     width: 100%;
 }
-.offre-hero__meta i { font-size: 12px; margin-right: 5px; opacity: .8; }
+.offre-hero__meta i { font-size: 12px; margin-right: 5px; }
 .offre-hero__meta strong { color: var(--text); font-weight: 600; }
 .offre-hero__meta-sep { opacity: .4; }
 
@@ -833,7 +726,6 @@
 .offre-status {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
     padding: 4px 12px;
     border-radius: 999px;
     font-size: 11px;
@@ -841,8 +733,9 @@
     text-transform: uppercase;
     letter-spacing: .4px;
     white-space: nowrap;
+    background: #F5F5F7;
+    color: #4A5260;
 }
-.offre-status i { font-size: 6px; }
 .offre-status--en_attente { background: var(--c-warning-bg); color: var(--c-warning); }
 .offre-status--acceptee   { background: var(--c-success-bg); color: var(--c-success); }
 .offre-status--refusee    { background: var(--c-danger-bg);  color: var(--c-danger); }
@@ -851,19 +744,17 @@
 .offre-badge {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
     padding: 4px 11px;
     border-radius: 999px;
     font-size: 10.5px;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: .3px;
     white-space: nowrap;
 }
 .offre-badge--vedette {
-    background: linear-gradient(135deg, var(--c-gold), #E8901A);
-    color: #fff;
-    box-shadow: 0 2px 6px rgba(245, 166, 35, .3);
+    background: #FFF8E1;
+    color: #A05A00;
 }
 
 /* ═══ PANEL ═══ */
@@ -888,8 +779,9 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--rust), #d4754a);
-    color: #fff;
+    background: #F5F5F7;
+    color: var(--text);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -897,7 +789,6 @@
     font-size: 22px;
     font-weight: 700;
     flex-shrink: 0;
-    box-shadow: 0 6px 16px rgba(180, 83, 42, .2);
 }
 
 .agency-block__info { flex: 1; min-width: 200px; }
@@ -912,20 +803,19 @@
 .agency-block__rating {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     margin-bottom: 6px;
     font-size: 13px;
     flex-wrap: wrap;
 }
-.rating-stars { display: inline-flex; align-items: center; gap: 4px; }
-.rating-stars i { color: var(--c-gold); font-size: 13px; }
-.rating-stars strong {
+.agency-block__rating i { color: var(--c-gold); font-size: 13px; }
+.agency-block__rating strong {
     font-family: var(--display);
     font-size: 14px;
-    font-weight: 800;
+    font-weight: 700;
     color: var(--text);
 }
-.rating-max { color: var(--muted); font-size: 12px; font-weight: 500; }
+.rating-max { color: var(--muted); font-size: 12px; }
 .rating-reviews { color: var(--muted); font-size: 12px; }
 
 .agency-block__contact {
@@ -935,35 +825,31 @@
     font-size: 12.5px;
     color: var(--text-soft);
 }
-.agency-block__contact span,
-.agency-block__contact a {
+.agency-block__contact span {
     display: inline-flex;
     align-items: center;
     gap: 6px;
 }
-.agency-block__contact i { color: var(--rust); font-size: 11px; }
-.contact-link {
-    color: var(--text-soft);
-    text-decoration: none;
-    transition: color .2s;
-}
-.contact-link:hover { color: var(--rust); }
+.agency-block__contact i { color: var(--muted); font-size: 11px; }
 
+/* Prix + quartier */
 .agency-block__price {
     text-align: right;
     flex-shrink: 0;
-    padding-left: 20px;
-    border-left: 1px dashed var(--border);
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
     padding-top: 14px;
-    padding-left: 0;
-    border-left: none;
-    border-top: 1px dashed var(--border);
+    border-top: 1px solid var(--border);
     margin-top: 4px;
+}
+.price-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
 }
 .price-label {
     font-size: 11px;
@@ -973,6 +859,24 @@
     font-weight: 600;
     display: block;
 }
+.price-quartier {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-soft);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+.price-quartier i {
+    color: var(--muted);
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
 .price-value {
     font-family: var(--display);
     font-size: 22px;
@@ -987,20 +891,6 @@
     opacity: .7;
     margin-left: 3px;
 }
-.price-vedette {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 10px;
-    background: #FFF8E1;
-    color: #E8901A;
-    border-radius: 999px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .3px;
-}
-.price-vedette i { font-size: 9px; }
 
 /* ═══ CONDITIONS ═══ */
 .conditions-recap {
@@ -1016,10 +906,8 @@
     gap: 12px;
     padding: 14px 16px;
     border-radius: 12px;
-    border: 1px solid transparent;
+    background: #F5F5F7;
 }
-.recap-card--info { background: var(--c-info-bg); border-color: #BBDEFB; }
-.recap-card--success { background: var(--c-success-bg); border-color: #C8E6C9; }
 
 .recap-card__icon {
     width: 40px; height: 40px;
@@ -1030,9 +918,8 @@
     justify-content: center;
     flex-shrink: 0;
     font-size: 16px;
+    color: var(--muted);
 }
-.recap-card--info    .recap-card__icon { color: var(--c-info); }
-.recap-card--success .recap-card__icon { color: var(--c-success); }
 
 .recap-card__body { min-width: 0; }
 .recap-card__label {
@@ -1041,12 +928,9 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: .4px;
-    opacity: .75;
+    color: var(--muted);
     margin-bottom: 2px;
 }
-.recap-card--info    .recap-card__label { color: var(--c-info); }
-.recap-card--success .recap-card__label { color: var(--c-success); }
-
 .recap-card__value {
     display: block;
     font-family: var(--display);
@@ -1068,9 +952,8 @@
     flex-direction: column;
     gap: 4px;
     padding: 12px 14px;
-    background: var(--surface);
+    background: #F5F5F7;
     border-radius: 10px;
-    border: 1px solid var(--border);
 }
 .condition-item__label {
     font-size: 11px;
@@ -1078,11 +961,7 @@
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: .4px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
 }
-.condition-item__label i { color: var(--rust); font-size: 11px; opacity: .85; }
 .condition-item__value {
     font-family: var(--display);
     font-size: 14px;
@@ -1096,8 +975,8 @@
     justify-content: space-between;
     gap: 16px;
     padding: 14px 18px;
-    background: linear-gradient(135deg, #FFFBF7 0%, #FFF 100%);
-    border: 1px solid rgba(181, 80, 42, .2);
+    background: #F9FAFB;
+    border: 1px solid var(--border);
     border-radius: 12px;
     margin-bottom: 16px;
     flex-wrap: wrap;
@@ -1127,12 +1006,6 @@
     color: var(--text);
     line-height: 1.2;
 }
-.conditions-total__hint {
-    display: block;
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 2px;
-}
 .conditions-total__value {
     font-family: var(--display);
     font-size: 20px;
@@ -1144,7 +1017,7 @@
 
 .conditions-notes {
     padding-top: 16px;
-    border-top: 1px dashed var(--border);
+    border-top: 1px solid var(--border);
 }
 .conditions-notes__label {
     display: inline-flex;
@@ -1157,14 +1030,13 @@
     letter-spacing: .4px;
     margin-bottom: 8px;
 }
-.conditions-notes__label i { color: var(--rust); font-size: 12px; }
 .conditions-notes__text {
     font-size: 13.5px;
     color: var(--text-soft);
     line-height: 1.7;
     margin: 0;
     padding: 12px 16px;
-    background: var(--surface);
+    background: #F9FAFB;
     border-radius: 10px;
     border-left: 3px solid var(--rust);
     font-style: italic;
@@ -1183,53 +1055,31 @@
     border-radius: 10px;
     overflow: hidden;
     cursor: pointer;
-    background: var(--surface);
+    background: #F5F5F7;
     border: 1px solid var(--border);
-    transition: transform .2s ease, box-shadow .2s ease;
-}
-.gallery-item:hover {
-    transform: scale(1.02);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, .1);
 }
 .gallery-item img {
     width: 100%; height: 100%;
     object-fit: cover;
     display: block;
 }
-.gallery-item__overlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, .4);
-    color: #fff;
-    font-size: 20px;
-    opacity: 0;
-    transition: opacity .2s;
-}
-.gallery-item:hover .gallery-item__overlay { opacity: 1; }
 
 .video-section { margin-top: 8px; }
 .video-section__title {
     display: flex;
     align-items: center;
     gap: 7px;
-    font-size: 12.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .4px;
+    font-size: 13px;
+    font-weight: 600;
     color: var(--muted);
     margin: 0 0 10px;
 }
-.video-section__title i { color: var(--rust); font-size: 13px; }
 .video-section__count {
     padding: 1px 8px;
     border-radius: 999px;
-    background: var(--surface);
-    color: var(--text-soft);
+    background: #F5F5F7;
+    color: var(--muted);
     font-size: 10.5px;
-    letter-spacing: 0;
 }
 .video-grid {
     display: grid;
@@ -1268,19 +1118,16 @@
 .message-block {
     padding: 16px 20px;
     border-radius: 12px;
-    background: #fff;
+    background: #F9FAFB;
     font-size: 14px;
     line-height: 1.75;
     color: var(--text);
     font-style: italic;
     margin: 0 0 14px;
-    border-left: 4px solid var(--rust);
-    border-top: 1px solid var(--border);
-    border-right: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
+    border-left: 3px solid var(--rust);
 }
 
-/* ═══ LISTE iOS (caractéristiques) ═══ */
+/* ═══ LISTE iOS ═══ */
 .ios-list {
     background: #fff;
     border: 1px solid var(--border);
@@ -1299,8 +1146,6 @@
     border-bottom: 1px solid var(--border);
     font-size: 13.5px;
 }
-.ios-list__item--static { cursor: default; }
-.ios-list__content { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ios-list__title {
     font-size: 12.5px;
     color: var(--muted);
@@ -1308,13 +1153,11 @@
 }
 .ios-list__value {
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--text);
     text-align: right;
     flex-shrink: 0;
 }
-.ios-list__value .is-yes { color: var(--c-success); margin-right: 4px; }
-.ios-list__value .is-no  { color: var(--c-danger);  margin-right: 4px; }
 
 /* Adresse */
 .panel--address {
@@ -1330,9 +1173,9 @@
 }
 .address-block i {
     width: 32px; height: 32px;
-    border-radius: 9px;
-    background: var(--c-warning-bg);
-    color: var(--rust);
+    border-radius: 8px;
+    background: #F5F5F7;
+    color: var(--muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1350,16 +1193,13 @@
 .equipement-pill {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
     padding: 6px 13px;
-    background: var(--c-info-bg);
-    color: var(--c-info);
-    border: 1px solid #BBDEFB;
+    background: #F5F5F7;
+    color: var(--text);
     border-radius: 999px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
 }
-.equipement-pill i { font-size: 10px; }
 
 /* Quote */
 .quote-block {
@@ -1369,14 +1209,8 @@
     line-height: 1.75;
     color: var(--text);
     margin: 0 0 14px;
-    border-left: 4px solid var(--rust);
-    background: #fff;
-    border-top: 1px solid var(--border);
-    border-right: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-}
-.quote-block--rust {
-    background: linear-gradient(135deg, rgba(180, 83, 42, .06), rgba(180, 83, 42, .02));
+    border-left: 3px solid var(--rust);
+    background: #F9FAFB;
     font-style: italic;
 }
 
@@ -1405,16 +1239,16 @@
 .state-pill {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
     padding: 8px 16px;
     border-radius: 10px;
     font-size: 13px;
-    font-weight: 600;
-    border: 1px solid;
+    font-weight: 500;
+    background: #F5F5F7;
+    color: var(--text-soft);
 }
-.state-pill--success { background: var(--c-success-bg); color: var(--c-success); border-color: #C8E6C9; }
-.state-pill--muted   { background: var(--surface); color: var(--muted); border-color: var(--border); }
-.state-pill--info    { background: var(--c-info-bg); color: var(--c-info); border-color: #BBDEFB; }
+.state-pill--success { background: var(--c-success-bg); color: var(--c-success); }
+.state-pill--muted   { background: #F5F5F7;             color: var(--muted); }
+.state-pill--info    { background: var(--c-info-bg);    color: var(--c-info); }
 
 /* ═══ BOUTONS ═══ */
 .btn {
@@ -1429,18 +1263,20 @@
     border: 1px solid transparent;
     cursor: pointer;
     font-family: inherit;
-    transition: all .2s ease;
+    transition: background-color .15s, border-color .15s, color .15s;
     white-space: nowrap;
 }
 .btn-rust { background: var(--rust); color: #fff; border-color: var(--rust); }
-.btn-rust:hover { background: #9A4523; color: #fff; border-color: #9A4523; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(180, 83, 42, .25); }
+.btn-rust:hover { background: #9A4523; border-color: #9A4523; color: #fff; }
+
 .btn-ghost { background: transparent; color: var(--text-soft); border-color: var(--border); }
-.btn-ghost:hover { background: var(--surface); border-color: var(--rust); color: var(--rust); }
-.btn-danger-soft { background: var(--c-danger-bg); color: var(--c-danger); border-color: #FFCDD2; }
-.btn-danger-soft:hover { background: var(--c-danger); color: #fff; border-color: var(--c-danger); }
-.btn-ghost-danger { background: transparent; color: var(--c-danger); border-color: #FFCDD2; }
-.btn-ghost-danger:hover { background: var(--c-danger-bg); border-color: var(--c-danger); }
-.btn-sm { padding: 6px 13px; font-size: 12px; }
+.btn-ghost:hover { background: #F5F5F7; color: var(--text); }
+
+.btn-danger-soft { background: transparent; color: var(--c-danger); border-color: var(--border); }
+.btn-danger-soft:hover { background: var(--c-danger-bg); border-color: #FECACA; }
+
+.btn-ghost-danger { background: transparent; color: var(--c-danger); border-color: var(--border); }
+.btn-ghost-danger:hover { background: var(--c-danger-bg); border-color: #FECACA; }
 
 /* ═══ LIGHTBOX ═══ */
 .lightbox {
@@ -1452,7 +1288,6 @@
     align-items: center;
     justify-content: center;
     padding: 20px;
-    animation: fadeIn .2s ease;
 }
 .lightbox.is-open { display: flex; }
 
@@ -1469,13 +1304,11 @@
     max-height: 82vh;
     object-fit: contain;
     border-radius: 6px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
 }
 .lightbox__counter {
     color: #fff;
     font-size: 13px;
     font-weight: 600;
-    letter-spacing: .5px;
     padding: 5px 14px;
     background: rgba(255, 255, 255, .12);
     border-radius: 999px;
@@ -1491,14 +1324,13 @@
     border: none;
     font-size: 26px;
     cursor: pointer;
-    transition: background .2s, transform .2s;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: sans-serif;
     z-index: 2;
 }
-.lightbox__close:hover { background: rgba(255, 255, 255, .25); transform: scale(1.05); }
+.lightbox__close:hover { background: rgba(255, 255, 255, .25); }
 
 .lightbox__nav {
     position: absolute;
@@ -1511,17 +1343,14 @@
     border: none;
     font-size: 20px;
     cursor: pointer;
-    transition: background .2s, transform .2s;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 2;
 }
-.lightbox__nav:hover { background: rgba(255, 255, 255, .28); transform: translateY(-50%) scale(1.06); }
+.lightbox__nav:hover { background: rgba(255, 255, 255, .28); }
 .lightbox__nav--prev { left: 24px; }
 .lightbox__nav--next { right: 24px; }
-
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 
 /* ═══════════════════════════════════════════════════════════
@@ -1531,7 +1360,6 @@
 
     .offre-show { background: transparent; padding-top: 4px; }
 
-    /* ─── HERO iOS ─── */
     .offre-hero {
         background: var(--ios-card);
         border: none;
@@ -1542,16 +1370,6 @@
         align-items: stretch;
         gap: 14px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
-        overflow: hidden;
-    }
-    .offre-hero::before {
-        left: 0; right: 0;
-        height: 3px;
-        border-radius: 0;
-    }
-    .offre-hero.is-vedette {
-        background: linear-gradient(135deg, #FFFDF5 0%, #fff 40%);
-        border: none;
     }
     .offre-hero__badges { gap: 6px; margin-bottom: 6px; }
     .offre-status {
@@ -1561,7 +1379,6 @@
         padding: 4px 10px;
         font-weight: 600;
     }
-    .offre-status i { font-size: 7px; }
     .offre-badge { font-size: 11px; padding: 4px 10px; text-transform: none; letter-spacing: 0; }
 
     .offre-hero__title {
@@ -1578,11 +1395,9 @@
         color: var(--ios-label-3);
         gap: 8px;
     }
-    .offre-hero__meta i { color: var(--ios-label-3); }
     .offre-hero__meta strong { color: var(--ios-label); }
     .offre-hero__meta-sep { display: none; }
 
-    /* Score inline */
     .offre-hero__score {
         gap: 12px;
         padding-top: 14px;
@@ -1600,7 +1415,6 @@
         font-weight: 400;
     }
 
-    /* ─── SECTION TITLES iOS ─── */
     .ios-section-title {
         font-size: 17px;
         font-weight: 700;
@@ -1608,13 +1422,12 @@
         letter-spacing: -.3px;
         margin: 22px 4px 10px;
     }
-    .ios-section-title i { font-size: 15px; color: var(--rust); }
+    .ios-section-title i { font-size: 15px; color: var(--muted); }
     .ios-section-title .ios-section-count {
         font-size: 11px;
         padding: 3px 10px;
     }
 
-    /* ─── PANEL iOS ─── */
     .panel {
         background: var(--ios-card);
         border: none;
@@ -1624,7 +1437,6 @@
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
 
-    /* ─── AGENCE ─── */
     .agency-block {
         flex-direction: column;
         align-items: flex-start;
@@ -1633,32 +1445,33 @@
         margin-bottom: 0;
         border-bottom: 0.5px solid var(--ios-separator);
     }
-    .agency-block__avatar { width: 52px; height: 52px; font-size: 20px; }
+    .agency-block__avatar {
+        width: 52px;
+        height: 52px;
+        font-size: 20px;
+        background: #F5F5F7;
+    }
     .agency-block__info { width: 100%; }
     .agency-block__name { font-size: 18px; font-weight: 700; letter-spacing: -.2px; }
     .agency-block__rating { font-size: 13px; }
-    .rating-stars strong { font-size: 14px; }
     .agency-block__contact {
         gap: 8px 14px;
         font-size: 13px;
         margin-top: 8px;
     }
-    .contact-link { font-weight: 500; }
 
-    /* Prix en bas, style iOS */
     .agency-block__price {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 10px;
         padding-top: 14px;
-        padding-left: 0;
         margin-top: 14px;
-        border-left: none;
         border-top: none;
         width: 100%;
         text-align: left;
     }
+    .price-info { gap: 6px; }
     .price-label {
         font-size: 13px;
         color: var(--ios-label-3);
@@ -1666,16 +1479,20 @@
         letter-spacing: 0;
         font-weight: 500;
     }
+    .price-quartier {
+        font-size: 13px;
+        color: var(--ios-label-2);
+        font-weight: 500;
+    }
+    .price-quartier i { color: var(--muted); font-size: 12px; }
     .price-value {
         font-size: 24px;
         font-weight: 800;
         letter-spacing: -.5px;
     }
-    .price-vedette { display: none; } /* déjà dans le hero */
 
-    /* ─── CONDITIONS iOS ─── */
     .conditions-recap { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .recap-card { padding: 12px; gap: 10px; }
+    .recap-card { padding: 12px; gap: 10px; background: #F5F5F7; }
     .recap-card__icon { width: 36px; height: 36px; font-size: 14px; border-radius: 9px; }
     .recap-card__label { font-size: 10px; }
     .recap-card__value { font-size: 14px; }
@@ -1683,7 +1500,6 @@
     .conditions-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
     .condition-item {
         background: #EFEFF4;
-        border: none;
         padding: 10px 12px;
         border-radius: 10px;
     }
@@ -1696,18 +1512,15 @@
         gap: 12px;
         padding: 14px 16px;
         border-radius: 14px;
-        background: linear-gradient(135deg, #FFF4EC, #FFE8D9);
-        border: none;
+        background: #F9FAFB;
+        border: 1px solid var(--ios-separator);
     }
     .conditions-total__left > i {
         width: 38px; height: 38px;
-        background: linear-gradient(135deg, var(--rust), #d4754a);
-        box-shadow: 0 4px 10px rgba(181, 80, 42, .25);
     }
     .conditions-total__label { font-size: 14px; }
     .conditions-total__value {
         font-size: 22px;
-        letter-spacing: -.4px;
         text-align: left;
         align-self: flex-end;
     }
@@ -1715,22 +1528,20 @@
     .conditions-notes { border-top: 0.5px solid var(--ios-separator); }
     .conditions-notes__label { font-size: 12px; text-transform: none; letter-spacing: 0; color: var(--ios-label-2); }
     .conditions-notes__text {
-        background: #FFF9F5;
+        background: #F9FAFB;
         border-left: 3px solid var(--rust);
         border-radius: 10px;
         padding: 12px 14px;
         font-size: 13.5px;
     }
 
-    /* ─── GALERIE iOS ─── */
     .gallery-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 8px;
     }
     .gallery-item { border-radius: 12px; border: none; }
-    .gallery-item__overlay { display: none; }
 
-    .video-section__title { font-size: 13px; text-transform: none; letter-spacing: 0; color: var(--ios-label-2); font-weight: 600; }
+    .video-section__title { font-size: 13px; color: var(--ios-label-2); font-weight: 600; }
     .video-grid { grid-template-columns: 1fr; gap: 10px; }
     .video-tile { border-radius: 12px; border: none; }
 
@@ -1744,7 +1555,6 @@
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
 
-    /* ─── MESSAGE iOS ─── */
     .message-block {
         background: var(--ios-card);
         border: none;
@@ -1757,7 +1567,6 @@
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
 
-    /* ─── LISTE iOS ─── */
     .ios-list {
         display: block;
         background: var(--ios-card);
@@ -1778,40 +1587,30 @@
         font-size: 15px;
         color: var(--ios-label);
         font-weight: 500;
-        letter-spacing: -.2px;
     }
     .ios-list__value {
         font-size: 15px;
-        font-weight: 600;
+        font-weight: 500;
         color: var(--ios-label-3);
         text-align: right;
     }
-    .ios-list__value .is-yes { color: var(--c-success); }
-    .ios-list__value .is-no  { color: var(--c-danger); }
 
-    /* Adresse iOS */
     .panel--address { padding: 14px 16px; }
     .address-block { font-size: 14px; gap: 10px; }
     .address-block i {
         width: 34px; height: 34px;
-        border-radius: 9px;
-        background: var(--c-warning-bg);
+        background: #F5F5F7;
     }
 
-    /* ─── ÉQUIPEMENTS ─── */
     .equipements-grid { gap: 8px; }
     .equipement-pill {
-        background: var(--ios-card);
+        background: #F5F5F7;
         color: var(--ios-label);
-        border: none;
         padding: 8px 14px;
         font-size: 13px;
         font-weight: 500;
-        box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
-    .equipement-pill i { font-size: 12px; color: var(--c-success); }
 
-    /* ─── QUOTE ─── */
     .quote-block {
         background: var(--ios-card);
         border: none;
@@ -1824,7 +1623,6 @@
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
 
-    /* ─── ACTIONS iOS ─── */
     .offre-actions {
         background: var(--ios-card);
         border: none;
@@ -1865,21 +1663,25 @@
         font-weight: 600;
     }
     .btn-rust {
-        background: linear-gradient(135deg, var(--rust), #d4754a);
+        background: var(--rust);
         border: none;
-        box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
     }
     .btn-ghost {
-        background: var(--ios-card);
+        background: #F5F5F7;
         border: none;
         color: var(--ios-blue);
-        box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
-    .btn-ghost:active { background: #EFEFF4; }
-    .btn-danger-soft { border: none; }
-    .btn-ghost-danger { border: none; background: rgba(198, 40, 40, .08); }
+    .btn-ghost-danger {
+        background: transparent;
+        border: 1px solid #FECACA;
+        color: var(--c-danger);
+    }
+    .btn-danger-soft {
+        background: transparent;
+        border: 1px solid #FECACA;
+        color: var(--c-danger);
+    }
 
-    /* ─── LIGHTBOX iOS ─── */
     .lightbox__nav { width: 44px; height: 44px; font-size: 17px; }
     .lightbox__nav--prev { left: 12px; }
     .lightbox__nav--next { right: 12px; }
@@ -1904,6 +1706,14 @@
     .price-value { font-size: 22px; }
 
     .gallery-grid { gap: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 </style>
 @endpush

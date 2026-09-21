@@ -29,9 +29,7 @@
         $nbBiens = $agence->biens()->where('statut', true)->count();
     @endphp
 
-    {{-- ═══════════════════════════════════════════
-         HERO DE BIENVENUE (desktop)
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ HERO DESKTOP ═══ --}}
     <section class="desk-hero">
         <div class="desk-hero__left">
             <div class="desk-hero__avatar">{{ $initiales }}</div>
@@ -50,9 +48,7 @@
         </a>
     </section>
 
-    {{-- ═══════════════════════════════════════════
-         STATS INLINE (mobile iOS)
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ STATS MOBILE ═══ --}}
     <div class="ios-stats">
         <a href="{{ route('agence.demandes.index') }}" class="ios-stat">
             <span class="ios-stat__value">{{ $besoinsDispo }}</span>
@@ -72,11 +68,9 @@
         </a>
     </div>
 
-    {{-- ═══════════════════════════════════════════
-         STATS DESKTOP (4 cards)
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ STATS DESKTOP ═══ --}}
     <section class="desk-stats">
-        <a href="{{ route('agence.demandes.index') }}" class="desk-stat desk-stat--blue">
+        <a href="{{ route('agence.demandes.index') }}" class="desk-stat">
             <div class="desk-stat__icon">
                 <i class="fa-solid fa-house-circle-check"></i>
             </div>
@@ -86,7 +80,7 @@
             </div>
         </a>
 
-        <a href="{{ route('agence.propositions.index') }}" class="desk-stat desk-stat--rust">
+        <a href="{{ route('agence.propositions.index') }}" class="desk-stat">
             <div class="desk-stat__icon">
                 <i class="fa-solid fa-paper-plane"></i>
             </div>
@@ -96,7 +90,7 @@
             </div>
         </a>
 
-        <a href="{{ route('agence.rendezvous.index') }}" class="desk-stat desk-stat--gold">
+        <a href="{{ route('agence.rendezvous.index') }}" class="desk-stat">
             <div class="desk-stat__icon">
                 <i class="fa-solid fa-calendar-check"></i>
             </div>
@@ -106,7 +100,7 @@
             </div>
         </a>
 
-        <a href="{{ route('agence.evaluations.index') }}" class="desk-stat desk-stat--green">
+        <a href="{{ route('agence.evaluations.index') }}" class="desk-stat">
             <div class="desk-stat__icon">
                 <i class="fa-solid fa-star"></i>
             </div>
@@ -117,50 +111,46 @@
         </a>
     </section>
 
-    {{-- ═══════════════════════════════════════════
-         ALERTE ABONNEMENT (desktop)
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ ALERTE ABONNEMENT ═══ --}}
     @if($abonnementActif && !$modeGratuit)
         @if(!$abonnementActuel)
-            <div class="desk-alert desk-alert--danger">
+            <a href="{{ route('agence.abonnement') }}" class="desk-alert">
                 <div class="desk-alert__icon"><i class="fa-solid fa-circle-exclamation"></i></div>
                 <div class="desk-alert__text">
                     <strong>Abonnement requis</strong>
                     <span>Souscrivez un abonnement pour publier des biens et envoyer des offres</span>
                 </div>
-                <a href="{{ route('agence.abonnement') }}" class="desk-alert__cta">Voir les offres <i class="fa-solid fa-arrow-right"></i></a>
-            </div>
+                <span class="desk-alert__cta">Voir les offres <i class="fa-solid fa-arrow-right"></i></span>
+            </a>
         @elseif($offresRestantes <= 0 && $limiteOffres !== PHP_INT_MAX)
-            <div class="desk-alert desk-alert--warning">
+            <a href="{{ route('agence.abonnement') }}" class="desk-alert">
                 <div class="desk-alert__icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
                 <div class="desk-alert__text">
                     <strong>Quota d'offres atteint</strong>
                     <span>Vous avez utilisé vos {{ $limiteOffres }} offres ce mois-ci</span>
                 </div>
-                <a href="{{ route('agence.abonnement') }}" class="desk-alert__cta">Upgrader <i class="fa-solid fa-arrow-right"></i></a>
-            </div>
+                <span class="desk-alert__cta">Upgrader <i class="fa-solid fa-arrow-right"></i></span>
+            </a>
         @elseif($limiteOffres !== PHP_INT_MAX && $offresRestantes <= 5)
-            <div class="desk-alert desk-alert--info">
+            <a href="{{ route('agence.abonnement') }}" class="desk-alert">
                 <div class="desk-alert__icon"><i class="fa-solid fa-clock"></i></div>
                 <div class="desk-alert__text">
                     <strong>{{ $offresRestantes }} offre(s) restante(s)</strong>
                     <span>Rechargez bientôt pour ne pas être bloqué</span>
                 </div>
-                <a href="{{ route('agence.abonnement') }}" class="desk-alert__cta">Voir mon abonnement <i class="fa-solid fa-arrow-right"></i></a>
-            </div>
+                <span class="desk-alert__cta">Voir mon abonnement <i class="fa-solid fa-arrow-right"></i></span>
+            </a>
         @endif
     @endif
 
-    {{-- ═══════════════════════════════════════════
-         ACCÈS RAPIDES (visible desktop + mobile)
-    ═══════════════════════════════════════════ --}}
-    <div class="desk-section-title quick-access-title">
-        <span><i class="fa-solid fa-bolt" style="color:var(--rust);margin-right:8px;"></i> Accès rapides</span>
+    {{-- ═══ ACCÈS RAPIDES ═══ --}}
+    <div class="desk-section-title">
+        <span>Accès rapides</span>
     </div>
 
     <div class="quick-access">
         <a href="{{ route('agence.demandes.index') }}" class="quick-access__item">
-            <div class="quick-access__icon quick-access__icon--blue">
+            <div class="quick-access__icon">
                 <i class="fa-solid fa-house-circle-check"></i>
             </div>
             <span class="quick-access__label">Besoins</span>
@@ -170,14 +160,14 @@
         </a>
 
         <a href="{{ route('agence.propositions.index') }}" class="quick-access__item">
-            <div class="quick-access__icon quick-access__icon--rust">
+            <div class="quick-access__icon">
                 <i class="fa-solid fa-file-invoice"></i>
             </div>
             <span class="quick-access__label">Mes offres</span>
         </a>
 
         <a href="{{ route('agence.rendezvous.index') }}" class="quick-access__item">
-            <div class="quick-access__icon quick-access__icon--gold">
+            <div class="quick-access__icon">
                 <i class="fa-solid fa-calendar-days"></i>
             </div>
             <span class="quick-access__label">Rendez-vous</span>
@@ -187,7 +177,7 @@
         </a>
 
         <a href="{{ route('agence.biens.index') }}" class="quick-access__item">
-            <div class="quick-access__icon quick-access__icon--green">
+            <div class="quick-access__icon">
                 <i class="fa-solid fa-building"></i>
             </div>
             <span class="quick-access__label">Mes biens</span>
@@ -197,14 +187,14 @@
         </a>
 
         <a href="{{ route('agence.evaluations.index') }}" class="quick-access__item">
-            <div class="quick-access__icon quick-access__icon--yellow">
+            <div class="quick-access__icon">
                 <i class="fa-solid fa-star"></i>
             </div>
             <span class="quick-access__label">Avis reçus</span>
         </a>
 
         <a href="{{ route('agence.historique') }}" class="quick-access__item">
-            <div class="quick-access__icon quick-access__icon--gray">
+            <div class="quick-access__icon">
                 <i class="fa-solid fa-clock-rotate-left"></i>
             </div>
             <span class="quick-access__label">Historique</span>
@@ -212,7 +202,7 @@
 
         @if(config('abonnement.actif', false))
             <a href="{{ route('agence.abonnement') }}" class="quick-access__item">
-                <div class="quick-access__icon quick-access__icon--purple">
+                <div class="quick-access__icon">
                     <i class="fa-solid fa-award"></i>
                 </div>
                 <span class="quick-access__label">Abonnement</span>
@@ -220,25 +210,23 @@
         @endif
 
         <a href="{{ route('agence.profil') }}" class="quick-access__item">
-            <div class="quick-access__icon quick-access__icon--gray">
+            <div class="quick-access__icon">
                 <i class="fa-solid fa-user"></i>
             </div>
             <span class="quick-access__label">Profil</span>
         </a>
     </div>
 
-    {{-- ═══════════════════════════════════════════
-         AUJOURD'HUI
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ AUJOURD'HUI ═══ --}}
     @if($rdvAujourdhui > 0 || $besoinsDispo > 0 || $nbAvis > 0)
         <section class="desk-today">
             <div class="desk-section-title">
-                <span><i class="fa-solid fa-bolt" style="color:var(--rust);margin-right:8px;"></i> Aujourd'hui</span>
+                <span>Aujourd'hui</span>
             </div>
 
             <div class="desk-today__grid">
                 @if($rdvAujourdhui > 0)
-                    <a href="{{ route('agence.rendezvous.index') }}" class="desk-today__item desk-today__item--urgent">
+                    <a href="{{ route('agence.rendezvous.index') }}" class="desk-today__item">
                         <div class="desk-today__icon"><i class="fa-solid fa-calendar-day"></i></div>
                         <div class="desk-today__body">
                             <strong>{{ $rdvAujourdhui }} RDV aujourd'hui</strong>
@@ -273,12 +261,10 @@
         </section>
     @endif
 
-    {{-- ═══════════════════════════════════════════
-         BIENS EN VEDETTE
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ BIENS EN VEDETTE ═══ --}}
     @if($nbBiensVedette > 0)
         <div class="desk-section-title">
-            <span><i class="fa-solid fa-star" style="color:var(--c-gold);margin-right:8px;"></i> Mes biens en vedette</span>
+            <span>Mes biens en vedette</span>
             <a href="{{ route('agence.biens.index', ['vedette' => 'true']) }}" class="desk-section-title__link">
                 Voir tout <i class="fa-solid fa-arrow-right"></i>
             </a>
@@ -299,7 +285,9 @@
                         @else
                             <div class="desk-vedette__placeholder"><i class="fa-regular fa-image"></i></div>
                         @endif
-                        <span class="desk-vedette__badge"><i class="fa-solid fa-star"></i> Vedette</span>
+                        <span class="desk-vedette__badge">
+                            <i class="fa-solid fa-star"></i> Vedette
+                        </span>
                     </div>
                     <div class="desk-vedette__body">
                         <h4 class="desk-vedette__title">{{ $bien->titre }}</h4>
@@ -311,9 +299,7 @@
         </div>
     @endif
 
-    {{-- ═══════════════════════════════════════════
-         LAYOUT 2 COLONNES
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ LAYOUT 2 COLONNES ═══ --}}
     <div class="desk-layout">
         <div class="desk-layout__main">
 
@@ -333,7 +319,7 @@
                             $statutLabel = $besoin->statut instanceof \App\Enums\StatutDemandeEnum ? $besoin->statut->label() : ucfirst($besoin->statut);
                         @endphp
                         <a href="{{ route('agence.demandes.show', $besoin->slug) }}" class="desk-list__item">
-                            <div class="desk-list__icon desk-list__icon--blue">
+                            <div class="desk-list__icon">
                                 <i class="fa-solid fa-house"></i>
                             </div>
                             <div class="desk-list__content">
@@ -361,7 +347,7 @@
                 </div>
             @endif
 
-            {{-- Derniers avis --}}
+            {{-- Derniers avis (UNIQUEMENT non répondus) --}}
             @if($derniersAvis->count() > 0)
                 <div class="desk-section-title">
                     <span>Derniers avis reçus</span>
@@ -374,11 +360,10 @@
                     @foreach($derniersAvis as $avis)
                         @php
                             $note = (int) ($avis->note ?? 0);
-                            $sentiment = $note >= 4 ? 'positif' : ($note === 3 ? 'neutre' : 'negatif');
                             $prenomAv = $avis->particulier->user->prenom ?? 'C';
                             $initialAv = strtoupper(mb_substr($prenomAv, 0, 1));
                         @endphp
-                        <div class="desk-avis desk-avis--{{ $sentiment }}">
+                        <div class="desk-avis">
                             <div class="desk-avis__avatar">{{ $initialAv }}</div>
                             <div class="desk-avis__info">
                                 <div class="desk-avis__head">
@@ -400,9 +385,8 @@
             @endif
         </div>
 
-        {{-- ═══ SIDEBAR (Prochains RDV) ═══ --}}
+        {{-- ═══ SIDEBAR PROCHAINS RDV ═══ --}}
         <aside class="desk-layout__side">
-
             <div class="desk-side-card">
                 <div class="desk-side-card__head">
                     <h4>Prochains rendez-vous</h4>
@@ -440,7 +424,6 @@
                     </div>
                 @endif
             </div>
-
         </aside>
     </div>
 
@@ -451,133 +434,127 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   DASHBOARD AGENCE
+   DASHBOARD AGENCE — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .agence-dashboard {
-    --c-success: #1E7A47; --c-success-bg: #E8F5E9;
-    --c-warning: #E65100; --c-warning-bg: #FFF8E1;
-    --c-danger: #C62828; --c-danger-bg: #FFEBEE;
-    --c-info: #0D47A1; --c-info-bg: #E3F2FD;
-    --c-gold: #F5A623; --c-gold-bg: #FFF8E1;
-    --surface: #F7F9FC;
-    --radius: 14px;
+    --c-success:    #1E7A47;
+    --c-success-bg: #F1F8F4;
+    --c-warning:    #E65100;
+    --c-warning-bg: #FFF8E1;
+    --c-danger:     #C62828;
+    --c-danger-bg:  #FEF2F2;
+    --c-info:       #1E40AF;
+    --c-info-bg:    #EFF6FF;
+    --surface:      #F7F9FC;
+    --radius:       14px;
 
-    --ios-bg: #F2F2F7;
     --ios-card: #FFFFFF;
-    --ios-blue: #007AFF;
-    --ios-label: #000000;
-    --ios-label-2: #3C3C43;
-    --ios-label-3: #8E8E93;
     --ios-separator: rgba(60, 60, 67, 0.12);
     --ios-radius-lg: 18px;
 }
 
-/* ═══ DESKTOP ═══ */
-
+/* ═══ HERO ═══ */
 .desk-hero {
     display: flex; align-items: center; justify-content: space-between;
-    gap: 20px; padding: 24px 28px;
-    background: linear-gradient(135deg, #FFF9F5 0%, #fff 60%);
+    gap: 20px; padding: 22px 26px;
+    background: #fff;
     border: 1px solid var(--border); border-radius: 16px;
     margin-bottom: 18px; flex-wrap: wrap;
 }
 .desk-hero__left { display: flex; align-items: center; gap: 16px; min-width: 0; }
 .desk-hero__avatar {
-    width: 56px; height: 56px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--rust), #d4754a);
-    color: #fff; display: flex; align-items: center; justify-content: center;
-    font-family: var(--display); font-size: 20px; font-weight: 700;
-    flex-shrink: 0; box-shadow: 0 6px 16px rgba(181, 80, 42, .25);
+    width: 52px; height: 52px; border-radius: 50%;
+    background: #F5F5F7;
+    color: var(--text);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--display); font-size: 18px; font-weight: 700;
+    flex-shrink: 0;
 }
 .desk-hero__text { min-width: 0; }
 .desk-hero__title {
-    font-family: var(--display); font-size: 22px; font-weight: 700;
+    font-family: var(--display); font-size: 20px; font-weight: 700;
     margin: 0 0 4px; color: var(--ink); letter-spacing: -.3px;
 }
 .desk-hero__date {
     display: inline-flex; align-items: center; gap: 6px;
     font-size: 13px; color: var(--muted);
 }
-.desk-hero__date i { font-size: 12px; opacity: .8; }
+.desk-hero__date i { font-size: 12px; }
 .desk-hero__cta {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 12px 20px;
-    background: linear-gradient(135deg, var(--rust), #d4754a);
+    padding: 11px 18px;
+    background: var(--rust);
     color: #fff; border-radius: 12px; font-size: 13.5px; font-weight: 600;
-    text-decoration: none; box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
-    transition: transform .2s, box-shadow .2s; white-space: nowrap;
+    text-decoration: none;
+    transition: background-color .15s;
+    white-space: nowrap;
 }
-.desk-hero__cta:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(181, 80, 42, .35); }
+.desk-hero__cta:hover { background: #9A4523; color: #fff; }
 
+/* ═══ STATS DESKTOP ═══ */
 .desk-stats {
     display: grid; grid-template-columns: repeat(4, 1fr);
     gap: 12px; margin-bottom: 18px;
 }
 .desk-stat {
-    position: relative; display: flex; align-items: center; gap: 14px;
-    padding: 18px 20px; background: #fff; border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 18px; background: #fff;
+    border: 1px solid var(--border);
     border-radius: 14px; text-decoration: none; color: inherit;
-    transition: all .2s; overflow: hidden;
+    transition: border-color .15s;
 }
-.desk-stat:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.06); }
-.desk-stat::before {
-    content: ''; position: absolute; left: 0; top: 50%;
-    transform: translateY(-50%); width: 3px; height: 40%;
-    border-radius: 0 3px 3px 0; background: var(--rust);
-}
-.desk-stat--rust::before { background: var(--rust); }
-.desk-stat--blue::before { background: #1565C0; }
-.desk-stat--gold::before { background: var(--c-gold); }
-.desk-stat--green::before { background: var(--c-success); }
+.desk-stat:hover { border-color: #d8d8d8; }
 
 .desk-stat__icon {
-    width: 44px; height: 44px; border-radius: 12px;
+    width: 40px; height: 40px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px; flex-shrink: 0;
+    font-size: 17px; flex-shrink: 0;
+    background: #F5F5F7;
+    color: var(--text-soft);
 }
-.desk-stat--rust .desk-stat__icon { background: var(--rust-soft); color: var(--rust); }
-.desk-stat--blue .desk-stat__icon { background: #E3F2FD; color: #1565C0; }
-.desk-stat--gold .desk-stat__icon { background: #FFF8E1; color: var(--c-gold); }
-.desk-stat--green .desk-stat__icon { background: #E8F5E9; color: var(--c-success); }
-
 .desk-stat__body { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
 .desk-stat__value {
-    font-family: var(--display); font-size: 26px; font-weight: 800;
+    font-family: var(--display); font-size: 24px; font-weight: 800;
     color: var(--ink); line-height: 1; letter-spacing: -.5px;
 }
 .desk-stat__label {
     font-size: 12.5px; font-weight: 500; color: var(--muted); margin-top: 3px;
 }
 
+/* ═══ ALERTES ABONNEMENT ═══ */
 .desk-alert {
     display: flex; align-items: center; gap: 16px;
-    padding: 16px 22px; border-radius: 14px;
+    padding: 14px 20px; border-radius: 14px;
     margin-bottom: 18px; text-decoration: none; color: inherit;
-    transition: all .2s; border: 1px solid;
+    transition: background-color .15s;
+    border: 1px solid var(--border);
+    background: #F5F5F7;
 }
-.desk-alert:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,.06); }
-.desk-alert--danger { background: var(--c-danger-bg); border-color: #FFCDD2; color: var(--c-danger); }
-.desk-alert--warning { background: var(--c-warning-bg); border-color: #FFE0B2; color: var(--c-warning); }
-.desk-alert--info { background: var(--c-info-bg); border-color: #BBDEFB; color: var(--c-info); }
+.desk-alert:hover { background: #EFEFF4; }
 .desk-alert__icon {
-    width: 44px; height: 44px; border-radius: 12px;
-    background: rgba(255,255,255,.6);
+    width: 40px; height: 40px; border-radius: 10px;
+    background: #fff;
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px; flex-shrink: 0;
+    font-size: 17px; flex-shrink: 0;
+    color: var(--text-soft);
 }
 .desk-alert__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.desk-alert__text strong { font-family: var(--display); font-size: 15px; font-weight: 700; }
-.desk-alert__text span { font-size: 13px; opacity: .85; }
+.desk-alert__text strong { font-family: var(--display); font-size: 14px; font-weight: 700; color: var(--ink); }
+.desk-alert__text span { font-size: 13px; color: var(--muted); }
 .desk-alert__cta {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 8px 16px; background: #fff; color: inherit;
-    border-radius: 10px; font-size: 13px; font-weight: 700;
-    border: 1.5px solid currentColor;
-    transition: all .2s; flex-shrink: 0;
+    padding: 8px 14px; background: #fff; color: var(--text-soft);
+    border-radius: 10px; font-size: 12.5px; font-weight: 600;
+    border: 1px solid var(--border);
+    transition: background-color .15s, border-color .15s, color .15s;
+    flex-shrink: 0;
 }
+.desk-alert__cta:hover { border-color: #d8d8d8; color: var(--ink); }
 .desk-alert__cta i { font-size: 11px; }
 
+/* ═══ AUJOURD'HUI ═══ */
 .desk-today { margin-bottom: 18px; }
 .desk-today__grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -587,22 +564,22 @@
     display: flex; align-items: center; gap: 12px;
     padding: 14px 16px; background: #fff;
     border: 1px solid var(--border); border-radius: 12px;
-    text-decoration: none; color: inherit; transition: all .2s;
+    text-decoration: none; color: inherit;
+    transition: border-color .15s;
 }
-.desk-today__item:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.06); border-color: #d8d8d8; }
-.desk-today__item--urgent { background: var(--c-warning-bg); border-color: #FFE0B2; }
+.desk-today__item:hover { border-color: #d8d8d8; }
 .desk-today__icon {
-    width: 40px; height: 40px; border-radius: 11px;
+    width: 38px; height: 38px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
-    background: var(--surface); color: var(--rust); font-size: 16px; flex-shrink: 0;
+    background: #F5F5F7; color: var(--text-soft); font-size: 15px; flex-shrink: 0;
 }
-.desk-today__item--urgent .desk-today__icon { background: rgba(230, 81, 0, .12); color: var(--c-warning); }
 .desk-today__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .desk-today__body strong { font-family: var(--display); font-size: 13.5px; font-weight: 700; color: var(--ink); }
 .desk-today__body span { font-size: 12px; color: var(--muted); }
-.desk-today__arrow { color: var(--border); font-size: 12px; transition: all .2s; }
-.desk-today__item:hover .desk-today__arrow { color: var(--rust); transform: translateX(3px); }
+.desk-today__arrow { color: var(--muted); font-size: 12px; }
+.desk-today__item:hover .desk-today__arrow { color: var(--text-soft); }
 
+/* ═══ SECTION TITLE ═══ */
 .desk-section-title {
     display: flex; align-items: center; justify-content: space-between;
     gap: 12px; margin: 24px 0 12px; padding: 0 2px;
@@ -615,11 +592,12 @@
 .desk-section-title__link {
     display: inline-flex; align-items: center; gap: 6px;
     font-size: 12.5px; font-weight: 600; color: var(--rust);
-    text-decoration: none; transition: gap .2s;
+    text-decoration: none;
 }
-.desk-section-title__link:hover { gap: 9px; }
+.desk-section-title__link:hover { color: #9A4523; }
 .desk-section-title__link i { font-size: 10px; }
 
+/* ═══ BIENS VEDETTE ═══ */
 .desk-vedette-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 12px; margin-bottom: 18px;
@@ -628,31 +606,29 @@
     background: #fff; border: 1px solid var(--border);
     border-radius: 14px; overflow: hidden;
     text-decoration: none; color: inherit;
-    transition: all .2s; position: relative;
+    transition: border-color .15s;
 }
-.desk-vedette:hover { transform: translateY(-3px); box-shadow: 0 8px 22px rgba(245, 166, 35, .2); }
+.desk-vedette:hover { border-color: #d8d8d8; }
 .desk-vedette__media {
     position: relative; aspect-ratio: 4 / 3;
     background: var(--surface); overflow: hidden;
 }
 .desk-vedette__media img {
     width: 100%; height: 100%; object-fit: cover; display: block;
-    transition: transform .3s;
 }
-.desk-vedette:hover .desk-vedette__media img { transform: scale(1.05); }
 .desk-vedette__placeholder {
     width: 100%; height: 100%;
     display: flex; align-items: center; justify-content: center;
-    color: var(--muted); font-size: 32px; opacity: .4;
+    color: var(--muted); font-size: 32px; opacity: .5;
 }
 .desk-vedette__badge {
     position: absolute; top: 10px; left: 10px;
     display: inline-flex; align-items: center; gap: 4px;
-    padding: 4px 10px; border-radius: 999px;
-    background: linear-gradient(135deg, var(--c-gold), #E8901A);
-    color: #fff; font-size: 10px; font-weight: 700;
+    padding: 3px 9px; border-radius: 999px;
+    background: #fff; color: #B8860B;
+    border: 1px solid #F0E0B0;
+    font-size: 10px; font-weight: 700;
     text-transform: uppercase; letter-spacing: .3px;
-    box-shadow: 0 2px 6px rgba(245, 166, 35, .35);
 }
 .desk-vedette__badge i { font-size: 8px; }
 .desk-vedette__body { padding: 12px 14px; }
@@ -670,8 +646,9 @@
     font-size: 11.5px; color: var(--muted);
     display: flex; align-items: center; gap: 4px;
 }
-.desk-vedette__meta i { color: var(--rust); font-size: 10px; opacity: .8; }
+.desk-vedette__meta i { color: var(--muted); font-size: 10px; }
 
+/* ═══ LAYOUT ═══ */
 .desk-layout {
     display: grid; grid-template-columns: 1fr 340px;
     gap: 20px; align-items: start;
@@ -679,6 +656,7 @@
 .desk-layout__main { min-width: 0; }
 .desk-layout__side { min-width: 0; }
 
+/* ═══ LISTE ═══ */
 .desk-list {
     background: #fff; border: 1px solid var(--border);
     border-radius: 14px; overflow: hidden; margin-bottom: 14px;
@@ -686,51 +664,48 @@
 .desk-list__item {
     display: flex; align-items: center; gap: 14px;
     padding: 14px 18px; border-bottom: 1px solid var(--border);
-    text-decoration: none; color: inherit; transition: background .15s;
+    text-decoration: none; color: inherit; transition: background-color .15s;
 }
 .desk-list__item:last-child { border-bottom: none; }
 .desk-list__item:hover { background: #FAFBFC; }
 
 .desk-list__icon {
-    width: 40px; height: 40px; border-radius: 11px;
+    width: 38px; height: 38px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
     font-size: 15px; flex-shrink: 0;
+    background: #F5F5F7; color: var(--text-soft);
 }
-.desk-list__icon--rust { background: var(--rust-soft); color: var(--rust); }
-.desk-list__icon--blue { background: #E3F2FD; color: #1565C0; }
-
 .desk-list__content { flex: 1; min-width: 0; }
 .desk-list__title {
     display: block; font-family: var(--display);
-    font-size: 14px; font-weight: 700; color: var(--ink);
+    font-size: 14px; font-weight: 600; color: var(--ink);
     margin-bottom: 3px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .desk-list__sub { display: flex; flex-wrap: wrap; gap: 3px 10px; font-size: 12.5px; color: var(--muted); }
-.desk-list__sub i { color: var(--rust); font-size: 10px; margin-right: 3px; opacity: .8; }
-.desk-list__dot { opacity: .5; }
+.desk-list__sub i { color: var(--muted); font-size: 10px; margin-right: 3px; }
+.desk-list__dot { color: var(--border); }
 
 .desk-list__right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .desk-list__chevron {
-    color: var(--muted); font-size: 13px; opacity: .4;
-    transition: transform .2s, color .2s;
+    color: var(--muted); font-size: 13px;
+    transition: color .15s;
 }
-.desk-list__item:hover .desk-list__chevron { color: var(--rust); transform: translateX(3px); }
+.desk-list__item:hover .desk-list__chevron { color: var(--text-soft); }
 
+/* ═══ AVIS ═══ */
 .desk-avis {
     display: flex; align-items: flex-start; gap: 12px;
     padding: 14px 18px; border-bottom: 1px solid var(--border);
-    border-left: 3px solid var(--muted);
 }
 .desk-avis:last-child { border-bottom: none; }
-.desk-avis--positif { border-left-color: var(--c-success); background: rgba(30, 122, 71, .02); }
-.desk-avis--neutre  { border-left-color: var(--c-warning); background: rgba(230, 81, 0, .02); }
-.desk-avis--negatif { border-left-color: var(--c-danger);  background: rgba(198, 40, 40, .02); }
 .desk-avis__avatar {
-    width: 40px; height: 40px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--rust), #d4754a);
-    color: #fff; display: flex; align-items: center; justify-content: center;
-    font-family: var(--display); font-size: 16px; font-weight: 700;
+    width: 38px; height: 38px; border-radius: 50%;
+    background: #F5F5F7;
+    color: var(--text);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--display); font-size: 14px; font-weight: 700;
     flex-shrink: 0;
 }
 .desk-avis__info { flex: 1; min-width: 0; }
@@ -738,10 +713,10 @@
     display: flex; align-items: center; justify-content: space-between;
     gap: 10px; margin-bottom: 4px; flex-wrap: wrap;
 }
-.desk-avis__head strong { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.desk-avis__head strong { font-size: 13.5px; font-weight: 600; color: var(--ink); }
 .desk-avis__stars { display: inline-flex; gap: 2px; font-size: 12px; }
-.desk-avis__stars i { color: #D4D8E0; }
-.desk-avis__stars i.is-on { color: var(--c-gold); }
+.desk-avis__stars i { color: #D8D8DD; }
+.desk-avis__stars i.is-on { color: var(--rust); }
 .desk-avis__comment {
     font-size: 12.5px; color: var(--text-soft); font-style: italic;
     line-height: 1.55; margin: 0 0 4px;
@@ -752,37 +727,42 @@
 }
 .desk-avis__date { font-size: 11px; color: var(--muted); }
 
+/* ═══ BADGES STATUT ═══ */
 .desk-badge {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 3px 10px; border-radius: 999px;
-    font-size: 10px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .3px; white-space: nowrap;
+    font-size: 11.5px; font-weight: 600;
+    white-space: nowrap;
+    background: #F5F5F7;
+    color: var(--text-soft);
 }
 .desk-badge--en_attente, .desk-badge--planifie { background: var(--c-warning-bg); color: var(--c-warning); }
-.desk-badge--en_cours, .desk-badge--confirme { background: var(--c-info-bg); color: var(--c-info); }
+.desk-badge--en_cours, .desk-badge--confirme   { background: var(--c-info-bg);    color: var(--c-info); }
 .desk-badge--terminee, .desk-badge--termine, .desk-badge--acceptee { background: var(--c-success-bg); color: var(--c-success); }
-.desk-badge--annulee, .desk-badge--annule, .desk-badge--refusee { background: var(--c-danger-bg); color: var(--c-danger); }
+.desk-badge--annulee, .desk-badge--annule, .desk-badge--refusee   { background: var(--c-danger-bg);  color: var(--c-danger); }
 
+/* ═══ EMPTY ═══ */
 .desk-empty {
     background: #fff; border: 1px dashed var(--border);
-    border-radius: 14px; padding: 40px 24px;
+    border-radius: 14px; padding: 36px 24px;
     text-align: center; margin-bottom: 14px;
 }
 .desk-empty__icon {
-    width: 60px; height: 60px; margin: 0 auto 16px;
+    width: 56px; height: 56px; margin: 0 auto 14px;
     border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    background: var(--surface); color: var(--muted); font-size: 24px;
+    background: #F5F5F7; color: var(--muted); font-size: 22px;
 }
 .desk-empty h4 { font-family: var(--display); font-size: 15px; font-weight: 700; color: var(--ink); margin: 0 0 6px; }
 .desk-empty p { font-size: 13px; color: var(--muted); margin: 0; max-width: 320px; margin-inline: auto; }
 
+/* ═══ SIDEBAR ═══ */
 .desk-side-card {
     background: #fff; border: 1px solid var(--border);
-    border-radius: 14px; padding: 18px 20px; margin-bottom: 16px;
+    border-radius: 14px; padding: 16px 18px; margin-bottom: 16px;
 }
 .desk-side-card__head {
     display: flex; align-items: center; justify-content: space-between;
-    gap: 10px; margin-bottom: 14px; padding-bottom: 12px;
+    gap: 10px; margin-bottom: 12px; padding-bottom: 12px;
     border-bottom: 1px solid var(--border);
 }
 .desk-side-card__head h4 {
@@ -791,38 +771,46 @@
 }
 .desk-side-card__link {
     font-size: 12px; font-weight: 600; color: var(--rust);
-    text-decoration: none; transition: opacity .15s;
+    text-decoration: none;
 }
-.desk-side-card__link:hover { opacity: .7; }
+.desk-side-card__link:hover { color: #9A4523; }
 
-.desk-side-list { display: flex; flex-direction: column; gap: 10px; }
+.desk-side-list { display: flex; flex-direction: column; gap: 8px; }
 .desk-side-item {
     display: flex; align-items: center; gap: 12px;
-    padding: 10px; border-radius: 10px;
-    text-decoration: none; color: inherit; transition: background .15s;
+    padding: 8px; border-radius: 10px;
+    text-decoration: none; color: inherit; transition: background-color .15s;
 }
-.desk-side-item:hover { background: var(--surface); }
-.desk-side-item.is-today { background: var(--c-warning-bg); }
+.desk-side-item:hover { background: #F5F5F7; }
 .desk-side-item__date {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    width: 42px; padding: 5px 3px;
-    background: var(--surface); border-radius: 9px; flex-shrink: 0;
+    width: 40px; padding: 5px 3px;
+    background: #F5F5F7; border-radius: 9px; flex-shrink: 0;
 }
-.desk-side-item.is-today .desk-side-item__date { background: rgba(230, 81, 0, .12); }
-.desk-side-item__day { font-family: var(--display); font-size: 15px; font-weight: 800; line-height: 1; color: var(--ink); }
-.desk-side-item.is-today .desk-side-item__day { color: var(--c-warning); }
-.desk-side-item__month { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-top: 1px; }
-.desk-side-item.is-today .desk-side-item__month { color: var(--c-warning); }
+.desk-side-item__day {
+    font-family: var(--display); font-size: 15px; font-weight: 800;
+    line-height: 1; color: var(--ink);
+}
+.desk-side-item__month {
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .5px; color: var(--muted); margin-top: 1px;
+}
 .desk-side-item__body { min-width: 0; }
-.desk-side-item__title { display: block; font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.desk-side-item__meta { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
+.desk-side-item__title {
+    display: block; font-size: 13px; font-weight: 600; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.desk-side-item__meta {
+    display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .desk-side-empty {
     display: flex; flex-direction: column; align-items: center; gap: 8px;
     padding: 20px; color: var(--muted); font-size: 13px;
 }
-.desk-side-empty i { font-size: 24px; opacity: .4; }
+.desk-side-empty i { font-size: 22px; }
 
+/* ═══ ACCÈS RAPIDES ═══ */
 .quick-access {
     display: grid; grid-template-columns: repeat(4, 1fr);
     gap: 10px; margin-bottom: 20px;
@@ -833,26 +821,15 @@
     padding: 14px 8px; background: #fff;
     border: 1px solid var(--border); border-radius: 14px;
     text-decoration: none; color: inherit;
-    transition: all .2s; text-align: center;
+    transition: border-color .15s; text-align: center;
 }
-.quick-access__item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0,0,0,.06);
-    border-color: var(--rust);
-}
-.quick-access__item:active { transform: scale(.97); }
+.quick-access__item:hover { border-color: #d8d8d8; }
 .quick-access__icon {
-    width: 44px; height: 44px; border-radius: 12px;
+    width: 40px; height: 40px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px; flex-shrink: 0;
+    font-size: 17px; flex-shrink: 0;
+    background: #F5F5F7; color: var(--text-soft);
 }
-.quick-access__icon--blue   { background: #E3F2FD; color: #0D47A1; }
-.quick-access__icon--rust   { background: var(--rust-soft); color: var(--rust); }
-.quick-access__icon--gold   { background: #FFF8E1; color: #F5A623; }
-.quick-access__icon--green  { background: #E8F5E9; color: #1E7A47; }
-.quick-access__icon--yellow { background: #FFF3E0; color: #E65100; }
-.quick-access__icon--gray   { background: #F2F2F7; color: #6A7280; }
-.quick-access__icon--purple { background: #F3E5F5; color: #7B1FA2; }
 .quick-access__label {
     font-size: 11.5px; font-weight: 600;
     color: var(--text-soft); line-height: 1.2;
@@ -861,7 +838,7 @@
     position: absolute; top: 8px; right: 8px;
     min-width: 20px; height: 20px; padding: 0 6px;
     background: var(--rust); color: #fff;
-    border-radius: 999px; font-size: 10.5px; font-weight: 800;
+    border-radius: 999px; font-size: 10.5px; font-weight: 700;
     font-family: var(--display);
     display: flex; align-items: center; justify-content: center;
 }
@@ -869,6 +846,7 @@
 
 .ios-stats { display: none; }
 
+/* ═══ RESPONSIVE ═══ */
 @media (max-width: 1200px) {
     .desk-layout { grid-template-columns: 1fr; }
     .desk-layout__side { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -880,7 +858,7 @@
 
 
 /* ═══════════════════════════════════════════════════════════
-   📱 MOBILE — iOS
+   📱 MOBILE — iOS NATIVE
    ═══════════════════════════════════════════════════════════ */
 @media (max-width: 820px) {
 
@@ -896,7 +874,7 @@
         align-items: stretch;
         background: var(--ios-card);
         border-radius: var(--ios-radius-lg);
-        padding: 18px 8px;
+        padding: 16px 8px;
         margin-bottom: 16px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
@@ -910,12 +888,12 @@
         height: 60%; width: 0.5px; background: var(--ios-separator);
     }
     .ios-stat__value {
-        font-family: var(--display); font-size: 24px; font-weight: 800;
-        color: var(--ios-label); letter-spacing: -.5px;
+        font-family: var(--display); font-size: 22px; font-weight: 800;
+        color: var(--ink); letter-spacing: -.4px;
     }
     .ios-stat__label {
         font-size: 11px; font-weight: 500;
-        color: var(--ios-label-3); margin-top: 2px;
+        color: var(--muted); margin-top: 2px;
     }
 
     .desk-section-title {
@@ -927,14 +905,9 @@
         padding: 0 !important;
     }
     .desk-section-title span {
-        font-size: 17px !important;
-        font-weight: 700 !important;
-        color: var(--ios-label) !important;
-        letter-spacing: -.3px !important;
-    }
-    .desk-section-title span i {
         font-size: 15px !important;
-        margin-right: 6px !important;
+        font-weight: 700 !important;
+        color: var(--ink) !important;
     }
     .desk-section-title__link {
         font-size: 13px !important;
@@ -955,23 +928,17 @@
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
         gap: 6px;
     }
-    .quick-access__item:hover {
-        transform: none;
-        box-shadow: 0 1px 3px rgba(0,0,0,.04);
-        border: none;
-    }
-    .quick-access__item:active { background: #F5F5F7; transform: scale(.97); }
+    .quick-access__item:hover { border: none; }
 
     .quick-access__icon {
-        width: 42px;
-        height: 42px;
-        border-radius: 50%;
-        font-size: 17px;
+        width: 38px;
+        height: 38px;
+        font-size: 16px;
     }
     .quick-access__label {
         font-size: 10.5px;
         font-weight: 500;
-        color: var(--ios-label-2);
+        color: var(--text-soft);
     }
     .quick-access__badge {
         top: 6px;
@@ -979,12 +946,6 @@
         min-width: 18px;
         height: 18px;
         font-size: 10px;
-        background: linear-gradient(135deg, var(--rust), #d4754a);
-        box-shadow: 0 2px 6px rgba(181,80,42,.3);
-    }
-    .quick-access__badge--gray {
-        background: #8E8E93;
-        box-shadow: none;
     }
 
     .desk-today { display: block !important; }
@@ -1002,35 +963,21 @@
         gap: 12px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
-    .desk-today__item:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
-    .desk-today__item:active { background: #F5F5F7; }
-    .desk-today__item--urgent {
-        background: var(--ios-card);
-        border: none;
-    }
-    .desk-today__item--urgent .desk-today__icon {
-        background: var(--c-warning-bg);
-        color: var(--c-warning);
-    }
     .desk-today__icon {
-        width: 40px;
-        height: 40px;
+        width: 38px;
+        height: 38px;
         border-radius: 50%;
-        background: var(--rust-soft);
-        color: var(--rust);
+        background: #F5F5F7;
+        color: var(--text-soft);
     }
     .desk-today__body strong {
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 600;
-        color: var(--ios-label);
+        color: var(--ink);
     }
     .desk-today__body span {
-        font-size: 13px;
-        color: var(--ios-label-3);
-    }
-    .desk-today__arrow {
-        color: var(--ios-label-3);
-        opacity: .4;
+        font-size: 12.5px;
+        color: var(--muted);
     }
 
     .desk-vedette-grid {
@@ -1053,8 +1000,6 @@
         border-radius: var(--ios-radius-lg);
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
-    .desk-vedette:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
-    .desk-vedette:active { transform: scale(.97); }
     .desk-vedette__body { padding: 10px 12px; }
     .desk-vedette__title { font-size: 13px; }
     .desk-vedette__price { font-size: 13px; }
@@ -1081,39 +1026,27 @@
         border-bottom: 0.5px solid var(--ios-separator);
     }
     .desk-list__item:last-child { border-bottom: none; }
-    .desk-list__item:active { background: #F5F5F7; }
     .desk-list__icon {
-        width: 38px;
-        height: 38px;
-        border-radius: 10px;
+        width: 36px;
+        height: 36px;
         font-size: 14px;
     }
     .desk-list__title {
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 500;
-        color: var(--ios-label);
     }
     .desk-list__sub {
-        font-size: 13px;
-        color: var(--ios-label-3);
-    }
-    .desk-list__chevron {
-        color: var(--ios-label-3);
-        opacity: .4;
+        font-size: 12.5px;
     }
 
     .desk-avis {
         background: var(--ios-card);
         border-bottom: 0.5px solid var(--ios-separator);
-        border-left: 3px solid var(--rust);
         padding: 14px 16px;
     }
-    .desk-avis--positif { border-left-color: var(--c-success); background: var(--ios-card); }
-    .desk-avis--neutre  { border-left-color: var(--c-warning); background: var(--ios-card); }
-    .desk-avis--negatif { border-left-color: var(--c-danger);  background: var(--ios-card); }
     .desk-avis__avatar { width: 36px; height: 36px; font-size: 14px; }
-    .desk-avis__head strong { font-size: 14px; }
-    .desk-avis__comment { font-size: 13px; }
+    .desk-avis__head strong { font-size: 13.5px; }
+    .desk-avis__comment { font-size: 12.5px; }
     .desk-avis__date { font-size: 11.5px; }
 
     .desk-empty {
@@ -1121,17 +1054,15 @@
         background: var(--ios-card);
         border: none;
         border-radius: var(--ios-radius-lg);
-        padding: 40px 24px;
+        padding: 36px 24px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
     .desk-empty__icon {
-        width: 60px;
-        height: 60px;
-        font-size: 24px;
-        background: #EFEFF4;
+        width: 56px;
+        height: 56px;
+        font-size: 22px;
     }
-    .desk-empty h4 { font-size: 16px; font-weight: 600; }
-    .desk-empty p { font-size: 13.5px; }
+    .desk-empty h4 { font-size: 15px; }
 
     .desk-layout {
         display: block !important;
@@ -1142,15 +1073,15 @@
 }
 
 @media (max-width: 480px) {
-    .ios-stat__value { font-size: 22px; }
+    .ios-stat__value { font-size: 20px; }
     .ios-stat__label { font-size: 10.5px; }
 
     .quick-access { gap: 6px; }
     .quick-access__item { padding: 12px 4px; }
-    .quick-access__icon { width: 38px; height: 38px; font-size: 15px; }
+    .quick-access__icon { width: 34px; height: 34px; font-size: 14px; }
     .quick-access__label { font-size: 10px; }
 
-    .desk-section-title span { font-size: 16px !important; }
+    .desk-section-title span { font-size: 14.5px !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {

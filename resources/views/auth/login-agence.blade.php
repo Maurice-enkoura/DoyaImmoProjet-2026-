@@ -10,13 +10,13 @@
                 <div class="brand-mark">D</div>
                 <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--rust)">Immo</span></div>
             </a>
-            
+
             <!-- Bouton Accueil -->
             <a href="{{ route('home') }}" class="btn btn-ghost btn-sm" style="color:#fff; border-color:rgba(255,255,255,0.3);">
                 <i class="fa-solid fa-house"></i> Accueil
             </a>
         </div>
-        
+
         <!-- Statistiques -->
         <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px;">
             <!-- Citation -->
@@ -59,7 +59,7 @@
                     <div class="brand-mark">D</div>
                     <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
                 </a>
-                
+
                 <!-- Bouton Accueil -->
                 <a href="{{ route('home') }}" class="btn btn-ghost btn-sm" style="display:inline-flex; align-items:center; gap:6px;">
                     <i class="fa-solid fa-house"></i> Accueil
@@ -70,7 +70,7 @@
                 <a href="{{ route('login') }}" class="{{ request('type') != 'agence' ? 'active' : '' }}">
                     <i class="fa-solid fa-user"></i> Espace client
                 </a>
-                <a href="{{ route('login.agence') }}" class="{{ request('type') == 'agence' ? 'active' : '' }}">
+                <a href="{{ route('login') }}?type=agence" class="{{ request('type') == 'agence' ? 'active' : '' }}">
                     <i class="fa-solid fa-building"></i> Espace agence
                 </a>
             </div>
@@ -78,63 +78,41 @@
             <h1>Espace agence</h1>
             <p class="sub">Connectez-vous pour gérer vos besoins, offres et rendez-vous.</p>
 
-            <!-- Flash messages -->
-            @if(session('error'))
-                <div class="flash-message flash-error" style="margin-bottom:14px;">
-                    <i class="fa-solid fa-exclamation-circle"></i> {{ session('error') }}
-                </div>
-            @endif
-
-            @if(session('info'))
-                <div class="flash-message flash-info" style="margin-bottom:14px;">
-                    <i class="fa-solid fa-info-circle"></i> {{ session('info') }}
-                </div>
-            @endif
-
-            @if($errors->any())
-                <div class="flash-message flash-error" style="margin-bottom:14px;">
-                    <i class="fa-solid fa-exclamation-circle"></i> 
-                    @foreach($errors->all() as $error)
-                        {{ $error }}<br>
-                    @endforeach
-                </div>
-            @endif
-
             <form method="POST" action="{{ route('login') }}">
                 @csrf
                 <input type="hidden" name="type" value="agence">
 
                 <div class="field">
                     <label for="email">Email professionnel</label>
-                    <input type="email" 
-                           id="email" 
-                           name="email" 
-                           value="{{ old('email') }}" 
-                           placeholder="contact@votreagence.sn" 
-                           required 
+                    <input type="email"
+                           id="email"
+                           name="email"
+                           value="{{ old('email') }}"
+                           placeholder="contact@votreagence.sn"
+                           required
                            autofocus>
                     @error('email')
-                        <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
+                        <span class="error-message">{{ $message }}</span>
                     @enderror
                 </div>
 
                 <div class="field">
                     <label style="display:flex; justify-content:space-between;">
-                        Mot de passe 
+                        Mot de passe
                         <a href="{{ route('agence.password.request') }}" style="color:var(--rust); font-weight:600;font-size:12px;">Oublié ?</a>
                     </label>
                     <div class="password-wrapper">
-                        <input type="password" 
-                               id="password" 
-                               name="mot_de_passe" 
-                               placeholder="••••••••" 
+                        <input type="password"
+                               id="password"
+                               name="mot_de_passe"
+                               placeholder="••••••••"
                                required>
                         <button type="button" class="toggle-password" aria-label="Afficher le mot de passe" onclick="togglePassword()">
                             <i class="fas fa-eye" id="passwordIcon"></i>
                         </button>
                     </div>
                     @error('mot_de_passe')
-                        <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
+                        <span class="error-message">{{ $message }}</span>
                     @enderror
                 </div>
 
@@ -148,15 +126,15 @@
                 </button>
             </form>
 
-            <div style="margin-top:16px;padding:10px 14px;background:#FFF8E1;border-radius:10px;border:1px solid #FFE0B2;">
-                <p style="font-size:12px;color:#E65100;margin:0;display:flex;align-items:center;gap:8px;">
-                    <i class="fa-solid fa-clock"></i>
+            <div style="margin-top:16px;padding:10px 14px;background:#F5F5F7;border-radius:10px;">
+                <p style="font-size:12px;color:var(--text-soft);margin:0;display:flex;align-items:center;gap:8px;">
+                    <i class="fa-solid fa-circle-info" style="color:var(--muted);"></i>
                     <span>Votre agence doit être validée par un administrateur avant de pouvoir publier des biens.</span>
                 </p>
             </div>
 
             <p class="auth-foot-link" style="margin-top:18px;">
-                Votre agence n'est pas encore inscrite ? 
+                Votre agence n'est pas encore inscrite ?
                 <a href="{{ route('register.agence') }}">Créer un compte agence</a>
             </p>
         </div>
@@ -168,7 +146,7 @@
     function togglePassword() {
         const passwordInput = document.getElementById('password');
         const icon = document.getElementById('passwordIcon');
-        
+
         if (passwordInput.type === 'password') {
             passwordInput.type = 'text';
             icon.classList.remove('fa-eye');

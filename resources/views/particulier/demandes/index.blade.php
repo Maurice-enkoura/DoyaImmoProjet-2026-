@@ -45,7 +45,7 @@
             <span class="besoins-stat__value">{{ $totalActives }}</span>
             <span class="besoins-stat__label">Actifs</span>
         </div>
-        <div class="besoins-stat {{ $totalAttente > 0 ? 'is-highlight' : '' }}">
+        <div class="besoins-stat">
             <span class="besoins-stat__value">{{ $totalOffresAll }}</span>
             <span class="besoins-stat__label">Offres</span>
         </div>
@@ -95,34 +95,28 @@
 
                 $hasNewOffers = $offresEnAttente > 0;
 
-                // Data attributes pour filtres JS
                 $dataStatus = $statutValue;
                 $dataOffers = $totalOffres > 0 ? 'yes' : 'no';
             @endphp
 
-            <article class="besoin-card besoin-card--{{ $statutValue }} {{ $hasNewOffers ? 'has-offers' : '' }}"
+            <article class="besoin-card"
                      data-status="{{ $dataStatus }}"
                      data-offers="{{ $dataOffers }}">
 
                 {{-- Top : badge statut + chevron iOS --}}
                 <header class="besoin-card__top">
                     <span class="besoin-status besoin-status--{{ $statutValue }}">
-                        <i class="fa-solid fa-circle"></i>
                         {{ $statutLabel }}
                     </span>
 
                     @if($totalOffres > 0)
-                        <span class="offres-badge {{ $hasNewOffers ? 'offres-badge--new' : '' }}">
+                        <span class="offres-badge">
                             <i class="fa-regular fa-envelope"></i>
                             <strong>{{ $totalOffres }}</strong>
                             {{ $totalOffres > 1 ? 'offres' : 'offre' }}
-                            @if($hasNewOffers)
-                                <span class="pulse-dot"></span>
-                            @endif
                         </span>
                     @else
                         <span class="offres-badge offres-badge--empty">
-                            <i class="fa-regular fa-clock"></i>
                             En attente
                         </span>
                     @endif
@@ -167,36 +161,32 @@
                     <div class="besoin-card__counters">
                         @if($offresEnAttente > 0)
                             <span class="counter-chip counter-chip--warning">
-                                <i class="fa-regular fa-clock"></i>
                                 {{ $offresEnAttente }} en attente
                             </span>
                         @endif
                         @if($offresAcceptees > 0)
                             <span class="counter-chip counter-chip--success">
-                                <i class="fa-solid fa-check-circle"></i>
                                 {{ $offresAcceptees }} acceptée{{ $offresAcceptees > 1 ? 's' : '' }}
                             </span>
                         @endif
                     </div>
                 @endif
 
-                {{-- Actions (desktop) / iOS rows (mobile) --}}
+                {{-- Actions (desktop) --}}
                 <footer class="besoin-card__footer">
                     <a href="{{ route('particulier.demandes.show', $demande->slug) }}"
                        class="btn btn-ghost btn-sm">
-                        <i class="fa-solid fa-eye"></i> Voir le détail
+                        Voir le détail
                     </a>
 
                     @if($totalOffres > 0)
                         <a href="{{ route('particulier.demandes.offres', $demande->slug) }}"
                            class="btn btn-rust btn-sm besoin-card__cta">
-                            <i class="fa-solid fa-file-invoice"></i>
                             Voir les {{ $totalOffres }} offre{{ $totalOffres > 1 ? 's' : '' }}
-                            <i class="fa-solid fa-arrow-right"></i>
                         </a>
                     @else
                         <span class="btn btn-ghost btn-sm is-disabled">
-                            <i class="fa-regular fa-hourglass-half"></i> Aucune offre
+                            Aucune offre
                         </span>
                     @endif
                 </footer>
@@ -257,22 +247,21 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   BESOINS PUBLIÉS — iOS NATIVE
+   BESOINS PUBLIÉS — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .besoins-page {
     --c-warning:    #E65100;
     --c-warning-bg: #FFF8E1;
     --c-success:    #1E7A47;
-    --c-success-bg: #E8F5E9;
+    --c-success-bg: #F1F8F4;
     --c-danger:     #C62828;
-    --c-danger-bg:  #FFEBEE;
-    --c-info:       #0D47A1;
-    --c-info-bg:    #E3F2FD;
+    --c-danger-bg:  #FEF2F2;
+    --c-info:       #1E40AF;
+    --c-info-bg:    #EFF6FF;
     --surface:      #F7F9FC;
     --radius:       14px;
 
-    --ios-bg: #F2F2F7;
     --ios-card: #FFFFFF;
     --ios-blue: #007AFF;
     --ios-label: #000000;
@@ -331,35 +320,16 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 16px 18px;
-    transition: transform .2s ease, box-shadow .2s ease, border-color .2s;
+    transition: border-color .15s;
     position: relative;
-    overflow: hidden;
 }
 .besoin-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, .06);
     border-color: #d8d8d8;
 }
 
-/* Barre colorée statut en haut */
-.besoin-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 18px;
-    right: 18px;
-    height: 3px;
-    border-radius: 0 0 4px 4px;
-    background: var(--muted);
-}
-.besoin-card--en_attente::before { background: var(--c-warning); }
-.besoin-card--en_cours::before   { background: var(--c-info); }
-.besoin-card--terminee::before   { background: var(--c-success); }
-.besoin-card--annulee::before    { background: var(--c-danger); }
-
+/* Pas de barre colorée en haut : neutre */
 .besoin-card.has-offers {
     border-color: rgba(180, 83, 42, .35);
-    background: linear-gradient(135deg, #FFFBF7 0%, #fff 45%);
 }
 
 /* ═══ EN-TÊTE ═══ */
@@ -375,7 +345,6 @@
 .besoin-status {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
     padding: 4px 12px;
     border-radius: 999px;
     font-size: 10.5px;
@@ -383,8 +352,9 @@
     text-transform: uppercase;
     letter-spacing: .4px;
     white-space: nowrap;
+    background: #F5F5F7;
+    color: #4A5260;
 }
-.besoin-status i { font-size: 6px; }
 .besoin-status--en_attente { background: var(--c-warning-bg); color: var(--c-warning); }
 .besoin-status--en_cours   { background: var(--c-info-bg);    color: var(--c-info); }
 .besoin-status--terminee   { background: var(--c-success-bg); color: var(--c-success); }
@@ -400,65 +370,31 @@
     border-radius: 999px;
     font-size: 11.5px;
     font-weight: 600;
-    background: var(--surface);
+    background: #F5F5F7;
     color: var(--text-soft);
-    border: 1px solid var(--border);
-    position: relative;
     white-space: nowrap;
 }
-.offres-badge i { font-size: 11px; }
+.offres-badge i { font-size: 11px; color: var(--muted); }
 .offres-badge strong {
     font-family: var(--display);
     font-size: 13px;
-    font-weight: 800;
+    font-weight: 700;
     color: var(--text);
 }
-.offres-badge--new {
-    background: var(--c-warning-bg);
-    color: var(--c-warning);
-    border-color: #FFE0B2;
-}
-.offres-badge--new strong { color: var(--c-warning); }
-.offres-badge--new i { color: var(--c-warning); }
 .offres-badge--empty {
     color: var(--muted);
-    opacity: .85;
     font-style: italic;
     font-weight: 500;
 }
 
-.pulse-dot {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--c-warning);
-    margin-left: 3px;
-    position: relative;
-}
-.pulse-dot::after {
-    content: '';
-    position: absolute;
-    inset: -3px;
-    border-radius: 50%;
-    background: var(--c-warning);
-    opacity: .35;
-    animation: pulseDot 1.8s ease-in-out infinite;
-}
-@keyframes pulseDot {
-    0%, 100% { transform: scale(1); opacity: .35; }
-    50%      { transform: scale(1.6); opacity: 0; }
-}
-
 /* ═══ CORPS ═══ */
-.besoin-card__body { display: flex; flex-direction: column; gap: 10px; flex: 1; }
-
 .besoin-card__headline {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 12px;
     flex-wrap: wrap;
+    margin-bottom: 8px;
 }
 .besoin-card__type {
     font-family: var(--display);
@@ -489,22 +425,28 @@
     gap: 6px 14px;
     font-size: 12.5px;
     color: var(--muted);
+    margin-bottom: 8px;
 }
 .meta-item { display: inline-flex; align-items: center; gap: 5px; }
-.meta-item i { font-size: 11px; color: var(--rust); opacity: .8; }
+.meta-item i { font-size: 11px; color: var(--muted); }
 
 .besoin-card__desc {
     font-size: 12.5px;
     color: var(--text-soft);
     line-height: 1.55;
-    margin: 0;
+    margin: 0 0 8px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
 
-.besoin-card__counters { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px; }
+.besoin-card__counters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 4px;
+}
 .counter-chip {
     display: inline-flex;
     align-items: center;
@@ -513,11 +455,11 @@
     border-radius: 999px;
     font-size: 11px;
     font-weight: 600;
-    border: 1px solid;
+    background: #F5F5F7;
+    color: var(--text-soft);
 }
-.counter-chip i { font-size: 10px; }
-.counter-chip--warning { background: var(--c-warning-bg); color: var(--c-warning); border-color: #FFE0B2; }
-.counter-chip--success { background: var(--c-success-bg); color: var(--c-success); border-color: #C8E6C9; }
+.counter-chip--warning { background: var(--c-warning-bg); color: var(--c-warning); }
+.counter-chip--success { background: var(--c-success-bg); color: var(--c-success); }
 
 /* ═══ FOOTER ═══ */
 .besoin-card__footer {
@@ -527,12 +469,11 @@
     gap: 8px;
     margin-top: 14px;
     padding-top: 12px;
-    border-top: 1px dashed var(--border);
+    border-top: 1px solid var(--border);
     flex-wrap: wrap;
 }
 .besoin-card__cta { margin-left: auto; }
 
-/* Liens iOS (mobile uniquement) */
 .besoin-card__ios-links { display: none; }
 
 /* ═══ BOUTONS ═══ */
@@ -548,13 +489,13 @@
     border: 1px solid transparent;
     cursor: pointer;
     font-family: inherit;
-    transition: all .2s ease;
+    transition: background-color .15s, border-color .15s;
     white-space: nowrap;
 }
 .btn-rust { background: var(--rust); color: #fff; border-color: var(--rust); }
-.btn-rust:hover { background: #9A4523; color: #fff; border-color: #9A4523; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(180, 83, 42, .25); }
+.btn-rust:hover { background: #9A4523; border-color: #9A4523; color: #fff; }
 .btn-ghost { background: transparent; color: var(--text-soft); border-color: var(--border); }
-.btn-ghost:hover { background: var(--surface); border-color: var(--rust); color: var(--rust); }
+.btn-ghost:hover { background: #F5F5F7; color: var(--text); }
 .btn-sm { padding: 6px 12px; font-size: 12px; }
 .btn.is-disabled { opacity: .65; cursor: not-allowed; pointer-events: none; font-style: italic; }
 
@@ -568,13 +509,13 @@
     border: 1px dashed var(--border);
 }
 .empty-state__icon {
-    width: 76px; height: 76px;
-    margin: 0 auto 18px;
+    width: 72px; height: 72px;
+    margin: 0 auto 16px;
     display: flex; align-items: center; justify-content: center;
-    background: var(--c-warning-bg);
+    background: #F5F5F7;
     border-radius: 50%;
-    color: var(--rust);
-    font-size: 30px;
+    color: var(--muted);
+    font-size: 28px;
 }
 .empty-state h3 { font-family: var(--display); font-size: 17px; font-weight: 700; margin: 0 0 6px; color: var(--text); }
 .empty-state p { color: var(--muted); font-size: 13.5px; margin: 0 auto 18px; max-width: 400px; }
@@ -592,12 +533,12 @@
     color: var(--text-soft);
     text-decoration: none;
     font-size: 12.5px;
-    transition: all .2s;
+    transition: background-color .15s;
     min-width: 36px;
     text-align: center;
     background: #fff;
 }
-.pagination-wrapper a:hover { background: var(--border); border-color: var(--rust); color: var(--rust); }
+.pagination-wrapper a:hover { background: #F5F5F7; }
 .pagination-wrapper .active span,
 .pagination-wrapper [aria-current="page"] span,
 .pagination-wrapper [aria-current="page"] { background: var(--rust); color: #fff; border-color: var(--rust); }
@@ -654,7 +595,6 @@
         letter-spacing: -.5px;
         line-height: 1;
     }
-    .besoins-stat.is-highlight .besoins-stat__value { color: var(--rust); }
     .besoins-stat__label {
         font-size: 11px;
         font-weight: 500;
@@ -689,16 +629,15 @@
         font-weight: 600;
         color: var(--ios-label-2);
         cursor: pointer;
-        transition: all .15s ease;
+        transition: background-color .15s, color .15s;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
         -webkit-tap-highlight-color: transparent;
         white-space: nowrap;
     }
-    .besoins-filter:active { transform: scale(.95); }
+    .besoins-filter:active { transform: scale(.98); }
     .besoins-filter.is-active {
-        background: linear-gradient(135deg, var(--rust), #d4754a);
+        background: var(--rust);
         color: #fff;
-        box-shadow: 0 4px 12px rgba(181, 80, 42, .3);
     }
 
     /* ─── GRILLE → LISTE ─── */
@@ -714,23 +653,11 @@
         border-radius: var(--ios-radius-lg);
         padding: 16px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
-        transition: transform .15s ease, box-shadow .15s ease;
+        transition: transform .15s ease;
         overflow: visible;
     }
-    .besoin-card:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,.04); border: none; }
-    .besoin-card:active { transform: scale(.985); }
-
-    /* Barre statut en haut iOS */
-    .besoin-card::before {
-        left: 16px;
-        right: 16px;
-        height: 3px;
-        top: 0;
-    }
-    .besoin-card.has-offers {
-        background: var(--ios-card);
-        border: 1.5px solid rgba(181, 80, 42, .35);
-    }
+    .besoin-card:hover { border: none; }
+    .besoin-card:active { transform: scale(.99); }
 
     /* Top */
     .besoin-card__top {
@@ -745,7 +672,6 @@
         padding: 4px 10px;
         font-weight: 600;
     }
-    .besoin-status i { font-size: 7px; }
 
     .offres-badge {
         font-size: 12px;
@@ -846,10 +772,10 @@
         width: 64px;
         height: 64px;
         font-size: 26px;
+        background: #F5F5F7;
     }
 
     .ios-filter-empty {
-        display: none;
         background: var(--ios-card);
         border-radius: var(--ios-radius-lg);
         padding: 40px 24px;
@@ -863,7 +789,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #EFEFF4;
+        background: #F5F5F7;
         border-radius: 50%;
         color: var(--ios-label-3);
         font-size: 22px;
@@ -899,11 +825,18 @@
     .besoins-stat__label { font-size: 10.5px; }
 
     .besoin-card { padding: 14px; }
-    .besoin-card::before { left: 14px; right: 14px; }
     .besoin-card__type { font-size: 16px; }
     .besoin-card__budget { font-size: 17px; }
     .besoin-card__ios-links { margin: 12px -14px -14px; }
     .besoin-card__ios-link { padding: 13px 14px; font-size: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 </style>
 @endpush
@@ -925,11 +858,9 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', () => {
             const filter = btn.dataset.filter;
 
-            // UI : bouton actif
             filters.forEach(f => f.classList.remove('is-active'));
             btn.classList.add('is-active');
 
-            // Filtrage des cartes
             let visibleCount = 0;
             cards.forEach(card => {
                 const status = card.dataset.status;
@@ -954,7 +885,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // Empty state
             if (visibleCount === 0 && cards.length > 0) {
                 if (filterEmpty) filterEmpty.style.display = 'block';
                 if (grid) grid.style.display = 'none';

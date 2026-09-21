@@ -8,13 +8,28 @@
 <div class="view active rdv-show">
 
     @php
-        $statutValue = $rendezVous->statut->value;
+        use App\Enums\StatutRendezVousEnum;
+
+        $statutValue = is_object($rendezVous->statut)
+            ? $rendezVous->statut->value
+            : (string) $rendezVous->statut;
+        $statutLabel = is_object($rendezVous->statut)
+            ? $rendezVous->statut->label()
+            : ucfirst($statutValue);
+
         $bien        = $rendezVous->proposition->bien ?? null;
         $agence      = $rendezVous->agence ?? null;
         $agenceUser  = $agence->user ?? null;
-        $telVisible  = in_array($statutValue, ['confirme', 'termine']);
-        $hasTel      = $agenceUser && !empty($agenceUser->telephone);
-        $isPhoneVisible = $rendezVous->isPhoneVisible();
+
+        // ✅ Téléphone visible dès qu'un RDV existe (sauf annulé/client absent)
+        $isPhoneVisible = !in_array($statutValue, [
+            StatutRendezVousEnum::ANNULE->value,
+            StatutRendezVousEnum::CLIENT_ABSENT->value,
+        ]);
+        $hasTel = $agenceUser && !empty($agenceUser->telephone);
+
+        // ✅ Nettoyer le numéro pour le lien tel:
+        $telClean = $hasTel ? preg_replace('/\s+/', '', $agenceUser->telephone) : '';
 
         $images = $bien ? $bien->medias->where('type_media', 'image')->values() : collect();
         $videos = $bien ? $bien->medias->where('type_media', 'video')->values() : collect();
@@ -29,14 +44,42 @@
                 ->exists();
         }
 
-        // Aujourd'hui / Demain
-        $dateRdv = \Carbon\Carbon::parse($rendezVous->date_visite);
-        $isToday = $dateRdv->isToday();
+        $dateRdv    = \Carbon\Carbon::parse($rendezVous->date_visite);
+        $isToday    = $dateRdv->isToday();
         $isTomorrow = $dateRdv->isTomorrow();
+
+        $dateHeureVisite = \Carbon\Carbon::parse($rendezVous->date_visite)
+            ->setTimeFromTimeString($rendezVous->heure_visite ?? '00:00:00');
+
+        $codeVisible = $statutValue === 'confirme'
+            && !$rendezVous->code_valide
+            && now()->greaterThanOrEqualTo($dateHeureVisite->copy()->subHours(24));
+
+        $propositionStatut = $rendezVous->proposition
+            ? (is_object($rendezVous->proposition->statut)
+                ? $rendezVous->proposition->statut->value
+                : (string) $rendezVous->proposition->statut)
+            : null;
+
+        $aRdvActif = $rendezVous->proposition
+            ? $rendezVous->proposition->rendezVous()
+                ->whereIn('statut', [
+                    StatutRendezVousEnum::PLANIFIE->value,
+                    StatutRendezVousEnum::CONFIRME->value,
+                ])
+                ->where('id', '!=', $rendezVous->id)
+                ->exists()
+            : false;
+
+        $peutReplanifier = in_array($statutValue, ['client_absent', 'annule'])
+            && $propositionStatut
+            && in_array($propositionStatut, ['acceptee', 'en_attente'])
+            && !$aRdvActif;
     @endphp
 
+
     {{-- ═══ HERO : DATE + STATUT ═══ --}}
-    <header class="rdv-hero rdv-hero--{{ $statutValue }} {{ $isToday ? 'is-today' : '' }}">
+    <header class="rdv-hero rdv-hero--{{ $statutValue }}">
 
         <div class="rdv-hero__date">
             <span class="rdv-hero__day">{{ $dateRdv->format('d') }}</span>
@@ -45,15 +88,9 @@
         </div>
 
         <div class="rdv-hero__main">
-            @if($isToday)
-                <span class="rdv-hero__weekday rdv-hero__weekday--today">Aujourd'hui</span>
-            @elseif($isTomorrow)
-                <span class="rdv-hero__weekday rdv-hero__weekday--soon">Demain</span>
-            @else
-                <span class="rdv-hero__weekday">
-                    {{ $dateRdv->translatedFormat('l') }}
-                </span>
-            @endif
+            <span class="rdv-hero__weekday">
+                {{ $isToday ? 'Aujourd\'hui' : ($isTomorrow ? 'Demain' : $dateRdv->translatedFormat('l')) }}
+            </span>
 
             <h1 class="rdv-hero__title">
                 {{ $bien->titre ?? 'Visite' }}
@@ -81,31 +118,50 @@
 
         <div class="rdv-hero__status">
             <span class="rdv-status rdv-status--{{ $statutValue }}">
-                <i class="fa-solid fa-circle"></i>
-                {{ $rendezVous->statut->label() }}
+                {{ $statutLabel }}
             </span>
         </div>
     </header>
 
-    {{-- ═══ BANNIÈRE SÉCURITÉ ═══ --}}
-    @if(!$isPhoneVisible)
-        <div class="security-banner security-banner--warning">
-            <div class="security-banner__icon">
-                <i class="fa-solid fa-shield-halved"></i>
-            </div>
-            <div class="security-banner__content">
-                <strong>Numéro masqué</strong>
-                <p>Les coordonnées de l'agence seront visibles dès confirmation.</p>
+    {{-- ═══ ALERTE ANNULÉ ═══ --}}
+    @if($statutValue === 'annule')
+        <div class="rdv-alert rdv-alert--annule">
+            <i class="fa-solid fa-ban"></i>
+            <div>
+                <strong>Rendez-vous annulé</strong>
+                <p>Ce rendez-vous a été annulé. Vous pouvez choisir un nouveau créneau de visite.</p>
             </div>
         </div>
-    @else
-        <div class="security-banner security-banner--success">
-            <div class="security-banner__icon">
-                <i class="fa-solid fa-circle-check"></i>
+    @endif
+
+    {{-- ═══ ALERTE CLIENT ABSENT ═══ --}}
+    @if($statutValue === 'client_absent')
+        <div class="rdv-alert rdv-alert--absent">
+            <i class="fa-solid fa-user-slash"></i>
+            <div>
+                <strong>Vous n'êtes pas venu à cette visite</strong>
+                <p>L'agence a signalé votre absence. Vous pouvez choisir un nouveau créneau de visite.</p>
             </div>
-            <div class="security-banner__content">
-                <strong>Coordonnées visibles</strong>
-                <p>Le rendez-vous est confirmé. Vous pouvez contacter l'agence.</p>
+        </div>
+    @endif
+
+    {{-- ═══ CODE DE VISITE ═══ --}}
+    @if($codeVisible)
+        <div class="rdv-code">
+            <div class="rdv-code__header">
+                <i class="fa-solid fa-shield-halved"></i>
+                <div>
+                    <h3 class="rdv-code__title">Code de visite</h3>
+                    <p class="rdv-code__subtitle">Présentez ce code à l'agence le jour J</p>
+                </div>
+            </div>
+            <div class="rdv-code__digits">
+                @foreach(str_split($rendezVous->code_visite ?? '------') as $digit)
+                    <span class="rdv-code__digit">{{ $digit }}</span>
+                @endforeach
+            </div>
+            <div class="rdv-code__footer">
+                <span>Ce code sera requis par l'agence pour valider votre visite.</span>
             </div>
         </div>
     @endif
@@ -123,33 +179,27 @@
                 <h3 class="agency-block__name">{{ $agence->nom_agence ?? 'Agence' }}</h3>
 
                 <div class="agency-block__rating">
-                    <span class="rating-stars">
-                        <i class="fa-solid fa-star"></i>
-                        <strong>{{ number_format($agence->note_moyenne ?? 0, 1) }}</strong>
-                        <span class="rating-max">/ 5</span>
-                    </span>
-                    <span class="rating-reviews">
-                        ({{ $agence->evaluations->count() ?? 0 }} avis)
-                    </span>
+                    <i class="fa-solid fa-star"></i>
+                    <strong>{{ number_format($agence->note_moyenne ?? 0, 1) }}</strong>
+                    <span class="rating-max">/ 5</span>
+                    <span class="rating-reviews">({{ $agence->evaluations->count() ?? 0 }} avis)</span>
                 </div>
 
-                {{-- Contact --}}
-                @if($telVisible)
-                    @if($hasTel)
-                        <a href="tel:{{ $agenceUser->telephone }}" class="agency-phone">
-                            <i class="fa-solid fa-phone"></i>
-                            {{ $agenceUser->telephone }}
-                            <i class="fa-solid fa-circle-check agency-phone__check"></i>
-                        </a>
-                    @else
-                        <div class="agency-phone agency-phone--muted">
-                            <i class="fa-solid fa-phone"></i> Non renseigné
-                        </div>
-                    @endif
+                {{-- ✅ Téléphone agence — visible dès qu'un RDV existe --}}
+                @if($isPhoneVisible && $hasTel)
+                    <a href="tel:{{ $telClean }}" class="agency-phone">
+                        <i class="fa-solid fa-phone"></i>
+                        {{ $agenceUser->telephone }}
+                    </a>
+                @elseif($isPhoneVisible && !$hasTel)
+                    <div class="agency-phone agency-phone--muted">
+                        <i class="fa-solid fa-phone"></i>
+                        Numéro non renseigné
+                    </div>
                 @else
-                    <div class="agency-phone agency-phone--locked">
+                    <div class="agency-phone agency-phone--muted">
                         <i class="fa-solid fa-lock"></i>
-                        En attente de confirmation
+                        Numéro indisponible pour ce rendez-vous
                     </div>
                 @endif
             </div>
@@ -158,11 +208,68 @@
         <div class="agency-block__price">
             <span class="price-label">Prix proposé</span>
             <span class="price-value">
-                {{ number_format($rendezVous->proposition->prix_propose, 0, ',', ' ') }}
+                {{ $rendezVous->proposition
+                    ? number_format($rendezVous->proposition->prix_propose, 0, ',', ' ')
+                    : '—' }}
                 <small>FCFA</small>
             </span>
         </div>
     </div>
+
+    {{-- ═══ CARTE + ITINÉRAIRE ═══ --}}
+    @if($bien && ($bien->adresse || $bien->quartier))
+        <div class="ios-section-title">
+            <i class="fa-solid fa-map-location-dot"></i> Localisation
+        </div>
+
+        <div class="rdv-map-card">
+            <div class="rdv-map-info">
+                @if($bien->quartier)
+                    <div class="rdv-map-info__row">
+                        <i class="fa-solid fa-location-dot"></i>
+                        <div>
+                            <span class="rdv-map-info__label">Quartier</span>
+                            <span class="rdv-map-info__value">{{ $bien->quartier }}</span>
+                        </div>
+                    </div>
+                @endif
+
+                @if($bien->adresse)
+                    <div class="rdv-map-info__row">
+                        <i class="fa-solid fa-house"></i>
+                        <div>
+                            <span class="rdv-map-info__label">Adresse</span>
+                            <span class="rdv-map-info__value">{{ $bien->adresse }}</span>
+                        </div>
+                    </div>
+                @endif
+            </div>
+
+            <div id="rdvMap"
+                 class="rdv-map"
+                 data-adresse="{{ $bien->adresse }}"
+                 data-quartier="{{ $bien->quartier }}"
+                 data-titre="{{ $bien->titre }}"></div>
+
+            <div class="rdv-map-actions">
+                <a href="{{ $bien->google_maps_url }}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="rdv-map-btn rdv-map-btn--primary">
+                    <i class="fa-solid fa-diamond-turn-right"></i>
+                    Ouvrir l'itinéraire
+                </a>
+
+                <a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($bien->adresse_complete) }}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="rdv-map-btn rdv-map-btn--ghost">
+                    <i class="fa-solid fa-map"></i>
+                    Voir sur Google Maps
+                </a>
+            </div>
+        </div>
+    @endif
 
     {{-- ═══ GALERIE ═══ --}}
     @if($images->count() > 0 || $videos->count() > 0)
@@ -177,9 +284,6 @@
                     @php $url = asset('storage/' . $media->fichier); @endphp
                     <div class="gallery-item" onclick="openLightbox('{{ $url }}', {{ $index }})">
                         <img src="{{ $url }}" alt="Photo du bien" loading="lazy">
-                        <div class="gallery-item__overlay">
-                            <i class="fa-solid fa-magnifying-glass-plus"></i>
-                        </div>
                     </div>
                 @endforeach
             </div>
@@ -211,48 +315,30 @@
     </div>
 
     <div class="ios-list">
-        <div class="ios-list__item ios-list__item--static">
-            <div class="ios-list__content">
-                <span class="ios-list__title">Type</span>
-            </div>
+        <div class="ios-list__item">
+            <span class="ios-list__title">Type</span>
             <span class="ios-list__value">
-                {{ $bien->type_bien->label() ?? '—' }}
+                {{ is_object($bien->type_bien) ? $bien->type_bien->label() : ($bien->type_bien ?? '—') }}
             </span>
         </div>
 
-        <div class="ios-list__item ios-list__item--static">
-            <div class="ios-list__content">
-                <span class="ios-list__title">Contrat</span>
-            </div>
+        <div class="ios-list__item">
+            <span class="ios-list__title">Contrat</span>
             <span class="ios-list__value">
-                {{ $bien->type_contrat->label() ?? '—' }}
+                {{ is_object($bien->type_contrat) ? $bien->type_contrat->label() : ($bien->type_contrat ?? '—') }}
             </span>
         </div>
 
-        <div class="ios-list__item ios-list__item--static">
-            <div class="ios-list__content">
-                <span class="ios-list__title">Surface</span>
-            </div>
+        <div class="ios-list__item">
+            <span class="ios-list__title">Surface</span>
             <span class="ios-list__value">{{ $bien->surface ?? 0 }} m²</span>
         </div>
 
-        <div class="ios-list__item ios-list__item--static">
-            <div class="ios-list__content">
-                <span class="ios-list__title">Chambres</span>
-            </div>
+        <div class="ios-list__item">
+            <span class="ios-list__title">Chambres</span>
             <span class="ios-list__value">{{ $bien->nombre_chambres ?? 0 }}</span>
         </div>
     </div>
-
-    {{-- Adresse --}}
-    @if($bien && $bien->adresse)
-        <div class="panel panel--address">
-            <div class="address-block">
-                <i class="fa-solid fa-location-dot"></i>
-                <span>{{ $bien->adresse }}</span>
-            </div>
-        </div>
-    @endif
 
     {{-- ═══ ACTIONS ═══ --}}
     <footer class="rdv-actions">
@@ -260,36 +346,45 @@
 
             @if($statutValue === 'planifie')
                 <span class="state-pill state-pill--warning">
-                    <i class="fa-solid fa-clock"></i>
                     En attente de confirmation
                 </span>
+
+                @if($isPhoneVisible && $hasTel)
+                    <a href="tel:{{ $telClean }}" class="btn btn-rust">
+                        <i class="fa-solid fa-phone"></i> Appeler l'agence
+                    </a>
+                @endif
+
                 <a href="{{ route('particulier.rendezvous.index') }}" class="btn btn-ghost">
-                    <i class="fa-solid fa-list"></i> Tous mes rendez-vous
+                    Tous mes rendez-vous
                 </a>
+
                 <form action="{{ route('particulier.rendezvous.annuler', $rendezVous) }}"
                       method="POST" class="inline-form">
                     @csrf
                     <button type="submit" class="btn btn-danger-soft"
                             onclick="return confirm('Annuler ce rendez-vous ?')">
-                        <i class="fa-solid fa-xmark"></i> Annuler le rendez-vous
+                        Annuler
                     </button>
                 </form>
 
             @elseif($statutValue === 'confirme')
-                @if($hasTel)
-                    <a href="tel:{{ $agenceUser->telephone }}" class="btn btn-success">
+                @if($isPhoneVisible && $hasTel)
+                    <a href="tel:{{ $telClean }}" class="btn btn-rust">
                         <i class="fa-solid fa-phone"></i> Appeler l'agence
                     </a>
                 @endif
+
                 <a href="{{ route('particulier.rendezvous.index') }}" class="btn btn-ghost">
-                    <i class="fa-solid fa-list"></i> Tous mes rendez-vous
+                    Tous mes rendez-vous
                 </a>
+
                 <form action="{{ route('particulier.rendezvous.annuler', $rendezVous) }}"
                       method="POST" class="inline-form">
                     @csrf
                     <button type="submit" class="btn btn-danger-soft"
                             onclick="return confirm('Annuler ce rendez-vous ?')">
-                        <i class="fa-solid fa-xmark"></i> Annuler
+                        Annuler
                     </button>
                 </form>
 
@@ -301,26 +396,50 @@
                     </a>
                 @else
                     <span class="state-pill state-pill--success">
-                        <i class="fa-solid fa-circle-check"></i>
                         Déjà évalué
                     </span>
                 @endif
+
                 @if($hasTel)
-                    <a href="tel:{{ $agenceUser->telephone }}" class="btn btn-success">
+                    <a href="tel:{{ $telClean }}" class="btn btn-ghost">
                         <i class="fa-solid fa-phone"></i> Appeler
                     </a>
                 @endif
+
                 <a href="{{ route('particulier.rendezvous.index') }}" class="btn btn-ghost">
-                    <i class="fa-solid fa-list"></i> Tous mes rendez-vous
+                    Tous mes rendez-vous
+                </a>
+
+            @elseif($statutValue === 'client_absent')
+                <span class="state-pill state-pill--warning">
+                    Visite non honorée
+                </span>
+
+                @if($peutReplanifier)
+                    <a href="{{ route('particulier.rendezvous.create', $rendezVous->proposition_id) }}"
+                       class="btn btn-rust">
+                        Choisir un nouveau créneau
+                    </a>
+                @endif
+
+                <a href="{{ route('particulier.rendezvous.index') }}" class="btn btn-ghost">
+                    Tous mes rendez-vous
                 </a>
 
             @elseif($statutValue === 'annule')
                 <span class="state-pill state-pill--danger">
-                    <i class="fa-solid fa-ban"></i>
                     Rendez-vous annulé
                 </span>
+
+                @if($peutReplanifier)
+                    <a href="{{ route('particulier.rendezvous.create', $rendezVous->proposition_id) }}"
+                       class="btn btn-rust">
+                        Choisir un nouveau créneau
+                    </a>
+                @endif
+
                 <a href="{{ route('particulier.rendezvous.index') }}" class="btn btn-ghost">
-                    <i class="fa-solid fa-list"></i> Tous mes rendez-vous
+                    Tous mes rendez-vous
                 </a>
             @endif
         </div>
@@ -353,6 +472,7 @@
 
 @push('scripts')
 <script>
+    /* ═══ LIGHTBOX ═══ */
     const LIGHTBOX_IMAGES = @json($lightboxImages);
     let currentIndex = 0;
 
@@ -403,6 +523,84 @@
         if (e.key === 'ArrowLeft')  navigateLightbox(-1);
         if (e.key === 'ArrowRight') navigateLightbox(1);
     });
+
+    /* ═══ CARTE LEAFLET ═══ */
+    (function() {
+        const mapEl = document.getElementById('rdvMap');
+        if (!mapEl) return;
+
+        const adresse  = mapEl.dataset.adresse  || '';
+        const quartier = mapEl.dataset.quartier || '';
+        const titre    = mapEl.dataset.titre    || 'Bien';
+
+        const query = [adresse, quartier, 'Dakar', 'Sénégal']
+            .filter(Boolean)
+            .join(', ');
+
+        if (!query) return;
+
+        if (!document.querySelector('link[href*="leaflet"]')) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            link.crossOrigin = '';
+            document.head.appendChild(link);
+        }
+
+        function initMap() {
+            const map = L.map('rdvMap', {
+                scrollWheelZoom: false,
+                zoomControl: true,
+            }).setView([14.6928, -17.4467], 12);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 19,
+            }).addTo(map);
+
+            const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q='
+                + encodeURIComponent(query);
+
+            fetch(url, { headers: { 'Accept-Language': 'fr' } })
+            .then(r => r.json())
+            .then(results => {
+                if (!results || results.length === 0) {
+                    addMarker(map, 14.6928, -17.4467, titre);
+                    return;
+                }
+                const lat = parseFloat(results[0].lat);
+                const lng = parseFloat(results[0].lon);
+                map.setView([lat, lng], 16);
+                addMarker(map, lat, lng, titre);
+            })
+            .catch(() => addMarker(map, 14.6928, -17.4467, titre));
+        }
+
+        function addMarker(map, lat, lng, title) {
+            const icon = L.divIcon({
+                className: 'rdv-marker',
+                html: '<div class="rdv-marker__pin"></div>',
+                iconSize: [24, 24],
+                iconAnchor: [12, 24],
+                popupAnchor: [0, -24],
+            });
+
+            L.marker([lat, lng], { icon })
+                .addTo(map)
+                .bindPopup('<strong>' + title + '</strong>')
+                .openPopup();
+        }
+
+        if (typeof L === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+            script.crossOrigin = '';
+            script.onload = initMap;
+            document.head.appendChild(script);
+        } else {
+            initMap();
+        }
+    })();
 </script>
 @endpush
 
@@ -410,23 +608,12 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   DÉTAIL RENDEZ-VOUS — iOS NATIVE
+   DÉTAIL RENDEZ-VOUS — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .rdv-show {
-    --c-warning:    #E65100;
-    --c-warning-bg: #FFF8E1;
-    --c-success:    #1E7A47;
-    --c-success-bg: #E8F5E9;
-    --c-danger:     #C62828;
-    --c-danger-bg:  #FFEBEE;
-    --c-info:       #0D47A1;
-    --c-info-bg:    #E3F2FD;
-    --c-gold:       #F5A623;
-    --surface:      #F7F9FC;
-    --radius:       14px;
-
-    --ios-bg: #F2F2F7;
+    --surface: #F7F9FC;
+    --radius: 14px;
     --ios-card: #FFFFFF;
     --ios-blue: #007AFF;
     --ios-label: #000000;
@@ -435,6 +622,7 @@
     --ios-separator: rgba(60, 60, 67, 0.12);
     --ios-radius-lg: 18px;
 }
+
 
 /* ═══ HERO ═══ */
 .rdv-hero {
@@ -446,42 +634,23 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     margin-bottom: 14px;
-    position: relative;
-    overflow: hidden;
     flex-wrap: wrap;
 }
-.rdv-hero::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-    background: var(--muted);
-}
-.rdv-hero--planifie::before { background: var(--c-warning); }
-.rdv-hero--confirme::before { background: var(--c-info); }
-.rdv-hero--termine::before  { background: var(--c-success); }
-.rdv-hero--annule::before   { background: var(--c-danger); }
-
 .rdv-hero__date {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 1px;
-    width: 82px;
+    width: 76px;
     padding: 10px 8px;
     border-radius: 12px;
     flex-shrink: 0;
-    background: var(--surface);
+    background: #F5F5F7;
 }
-.rdv-hero--planifie .rdv-hero__date { background: var(--c-warning-bg); }
-.rdv-hero--confirme .rdv-hero__date { background: var(--c-info-bg); }
-.rdv-hero--termine  .rdv-hero__date { background: var(--c-success-bg); }
-.rdv-hero--annule   .rdv-hero__date { background: var(--c-danger-bg); }
-
 .rdv-hero__day {
     font-family: var(--display);
-    font-size: 30px;
+    font-size: 28px;
     font-weight: 800;
     line-height: 1;
     color: var(--text);
@@ -490,8 +659,8 @@
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: .6px;
-    color: var(--text-soft);
+    letter-spacing: .5px;
+    color: var(--muted);
 }
 .rdv-hero__year {
     font-size: 10px;
@@ -504,23 +673,13 @@
 .rdv-hero__weekday {
     display: inline-flex;
     align-items: center;
-    padding: 3px 10px;
+    padding: 2px 9px;
     border-radius: 999px;
     font-size: 10.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .5px;
-    color: var(--rust);
-    background: var(--rust-soft);
+    font-weight: 600;
+    color: var(--muted);
+    background: #F5F5F7;
     margin-bottom: 6px;
-}
-.rdv-hero__weekday--today {
-    background: var(--c-danger);
-    color: #fff;
-}
-.rdv-hero__weekday--soon {
-    background: var(--c-warning);
-    color: #fff;
 }
 
 .rdv-hero__title {
@@ -540,7 +699,7 @@
     color: var(--muted);
     margin-bottom: 4px;
 }
-.rdv-hero__address i { color: var(--rust); font-size: 11px; }
+.rdv-hero__address i { color: var(--muted); font-size: 11px; }
 
 .rdv-hero__meta {
     display: flex;
@@ -550,11 +709,7 @@
     font-size: 13px;
     color: var(--muted);
 }
-.rdv-hero__meta i {
-    margin-right: 5px;
-    font-size: 12px;
-    opacity: .8;
-}
+.rdv-hero__meta i { margin-right: 5px; font-size: 12px; }
 .rdv-hero__meta-sep { opacity: .4; }
 
 .rdv-hero__status { flex-shrink: 0; }
@@ -563,75 +718,126 @@
 .rdv-status {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 13px;
+    padding: 4px 12px;
     border-radius: 999px;
     font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .4px;
+    font-weight: 600;
     white-space: nowrap;
+    background: #F5F5F7;
+    color: #4A5260;
 }
-.rdv-status i { font-size: 6px; }
-.rdv-status--planifie { background: var(--c-warning-bg); color: var(--c-warning); }
-.rdv-status--confirme { background: var(--c-info-bg);    color: var(--c-info); }
-.rdv-status--termine  { background: var(--c-success-bg); color: var(--c-success); }
-.rdv-status--annule   { background: var(--c-danger-bg);  color: var(--c-danger); }
+.rdv-status--planifie      { background: #FFF8E1; color: #A05A00; }
+.rdv-status--confirme      { background: #EFF6FF; color: #1E40AF; }
+.rdv-status--termine       { background: #F1F8F4; color: #1E7A47; }
+.rdv-status--annule        { background: #FEF2F2; color: #C62828; }
+.rdv-status--client_absent { background: #F5F5F7; color: #6C6C70; }
 
-/* ═══ BANNIÈRE SÉCURITÉ ═══ */
-.security-banner {
+/* ═══ ALERTES MÉTIER ═══ */
+.rdv-alert {
     display: flex;
     align-items: flex-start;
-    gap: 14px;
-    padding: 14px 18px;
+    gap: 12px;
+    padding: 14px 16px;
     border-radius: 12px;
     margin-bottom: 14px;
-    border: 1px solid;
 }
-.security-banner__icon {
+.rdv-alert > i {
+    font-size: 18px;
     flex-shrink: 0;
-    width: 38px;
-    height: 38px;
+    margin-top: 2px;
+}
+.rdv-alert > div strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 3px;
+}
+.rdv-alert > div p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    opacity: .85;
+}
+.rdv-alert--absent {
+    background: #FFFBF0;
+    color: #A05A00;
+    border-left: 3px solid #E65100;
+}
+.rdv-alert--annule {
+    background: #FEF2F2;
+    color: #C62828;
+    border-left: 3px solid #C62828;
+}
+
+/* ═══ CODE DE VISITE ═══ */
+.rdv-code {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+.rdv-code__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.rdv-code__header > i {
+    width: 40px;
+    height: 40px;
     border-radius: 10px;
+    background: #F5F5F7;
+    color: var(--rust);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 18px;
+    flex-shrink: 0;
 }
-.security-banner__content { min-width: 0; }
-.security-banner__content strong {
-    display: block;
-    font-size: 13.5px;
+.rdv-code__title {
+    font-family: var(--display);
+    font-size: 15px;
     font-weight: 700;
-    margin-bottom: 2px;
+    margin: 0 0 2px;
+    color: var(--text);
 }
-.security-banner__content p {
-    font-size: 13px;
+.rdv-code__subtitle {
+    font-size: 12.5px;
+    color: var(--muted);
     margin: 0;
-    line-height: 1.5;
 }
-
-.security-banner--warning {
-    background: var(--c-warning-bg);
-    border-color: #FFE0B2;
-    color: var(--c-warning);
+.rdv-code__digits {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 16px;
+    background: #F9FAFB;
+    border-radius: 12px;
+    margin-bottom: 12px;
 }
-.security-banner--warning .security-banner__icon {
-    background: rgba(230, 81, 0, .12);
-    color: var(--c-warning);
+.rdv-code__digit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 54px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: var(--display);
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text);
 }
-.security-banner--warning p { color: #8B4B15; }
-
-.security-banner--success {
-    background: var(--c-success-bg);
-    border-color: #C8E6C9;
-    color: var(--c-success);
+.rdv-code__footer {
+    display: flex;
+    justify-content: center;
+    font-size: 12.5px;
+    color: var(--muted);
+    text-align: center;
 }
-.security-banner--success .security-banner__icon {
-    background: rgba(30, 122, 71, .12);
-    color: var(--c-success);
-}
-.security-banner--success p { color: #175C35; }
 
 /* ═══ SECTION TITLES ═══ */
 .ios-section-title {
@@ -644,14 +850,14 @@
     align-items: center;
     gap: 8px;
 }
-.ios-section-title i { color: var(--rust); font-size: 15px; }
+.ios-section-title i { color: var(--muted); font-size: 15px; }
 .ios-section-count {
     margin-left: auto;
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
     padding: 3px 10px;
-    background: var(--c-warning-bg);
-    color: var(--rust);
+    background: #F5F5F7;
+    color: var(--muted);
     border-radius: 999px;
 }
 
@@ -676,16 +882,16 @@
     width: 54px;
     height: 54px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--rust), #d4754a);
-    color: #fff;
+    background: #F5F5F7;
+    color: var(--text);
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: var(--display);
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
     flex-shrink: 0;
-    box-shadow: 0 6px 16px rgba(180, 83, 42, .2);
+    border: 1px solid var(--border);
 }
 .agency-block__info { flex: 1; min-width: 180px; }
 .agency-block__name {
@@ -698,42 +904,38 @@
 .agency-block__rating {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     margin-bottom: 6px;
     font-size: 13px;
     flex-wrap: wrap;
 }
-.rating-stars { display: inline-flex; align-items: center; gap: 4px; }
-.rating-stars i { color: var(--c-gold); font-size: 13px; }
-.rating-stars strong {
+.agency-block__rating i { color: #F5A623; font-size: 13px; }
+.agency-block__rating strong {
     font-family: var(--display);
     font-size: 14px;
-    font-weight: 800;
+    font-weight: 700;
     color: var(--text);
 }
-.rating-max { color: var(--muted); font-size: 12px; font-weight: 500; }
+.rating-max { color: var(--muted); font-size: 12px; }
 .rating-reviews { color: var(--muted); font-size: 12px; }
 
 .agency-phone {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 13.5px;
+    font-weight: 500;
     color: var(--text);
     text-decoration: none;
     transition: color .2s;
 }
 .agency-phone:hover { color: var(--rust); }
-.agency-phone i:first-child { color: var(--rust); font-size: 11px; }
-.agency-phone__check { color: var(--c-success) !important; font-size: 11px !important; }
-.agency-phone--muted,
-.agency-phone--locked {
-    font-style: italic;
-    font-weight: 500;
+.agency-phone i { color: var(--muted); font-size: 12px; }
+.agency-phone--muted {
     color: var(--muted);
+    font-style: italic;
+    font-weight: 400;
 }
-.agency-phone--locked i { color: var(--rust); font-size: 10px; }
 
 .agency-block__price {
     display: flex;
@@ -741,30 +943,138 @@
     justify-content: space-between;
     gap: 12px;
     padding-top: 14px;
-    border-top: 1px dashed var(--border);
+    border-top: 1px solid var(--border);
     width: 100%;
 }
 .price-label {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .4px;
-    font-weight: 600;
+    font-weight: 500;
 }
 .price-value {
     font-family: var(--display);
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--rust);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
     white-space: nowrap;
     line-height: 1.2;
 }
 .price-value small {
     font-size: 12px;
-    font-weight: 600;
-    opacity: .7;
+    font-weight: 500;
+    color: var(--muted);
     margin-left: 3px;
 }
+
+/* ═══ CARTE ═══ */
+.rdv-map-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+.rdv-map-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+.rdv-map-info__row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.rdv-map-info__row > i {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #F5F5F7;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+.rdv-map-info__label {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+.rdv-map-info__value {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.35;
+}
+.rdv-map {
+    width: 100%;
+    height: 280px;
+    background: #F5F5F7;
+    z-index: 1;
+}
+.rdv-map-actions {
+    display: flex;
+    gap: 8px;
+    padding: 14px 18px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+.rdv-map-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    font-family: inherit;
+    transition: all .2s ease;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 140px;
+}
+.rdv-map-btn--primary {
+    background: var(--rust);
+    color: #fff;
+    border: 1px solid var(--rust);
+}
+.rdv-map-btn--primary:hover {
+    background: #9A4523;
+    border-color: #9A4523;
+    color: #fff;
+}
+.rdv-map-btn--ghost {
+    background: transparent;
+    color: var(--text-soft);
+    border: 1px solid var(--border);
+}
+.rdv-map-btn--ghost:hover {
+    background: #F5F5F7;
+}
+
+/* Marqueur simple */
+.rdv-marker { background: transparent; border: none; }
+.rdv-marker__pin {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--rust);
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 1px var(--rust);
+}
+
+.leaflet-container { font-family: inherit; z-index: 1; }
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom { z-index: 1 !important; }
 
 /* ═══ GALERIE ═══ */
 .gallery-grid {
@@ -779,54 +1089,32 @@
     border-radius: 10px;
     overflow: hidden;
     cursor: pointer;
-    background: var(--surface);
+    background: #F5F5F7;
     border: 1px solid var(--border);
-    transition: transform .2s ease, box-shadow .2s ease;
-}
-.gallery-item:hover {
-    transform: scale(1.02);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, .1);
 }
 .gallery-item img {
     width: 100%; height: 100%;
     object-fit: cover;
     display: block;
 }
-.gallery-item__overlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, .4);
-    color: #fff;
-    font-size: 20px;
-    opacity: 0;
-    transition: opacity .2s;
-}
-.gallery-item:hover .gallery-item__overlay { opacity: 1; }
 
-/* Vidéos */
 .video-section { margin-top: 8px; margin-bottom: 14px; }
 .video-section__title {
     display: flex;
     align-items: center;
     gap: 7px;
-    font-size: 12.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .4px;
+    font-size: 13px;
+    font-weight: 600;
     color: var(--muted);
     margin: 0 0 10px;
 }
-.video-section__title i { color: var(--rust); font-size: 13px; }
+.video-section__title i { color: var(--muted); font-size: 13px; }
 .video-section__count {
     padding: 1px 8px;
     border-radius: 999px;
-    background: var(--surface);
-    color: var(--text-soft);
+    background: #F5F5F7;
+    color: var(--muted);
     font-size: 10.5px;
-    letter-spacing: 0;
 }
 .video-grid {
     display: grid;
@@ -853,8 +1141,6 @@
     border-radius: var(--radius);
     overflow: hidden;
     margin-bottom: 14px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
 }
 .ios-list__item {
     display: flex;
@@ -865,43 +1151,17 @@
     border-bottom: 1px solid var(--border);
     font-size: 13.5px;
 }
-.ios-list__item--static { cursor: default; }
-.ios-list__content { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ios-list__item:last-child { border-bottom: none; }
 .ios-list__title {
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--muted);
     font-weight: 500;
 }
 .ios-list__value {
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--text);
     text-align: right;
-    flex-shrink: 0;
-}
-
-/* Adresse */
-.panel--address {
-    padding: 14px 18px;
-    margin-bottom: 14px;
-}
-.address-block {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 14px;
-    color: var(--text);
-}
-.address-block i {
-    width: 32px; height: 32px;
-    border-radius: 9px;
-    background: var(--c-warning-bg);
-    color: var(--rust);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    flex-shrink: 0;
 }
 
 /* ═══ ACTIONS ═══ */
@@ -929,23 +1189,23 @@
 .state-pill {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    padding: 9px 16px;
+    padding: 8px 14px;
     border-radius: 10px;
     font-size: 13px;
-    font-weight: 600;
-    border: 1px solid;
+    font-weight: 500;
+    background: #F5F5F7;
+    color: var(--text-soft);
 }
-.state-pill--warning { background: var(--c-warning-bg); color: var(--c-warning); border-color: #FFE0B2; }
-.state-pill--success { background: var(--c-success-bg); color: var(--c-success); border-color: #C8E6C9; }
-.state-pill--danger  { background: var(--c-danger-bg);  color: var(--c-danger);  border-color: #FFCDD2; }
+.state-pill--warning { background: #FFF8E1; color: #A05A00; }
+.state-pill--success { background: #F1F8F4; color: #1E7A47; }
+.state-pill--danger  { background: #FEF2F2; color: #C62828; }
 
 /* ═══ BOUTONS ═══ */
 .btn {
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    padding: 9px 18px;
+    padding: 9px 16px;
     border-radius: 10px;
     font-size: 13px;
     font-weight: 600;
@@ -953,18 +1213,37 @@
     border: 1px solid transparent;
     cursor: pointer;
     font-family: inherit;
-    transition: all .2s ease;
+    transition: all .15s ease;
     white-space: nowrap;
 }
-.btn-rust { background: var(--rust); color: #fff; border-color: var(--rust); }
-.btn-rust:hover { background: #9A4523; color: #fff; border-color: #9A4523; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(180, 83, 42, .25); }
-.btn-ghost { background: transparent; color: var(--text-soft); border-color: var(--border); }
-.btn-ghost:hover { background: var(--surface); border-color: var(--rust); color: var(--rust); }
-.btn-danger-soft { background: var(--c-danger-bg); color: var(--c-danger); border-color: #FFCDD2; }
-.btn-danger-soft:hover { background: var(--c-danger); color: #fff; border-color: var(--c-danger); }
-.btn-success { background: #25D366; color: #fff; border-color: #25D366; }
-.btn-success:hover { background: #1DA851; color: #fff; border-color: #1DA851; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37, 211, 102, .25); }
-.btn-sm { padding: 6px 13px; font-size: 12px; }
+.btn-rust {
+    background: var(--rust);
+    color: #fff;
+    border-color: var(--rust);
+}
+.btn-rust:hover {
+    background: #9A4523;
+    border-color: #9A4523;
+    color: #fff;
+}
+.btn-ghost {
+    background: transparent;
+    color: var(--text-soft);
+    border-color: var(--border);
+}
+.btn-ghost:hover {
+    background: #F5F5F7;
+    color: var(--text);
+}
+.btn-danger-soft {
+    background: transparent;
+    color: #C62828;
+    border-color: var(--border);
+}
+.btn-danger-soft:hover {
+    background: #FEF2F2;
+    border-color: #FECACA;
+}
 
 /* ═══ LIGHTBOX ═══ */
 .lightbox {
@@ -976,7 +1255,6 @@
     align-items: center;
     justify-content: center;
     padding: 20px;
-    animation: fadeIn .2s ease;
 }
 .lightbox.is-open { display: flex; }
 
@@ -994,13 +1272,11 @@
     max-height: 82vh;
     object-fit: contain;
     border-radius: 6px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
 }
 .lightbox__counter {
     color: #fff;
     font-size: 13px;
     font-weight: 600;
-    letter-spacing: .5px;
     padding: 5px 14px;
     background: rgba(255, 255, 255, .12);
     border-radius: 999px;
@@ -1017,14 +1293,13 @@
     font-size: 26px;
     line-height: 1;
     cursor: pointer;
-    transition: background .2s, transform .2s;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: sans-serif;
     z-index: 2;
 }
-.lightbox__close:hover { background: rgba(255, 255, 255, .25); transform: scale(1.05); }
+.lightbox__close:hover { background: rgba(255, 255, 255, .25); }
 
 .lightbox__nav {
     position: absolute;
@@ -1037,27 +1312,23 @@
     border: none;
     font-size: 20px;
     cursor: pointer;
-    transition: background .2s, transform .2s;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 2;
 }
-.lightbox__nav:hover { background: rgba(255, 255, 255, .28); transform: translateY(-50%) scale(1.06); }
+.lightbox__nav:hover { background: rgba(255, 255, 255, .28); }
 .lightbox__nav--prev { left: 24px; }
 .lightbox__nav--next { right: 24px; }
 
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
 
 /* ═══════════════════════════════════════════════════════════
-   📱 MOBILE — iOS NATIVE
+   📱 MOBILE
    ═══════════════════════════════════════════════════════════ */
 @media (max-width: 820px) {
 
     .rdv-show { background: transparent; padding-top: 4px; }
 
-    /* ─── HERO iOS ─── */
     .rdv-hero {
         background: var(--ios-card);
         border: none;
@@ -1068,15 +1339,7 @@
         align-items: stretch;
         gap: 14px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
-        overflow: hidden;
     }
-    .rdv-hero::before {
-        left: 0; right: 0;
-        height: 3px;
-        border-radius: 0;
-    }
-
-    /* Date horizontal iOS */
     .rdv-hero__date {
         flex-direction: row;
         align-items: center;
@@ -1085,49 +1348,33 @@
         width: 100%;
         padding: 14px 16px;
         border-radius: 14px;
-        background: #EFEFF4 !important;
+        background: #F5F5F7;
     }
-    .rdv-hero--planifie .rdv-hero__date { background: #FFF4EC !important; }
-    .rdv-hero--confirme .rdv-hero__date { background: #E8F0FE !important; }
-    .rdv-hero--termine  .rdv-hero__date { background: #E8F5E9 !important; }
-    .rdv-hero--annule   .rdv-hero__date { background: #FFEBEE !important; }
-
-    .rdv-hero__day {
-        font-size: 26px;
-        letter-spacing: -.5px;
-    }
+    .rdv-hero__day { font-size: 24px; }
     .rdv-hero__month { font-size: 12px; }
     .rdv-hero__year  { font-size: 11px; }
 
-    /* Badge Aujourd'hui / Demain */
     .rdv-hero__weekday {
-        font-size: 10.5px;
-        text-transform: none;
-        letter-spacing: 0;
+        font-size: 11px;
         padding: 3px 10px;
-        font-weight: 600;
+        font-weight: 500;
     }
 
     .rdv-hero__title {
-        font-size: 22px;
-        letter-spacing: -.4px;
-        color: var(--ios-label);
-        font-weight: 700;
+        font-size: 20px;
+        letter-spacing: -.3px;
         margin: 4px 0 6px;
     }
 
     .rdv-hero__address {
-        font-size: 14px;
-        color: var(--ios-label-3);
+        font-size: 13.5px;
         margin-bottom: 6px;
     }
 
     .rdv-hero__meta {
         font-size: 13.5px;
-        color: var(--ios-label-3);
         gap: 6px;
     }
-    .rdv-hero__meta i { color: var(--ios-label-3); }
     .rdv-hero__meta-sep { display: none; }
 
     .rdv-hero__status {
@@ -1137,45 +1384,65 @@
         width: 100%;
     }
     .rdv-status {
-        font-size: 11px;
-        text-transform: none;
-        letter-spacing: 0;
+        font-size: 11.5px;
         padding: 5px 12px;
         font-weight: 600;
     }
 
-    /* ─── BANNIÈRE SÉCURITÉ iOS ─── */
-    .security-banner {
+    /* Alerte iOS */
+    .rdv-alert {
+        padding: 14px 16px;
+        border-radius: 14px;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    .rdv-alert > i { font-size: 16px; }
+    .rdv-alert > div strong { font-size: 14px; }
+    .rdv-alert > div p { font-size: 12.5px; }
+
+    /* Code iOS */
+    .rdv-code {
+        background: var(--ios-card);
         border: none;
         border-radius: var(--ios-radius-lg);
-        padding: 14px 16px;
+        padding: 18px;
+        margin-bottom: 14px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .rdv-code__header { gap: 12px; margin-bottom: 16px; }
+    .rdv-code__header > i {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: #F5F5F7;
+        font-size: 18px;
+    }
+    .rdv-code__title { font-size: 15px; }
+    .rdv-code__subtitle { font-size: 12px; }
+    .rdv-code__digits {
+        gap: 6px;
+        padding: 14px 8px;
+        border-radius: 14px;
+        background: #F5F5F7;
         margin-bottom: 12px;
-        gap: 12px;
     }
-    .security-banner__icon {
-        width: 36px;
-        height: 36px;
+    .rdv-code__digit {
+        width: 40px;
+        height: 50px;
+        font-size: 24px;
         border-radius: 10px;
-        font-size: 15px;
     }
-    .security-banner__content strong { font-size: 14px; font-weight: 700; }
-    .security-banner__content p { font-size: 13px; }
+    .rdv-code__footer { font-size: 12px; }
 
-    /* ─── SECTION TITLES iOS ─── */
     .ios-section-title {
         font-size: 17px;
         font-weight: 700;
-        color: var(--ios-label);
         letter-spacing: -.3px;
         margin: 22px 4px 10px;
     }
-    .ios-section-title i { font-size: 15px; color: var(--rust); }
-    .ios-section-count {
-        font-size: 11px;
-        padding: 3px 10px;
-    }
+    .ios-section-title i { font-size: 15px; }
+    .ios-section-count { font-size: 11px; padding: 3px 10px; }
 
-    /* ─── PANEL iOS ─── */
     .panel {
         background: var(--ios-card);
         border: none;
@@ -1185,7 +1452,6 @@
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
 
-    /* ─── AGENCE iOS ─── */
     .agency-block {
         flex-direction: column;
         align-items: flex-start;
@@ -1194,30 +1460,35 @@
         margin-bottom: 0;
         border-bottom: 0.5px solid var(--ios-separator);
     }
-    .agency-block__avatar { width: 52px; height: 52px; font-size: 20px; }
+    .agency-block__avatar {
+        width: 52px;
+        height: 52px;
+        font-size: 20px;
+        background: #F5F5F7;
+    }
     .agency-block__info { width: 100%; }
-    .agency-block__name { font-size: 18px; font-weight: 700; letter-spacing: -.2px; }
-    .agency-block__rating { font-size: 13px; margin-bottom: 8px; }
-    .rating-stars strong { font-size: 14px; }
+    .agency-block__name { font-size: 18px; letter-spacing: -.2px; }
+    .agency-block__rating { font-size: 13px; margin-bottom: 10px; }
 
     .agency-phone {
-        padding: 10px 14px;
+        padding: 11px 14px;
         background: #F5F5F7;
         border-radius: 10px;
         font-size: 14px;
         width: 100%;
         justify-content: center;
+        color: var(--text);
+        font-weight: 500;
     }
     .agency-phone:hover { color: var(--text); }
-    .agency-phone--locked,
     .agency-phone--muted {
         background: #F5F5F7;
-        padding: 10px 14px;
+        padding: 11px 14px;
         border-radius: 10px;
         justify-content: center;
+        color: var(--muted);
     }
 
-    /* Prix iOS */
     .agency-block__price {
         display: flex;
         align-items: center;
@@ -1227,47 +1498,64 @@
         margin-top: 14px;
         gap: 10px;
     }
-    .price-label {
-        font-size: 14px;
-        color: var(--ios-label-3);
-        text-transform: none;
-        letter-spacing: 0;
-        font-weight: 500;
+    .price-label { font-size: 14px; }
+    .price-value { font-size: 22px; letter-spacing: -.3px; }
+
+    /* Carte iOS */
+    .rdv-map-card {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        margin-bottom: 12px;
     }
-    .price-value {
-        font-size: 24px;
-        letter-spacing: -.5px;
+    .rdv-map-info {
+        padding: 14px 16px;
+        gap: 10px;
+        border-bottom: 0.5px solid var(--ios-separator);
+    }
+    .rdv-map-info__row > i {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: #F5F5F7;
+        font-size: 13px;
+    }
+    .rdv-map-info__label { font-size: 11.5px; }
+    .rdv-map-info__value { font-size: 15px; font-weight: 500; }
+
+    .rdv-map { height: 240px; }
+
+    .rdv-map-actions {
+        padding: 12px 16px;
+        border-top: 0.5px solid var(--ios-separator);
+        gap: 8px;
+        flex-direction: column;
+    }
+    .rdv-map-btn {
+        padding: 13px 16px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        min-width: 100%;
+        flex: 1;
     }
 
-    /* ─── GALERIE iOS ─── */
     .gallery-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 8px;
         margin-bottom: 12px;
     }
-    .gallery-item {
-        border-radius: 12px;
-        border: none;
-    }
-    .gallery-item__overlay { display: none; }
+    .gallery-item { border-radius: 12px; border: none; }
 
-    .video-section__title {
-        font-size: 14px;
-        text-transform: none;
-        letter-spacing: 0;
-        color: var(--ios-label-2);
-        font-weight: 600;
-    }
+    .video-section__title { font-size: 14px; }
     .video-grid { grid-template-columns: 1fr; gap: 10px; }
     .video-tile { border-radius: 12px; border: none; }
 
-    /* ─── LISTE iOS ─── */
     .ios-list {
-        display: block;
         background: var(--ios-card);
         border: none;
         border-radius: var(--ios-radius-lg);
-        overflow: hidden;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
         margin-bottom: 12px;
     }
@@ -1275,32 +1563,19 @@
         padding: 14px 16px;
         gap: 12px;
         border-bottom: 0.5px solid var(--ios-separator);
-        font-size: 15px;
     }
     .ios-list__item:last-child { border-bottom: none; }
     .ios-list__title {
         font-size: 15px;
         color: var(--ios-label);
         font-weight: 500;
-        letter-spacing: -.2px;
     }
     .ios-list__value {
         font-size: 15px;
-        font-weight: 600;
+        font-weight: 500;
         color: var(--ios-label-3);
-        text-align: right;
     }
 
-    /* ─── ADRESSE iOS ─── */
-    .panel--address { padding: 14px 16px; margin-bottom: 12px; }
-    .address-block { font-size: 14px; gap: 10px; }
-    .address-block i {
-        width: 34px;
-        height: 34px;
-        border-radius: 9px;
-    }
-
-    /* ─── ACTIONS iOS ─── */
     .rdv-actions {
         background: var(--ios-card);
         border: none;
@@ -1335,34 +1610,22 @@
     }
 
     .btn {
-        padding: 12px 18px;
+        padding: 13px 18px;
         font-size: 14px;
         border-radius: 12px;
         font-weight: 600;
     }
-    .btn-rust {
-        background: linear-gradient(135deg, var(--rust), #d4754a);
-        border: none;
-        box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
-    }
     .btn-ghost {
-        background: var(--ios-card);
-        border: 1px solid #E5E5EA;
+        background: #F5F5F7;
+        border: none;
         color: var(--ios-blue);
     }
-    .btn-ghost:active { background: #EFEFF4; }
     .btn-danger-soft {
-        background: rgba(198, 40, 40, .08);
-        border: none;
-        color: var(--c-danger);
-    }
-    .btn-success {
-        background: linear-gradient(135deg, #25D366, #1DA851);
-        border: none;
-        box-shadow: 0 4px 12px rgba(37, 211, 102, .25);
+        background: transparent;
+        border: 1px solid #FECACA;
+        color: #C62828;
     }
 
-    /* ─── LIGHTBOX iOS ─── */
     .lightbox__nav { width: 44px; height: 44px; font-size: 17px; }
     .lightbox__nav--prev { left: 12px; }
     .lightbox__nav--next { right: 12px; }
@@ -1371,13 +1634,29 @@
 
 @media (max-width: 480px) {
     .rdv-hero { padding: 16px; }
-    .rdv-hero__title { font-size: 20px; }
-    .rdv-hero__day { font-size: 24px; }
+    .rdv-hero__title { font-size: 19px; }
+    .rdv-hero__day { font-size: 22px; }
 
     .agency-block__name { font-size: 17px; }
-    .price-value { font-size: 22px; }
+    .price-value { font-size: 20px; }
 
     .gallery-grid { gap: 6px; }
+
+    .rdv-code__digit {
+        width: 34px;
+        height: 44px;
+        font-size: 22px;
+        border-radius: 9px;
+    }
+    .rdv-code__digits { gap: 5px; padding: 12px 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 </style>
 @endpush

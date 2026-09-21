@@ -19,26 +19,28 @@ class Proposition extends Model
         'bien_id',
         'particulier_id',
         'prix_propose',
-        'disponibilite',           
-        'caution_mois',            
-        'avance_loyer_mois',       
-        'honoraires',              
-        'charges',                 
+        'disponibilite',
+        'caution_mois',
+        'avance_loyer_mois',
+        'honoraires',
+        'charges',
         'conditions_particulieres',
         'message',
         'statut',
+        'refus_automatique',   // ✅ AJOUT
         'date_proposition',
     ];
 
     protected $casts = [
         'prix_propose'            => 'integer',
-        'disponibilite'           => 'date',        
-        'caution_mois'            => 'integer',    
-        'avance_loyer_mois'       => 'integer',     
-        'honoraires'              => 'integer',     
-        'charges'                 => 'integer',     
+        'disponibilite'           => 'date',
+        'caution_mois'            => 'integer',
+        'avance_loyer_mois'       => 'integer',
+        'honoraires'              => 'integer',
+        'charges'                 => 'integer',
         'date_proposition'        => 'datetime',
         'statut'                  => StatutPropositionEnum::class,
+        'refus_automatique'       => 'boolean',   // ✅ AJOUT
     ];
 
     // ==================== RELATIONS ====================
@@ -73,7 +75,7 @@ class Proposition extends Model
         return $this->morphMany(Media::class, 'mediable');
     }
 
-    // ==================== ACCESSORS EXISTANTS ====================
+    // ==================== HELPERS STATUT ====================
 
     public function getStatutLabelAttribute()
     {
@@ -97,11 +99,19 @@ class Proposition extends Model
         return is_string($this->statut) ? $this->statut : 'en_attente';
     }
 
-    // ==================== 🆕 ACCESSORS CONDITIONS ====================
+    // ✅ Helper pratique
+    public function isAcceptee(): bool
+    {
+        return $this->statut_value === StatutPropositionEnum::ACCEPTEE->value;
+    }
 
-    /**
-     * Ex : "2 mois" — ou null si non renseigné.
-     */
+    public function hasRendezVous(): bool
+    {
+        return $this->rendezVous()->exists();
+    }
+
+    // ==================== ACCESSORS CONDITIONS ====================
+
     public function getCautionLabelAttribute(): ?string
     {
         return $this->caution_mois
@@ -109,9 +119,6 @@ class Proposition extends Model
             : null;
     }
 
-    /**
-     * Ex : "1 mois" — avance de loyer.
-     */
     public function getAvanceLabelAttribute(): ?string
     {
         return $this->avance_loyer_mois
@@ -119,9 +126,6 @@ class Proposition extends Model
             : null;
     }
 
-    /**
-     * Ex : "250 000 FCFA".
-     */
     public function getHonorairesFormateAttribute(): ?string
     {
         return $this->honoraires !== null
@@ -136,14 +140,10 @@ class Proposition extends Model
             : null;
     }
 
-    /**
-     * Ex : "1er octobre 2026".
-     */
     public function getDisponibiliteLabelAttribute(): ?string
     {
         if (!$this->disponibilite) return null;
 
-        // Si c'est aujourd'hui ou avant → "Maintenant"
         if ($this->disponibilite->isPast() || $this->disponibilite->isToday()) {
             return 'Maintenant';
         }
@@ -151,11 +151,6 @@ class Proposition extends Model
         return 'À partir du ' . $this->disponibilite->translatedFormat('d F Y');
     }
 
-    /**
-     * Montant total à prévoir à l'entrée (info affichée au particulier).
-     * Caution + avance + honoraires + charges.
-     * ⚠️ N'entre PAS dans le matching — purement informatif.
-     */
     public function getCoutEntreeTotalAttribute(): int
     {
         $caution   = ($this->caution_mois ?? 0) * ($this->prix_propose ?? 0);
@@ -171,9 +166,6 @@ class Proposition extends Model
         return number_format($this->cout_entree_total, 0, ',', ' ') . ' FCFA';
     }
 
-    /**
-     * Vérifie si TOUTES les conditions sont renseignées (utile pour l'affichage).
-     */
     public function getAConditionsFinancieresAttribute(): bool
     {
         return $this->caution_mois !== null

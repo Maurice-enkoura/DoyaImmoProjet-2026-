@@ -33,10 +33,20 @@
         font-size: 14px;
         margin-top: 2px;
     }
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 12px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .status-active { background: #E8F5E9; color: #1E7A47; }
+    .status-en_attente { background: #FFF8E1; color: #F57C00; }
+    .status-inactif { background: #F5F5F5; color: var(--muted); }
     @media (max-width: 600px) {
-        .info-grid {
-            grid-template-columns: 1fr;
-        }
+        .info-grid { grid-template-columns: 1fr; }
     }
 </style>
 
@@ -50,13 +60,12 @@
 </div>
 
 <div class="grid-2">
-    <!-- Image -->
     <div class="panel">
         <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">
             <i class="fa-solid fa-image"></i> Aperçu
         </h3>
-        @if($banniere->image)
-            <img src="{{ asset('storage/' . $banniere->image) }}" alt="{{ $banniere->titre }}" class="banner-detail-image">
+        @if($banniere->image_url)
+            <img src="{{ $banniere->image_url }}" alt="{{ $banniere->titre }}" class="banner-detail-image">
         @else
             <div style="text-align:center;padding:40px;color:var(--muted);background:#F7F9FC;border-radius:8px;">
                 <i class="fa-regular fa-image" style="font-size:48px;display:block;margin-bottom:12px;"></i>
@@ -65,14 +74,13 @@
         @endif
     </div>
 
-    <!-- Informations -->
     <div class="panel">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
             <h3 style="font-size:15px;font-weight:600;">
                 <i class="fa-solid fa-info-circle"></i> Informations
             </h3>
-            <span class="status-pill {{ $banniere->est_actif ? 'status-active' : 'status-inactif' }}">
-                {{ $banniere->est_actif ? ' Actif' : ' Inactif' }}
+            <span class="status-pill {{ $banniere->statut_class }}">
+                {{ $banniere->statut_reel }}
             </span>
         </div>
 
@@ -89,11 +97,11 @@
                 <div class="label">Position du texte</div>
                 <div class="value">
                     @if($banniere->position_texte == 'gauche')
-                        ⬅️ Gauche
+                        Gauche
                     @elseif($banniere->position_texte == 'centre')
-                        ⬛ Centre
+                        Centre
                     @else
-                        ➡️ Droite
+                        Droite
                     @endif
                 </div>
             </div>
@@ -103,7 +111,7 @@
                     @if($banniere->lien)
                         <a href="{{ $banniere->lien }}" target="_blank" style="color:var(--rust);">
                             {{ Str::limit($banniere->lien, 30) }}
-                            <i class="fa-solid fa-external-link-alt" style="font-size:12px;"></i>
+                            <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:12px;"></i>
                         </a>
                     @else
                         <span style="color:var(--muted);">Non renseigné</span>
@@ -130,6 +138,14 @@
                     @endif
                 </div>
             </div>
+            @if($banniere->jours_restants !== null && $banniere->jours_restants > 0)
+            <div class="info-item" style="grid-column:span 2;background:#FFF8E1;">
+                <div class="label">Jours restants</div>
+                <div class="value" style="color:#F57C00;">
+                    <i class="fa-solid fa-clock"></i> {{ $banniere->jours_restants }} jour(s)
+                </div>
+            </div>
+            @endif
             <div class="info-item" style="grid-column:span 2;">
                 <div class="label">Ordre d'affichage</div>
                 <div class="value">{{ $banniere->ordre }}</div>
@@ -144,18 +160,41 @@
             </div>
         </div>
 
-        <!-- Actions -->
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;">
             <a href="{{ route('admin.bannieres.edit', $banniere) }}" class="btn btn-rust">
                 <i class="fa-solid fa-pen"></i> Modifier
             </a>
-            <form action="{{ route('admin.bannieres.toggle', $banniere) }}" method="POST">
-                @csrf
-                <button type="submit" class="btn btn-ghost">
-                    <i class="fa-solid {{ $banniere->est_actif ? 'fa-eye-slash' : 'fa-eye' }}"></i>
-                    {{ $banniere->est_actif ? 'Désactiver' : 'Activer' }}
-                </button>
-            </form>
+
+            @if($banniere->est_actif)
+                <form action="{{ route('admin.bannieres.desactiver', $banniere) }}" method="POST">
+                    @csrf
+                    @method('PATCH')
+                    <button type="submit" class="btn btn-ghost" onclick="return confirm('Désactiver cette bannière ?')">
+                        <i class="fa-solid fa-eye-slash"></i> Désactiver
+                    </button>
+                </form>
+            @else
+                @if($banniere->necessiteReprogrammation())
+                    <form action="{{ route('admin.bannieres.activer', $banniere) }}" method="POST">
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="date_debut" value="{{ now()->format('Y-m-d') }}">
+                        <input type="hidden" name="date_fin" value="{{ $banniere->date_fin?->format('Y-m-d') }}">
+                        <button type="submit" class="btn btn-ghost" style="color:#F57C00;">
+                            <i class="fa-solid fa-calendar-check"></i> Reprogrammer et activer
+                        </button>
+                    </form>
+                @else
+                    <form action="{{ route('admin.bannieres.activer', $banniere) }}" method="POST">
+                        @csrf
+                        @method('PATCH')
+                        <button type="submit" class="btn btn-ghost">
+                            <i class="fa-solid fa-eye"></i> Activer
+                        </button>
+                    </form>
+                @endif
+            @endif
+
             <form action="{{ route('admin.bannieres.destroy', $banniere) }}" method="POST" onsubmit="return confirm('Supprimer définitivement cette bannière ?')">
                 @csrf
                 @method('DELETE')

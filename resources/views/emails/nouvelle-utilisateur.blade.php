@@ -6,7 +6,7 @@
     <title>Bienvenue sur DoyaImmo</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
-    
+
     @php
         // ✅ Lien et libellé du bouton selon le rôle de l'utilisateur
         $ctaLinks = [
@@ -32,8 +32,8 @@
 
     <div style="background-color: #f4f4f4; padding: 40px 20px;">
         <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.1);">
-            
-            <!-- EN-TÊTE AVEC LOGO -->
+
+            {{-- EN-TÊTE --}}
             <div style="background-color: #1A1A2E; padding: 24px 32px; text-align: center;">
                 <table role="presentation" style="margin: 0 auto; border-collapse: collapse;">
                     <tr>
@@ -50,27 +50,27 @@
                     </tr>
                 </table>
             </div>
-            
-            <!-- CONTENU -->
+
+            {{-- CONTENU --}}
             <div style="padding: 32px;">
-                <h2 style="color: #1A1A2E; margin-top: 0; font-size: 22px;">Bienvenue sur DoyaImmo !</h2>
-                
+                <h2 style="color: #1A1A2E; margin-top: 0; font-size: 22px;">🎉 Bienvenue sur DoyaImmo !</h2>
+
                 <p style="color: #4A4A6A; font-size: 16px; line-height: 1.6;">
                     Bonjour <strong>{{ $user->prenom }} {{ $user->nom }}</strong>,
                 </p>
-                
+
                 <p style="color: #4A4A6A; font-size: 16px; line-height: 1.6;">
                     Nous sommes ravis de vous accueillir sur <strong>DoyaImmo</strong>, la plateforme de référence pour les transactions immobilières.
                 </p>
-                
+
                 @if($role === 'particulier')
                     <div style="background-color: #E3F2FD; border: 1px solid #90CAF9; border-radius: 8px; padding: 20px; margin: 24px 0;">
-                        <h3 style="color: #1565C0; margin-top: 0; font-size: 18px;">Commencez à publier vos besoins</h3>
-                        
+                        <h3 style="color: #1565C0; margin-top: 0; font-size: 18px;">📝 Commencez à publier vos besoins</h3>
+
                         <p style="color: #4A4A6A; font-size: 16px; line-height: 1.6; margin-top: 12px;">
-                            Publiez vos besoins immobiliers et recevez des propositions des meilleures agences.
+                            Publiez vos besoins immobiliers et recevez des propositions des meilleures agences :
                         </p>
-                        
+
                         <ul style="color: #4A4A6A; font-size: 15px; line-height: 1.8; padding-left: 20px; margin-top: 8px;">
                             <li><strong>Publiez votre demande</strong> en quelques clics</li>
                             <li><strong>Recevez des propositions</strong> des agences partenaires</li>
@@ -80,45 +80,45 @@
                 @elseif($role === 'agence')
                     <div style="background-color: #FFF8E1; border: 1px solid #FFE082; border-radius: 8px; padding: 20px; margin: 24px 0;">
                         <h3 style="color: #F57F17; margin-top: 0; font-size: 18px;">🏢 Votre agence est en cours de validation</h3>
-                        
+
                         <p style="color: #4A4A6A; font-size: 16px; line-height: 1.6; margin-top: 12px;">
                             Nos équipes examinent votre demande de validation. Vous serez notifié dès que votre agence sera active.
                         </p>
-                        
+
                         <p style="color: #4A4A6A; font-size: 14px; line-height: 1.6; margin-top: 8px;">
                             Délai moyen de validation : <strong>24 à 48 heures</strong>
                         </p>
                     </div>
                 @elseif($role === 'admin')
                     <div style="background-color: #E8F5E9; border: 1px solid #C8E6C9; border-radius: 8px; padding: 20px; margin: 24px 0;">
-                        <h3 style="color: #2E7D32; margin-top: 0; font-size: 18px;">Bienvenue sur le tableau de bord administrateur</h3>
-                        
+                        <h3 style="color: #2E7D32; margin-top: 0; font-size: 18px;">🔧 Bienvenue sur le tableau de bord administrateur</h3>
+
                         <p style="color: #4A4A6A; font-size: 16px; line-height: 1.6; margin-top: 12px;">
                             Vous avez accès à toutes les fonctionnalités d'administration de la plateforme.
                         </p>
                     </div>
                 @endif
-                
+
                 <div style="background-color: #F7F9FC; border: 1px solid #E8E8F0; border-radius: 8px; padding: 16px; margin-top: 24px;">
                     <p style="margin: 0; color: #4A4A6A; font-size: 14px; line-height: 1.6;">
-                        <strong>Besoin d'aide ?</strong> Consultez notre centre d'aide ou contactez notre support.
+                        <strong>💡 Besoin d'aide ?</strong> Consultez notre centre d'aide ou contactez notre support.
                     </p>
                 </div>
-                
-                {{-- ✅ Bouton contextuel selon le rôle --}}
+
+                {{-- CTA contextuel selon le rôle --}}
                 <div style="text-align: center; margin: 32px 0;">
-                    <a href="{{ $cta['url'] }}" 
-                       style="background-color: #2A9D8F; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block; box-shadow: 0 4px 8px rgba(42, 157, 143, 0.3);">
+                    <a href="{{ $cta['url'] }}"
+                       style="background-color: #B85C3A; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block;">
                         {{ $cta['label'] }}
                     </a>
                 </div>
-                
+
                 <p style="color: #8A8AA0; font-size: 14px; line-height: 1.6;">
                     L'équipe DoyaImmo vous souhaite une excellente expérience !
                 </p>
             </div>
-            
-            <!-- PIED DE PAGE -->
+
+            {{-- PIED --}}
             <div style="background-color: #F7F9FC; padding: 20px 32px; text-align: center; border-top: 1px solid #E8E8F0;">
                 <table role="presentation" style="margin: 0 auto; border-collapse: collapse;">
                     <tr>
@@ -138,9 +138,9 @@
                     © {{ date('Y') }} DoyaImmo. Tous droits réservés.
                 </p>
             </div>
-            
+
         </div>
     </div>
-    
+
 </body>
 </html>

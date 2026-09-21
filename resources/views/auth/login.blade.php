@@ -11,10 +11,8 @@
                 <div class="brand-mark">D</div>
                 <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--rust)">Immo</span></div>
             </a>
-            
-            
         </div>
-        
+
         <!-- Statistiques -->
         <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px;">
             <!-- Citation -->
@@ -57,7 +55,7 @@
                     <div class="brand-mark">D</div>
                     <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
                 </a>
-                
+
                 <!-- Bouton Accueil -->
                 <a href="{{ route('home') }}" class="btn btn-ghost btn-sm" style="display:inline-flex; align-items:center; gap:6px;">
                     <i class="fa-solid fa-house"></i> Accueil
@@ -76,57 +74,41 @@
             <h1>Content de vous revoir</h1>
             <p class="sub">Connectez-vous pour suivre vos demandes et vos rendez-vous.</p>
 
-            <!-- Flash messages -->
-            @if(session('error'))
-                <div class="flash-message flash-error" style="margin-bottom:14px;">
-                    <i class="fa-solid fa-exclamation-circle"></i> {{ session('error') }}
-                </div>
-            @endif
-
-            @if($errors->any())
-                <div class="flash-message flash-error" style="margin-bottom:14px;">
-                    <i class="fa-solid fa-exclamation-circle"></i> 
-                    @foreach($errors->all() as $error)
-                        {{ $error }}<br>
-                    @endforeach
-                </div>
-            @endif
-
             <form method="POST" action="{{ route('login') }}">
                 @csrf
                 <input type="hidden" name="type" value="{{ request('type', 'particulier') }}">
 
                 <div class="field">
                     <label for="email">Adresse email</label>
-                    <input type="email" 
-                           id="email" 
-                           name="email" 
-                           value="{{ old('email') }}" 
-                           placeholder="vous@exemple.com" 
-                           required 
+                    <input type="email"
+                           id="email"
+                           name="email"
+                           value="{{ old('email') }}"
+                           placeholder="vous@exemple.com"
+                           required
                            autofocus>
                     @error('email')
-                        <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
+                        <span class="error-message">{{ $message }}</span>
                     @enderror
                 </div>
 
                 <div class="field">
                     <label style="display:flex; justify-content:space-between;">
-                        Mot de passe 
+                        Mot de passe
                         <a href="{{ route('password.request') }}" style="color:var(--rust); font-weight:600;font-size:12px;">Oublié ?</a>
                     </label>
                     <div class="password-wrapper">
-                        <input type="password" 
-                               id="password" 
-                               name="mot_de_passe" 
-                               placeholder="••••••••" 
+                        <input type="password"
+                               id="password"
+                               name="mot_de_passe"
+                               placeholder="••••••••"
                                required>
                         <button type="button" class="toggle-password" aria-label="Afficher le mot de passe" onclick="togglePassword()">
                             <i class="fas fa-eye" id="passwordIcon"></i>
                         </button>
                     </div>
                     @error('mot_de_passe')
-                        <small style="color:#C62828;font-size:12px;">{{ $message }}</small>
+                        <span class="error-message">{{ $message }}</span>
                     @enderror
                 </div>
 
@@ -140,13 +122,8 @@
                 </button>
             </form>
 
-            <div class="auth-divider">ou</div>
-            <button class="btn btn-ghost btn-block" onclick="alert('Fonctionnalité à venir')">
-                <i class="fa-brands fa-google"></i> Continuer avec Google
-            </button>
-
             <p class="auth-foot-link">
-                Pas encore de compte ? 
+                Pas encore de compte ?
                 <a href="{{ route('register') }}">Créer un compte client</a>
             </p>
         </div>
@@ -158,7 +135,7 @@
     function togglePassword() {
         const passwordInput = document.getElementById('password');
         const icon = document.getElementById('passwordIcon');
-        
+
         if (passwordInput.type === 'password') {
             passwordInput.type = 'text';
             icon.classList.remove('fa-eye');

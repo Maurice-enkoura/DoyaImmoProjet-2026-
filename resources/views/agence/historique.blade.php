@@ -8,12 +8,17 @@
 <div class="view active ios-historique-page">
 
     @php
-        // Compteurs par type
+        // ✅ $activites est un LengthAwarePaginator
+        //    $activites->items() = les items de la page courante
+        //    $activites->total() = le nombre total (toutes pages)
+        $items = collect($activites->items());
+
+        // Compteurs sur la PAGE COURANTE (pour les filtres locaux)
         $counts = [
-            'all'         => $activites->total(),
-            'proposition' => $activites->where('type', 'proposition')->count(),
-            'rendezvous'  => $activites->where('type', 'rendezvous')->count(),
-            'evaluation'  => $activites->where('type', 'evaluation')->count(),
+            'all'         => $items->count(),
+            'proposition' => $items->where('type', 'proposition')->count(),
+            'rendezvous'  => $items->where('type', 'rendezvous')->count(),
+            'evaluation'  => $items->where('type', 'evaluation')->count(),
         ];
     @endphp
 
@@ -22,12 +27,12 @@
         <div class="page-header__left">
             <h2>Historique</h2>
             <p>
-                <strong>{{ $counts['all'] }}</strong>
-                activité{{ $counts['all'] > 1 ? 's' : '' }} au total
+                <strong>{{ $activites->total() }}</strong>
+                activité{{ $activites->total() > 1 ? 's' : '' }} au total
             </p>
         </div>
         <div class="page-header__actions">
-            <select id="filterType" class="ios-select-desktop" onchange="filterHistorique()">
+            <select id="filterType" class="ios-select-desktop">
                 <option value="all">Toutes les activités</option>
                 <option value="proposition">Offres envoyées ({{ $counts['proposition'] }})</option>
                 <option value="rendezvous">Rendez-vous ({{ $counts['rendezvous'] }})</option>
@@ -73,7 +78,7 @@
             <div class="ios-empty__icon">
                 <i class="fa-solid fa-filter-circle-xmark"></i>
             </div>
-            <p class="ios-empty__text">Aucune activité dans cette catégorie.</p>
+            <p class="ios-empty__text">Aucune activité dans cette catégorie sur cette page.</p>
         </div>
 
         {{-- ═══ LISTE DES ACTIVITÉS — timeline iOS ═══ --}}
@@ -86,11 +91,16 @@
             @foreach($activites as $event)
                 @php
                     $typeMeta = [
-                        'proposition' => ['class' => 'proposition', 'icon' => 'fa-paper-plane',         'label' => 'Offre envoyée'],
-                        'rendezvous'  => ['class' => 'rendezvous',  'icon' => 'fa-calendar-check',     'label' => 'Rendez-vous'],
-                        'evaluation'  => ['class' => 'evaluation',  'icon' => 'fa-star',               'label' => 'Avis reçu'],
+                        'proposition' => ['class' => 'proposition', 'icon' => 'fa-paper-plane',     'label' => 'Offre envoyée'],
+                        'rendezvous'  => ['class' => 'rendezvous',  'icon' => 'fa-calendar-check', 'label' => 'Rendez-vous'],
+                        'evaluation'  => ['class' => 'evaluation',  'icon' => 'fa-star',           'label' => 'Avis reçu'],
                     ];
                     $meta = $typeMeta[$event['type']] ?? ['class' => 'default', 'icon' => 'fa-circle', 'label' => ucfirst($event['type'])];
+
+                    // ✅ $event['date'] est un objet Carbon
+                    $dateObj = $event['date'] instanceof \Carbon\Carbon
+                        ? $event['date']
+                        : \Carbon\Carbon::parse($event['date']);
                 @endphp
 
                 <article class="ios-timeline-item" data-type="{{ $event['type'] }}">
@@ -108,7 +118,7 @@
                             <div class="ios-timeline-card__title">
                                 {{ $event['titre'] }}
                             </div>
-                            @if(isset($event['statut']))
+                            @if(!empty($event['statut']))
                                 <span class="ios-badge ios-badge--{{ $event['statut_class'] ?? 'default' }}">
                                     {{ $event['statut'] }}
                                 </span>
@@ -136,7 +146,7 @@
                         @endif
 
                         {{-- Détails --}}
-                        @if(isset($event['details']) && count($event['details']) > 0)
+                        @if(!empty($event['details']) && count($event['details']) > 0)
                             <div class="ios-timeline-details">
                                 @foreach($event['details'] as $key => $value)
                                     <div class="ios-timeline-details__row">
@@ -147,26 +157,26 @@
                             </div>
                         @endif
 
-                        {{-- Meta + Actions (inline sur desktop) --}}
+                        {{-- Meta + Actions --}}
                         <div class="ios-timeline-footer">
                             <div class="ios-timeline-meta">
-                                <span>
+                                <span title="{{ $dateObj->format('d/m/Y à H:i') }}">
                                     <i class="fa-regular fa-calendar"></i>
-                                    {{ \Carbon\Carbon::parse($event['date'])->format('d/m/Y à H:i') }}
+                                    {{ $dateObj->format('d/m/Y à H:i') }}
                                 </span>
                                 <span class="ios-timeline-meta__type">
                                     {{ $meta['label'] }}
                                 </span>
                             </div>
 
-                            @if(isset($event['link']) || isset($event['demande_link']))
+                            @if(!empty($event['link']) || !empty($event['demande_link']))
                                 <div class="ios-timeline-actions">
-                                    @if(isset($event['demande_link']))
+                                    @if(!empty($event['demande_link']))
                                         <a href="{{ $event['demande_link'] }}" class="ios-btn ios-btn--gray">
                                             <i class="fa-regular fa-file-lines"></i> Voir la demande
                                         </a>
                                     @endif
-                                    @if(isset($event['link']))
+                                    @if(!empty($event['link']))
                                         <a href="{{ $event['link'] }}" class="ios-btn ios-btn--gray">
                                             <i class="fa-solid fa-eye"></i> Voir les détails
                                         </a>
@@ -236,11 +246,12 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // ─── Filtres ───
-        const filterBtns = document.querySelectorAll('.ios-segmented__btn');
-        const items      = document.querySelectorAll('.ios-timeline-item');
-        const emptyMsg   = document.getElementById('filterEmpty');
-        let currentFilter = 'all';
+        // ─── Filtres locaux ───
+        const filterBtns   = document.querySelectorAll('.ios-segmented__btn');
+        const items        = document.querySelectorAll('.ios-timeline-item');
+        const emptyMsg     = document.getElementById('filterEmpty');
+        const desktopSelect = document.getElementById('filterType');
+        let currentFilter  = 'all';
 
         function applyFilter() {
             let visible = 0;
@@ -252,28 +263,33 @@
             if (emptyMsg) emptyMsg.hidden = visible > 0;
         }
 
+        function syncUI() {
+            filterBtns.forEach(b => {
+                b.classList.toggle('is-active', b.dataset.filter === currentFilter);
+            });
+            if (desktopSelect) {
+                desktopSelect.value = currentFilter;
+            }
+        }
+
         filterBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                filterBtns.forEach(b => b.classList.remove('is-active'));
-                btn.classList.add('is-active');
                 currentFilter = btn.dataset.filter;
+                syncUI();
                 applyFilter();
             });
         });
 
-        // ─── Desktop select (compat) ───
-        const desktopSelect = document.getElementById('filterType');
         if (desktopSelect) {
             desktopSelect.addEventListener('change', () => {
                 currentFilter = desktopSelect.value;
-                filterBtns.forEach(b => {
-                    b.classList.toggle('is-active', b.dataset.filter === currentFilter);
-                });
+                syncUI();
                 applyFilter();
             });
         }
     });
 
+    // ─── Lightbox ───
     function openLightbox(src) {
         const lightbox = document.getElementById('lightbox');
         const image = document.getElementById('lightboxImage');
@@ -304,7 +320,7 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   HISTORIQUE — iOS NATIVE
+   HISTORIQUE AGENCE — iOS NATIVE
    ═══════════════════════════════════════════════════════════ */
 
 .ios-historique-page {
@@ -487,7 +503,6 @@
 }
 .ios-timeline-item[hidden] { display: none; }
 
-/* Dot vertical */
 .ios-timeline-dot {
     width: 36px;
     height: 36px;
@@ -518,7 +533,6 @@
     z-index: 1;
 }
 
-/* Carte */
 .ios-timeline-card {
     flex: 1;
     min-width: 0;
@@ -569,6 +583,7 @@
 .ios-badge--warning { background: rgba(255, 149, 0, 0.15); color: #C93400; }
 .ios-badge--info    { background: rgba(0, 122, 255, 0.15); color: #0040DD; }
 .ios-badge--danger  { background: rgba(255, 59, 48, 0.15); color: #D70015; }
+.ios-badge--muted   { background: #EFEFF4; color: #6C6C70; }
 
 /* Description */
 .ios-timeline-card__desc {
@@ -646,7 +661,7 @@
     white-space: nowrap;
 }
 
-/* Footer : meta + actions côte à côte sur desktop */
+/* Footer */
 .ios-timeline-footer {
     display: flex;
     justify-content: space-between;
@@ -658,7 +673,6 @@
     border-top: 0.5px solid var(--ios-separator);
 }
 
-/* Meta */
 .ios-timeline-meta {
     display: flex;
     align-items: center;
@@ -685,7 +699,6 @@
     color: var(--ios-label-2);
 }
 
-/* Actions */
 .ios-timeline-actions {
     display: flex;
     gap: 8px;
@@ -921,10 +934,8 @@
         max-width: none;
     }
 
-    /* HEADER desktop masqué */
     .page-header { display: none; }
 
-    /* LARGE TITLE iOS */
     .ios-large-title {
         display: block;
         font-size: 34px;
@@ -944,7 +955,6 @@
         letter-spacing: -0.2px;
     }
 
-    /* Segmented : scroll horizontal */
     .ios-segmented {
         max-width: none;
         margin-bottom: 20px;
@@ -954,13 +964,8 @@
         font-size: 13px;
     }
 
-    /* Timeline mobile : dot + carte serrés */
-    .ios-timeline {
-        gap: 12px;
-    }
-    .ios-timeline-item {
-        gap: 10px;
-    }
+    .ios-timeline { gap: 12px; }
+    .ios-timeline-item { gap: 10px; }
     .ios-timeline-dot {
         width: 32px;
         height: 32px;
@@ -973,9 +978,7 @@
         bottom: -12px;
     }
 
-    .ios-timeline-card {
-        padding: 16px;
-    }
+    .ios-timeline-card { padding: 16px; }
 
     .ios-timeline-gallery {
         grid-template-columns: repeat(3, 1fr);
@@ -987,7 +990,6 @@
         gap: 6px;
     }
 
-    /* Footer en colonne sur mobile */
     .ios-timeline-footer {
         flex-direction: column;
         align-items: stretch;
@@ -1002,9 +1004,7 @@
         width: 100%;
     }
 
-    .ios-btn {
-        min-height: 46px;
-    }
+    .ios-btn { min-height: 46px; }
 }
 
 @media (max-width: 480px) {

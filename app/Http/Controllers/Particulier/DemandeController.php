@@ -6,18 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\DemandeImmobiliereRequest;
 use App\Models\DemandeImmobiliere;
 use App\Models\Particulier;
+use App\Models\Agence;
 use App\Models\Quartier;
 use App\Enums\TypeBienEnum;
 use App\Enums\TypeOperationEnum;
 use App\Enums\StatutDemandeEnum;
+use App\Notifications\NouvelleDemandeCompatibleNotification;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class DemandeController extends Controller
 {
     public function index()
     {
         $particulier = Particulier::where('user_id', Auth::id())->first();
-        
+
         $demandes = DemandeImmobiliere::where('particulier_id', $particulier->id)
             ->with('propositions')
             ->whereIn('statut', [
@@ -44,31 +47,80 @@ class DemandeController extends Controller
         $particulier = Particulier::where('user_id', Auth::id())->first();
 
         $demande = DemandeImmobiliere::create([
-            'particulier_id' => $particulier->id,
-            'type_operation' => $request->type_operation,
-            'type_bien' => $request->type_bien,
-            'budget_maximum' => $request->budget_maximum,
-            'zone_recherchee' => $request->zone_recherchee,
-            'quartier_id' => $request->quartier_id,
-            'nombre_chambres' => $request->nombre_chambres ?? 0,
-            'nombre_salles_bain' => $request->nombre_salles_bain ?? 0,
-            'surface_minimum' => $request->surface_minimum,
-            'parking' => $request->boolean('parking'),
-            'meuble' => $request->boolean('meuble'),
-            'climatisation' => $request->boolean('climatisation'),
-            'balcon' => $request->boolean('balcon'),
-            'jardin' => $request->boolean('jardin'),
-            'piscine' => $request->boolean('piscine'),
-            'ascenseur' => $request->boolean('ascenseur'),
-            'securite' => $request->boolean('securite'),
-            'date_entree_souhaitee' => $request->date_entree_souhaitee,
-            'criteres_particuliers' => $request->criteres_particuliers,
-            'description' => $request->description,
-            'statut' => StatutDemandeEnum::EN_ATTENTE->value,
+            'particulier_id'         => $particulier->id,
+            'type_operation'         => $request->type_operation,
+            'type_bien'              => $request->type_bien,
+            'budget_maximum'         => $request->budget_maximum,
+            'zone_recherchee'        => $request->zone_recherchee,
+            'quartier_id'            => $request->quartier_id,
+            'nombre_chambres'        => $request->nombre_chambres ?? 0,
+            'nombre_salles_bain'     => $request->nombre_salles_bain ?? 0,
+            'surface_minimum'        => $request->surface_minimum,
+            'parking'                => $request->boolean('parking'),
+            'meuble'                 => $request->boolean('meuble'),
+            'climatisation'          => $request->boolean('climatisation'),
+            'balcon'                 => $request->boolean('balcon'),
+            'jardin'                 => $request->boolean('jardin'),
+            'piscine'                => $request->boolean('piscine'),
+            'ascenseur'              => $request->boolean('ascenseur'),
+            'securite'               => $request->boolean('securite'),
+            'date_entree_souhaitee'  => $request->date_entree_souhaitee,
+            'criteres_particuliers'  => $request->criteres_particuliers,
+            'description'            => $request->description,
+            'statut'                 => StatutDemandeEnum::EN_ATTENTE->value,
         ]);
+
+        // ✅ Notifier les agences ayant des biens compatibles
+        $this->notifierAgencesCompatibles($demande);
 
         return redirect()->route('particulier.demandes.index')
             ->with('success', 'Votre besoin a été publié avec succès.');
+    }
+
+    /**
+     * ✅ Notifie les agences dont au moins un bien correspond à la demande
+     */
+    private function notifierAgencesCompatibles(DemandeImmobiliere $demande): void
+    {
+        try {
+            // Récupère les agences validées avec leurs biens actifs
+            $agences = Agence::where('statut_validation', true)
+                ->whereHas('biens', function ($q) {
+                    $q->where('statut', true);
+                })
+                ->with([
+                    'biens' => function ($q) {
+                        $q->where('statut', true);
+                    },
+                    'user',
+                ])
+                ->get();
+
+            foreach ($agences as $agence) {
+                if (!$agence->user) {
+                    continue;
+                }
+
+                // Vérifie si au moins un bien de l'agence est compatible
+                $hasMatch = false;
+
+                foreach ($agence->biens as $bien) {
+                    $match = $demande->calculerScore($bien);
+                    if (($match['score'] ?? 0) > 0) {
+                        $hasMatch = true;
+                        break;
+                    }
+                }
+
+                if ($hasMatch) {
+                    $agence->user->notify(
+                        new NouvelleDemandeCompatibleNotification($demande, $agence)
+                    );
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Erreur notification demandes compatibles: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -85,13 +137,13 @@ class DemandeController extends Controller
         }
 
         $demande->load(['propositions.agence.user', 'propositions.bien']);
-        
+
         foreach ($demande->propositions as $proposition) {
             if (is_string($proposition->statut)) {
                 $proposition->statut = \App\Enums\StatutPropositionEnum::from($proposition->statut);
             }
         }
-        
+
         return view('particulier.demandes.show', compact('demande'));
     }
 
@@ -137,25 +189,25 @@ class DemandeController extends Controller
         }
 
         $demande->update([
-            'type_operation' => $request->type_operation,
-            'type_bien' => $request->type_bien,
-            'budget_maximum' => $request->budget_maximum,
-            'zone_recherchee' => $request->zone_recherchee,
-            'quartier_id' => $request->quartier_id,
-            'nombre_chambres' => $request->nombre_chambres ?? 0,
-            'nombre_salles_bain' => $request->nombre_salles_bain ?? 0,
-            'surface_minimum' => $request->surface_minimum,
-            'parking' => $request->boolean('parking'),
-            'meuble' => $request->boolean('meuble'),
-            'climatisation' => $request->boolean('climatisation'),
-            'balcon' => $request->boolean('balcon'),
-            'jardin' => $request->boolean('jardin'),
-            'piscine' => $request->boolean('piscine'),
-            'ascenseur' => $request->boolean('ascenseur'),
-            'securite' => $request->boolean('securite'),
-            'date_entree_souhaitee' => $request->date_entree_souhaitee,
-            'criteres_particuliers' => $request->criteres_particuliers,
-            'description' => $request->description,
+            'type_operation'         => $request->type_operation,
+            'type_bien'              => $request->type_bien,
+            'budget_maximum'         => $request->budget_maximum,
+            'zone_recherchee'        => $request->zone_recherchee,
+            'quartier_id'            => $request->quartier_id,
+            'nombre_chambres'        => $request->nombre_chambres ?? 0,
+            'nombre_salles_bain'     => $request->nombre_salles_bain ?? 0,
+            'surface_minimum'        => $request->surface_minimum,
+            'parking'                => $request->boolean('parking'),
+            'meuble'                 => $request->boolean('meuble'),
+            'climatisation'          => $request->boolean('climatisation'),
+            'balcon'                 => $request->boolean('balcon'),
+            'jardin'                 => $request->boolean('jardin'),
+            'piscine'                => $request->boolean('piscine'),
+            'ascenseur'              => $request->boolean('ascenseur'),
+            'securite'               => $request->boolean('securite'),
+            'date_entree_souhaitee'  => $request->date_entree_souhaitee,
+            'criteres_particuliers'  => $request->criteres_particuliers,
+            'description'            => $request->description,
         ]);
 
         return redirect()->route('particulier.demandes.index')
@@ -180,7 +232,7 @@ class DemandeController extends Controller
     public function mesDemandes()
     {
         $particulier = Particulier::where('user_id', Auth::id())->first();
-        
+
         $demandes = DemandeImmobiliere::where('particulier_id', $particulier->id)
             ->orderBy('created_at', 'desc')
             ->paginate(10);

@@ -8,20 +8,20 @@
 <div class="view active historique-page">
 
     @php
-        // Compteurs par type
-        $countAll = $historique->count();
-        $countDemande = collect($historique->items())->where('type', 'demande')->count();
-        $countProposition = collect($historique->items())->where('type', 'proposition')->count();
-        $countRdv = collect($historique->items())->where('type', 'rendezvous')->count();
-        $countEval = collect($historique->items())->where('type', 'evaluation')->count();
+        // Compteurs par type (sur la page courante)
+        $items        = collect($historique->items());
+        $countAll     = $historique->total();
+        $countDemande = $items->where('type', 'demande')->count();
+        $countRdv     = $items->where('type', 'rendezvous')->count();
+        $countEval    = $items->where('type', 'evaluation')->count();
 
         $current = request('type', '');
+
         $tabs = [
-            ''            => ['label' => 'Tout',         'icon' => 'fa-list',          'count' => $countAll],
-            'demande'     => ['label' => 'Demandes',     'icon' => 'fa-house',         'count' => $countDemande],
-            'proposition' => ['label' => 'Propositions', 'icon' => 'fa-file-invoice',  'count' => $countProposition],
-            'rendezvous'  => ['label' => 'RDV',          'icon' => 'fa-calendar-days', 'count' => $countRdv],
-            'evaluation'  => ['label' => 'Avis',         'icon' => 'fa-star',          'count' => $countEval],
+            ''            => ['label' => 'Tout',      'icon' => 'fa-list',          'count' => $countAll],
+            'demande'     => ['label' => 'Demandes',  'icon' => 'fa-house',         'count' => $countDemande],
+            'rendezvous'  => ['label' => 'RDV',       'icon' => 'fa-calendar-days', 'count' => $countRdv],
+            'evaluation'  => ['label' => 'Avis',      'icon' => 'fa-star',          'count' => $countEval],
         ];
     @endphp
 
@@ -47,13 +47,13 @@
                 <span class="histo-stat__value">{{ $countDemande }}</span>
                 <span class="histo-stat__label">Demandes</span>
             </div>
-            <div class="histo-stat {{ $countProposition > 0 ? 'is-highlight' : '' }}">
-                <span class="histo-stat__value">{{ $countProposition }}</span>
-                <span class="histo-stat__label">Offres</span>
-            </div>
-            <div class="histo-stat">
+            <div class="histo-stat {{ $countRdv > 0 ? 'is-highlight' : '' }}">
                 <span class="histo-stat__value">{{ $countRdv }}</span>
                 <span class="histo-stat__label">RDV</span>
+            </div>
+            <div class="histo-stat">
+                <span class="histo-stat__value">{{ $countEval }}</span>
+                <span class="histo-stat__label">Avis</span>
             </div>
         </div>
     @endif
@@ -105,7 +105,7 @@
                         </header>
 
                         {{-- Description --}}
-                        @if($event['description'])
+                        @if(!empty($event['description']))
                             <p class="event-description">{{ $event['description'] }}</p>
                         @endif
 
@@ -155,7 +155,7 @@
                         @endif
 
                         {{-- Proposition associée --}}
-                        @if(isset($event['proposition']))
+                        @if(!empty($event['proposition']))
                             <a href="{{ $event['proposition']['link'] }}" class="event-sub-card">
                                 <div class="event-sub-card__icon">
                                     <i class="fa-regular fa-file-invoice"></i>
@@ -176,7 +176,7 @@
                         @endif
 
                         {{-- Évaluation associée --}}
-                        @if(isset($event['evaluation']))
+                        @if(!empty($event['evaluation']))
                             <a href="{{ $event['evaluation']['link'] }}" class="event-sub-card">
                                 <div class="event-sub-card__icon event-sub-card__icon--gold">
                                     <i class="fa-solid fa-star"></i>
@@ -189,7 +189,7 @@
                                         @endfor
                                         <strong>{{ $event['evaluation']['note'] }}/5</strong>
                                     </span>
-                                    @if($event['evaluation']['commentaire'])
+                                    @if(!empty($event['evaluation']['commentaire']))
                                         <span class="event-sub-card__comment">
                                             "{{ Str::limit($event['evaluation']['commentaire'], 60) }}"
                                         </span>
@@ -200,7 +200,7 @@
                         @endif
 
                         {{-- Détails --}}
-                        @if(isset($event['details']) && count($event['details']) > 0)
+                        @if(!empty($event['details']) && count($event['details']) > 0)
                             <div class="event-details">
                                 @foreach($event['details'] as $key => $value)
                                     <div class="detail-item">
@@ -213,9 +213,9 @@
 
                         {{-- Meta : date + type --}}
                         <div class="event-meta">
-                            <span class="event-date">
+                            <span class="event-date" title="{{ $event['date_label'] }}">
                                 <i class="fa-regular fa-calendar"></i>
-                                {{ $event['date'] }}
+                                {{ $event['relative'] ?? $event['date_label'] }}
                             </span>
                             <span class="event-type">
                                 <i class="fa-regular fa-tag"></i>
@@ -229,7 +229,7 @@
                         </div>
 
                         {{-- Actions --}}
-                        @if(isset($event['link']))
+                        @if(!empty($event['link']))
                             <a href="{{ $event['link'] }}" class="event-cta">
                                 <span>Voir les détails</span>
                                 <i class="fa-solid fa-chevron-right"></i>
@@ -436,6 +436,7 @@
 .status-warning { background: #FFF8E1; color: #E65100; }
 .status-info    { background: #E3F2FD; color: #0D47A1; }
 .status-danger  { background: #FFEBEE; color: #C62828; }
+.status-muted   { background: #EFEFF4; color: #6C6C70; }
 
 /* ═══ DESCRIPTION ═══ */
 .event-description {
@@ -644,10 +645,8 @@
 .event-meta span { display: flex; align-items: center; gap: 4px; }
 .event-meta i { font-size: 12px; }
 
-/* ═══ CTA Détails ═══ */
-.event-cta {
-    display: none;
-}
+/* ═══ CTA Détails (mobile) ═══ */
+.event-cta { display: none; }
 
 /* ═══ EMPTY ═══ */
 .empty-state {
@@ -791,7 +790,6 @@
 
     .historique-page { background: transparent; padding-top: 4px; }
 
-    /* ─── HEADER masqué ─── */
     .page-header { display: none; }
 
     /* ─── STATS INLINE ─── */
@@ -920,21 +918,10 @@
     .timeline-item:active { transform: scale(.985); }
     .timeline-item:last-child { margin-bottom: 0; }
 
-    /* Barre colorée en haut */
-    .timeline-item::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        border-radius: var(--ios-radius-lg) var(--ios-radius-lg) 0 0;
-    }
-
-    /* Ligne masquée sur mobile */
     .timeline-line { display: none; }
-
     .timeline-content { width: 100%; }
 
-    /* En-tête */
+    /* En-tête iOS */
     .event-header {
         gap: 10px;
         margin-bottom: 8px;

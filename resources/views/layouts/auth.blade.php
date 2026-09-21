@@ -4,25 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <!-- 🔧 FIX ANTI-FLASH DÉFINITIF : cette règle est volontairement minuscule
+         et placée en tout premier, pour s'appliquer quasi instantanément —
+         AVANT le gros bloc <style> plus bas et avant tout CSS externe.
+         Tant que le JS n'a pas retiré ce masquage, RIEN n'est visible,
+         quel que soit le temps que prend le reste de la page à charger. -->
+    <style>html{visibility:hidden}</style>
+    <noscript><style>html{visibility:visible !important}</style></noscript>
+
     <title>@yield('title', 'DoyaImmo')</title>
-    
+
+    <!-- Chargement non-bloquant : évite que la page attende ce CDN externe
+         avant de pouvoir peindre le CSS critique inline juste en dessous.
+         C'est ce blocage qui causait le flash de page "brute" sur mobile
+         (connexion plus lente = attente plus longue = flash plus visible). -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
+
     <!-- ===== STYLES CRITIQUES ANTI-FLASH ===== -->
     <style>
         /* ==========================================================
-           ✅ CORRECTIF DÉFINITIF ZONE BLANCHE
-           -----------------------------------------------------------
-           Cause réelle : body avait "height:100%" + "min-height:100vh"
-           + "overflow:hidden" (levé en JS) en même temps. Cette combo
-           fait propager l'overflow du body au viewport (règle spéciale
-           CSS pour html/body), ce qui désactive le cadrage réel du
-           "height:100%" : le document peut s'étendre au-delà d'un
-           écran alors que .auth-shell (avec 3x min-height:100vh
-           redondants) ne remplit qu'un seul écran visible -> vide en
-           dessous.
-           
-           Solution : chaîne flex unique et propre, sans overflow
-           trafiqué sur le body, sans min-height:100vh dupliqué nulle
-           part ailleurs que sur le body lui-même.
+           CHAÎNE FLEX PROPRE
         ========================================================== */
         html, body {
             margin: 0;
@@ -35,9 +38,14 @@
             min-height: 100dvh;
             display: flex;
             flex-direction: column;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: var(--ink);
+            line-height: 1.6;
         }
 
-        /* ✅ Écran de chargement */
+        /* ==========================================================
+           ÉCRAN DE CHARGEMENT (anti-flash)
+        ========================================================== */
         #loader {
             position: fixed;
             top: 0;
@@ -71,8 +79,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* ✅ Contenu principal - occupe tout l'espace dispo, sans
-           min-height:100vh propre (évite le doublon avec body) */
         #auth-app {
             opacity: 0;
             transition: opacity 0.4s ease;
@@ -80,11 +86,14 @@
             display: flex;
             flex-direction: column;
         }
-        
+
         #auth-app.ready {
             opacity: 1;
         }
 
+        /* ==========================================================
+           VARIABLES
+        ========================================================== */
         :root {
             --rust: #B5502A;
             --rust-soft: rgba(181, 80, 42, 0.12);
@@ -93,8 +102,6 @@
             --border: #E8ECF0;
             --text-soft: #4A5260;
             --muted: #8A91A0;
-            --gold: #D4AF37;
-            --teal: #0E7A7A;
             --bg-soft: #F7F9FC;
             --radius: 16px;
             --display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -106,15 +113,9 @@
             box-sizing: border-box;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: var(--ink);
-            line-height: 1.6;
-            /* ✅ overflow:hidden supprimé : c'était la cause du bug
-               (propagation au viewport en conflit avec height/min-height) */
-        }
-
-        /* ==================== AUTH SHELL ==================== */
+        /* ==========================================================
+           AUTH SHELL
+        ========================================================== */
         .auth-shell {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -122,16 +123,6 @@
             flex: 1 0 auto;
             min-height: 100vh;
             min-height: 100dvh;
-            /* ✅ Filet de sécurité : flex:1 suffit en théorie pour
-               remplir tout l'écran même sur un contenu très court
-               (page "choix de compte"), mais certains navigateurs
-               ne propagent pas toujours flex-grow correctement à
-               travers deux niveaux de flex imbriqués quand le
-               contenu est nettement plus petit que le viewport.
-               Le min-height explicite garantit le résultat dans
-               tous les cas, sans réintroduire le bug initial
-               puisqu'il n'y a plus qu'UNE seule déclaration de
-               min-height:100vh dans toute la chaîne. */
         }
 
         @media (max-width: 860px) {
@@ -141,32 +132,18 @@
             }
         }
 
-        /* ==================== VISUAL SIDE ==================== */
+        /* ==========================================================
+           VISUAL SIDE
+        ========================================================== */
         .auth-visual {
             background: var(--ink);
             color: #fff;
-            padding: 40px 40px;
+            padding: 40px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             position: relative;
-            overflow: hidden;
-            /* ✅ min-height:100vh supprimé : align-items:stretch sur
-               .auth-shell étire déjà cette colonne pour matcher
-               .auth-form-side. */
             z-index: 1;
-        }
-
-        .auth-visual::before {
-            content: "";
-            position: absolute;
-            right: -80px;
-            bottom: -80px;
-            width: 320px;
-            height: 320px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(181,80,42,.2), transparent 70%);
-            pointer-events: none;
         }
 
         .auth-visual .brand {
@@ -224,7 +201,7 @@
         }
 
         .auth-visual-footer i {
-            color: var(--gold);
+            color: #6A7280;
         }
 
         @media (max-width: 860px) {
@@ -276,14 +253,15 @@
             }
         }
 
-        /* ==================== FORM SIDE ==================== */
+        /* ==========================================================
+           FORM SIDE
+        ========================================================== */
         .auth-form-side {
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 40px 24px;
             background: #fff;
-            /* ✅ min-height:100vh supprimé : voir explication ci-dessus */
         }
 
         @media (max-width: 860px) {
@@ -305,7 +283,9 @@
             }
         }
 
-        /* ==================== BRAND ==================== */
+        /* ==========================================================
+           BRAND
+        ========================================================== */
         .brand {
             display: flex;
             align-items: center;
@@ -339,14 +319,13 @@
             color: var(--rust);
         }
 
-        /* Sur le fond sombre (.auth-visual), le texte "Doya" doit être
-           blanc pour rester lisible — sinon il hérite de var(--ink)
-           (sombre) et devient quasi invisible sur fond sombre. */
         .auth-visual .brand-name {
             color: #fff;
         }
 
-        /* ==================== ROLE TOGGLE ==================== */
+        /* ==========================================================
+           ROLE TOGGLE
+        ========================================================== */
         .role-toggle {
             display: flex;
             background: #F0F2F5;
@@ -365,7 +344,7 @@
             font-weight: 600;
             color: var(--text-soft);
             text-decoration: none;
-            transition: all 0.3s ease;
+            transition: background-color 0.15s, color 0.15s;
             position: relative;
             z-index: 1;
             display: flex;
@@ -381,40 +360,15 @@
         .role-toggle a.active {
             background: #fff;
             color: var(--ink);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
 
         .role-toggle a:hover:not(.active) {
             background: rgba(0,0,0,0.04);
         }
 
-        .role-toggle a .role-badge {
-            font-size: 9px;
-            font-weight: 700;
-            text-transform: uppercase;
-            padding: 1px 8px;
-            border-radius: 20px;
-            background: var(--rust-soft);
-            color: var(--rust);
-            letter-spacing: 0.3px;
-        }
-
-        .role-toggle a.active .role-badge {
-            background: var(--rust);
-            color: #fff;
-        }
-
-        .role-toggle a .role-badge.teal {
-            background: rgba(14, 122, 122, 0.12);
-            color: var(--teal);
-        }
-
-        .role-toggle a.active .role-badge.teal {
-            background: var(--teal);
-            color: #fff;
-        }
-
-        /* ==================== TYPOGRAPHY ==================== */
+        /* ==========================================================
+           TYPOGRAPHIE
+        ========================================================== */
         .auth-box h1 {
             font-family: var(--display);
             font-weight: 700;
@@ -428,7 +382,9 @@
             margin-bottom: 20px;
         }
 
-        /* ==================== BUTTONS ==================== */
+        /* ==========================================================
+           BOUTONS
+        ========================================================== */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -438,7 +394,7 @@
             font-size: 13.5px;
             font-weight: 600;
             text-decoration: none;
-            transition: all 0.2s;
+            transition: background-color 0.15s, border-color 0.15s, color 0.15s;
             border: 1px solid transparent;
             cursor: pointer;
             font-family: inherit;
@@ -488,7 +444,9 @@
             font-size: 12.5px;
         }
 
-        /* ==================== CHOICE CARDS ==================== */
+        /* ==========================================================
+           CHOICE CARDS
+        ========================================================== */
         .choice-container {
             display: flex;
             flex-direction: column;
@@ -501,10 +459,10 @@
             align-items: center;
             gap: 16px;
             padding: 16px 20px;
-            border: 2px solid var(--border);
+            border: 1px solid var(--border);
             border-radius: 14px;
             text-decoration: none;
-            transition: all 0.25s ease;
+            transition: border-color 0.15s, background-color 0.15s;
             background: #fff;
             position: relative;
             cursor: pointer;
@@ -512,12 +470,7 @@
 
         .choice-card:hover {
             border-color: var(--rust);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 28px rgba(181, 80, 42, 0.10);
-        }
-
-        .choice-card:active {
-            transform: translateY(0);
+            background: #FAFBFC;
         }
 
         .choice-card .choice-icon {
@@ -529,27 +482,8 @@
             border-radius: 12px;
             font-size: 18px;
             flex-shrink: 0;
-            transition: background 0.25s;
-        }
-
-        .choice-client .choice-icon {
-            background: var(--rust-soft);
-            color: var(--rust);
-        }
-
-        .choice-client:hover .choice-icon {
-            background: var(--rust);
-            color: #fff;
-        }
-
-        .choice-agence .choice-icon {
-            background: rgba(14, 122, 122, 0.12);
-            color: var(--teal);
-        }
-
-        .choice-agence:hover .choice-icon {
-            background: var(--teal);
-            color: #fff;
+            background: #F5F5F7;
+            color: var(--muted);
         }
 
         .choice-card .choice-content {
@@ -563,15 +497,7 @@
             font-size: 16px;
             font-weight: 700;
             color: var(--ink);
-            transition: color 0.25s;
-        }
-
-        .choice-client:hover .choice-title {
-            color: var(--rust);
-        }
-
-        .choice-agence:hover .choice-title {
-            color: var(--teal);
+            line-height: 1.3;
         }
 
         .choice-card .choice-desc {
@@ -582,43 +508,16 @@
         .choice-card .choice-arrow {
             color: var(--muted);
             font-size: 14px;
-            transition: all 0.25s;
-            opacity: 0;
-            transform: translateX(-8px);
+            flex-shrink: 0;
         }
 
         .choice-card:hover .choice-arrow {
-            opacity: 1;
-            transform: translateX(0);
-        }
-
-        .choice-client:hover .choice-arrow {
             color: var(--rust);
         }
 
-        .choice-agence:hover .choice-arrow {
-            color: var(--teal);
-        }
-
-        .choice-card .badge {
-            position: absolute;
-            top: -8px;
-            right: -6px;
-            background: var(--rust);
-            color: #fff;
-            font-size: 9px;
-            font-weight: 700;
-            text-transform: uppercase;
-            padding: 2px 10px;
-            border-radius: 20px;
-            letter-spacing: 0.5px;
-        }
-
-        .choice-card .badge.badge-teal {
-            background: var(--teal);
-        }
-
-        /* ==================== AUTH DIVIDER ==================== */
+        /* ==========================================================
+           AUTH DIVIDER
+        ========================================================== */
         .auth-divider {
             display: flex;
             align-items: center;
@@ -636,15 +535,33 @@
             background: var(--border);
         }
 
-        /* ==================== FLASH MESSAGES ==================== */
+        /* ==========================================================
+           FLASH MESSAGES (global)
+        ========================================================== */
+        .flash-container {
+            max-width: 480px;
+            width: 100%;
+            margin: 16px auto;
+            padding: 0 16px;
+        }
+
         .flash-message {
             padding: 10px 16px;
             border-radius: 12px;
-            margin-bottom: 14px;
-            font-size: 14px;
+            margin-bottom: 10px;
+            font-size: 13.5px;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 8px;
+            line-height: 1.5;
+        }
+
+        .flash-message:last-child { margin-bottom: 0; }
+
+        .flash-message i {
+            font-size: 14px;
+            margin-top: 2px;
+            flex-shrink: 0;
         }
 
         .flash-success {
@@ -665,7 +582,9 @@
             border: 1px solid #BBDEFB;
         }
 
-        /* ==================== FORM FIELDS ==================== */
+        /* ==========================================================
+           FORM FIELDS
+        ========================================================== */
         .field {
             margin-bottom: 14px;
         }
@@ -686,7 +605,7 @@
             border-radius: 10px;
             font-size: 13px;
             font-family: inherit;
-            transition: all 0.2s;
+            transition: border-color 0.15s;
             background: #fff;
         }
 
@@ -694,7 +613,6 @@
         .field textarea:focus {
             outline: none;
             border-color: var(--rust);
-            box-shadow: 0 0 0 3px rgba(181, 80, 42, 0.08);
         }
 
         .field input::placeholder,
@@ -705,11 +623,6 @@
         .field input.is-invalid,
         .field textarea.is-invalid {
             border-color: #C62828;
-        }
-
-        .field input.is-invalid:focus,
-        .field textarea.is-invalid:focus {
-            box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.08);
         }
 
         .field-hint {
@@ -732,7 +645,9 @@
             margin-left: 2px;
         }
 
-        /* ==================== PASSWORD WRAPPER ==================== */
+        /* ==========================================================
+           PASSWORD WRAPPER
+        ========================================================== */
         .password-wrapper {
             position: relative;
         }
@@ -751,15 +666,17 @@
             color: var(--muted);
             cursor: pointer;
             padding: 4px;
-            font-size: 16px;
-            transition: color 0.2s;
+            font-size: 15px;
+            transition: color 0.15s;
         }
 
         .toggle-password:hover {
-            color: var(--text);
+            color: var(--text-soft);
         }
 
-        /* ==================== CHECKBOX ==================== */
+        /* ==========================================================
+           CHECKBOX
+        ========================================================== */
         .check-row {
             display: flex;
             align-items: flex-start;
@@ -788,7 +705,9 @@
             text-decoration: underline;
         }
 
-        /* ==================== AUTH FOOTER ==================== */
+        /* ==========================================================
+           AUTH FOOT LINK
+        ========================================================== */
         .auth-foot-link {
             text-align: center;
             margin-top: 20px;
@@ -806,9 +725,9 @@
             text-decoration: underline;
         }
 
-        /* ============================================
+        /* ==========================================================
            FORM SECTION
-        ============================================ */
+        ========================================================== */
         .form-section {
             margin-bottom: 20px;
             padding-bottom: 20px;
@@ -828,7 +747,7 @@
             font-family: var(--display);
             font-size: 15px;
             font-weight: 600;
-            color: var(--text);
+            color: var(--ink);
             margin-bottom: 14px;
         }
 
@@ -839,8 +758,8 @@
             width: 26px;
             height: 26px;
             border-radius: 50%;
-            background: var(--rust);
-            color: #fff;
+            background: #F5F5F7;
+            color: var(--text-soft);
             font-size: 12px;
             font-weight: 700;
             flex-shrink: 0;
@@ -872,9 +791,9 @@
             margin: 16px 0;
         }
 
-        /* ============================================
+        /* ==========================================================
            FORMULAIRES AGENCE
-        ============================================ */
+        ========================================================== */
         .form-group {
             margin-bottom: 22px;
             padding-bottom: 22px;
@@ -896,7 +815,6 @@
             font-weight: 600;
             color: var(--ink);
             margin-bottom: 14px;
-            letter-spacing: 0.3px;
         }
 
         .form-label .label-icon {
@@ -906,8 +824,8 @@
             width: 30px;
             height: 30px;
             border-radius: 8px;
-            background: var(--rust-soft);
-            color: var(--rust);
+            background: #F5F5F7;
+            color: var(--muted);
             font-size: 14px;
         }
 
@@ -929,12 +847,13 @@
             flex-direction: column;
         }
 
-        /* ==================== DOCUMENTS ==================== */
+        /* ==========================================================
+           DOCUMENTS
+        ========================================================== */
         .documents-group {
-            background: #FAFBFC;
+            background: #F5F5F7;
             padding: 14px 18px 18px;
             border-radius: 12px;
-            border: 1px solid var(--border);
         }
 
         .documents-group .form-label {
@@ -966,18 +885,17 @@
             border-radius: 10px;
             background: #fff;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: border-color 0.15s;
             font-size: 13px;
         }
 
         .document-label:hover {
-            border-color: var(--rust);
-            background: rgba(181, 80, 42, 0.02);
+            border-color: #d8d8d8;
         }
 
         .document-label i {
             font-size: 18px;
-            color: var(--rust);
+            color: var(--muted);
             width: 22px;
             text-align: center;
         }
@@ -1020,10 +938,12 @@
         }
 
         .document-help i {
-            color: var(--rust);
+            color: var(--muted);
         }
 
-        /* ==================== CONDITIONS ==================== */
+        /* ==========================================================
+           CONDITIONS
+        ========================================================== */
         .conditions {
             margin: 20px 0 16px;
         }
@@ -1056,7 +976,9 @@
             text-decoration: underline;
         }
 
-        /* ===================== BOUTON ===================== */
+        /* ==========================================================
+           BOUTON SUBMIT
+        ========================================================== */
         .btn-submit {
             display: inline-flex;
             align-items: center;
@@ -1072,7 +994,7 @@
             font-weight: 600;
             font-family: inherit;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background-color 0.15s;
         }
 
         .btn-submit:hover {
@@ -1099,12 +1021,12 @@
         }
 
         .form-footer i {
-            color: var(--rust);
+            color: var(--muted);
         }
 
-        /* ============================================
+        /* ==========================================================
            RESPONSIVE
-        ============================================ */
+        ========================================================== */
         @media (max-width: 860px) {
             .auth-box {
                 max-width: 100%;
@@ -1130,10 +1052,6 @@
 
             .role-toggle a i {
                 font-size: 12px;
-            }
-
-            .role-toggle a .role-badge {
-                display: none;
             }
 
             .field input,
@@ -1181,44 +1099,35 @@
                 font-size: 12px;
             }
 
-            .choice-card .choice-arrow {
-                font-size: 12px;
-            }
-
-            .choice-card .badge {
-                font-size: 8px;
-                padding: 1px 8px;
-            }
-            
             .form-section {
                 margin-bottom: 16px;
                 padding-bottom: 16px;
             }
-            
+
             .section-title {
                 font-size: 14px;
                 margin-bottom: 12px;
             }
-            
+
             .step-badge {
                 width: 24px;
                 height: 24px;
                 font-size: 11px;
             }
-            
+
             .documents-group {
                 padding: 12px 14px 14px;
             }
-            
+
             .document-label {
                 padding: 8px 12px;
                 font-size: 12px;
             }
-            
+
             .document-label i {
                 font-size: 16px;
             }
-            
+
             .btn-submit {
                 font-size: 14px;
                 padding: 12px 20px;
@@ -1238,21 +1147,11 @@
             .role-toggle a {
                 padding: 8px 12px;
             }
-
-            .choice-card {
-                flex-wrap: wrap;
-            }
-
-            .choice-card .choice-arrow {
-                opacity: 1;
-                transform: none;
-                margin-left: auto;
-            }
         }
 
-        /* ============================================
-           CORRECTION ZOOM SUR MOBILE
-        ============================================ */
+        /* ==========================================================
+           ANTI-ZOOM MOBILE
+        ========================================================== */
         @media (max-width: 768px) {
             .field input,
             .field textarea,
@@ -1267,7 +1166,9 @@
             }
         }
 
-        /* ==================== ACCESSIBILITY ==================== */
+        /* ==========================================================
+           ACCESSIBILITY
+        ========================================================== */
         @media (prefers-reduced-motion: reduce) {
             * {
                 animation-duration: 0.01ms !important;
@@ -1276,7 +1177,9 @@
             }
         }
 
-        /* ==================== SCROLLBAR ==================== */
+        /* ==========================================================
+           SCROLLBAR
+        ========================================================== */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -1305,6 +1208,36 @@
     <div class="loader-spinner"></div>
 </div>
 
+<!-- ===== FLASH MESSAGES (global) ===== -->
+@if(session('success') || session('error') || session('info') || session('warning'))
+    <div class="flash-container">
+        @if(session('success'))
+            <div class="flash-message flash-success">
+                <i class="fa-solid fa-circle-check"></i>
+                <span>{{ session('success') }}</span>
+            </div>
+        @endif
+        @if(session('error'))
+            <div class="flash-message flash-error">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span>{{ session('error') }}</span>
+            </div>
+        @endif
+        @if(session('info'))
+            <div class="flash-message flash-info">
+                <i class="fa-solid fa-circle-info"></i>
+                <span>{{ session('info') }}</span>
+            </div>
+        @endif
+        @if(session('warning'))
+            <div class="flash-message flash-info">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>{{ session('warning') }}</span>
+            </div>
+        @endif
+    </div>
+@endif
+
 <!-- ===== CONTENU PRINCIPAL AVEC ANTI-FLASH ===== -->
 <div id="auth-app">
 
@@ -1312,15 +1245,20 @@
 
 </div>
 
-<!-- ==================== TOGGLE CLIENT / AGENCE SANS RECHARGEMENT ==================== -->
+<!-- ==================== TOGGLE CLIENT / AGENCE + LOADER ==================== -->
 <script>
 (function () {
     'use strict';
 
     // ============================================
-    // ANTI-FLASH : CACHER LE LOADER ET AFFICHER LE CONTENU
+    // ANTI-FLASH : CACHER LE LOADER
     // ============================================
     function showContent() {
+        // 🔧 Lève le masquage anti-flash posé tout en haut du <head>.
+        // C'est CE moment précis, décidé par le JS, qui révèle la page —
+        // jamais avant, quel que soit le temps de chargement du CSS/réseau.
+        document.documentElement.style.visibility = 'visible';
+
         var loader = document.getElementById('loader');
         if (loader) {
             loader.classList.add('hidden');
@@ -1351,7 +1289,7 @@
     setTimeout(showContent, 800);
 
     // ============================================
-    // ROLE TOGGLE
+    // ROLE TOGGLE (navigation client ↔ agence)
     // ============================================
     function initRoleToggle() {
         document.querySelectorAll('.role-toggle a').forEach(function (link) {
@@ -1454,6 +1392,22 @@
     });
 
     document.addEventListener('DOMContentLoaded', initRoleToggle);
+
+    // ============================================
+    // 🔧 FIX FLASH HTML AU RAFRAÎCHISSEMENT
+    // ============================================
+    // Le toggle Client/Agence remplace .auth-shell via fetch + replaceWith,
+    // sans jamais toucher au <head>/<style>. Si le navigateur restaure
+    // ensuite cet état depuis son cache mémoire (bfcache) au moment d'un
+    // rafraîchissement, on voit apparaître brièvement ce DOM "nu" avant
+    // que la vraie page (re-téléchargée depuis le serveur, avec tout son
+    // CSS) ne s'affiche. On force donc un vrai rechargement serveur dans
+    // ce cas précis, pour ne jamais montrer cet état intermédiaire.
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    });
 })();
 </script>
 

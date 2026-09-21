@@ -17,9 +17,7 @@
         $hasFilters = request()->anyFilled(['search', 'quartier', 'type_bien', 'budget', 'type_operation', 'sort']);
     @endphp
 
-    {{-- ═══════════════════════════════════════════
-         HERO
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ HERO ═══ --}}
     <section class="hero">
         <div class="hero__content">
             <span class="hero__eyebrow">
@@ -28,8 +26,7 @@
             </span>
 
             <h1 class="hero__title">
-                Des clients cherchent <br>
-                un bien à Dakar maintenant
+                Des clients cherchent un bien à Dakar
             </h1>
 
             <p class="hero__sub">
@@ -73,9 +70,7 @@
         </div>
     </section>
 
-    {{-- ═══════════════════════════════════════════
-         RECHERCHE
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ RECHERCHE ═══ --}}
     <section class="search-section">
         <form action="{{ route('besoins.index') }}" method="GET" id="searchForm">
             <div class="search-bar">
@@ -228,9 +223,7 @@
         @endif
     </section>
 
-    {{-- ═══════════════════════════════════════════
-         BANNIÈRE AGENCES
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ BANNIÈRE AGENCES ═══ --}}
     @guest
         <section class="agency-banner">
             <div class="agency-banner__icon">
@@ -246,9 +239,7 @@
         </section>
     @endguest
 
-    {{-- ═══════════════════════════════════════════
-         LISTE
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ LISTE ═══ --}}
     <section class="results" id="besoins-list">
         <header class="results__head">
             <h2 class="results__title">
@@ -272,7 +263,7 @@
                         $nbOffres = $demande->propositions->count();
                     @endphp
 
-                    <article class="besoin-card {{ $isNew ? 'is-new' : '' }}">
+                    <article class="besoin-card">
 
                         <header class="besoin-card__head">
                             @if($isNew)
@@ -282,7 +273,6 @@
                             @endif
 
                             <span class="offre-status offre-status--{{ $statutValue }}">
-                                <i class="fa-solid fa-circle"></i>
                                 {{ $statutLabel }}
                             </span>
                         </header>
@@ -390,9 +380,7 @@
         @endif
     </section>
 
-    {{-- ═══════════════════════════════════════════
-         CTA FINAL (agences non connectées)
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ CTA FINAL ═══ --}}
     @guest
         <section class="final-cta">
             <div class="final-cta__content">
@@ -419,9 +407,7 @@
 
 @push('scripts')
 <script>
-/* ═══════════════════════════════════════════════════════════
-   PAGINATION JS
-═══════════════════════════════════════════════════════════ */
+/* ═══ PAGINATION JS ═══ */
 document.addEventListener('DOMContentLoaded', function () {
     const wrapper = document.getElementById('paginationWrapper');
     if (!wrapper) return;
@@ -469,7 +455,6 @@ document.addEventListener('DOMContentLoaded', function () {
     let html = '<nav class="pagination-nav" role="navigation" aria-label="Pagination">';
     html += '<ul class="pagination-list">';
 
-    // Précédent
     if (currentPage > 1) {
         html += `<li class="pagination-item">
                     <a href="${buildUrl(currentPage - 1)}" rel="prev" class="pagination-link">
@@ -486,7 +471,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 </li>`;
     }
 
-    // Pages
     pages.forEach(p => {
         if (p === '...') {
             html += `<li class="pagination-item is-disabled">
@@ -503,7 +487,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Suivant
     if (currentPage < lastPage) {
         html += `<li class="pagination-item">
                     <a href="${buildUrl(currentPage + 1)}" rel="next" class="pagination-link">
@@ -522,7 +505,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     html += '</ul>';
 
-    // Info résultats
     const firstItem = (currentPage - 1) * 12 + 1;
     const lastItem  = Math.min(currentPage * 12, total);
     if (total) {
@@ -537,9 +519,7 @@ document.addEventListener('DOMContentLoaded', function () {
     wrapper.innerHTML = html;
 });
 
-/* ═══════════════════════════════════════════════════════════
-   TOGGLE FILTRES + AUTRES
-═══════════════════════════════════════════════════════════ */
+/* ═══ TOGGLE FILTRES + AUTRES ═══ */
 function toggleFilters() {
     document.getElementById('searchFilters').classList.toggle('is-open');
 }
@@ -550,9 +530,7 @@ function removeFilter(name) {
     window.location.href = url.toString();
 }
 
-/* ═══════════════════════════════════════════════════════════
-   AUTOCOMPLETE
-═══════════════════════════════════════════════════════════ */
+/* ═══ AUTOCOMPLETE ═══ */
 document.addEventListener('DOMContentLoaded', function () {
     const input = document.getElementById('searchInput');
     const results = document.getElementById('autocompleteResults');
@@ -598,9 +576,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-/* ═══════════════════════════════════════════════════════════
-   SMOOTH SCROLL
-═══════════════════════════════════════════════════════════ */
+/* ═══ SMOOTH SCROLL ═══ */
 document.querySelectorAll('a[href^="#"]').forEach(a => {
     a.addEventListener('click', e => {
         const target = document.querySelector(a.getAttribute('href'));
@@ -617,7 +593,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   PAGE BESOINS PUBLICS
+   PAGE BESOINS PUBLICS — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .besoins-page {
@@ -627,9 +603,8 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     --c-warning-bg: #FFF8E1;
     --c-danger:     #C62828;
     --c-danger-bg:  #FFEBEE;
-    --c-info:       #0D47A1;
-    --c-info-bg:    #E3F2FD;
-    --c-gold:       #D4AF37;
+    --c-info:       #1E40AF;
+    --c-info-bg:    #EFF6FF;
     --surface:      #F7F9FC;
     --radius:       14px;
 
@@ -638,25 +613,14 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 
 /* ═══ HERO ═══ */
 .hero {
-    background: linear-gradient(135deg, #FFFBF7 0%, #fff 55%);
+    background: #fff;
     padding: 40px 24px 44px;
-    position: relative;
-    overflow: hidden;
     border-bottom: 1px solid var(--border);
-}
-.hero::before {
-    content: '';
-    position: absolute;
-    top: -50%; right: -15%;
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(181, 80, 42, .08), transparent 65%);
-    pointer-events: none;
 }
 
 .hero__content {
     max-width: 1200px;
     margin: 0 auto;
-    position: relative;
 }
 
 .hero__eyebrow {
@@ -668,7 +632,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     text-transform: uppercase;
     letter-spacing: .5px;
     color: var(--rust);
-    background: rgba(181, 80, 42, .1);
+    background: #F5F5F7;
     padding: 5px 12px;
     border-radius: 999px;
     margin-bottom: 16px;
@@ -677,7 +641,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 
 .hero__title {
     font-family: var(--display);
-    font-size: clamp(26px, 4vw, 42px);
+    font-size: clamp(26px, 4vw, 40px);
     font-weight: 800;
     line-height: 1.15;
     color: var(--ink);
@@ -749,7 +713,6 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, .06);
     margin-bottom: 12px;
 }
 
@@ -791,7 +754,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     color: var(--text-soft);
     cursor: pointer;
     font-family: inherit;
-    transition: all .2s;
+    transition: background-color .15s, border-color .15s;
     flex-shrink: 0;
 }
 .btn-filters:hover { background: #EDF0F5; border-color: #d8d8d8; }
@@ -819,7 +782,6 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     background: #fff;
     border: 1px solid var(--border);
     border-radius: 12px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, .1);
     z-index: 100;
     max-height: 320px;
     overflow-y: auto;
@@ -830,7 +792,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     gap: 12px;
     padding: 10px 16px;
     cursor: pointer;
-    transition: background .15s;
+    transition: background-color .15s;
     border-bottom: 1px solid var(--border);
 }
 .autocomplete__item:last-child { border-bottom: none; }
@@ -846,7 +808,6 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 18px 20px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, .04);
 }
 .filters.is-open { display: block; }
 
@@ -883,12 +844,11 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     background-repeat: no-repeat;
     background-position: right 12px center;
     cursor: pointer;
-    transition: border-color .2s;
+    transition: border-color .15s;
 }
 .filters__field select:focus {
     outline: none;
     border-color: var(--rust);
-    box-shadow: 0 0 0 3px rgba(181, 80, 42, .1);
 }
 
 .filters__actions {
@@ -924,35 +884,34 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     align-items: center;
     gap: 6px;
     padding: 4px 10px;
-    background: rgba(181, 80, 42, .1);
-    color: var(--rust);
+    background: #F5F5F7;
+    color: var(--text-soft);
     border-radius: 999px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
 }
-.active-tag i { font-size: 10px; }
+.active-tag i { font-size: 10px; color: var(--muted); }
 .active-tag a {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 16px;
     height: 16px;
-    color: var(--rust);
+    color: var(--muted);
     text-decoration: none;
     font-size: 14px;
     line-height: 1;
     border-radius: 50%;
-    transition: background .2s;
+    transition: background-color .15s;
 }
-.active-tag a:hover { background: rgba(181, 80, 42, .2); }
+.active-tag a:hover { background: rgba(0, 0, 0, .08); color: var(--ink); }
 
 /* ═══ BANNIÈRE AGENCE ═══ */
 .agency-banner {
     max-width: 1200px;
     margin: 0 auto 24px;
     padding: 18px 22px;
-    background: linear-gradient(135deg, #F0F7FF 0%, #fff 70%);
-    border: 1px solid #BBDEFB;
+    background: #F5F5F7;
     border-radius: 14px;
     display: flex;
     align-items: center;
@@ -964,8 +923,9 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     width: 48px;
     height: 48px;
     border-radius: 12px;
-    background: var(--c-info-bg);
-    color: var(--c-info);
+    background: #fff;
+    color: var(--muted);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -982,12 +942,12 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     font-family: var(--display);
     font-size: 15px;
     font-weight: 700;
-    color: var(--c-info);
+    color: var(--ink);
     margin-bottom: 2px;
 }
 .agency-banner__content p {
     font-size: 13px;
-    color: #4A6C9C;
+    color: var(--text-soft);
     margin: 0;
     line-height: 1.5;
 }
@@ -1039,16 +999,10 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    transition: transform .2s ease, box-shadow .2s ease, border-color .2s;
+    transition: border-color .15s;
 }
 .besoin-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, .07);
     border-color: #d8d8d8;
-}
-.besoin-card.is-new {
-    border-color: rgba(181, 80, 42, .35);
-    background: linear-gradient(135deg, #FFFBF7 0%, #fff 50%);
 }
 
 .besoin-card__head {
@@ -1072,17 +1026,10 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     letter-spacing: .4px;
 }
 .besoin-card__badge--new {
-    background: linear-gradient(135deg, var(--rust), #d4754a);
+    background: var(--rust);
     color: #fff;
-    box-shadow: 0 2px 6px rgba(181, 80, 42, .3);
-    animation: pulseNew 2.2s ease-in-out infinite;
 }
 .besoin-card__badge--new i { font-size: 9px; }
-
-@keyframes pulseNew {
-    0%, 100% { opacity: 1; }
-    50%      { opacity: .85; }
-}
 
 .besoin-card__body {
     flex: 1;
@@ -1161,22 +1108,18 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     gap: 5px;
     padding: 3px 10px;
     border-radius: 999px;
-    background: var(--c-info-bg);
-    color: var(--c-info);
+    background: #F5F5F7;
+    color: var(--text-soft);
     font-size: 11px;
-    font-weight: 600;
-    border: 1px solid #BBDEFB;
+    font-weight: 500;
 }
-.stat-chip i { font-size: 10px; }
+.stat-chip i { font-size: 10px; color: var(--muted); }
 .stat-chip--empty {
-    background: var(--surface);
     color: var(--muted);
-    border-color: var(--border);
 }
 .stat-chip--time {
     background: transparent;
     color: var(--muted);
-    border: none;
     padding-left: 0;
 }
 
@@ -1184,16 +1127,14 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 .offre-status {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
     padding: 3px 10px;
     border-radius: 999px;
-    font-size: 10.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .3px;
+    font-size: 11.5px;
+    font-weight: 600;
     white-space: nowrap;
+    background: #F5F5F7;
+    color: var(--text-soft);
 }
-.offre-status i { font-size: 5px; }
 .offre-status--en_attente { background: var(--c-warning-bg); color: var(--c-warning); }
 .offre-status--en_cours   { background: var(--c-info-bg);    color: var(--c-info); }
 .offre-status--terminee   { background: var(--c-success-bg); color: var(--c-success); }
@@ -1206,13 +1147,12 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     gap: 5px;
     padding: 3px 10px;
     border-radius: 999px;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: #F5F5F7;
     font-size: 11.5px;
     color: var(--text-soft);
     font-weight: 500;
 }
-.meta-pill i { font-size: 10px; color: var(--rust); opacity: .8; }
+.meta-pill i { font-size: 10px; color: var(--muted); }
 
 /* ═══ EMPTY STATE ═══ */
 .empty-state {
@@ -1227,8 +1167,8 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     height: 72px;
     margin: 0 auto 16px;
     border-radius: 50%;
-    background: var(--c-warning-bg);
-    color: var(--rust);
+    background: #F5F5F7;
+    color: var(--muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1256,8 +1196,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     padding: 0 24px;
 }
 .final-cta__content {
-    background: linear-gradient(135deg, #F5E6DF 0%, #FFFBF7 100%);
-    border: 1px solid rgba(181, 80, 42, .2);
+    background: #F5F5F7;
     border-radius: 18px;
     padding: 36px 32px;
     text-align: center;
@@ -1313,7 +1252,6 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     background: #fff;
     border: 1px solid var(--border);
     border-radius: 14px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
 }
 
 .pagination-item { display: inline-flex; }
@@ -1334,19 +1272,18 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     background: transparent;
     border: none;
     font-family: inherit;
-    transition: all .15s ease;
+    transition: background-color .15s, color .15s;
     white-space: nowrap;
 }
 
 .pagination-link:hover {
-    background: var(--surface);
-    color: var(--rust);
+    background: #F5F5F7;
+    color: var(--ink);
 }
 
 .pagination-item.is-active .pagination-link {
     background: var(--rust);
     color: #fff;
-    box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
     font-weight: 700;
 }
 
@@ -1395,7 +1332,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     border: 1px solid transparent;
     cursor: pointer;
     font-family: inherit;
-    transition: all .2s ease;
+    transition: background-color .15s, border-color .15s, color .15s;
     white-space: nowrap;
 }
 .btn-rust {
@@ -1407,25 +1344,20 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     background: #9A4523;
     color: #fff;
     border-color: #9A4523;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
 }
 .btn-ghost {
-    background: transparent;
+    background: #fff;
     color: var(--text-soft);
     border-color: var(--border);
 }
 .btn-ghost:hover {
-    background: var(--surface);
-    border-color: var(--rust);
-    color: var(--rust);
+    background: #F5F5F7;
+    border-color: #d8d8d8;
+    color: var(--ink);
 }
 .btn-sm { padding: 7px 13px; font-size: 12px; }
 
-/* ═══════════════════════════════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════════════════════════════ */
-
+/* ═══ RESPONSIVE ═══ */
 @media (max-width: 1024px) {
     .hero { padding: 32px 20px 38px; }
     .search-section { padding: 0 20px; margin-top: -20px; }
@@ -1528,7 +1460,6 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
         animation-iteration-count: 1 !important;
         transition-duration: .01ms !important;
     }
-    .besoin-card__badge--new { animation: none !important; }
 }
 </style>
 @endpush

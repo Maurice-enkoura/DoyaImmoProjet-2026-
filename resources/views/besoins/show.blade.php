@@ -41,9 +41,7 @@
         if ($demande->securite)      $equipements->push(['icon' => 'fa-shield-halved', 'label' => 'Sécurité 24h/24']);
     @endphp
 
-    {{-- ═══════════════════════════════════════════
-         NAV + PARTAGE
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ NAV + PARTAGE ═══ --}}
     <nav class="besoin-nav">
         <a href="{{ route('besoins.index') }}" class="back-link">
             <i class="fa-solid fa-arrow-left"></i> Retour aux besoins
@@ -51,27 +49,25 @@
 
         <div class="share-group">
             <span class="share-group__label">Partager</span>
-            <button type="button" class="share-btn share-btn--fb" onclick="shareFacebook()" aria-label="Partager sur Facebook">
+            <button type="button" class="share-btn" onclick="shareFacebook()" aria-label="Partager sur Facebook">
                 <i class="fa-brands fa-facebook-f"></i>
             </button>
-            <button type="button" class="share-btn share-btn--wa" onclick="shareWhatsApp()" aria-label="Partager sur WhatsApp">
+            <button type="button" class="share-btn" onclick="shareWhatsApp()" aria-label="Partager sur WhatsApp">
                 <i class="fa-brands fa-whatsapp"></i>
             </button>
-            <button type="button" class="share-btn share-btn--link" onclick="copyLink()" aria-label="Copier le lien">
+            <button type="button" class="share-btn" onclick="copyLink()" aria-label="Copier le lien">
                 <i class="fa-solid fa-link"></i>
             </button>
         </div>
     </nav>
 
-    {{-- ═══════════════════════════════════════════
-         HERO
-    ═══════════════════════════════════════════ --}}
-    <header class="hero {{ $isNew ? 'is-new' : '' }}">
+    {{-- ═══ HERO ═══ --}}
+    <header class="hero">
 
         <div class="hero__main">
             <div class="hero__badges">
                 <span class="offre-status offre-status--{{ $statutValue }}">
-                    <i class="fa-solid fa-circle"></i> {{ $statutLabel }}
+                    {{ $statutLabel }}
                 </span>
 
                 @if($isNew)
@@ -145,9 +141,7 @@
         </div>
     </header>
 
-    {{-- ═══════════════════════════════════════════
-         GRID : CONTENU + SIDEBAR
-    ═══════════════════════════════════════════ --}}
+    {{-- ═══ GRID ═══ --}}
     <div class="besoin-show__grid">
 
         {{-- ═══ COLONNE PRINCIPALE ═══ --}}
@@ -170,7 +164,7 @@
             <section class="panel">
                 <header class="panel__head">
                     <span class="panel__icon">
-                        <i class="fa-regular fa-list-check"></i>
+                        <i class="fa-regular fa-rectangle-list"></i>
                     </span>
                     <h2>Informations</h2>
                 </header>
@@ -223,10 +217,7 @@
 
                     <div class="info-grid__item">
                         <span class="info-grid__label">Statut</span>
-                        <span class="info-grid__value">
-                            <i class="fa-solid fa-circle" style="color: var(--c-warning); font-size: 8px; margin-right: 4px;"></i>
-                            {{ $demande->statut->label() }}
-                        </span>
+                        <span class="info-grid__value">{{ $demande->statut->label() }}</span>
                     </div>
                     <div class="info-grid__item">
                         <span class="info-grid__label">Publié le</span>
@@ -408,9 +399,7 @@
 
 @push('scripts')
 <script>
-/* ═══════════════════════════════════════════════════════════
-   SHARE
-═══════════════════════════════════════════════════════════ */
+/* ═══ SHARE ═══ */
 function shareFacebook() {
     const url = encodeURIComponent(window.location.href);
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=400');
@@ -452,7 +441,7 @@ function showToast(message) {
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   PAGE DÉTAIL D'UN BESOIN — Publique
+   PAGE DÉTAIL D'UN BESOIN — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .besoin-show {
@@ -462,10 +451,8 @@ function showToast(message) {
     --c-warning-bg: #FFF8E1;
     --c-danger:     #C62828;
     --c-danger-bg:  #FFEBEE;
-    --c-info:       #0D47A1;
-    --c-info-bg:    #E3F2FD;
-    --c-gold:       #D4AF37;
-    --c-whatsapp:   #25D366;
+    --c-info:       #1E40AF;
+    --c-info-bg:    #EFF6FF;
     --surface:      #F7F9FC;
     --radius:       16px;
 
@@ -491,10 +478,10 @@ function showToast(message) {
     font-size: 13px;
     color: var(--muted);
     text-decoration: none;
-    transition: color .2s;
+    transition: color .15s;
     font-weight: 500;
 }
-.back-link:hover { color: #B85C3A; }
+.back-link:hover { color: var(--ink); }
 .back-link i { font-size: 12px; }
 
 .share-group {
@@ -513,21 +500,21 @@ function showToast(message) {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    border: none;
+    background: #F5F5F7;
+    border: 1px solid var(--border);
+    color: var(--text-soft);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: transform .2s, box-shadow .2s;
+    transition: background-color .15s, border-color .15s, color .15s;
     font-size: 14px;
 }
 .share-btn:hover {
-    transform: scale(1.08);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+    background: #EFEFF4;
+    border-color: #d8d8d8;
+    color: var(--ink);
 }
-.share-btn--fb   { background: #1877F2; color: #fff; }
-.share-btn--wa   { background: var(--c-whatsapp); color: #fff; }
-.share-btn--link { background: var(--border); color: var(--text-soft); }
 
 /* ═══ HERO ═══ */
 .hero {
@@ -541,21 +528,6 @@ function showToast(message) {
     grid-template-columns: 1fr auto;
     gap: 24px;
     align-items: start;
-    overflow: hidden;
-}
-.hero::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-    background: var(--c-warning);
-}
-.hero.is-new {
-    border-color: rgba(181, 80, 42, .3);
-    background: linear-gradient(135deg, #FFFBF7 0%, #fff 55%);
-}
-.hero.is-new::before {
-    background: linear-gradient(90deg, var(--rust), #d4754a);
 }
 
 .hero__main { min-width: 0; }
@@ -574,36 +546,25 @@ function showToast(message) {
     gap: 5px;
     padding: 3px 11px;
     border-radius: 999px;
-    font-size: 10.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .4px;
+    font-size: 11.5px;
+    font-weight: 600;
     white-space: nowrap;
 }
-.badge i { font-size: 9px; }
+.badge i { font-size: 10px; }
 
 .badge--new {
-    background: linear-gradient(135deg, var(--rust), #d4754a);
+    background: var(--rust);
     color: #fff;
-    box-shadow: 0 2px 6px rgba(181, 80, 42, .3);
-    animation: pulseNew 2.2s ease-in-out infinite;
-}
-@keyframes pulseNew {
-    0%, 100% { opacity: 1; }
-    50%      { opacity: .85; }
 }
 
 .badge--offres {
-    background: var(--c-info-bg);
-    color: var(--c-info);
-    border: 1px solid #BBDEFB;
+    background: #F5F5F7;
+    color: var(--text-soft);
 }
 
 .badge--empty {
-    background: var(--surface);
+    background: #F5F5F7;
     color: var(--muted);
-    border: 1px solid var(--border);
-    font-weight: 600;
 }
 
 .hero__title {
@@ -628,14 +589,13 @@ function showToast(message) {
 .hero__meta i {
     font-size: 12px;
     margin-right: 5px;
-    color: var(--rust);
-    opacity: .85;
+    color: var(--muted);
 }
 .hero__meta strong {
     color: var(--ink);
     font-weight: 700;
 }
-.hero__meta-sep { opacity: .4; }
+.hero__meta-sep { color: var(--border); }
 
 .hero__budget {
     display: flex;
@@ -657,13 +617,13 @@ function showToast(message) {
     font-family: var(--display);
     font-size: clamp(24px, 3vw, 32px);
     font-weight: 800;
-    color: #B85C3A;
+    color: var(--rust);
     line-height: 1.1;
     white-space: nowrap;
 }
 .hero__budget-value small {
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 600;
     opacity: .75;
     margin-left: 3px;
 }
@@ -682,13 +642,13 @@ function showToast(message) {
     align-items: center;
     gap: 8px;
     padding: 10px 16px;
-    background: var(--c-info-bg);
-    color: var(--c-info);
+    background: #F5F5F7;
+    color: var(--text-soft);
     border-radius: 10px;
     font-size: 13px;
     font-weight: 500;
-    border: 1px solid #BBDEFB;
 }
+.hero__notice i { color: var(--muted); }
 
 /* ═══ GRID ═══ */
 .besoin-show__grid {
@@ -730,8 +690,8 @@ function showToast(message) {
 .panel__icon {
     width: 34px; height: 34px;
     border-radius: 10px;
-    background: rgba(181, 80, 42, .1);
-    color: var(--rust);
+    background: #F5F5F7;
+    color: var(--muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -741,19 +701,20 @@ function showToast(message) {
 .panel__head h2,
 .panel__head h3 {
     font-family: var(--display);
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     margin: 0;
     color: var(--ink);
     flex: 1;
     min-width: 0;
+    letter-spacing: -.2px;
 }
 .panel__count {
     font-size: 11px;
     font-weight: 700;
     padding: 3px 10px;
-    background: rgba(181, 80, 42, .1);
-    color: var(--rust);
+    background: #F5F5F7;
+    color: var(--text-soft);
     border-radius: 999px;
 }
 
@@ -776,15 +737,8 @@ function showToast(message) {
     flex-direction: column;
     gap: 4px;
     padding: 11px 14px;
-    background: var(--surface);
+    background: #F5F5F7;
     border-radius: 10px;
-    border: 1px solid transparent;
-    transition: border-color .2s;
-}
-.info-grid__item:hover { border-color: var(--border); }
-.info-grid__item--accent {
-    background: linear-gradient(135deg, #F5E6DF, #FFFBF7);
-    border-color: rgba(181, 80, 42, .25);
 }
 .info-grid__label {
     font-size: 11px;
@@ -802,7 +756,7 @@ function showToast(message) {
     font-family: var(--display);
     font-size: 16px;
     font-weight: 800;
-    color: #B85C3A;
+    color: var(--rust);
 }
 .info-grid__value--prix small {
     font-size: 11px;
@@ -822,23 +776,21 @@ function showToast(message) {
     align-items: center;
     gap: 7px;
     padding: 7px 14px;
-    background: var(--c-info-bg);
-    color: var(--c-info);
-    border: 1px solid #BBDEFB;
+    background: #F5F5F7;
+    color: var(--text-soft);
     border-radius: 999px;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
 }
-.equipement i { font-size: 12px; }
+.equipement i { font-size: 12px; color: var(--muted); }
 
-/* ═══ CTA PANEL (dans le flux) ═══ */
+/* ═══ CTA PANEL ═══ */
 .cta-panel {
     display: flex;
     align-items: center;
     gap: 16px;
     padding: 20px 24px;
-    background: linear-gradient(135deg, #F5E6DF 0%, #FFFBF7 100%);
-    border: 1px solid rgba(181, 80, 42, .2);
+    background: #F5F5F7;
     border-radius: var(--radius);
     flex-wrap: wrap;
 }
@@ -846,13 +798,13 @@ function showToast(message) {
     width: 48px; height: 48px;
     border-radius: 12px;
     background: #fff;
-    color: var(--rust);
+    color: var(--muted);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 20px;
     flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(181, 80, 42, .15);
 }
 .cta-panel__content {
     flex: 1;
@@ -864,6 +816,7 @@ function showToast(message) {
     font-weight: 700;
     margin: 0 0 3px;
     color: var(--ink);
+    letter-spacing: -.2px;
 }
 .cta-panel__content p {
     font-size: 13px;
@@ -877,8 +830,7 @@ function showToast(message) {
     padding: 18px 20px;
 }
 .sidebar-panel--cta {
-    background: linear-gradient(135deg, #F5E6DF 0%, #FFFBF7 100%);
-    border-color: rgba(181, 80, 42, .2);
+    background: #F5F5F7;
     text-align: center;
 }
 .sidebar-panel__icon {
@@ -886,12 +838,12 @@ function showToast(message) {
     margin: 0 auto 12px;
     border-radius: 50%;
     background: #fff;
-    color: var(--rust);
+    color: var(--muted);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 18px;
-    box-shadow: 0 4px 12px rgba(181, 80, 42, .15);
 }
 .sidebar-panel__title {
     font-family: var(--display);
@@ -921,8 +873,8 @@ function showToast(message) {
 .sidebar-stat__icon {
     width: 38px; height: 38px;
     border-radius: 10px;
-    background: var(--surface);
-    color: var(--rust);
+    background: #F5F5F7;
+    color: var(--muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -960,15 +912,15 @@ function showToast(message) {
     align-items: center;
     gap: 10px;
     padding: 10px;
-    background: var(--surface);
+    background: #F5F5F7;
     border-radius: 10px;
-    border: 1px solid var(--border);
 }
 .proposition-item__avatar {
     width: 34px; height: 34px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--rust), #d4754a);
-    color: #fff;
+    background: #fff;
+    color: var(--text-soft);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1011,28 +963,25 @@ function showToast(message) {
     font-size: 12px;
     font-weight: 600;
     text-decoration: none;
-    transition: background .2s, gap .2s;
+    transition: background-color .15s;
     justify-content: center;
 }
 .proposition-more:hover {
-    background: rgba(181, 80, 42, .08);
-    gap: 9px;
+    background: #F5F5F7;
 }
 
 /* ═══ STATUTS ═══ */
 .offre-status {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
     padding: 3px 10px;
     border-radius: 999px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .3px;
+    font-size: 11.5px;
+    font-weight: 600;
     white-space: nowrap;
+    background: #F5F5F7;
+    color: var(--text-soft);
 }
-.offre-status i { font-size: 5px; }
 .offre-status--en_attente { background: var(--c-warning-bg); color: var(--c-warning); }
 .offre-status--en_cours   { background: var(--c-info-bg);    color: var(--c-info); }
 .offre-status--terminee   { background: var(--c-success-bg); color: var(--c-success); }
@@ -1054,7 +1003,7 @@ function showToast(message) {
     border: 1px solid transparent;
     cursor: pointer;
     font-family: inherit;
-    transition: all .2s ease;
+    transition: background-color .15s, border-color .15s, color .15s;
     white-space: nowrap;
 }
 .btn-rust {
@@ -1066,18 +1015,16 @@ function showToast(message) {
     background: #9A4523;
     color: #fff;
     border-color: #9A4523;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(181, 80, 42, .25);
 }
 .btn-ghost {
-    background: transparent;
+    background: #fff;
     color: var(--text-soft);
     border-color: var(--border);
 }
 .btn-ghost:hover {
-    background: var(--surface);
-    border-color: var(--rust);
-    color: var(--rust);
+    background: #F5F5F7;
+    border-color: #d8d8d8;
+    color: var(--ink);
 }
 .btn-block { width: 100%; }
 
@@ -1107,10 +1054,7 @@ function showToast(message) {
     to { opacity: 0; transform: translateX(-50%) translateY(20px); }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════════════════════════════ */
-
+/* ═══ RESPONSIVE ═══ */
 @media (max-width: 1024px) {
     .besoin-show { padding: 24px 20px 40px; }
 
@@ -1147,7 +1091,7 @@ function showToast(message) {
 
     .panel { padding: 18px 20px; }
     .panel__head h2,
-    .panel__head h3 { font-size: 15px; }
+    .panel__head h3 { font-size: 14.5px; }
 
     .info-grid { grid-template-columns: 1fr; }
 
@@ -1172,7 +1116,7 @@ function showToast(message) {
     .hero__budget-value { font-size: 24px; }
     .hero__budget-value small { font-size: 11px; }
 
-    .badge { font-size: 10px; padding: 3px 9px; }
+    .badge { font-size: 11px; padding: 3px 9px; }
 
     .panel { padding: 16px 18px; }
     .panel__head { padding-bottom: 12px; margin-bottom: 14px; }
@@ -1200,7 +1144,6 @@ function showToast(message) {
         animation-iteration-count: 1 !important;
         transition-duration: .01ms !important;
     }
-    .badge--new { animation: none !important; }
 }
 </style>
 @endpush

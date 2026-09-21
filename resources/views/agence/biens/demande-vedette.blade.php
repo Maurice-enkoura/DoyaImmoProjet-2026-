@@ -108,7 +108,7 @@
 
     @endif
 
-    {{-- ═══ ACTIONS FIXES ═══ --}}
+    {{-- ═══ ACTIONS FIXES (desktop uniquement) ═══ --}}
     <div class="ios-form-actions">
         <a href="{{ route('agence.biens.show', $bien->slug) }}" class="ios-btn ios-btn--ghost">
             <i class="fa-solid fa-arrow-left"></i> Retour au bien
@@ -121,7 +121,7 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   DEMANDE DE MISE EN VEDETTE — iOS NATIVE
+   DEMANDE DE MISE EN VEDETTE — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .vedette-page {
@@ -129,18 +129,12 @@
     --c-success-bg: #E8F5E9;
     --c-warning:    #E65100;
     --c-warning-bg: #FFF8E1;
-    --c-info:       #0D47A1;
-    --c-info-bg:    #E3F2FD;
-    --c-gold:       #F5A623;
-    --c-gold-bg:    #FFF8E1;
+    --c-danger:     #C62828;
+    --c-danger-bg:  #FEF2F2;
     --surface:      #F7F9FC;
+    --radius:       14px;
 
-    --ios-bg: #F2F2F7;
     --ios-card: #FFFFFF;
-    --ios-blue: #007AFF;
-    --ios-label: #000000;
-    --ios-label-2: #3C3C43;
-    --ios-label-3: #8E8E93;
     --ios-separator: rgba(60, 60, 67, 0.12);
     --ios-radius-lg: 18px;
 }
@@ -148,16 +142,17 @@
 /* ═══ SECTION TITLES ═══ */
 .ios-section-title {
     font-family: var(--display);
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--ink);
     margin: 22px 0 6px;
     display: flex;
     align-items: center;
     gap: 8px;
+    letter-spacing: -.2px;
 }
 .ios-section-title:first-of-type { margin-top: 0; }
-.ios-section-title i { color: var(--rust); font-size: 15px; }
+.ios-section-title i { color: var(--muted); font-size: 14px; }
 
 .ios-section-sub {
     font-size: 13px;
@@ -174,18 +169,9 @@
     padding: 18px 20px;
     background: #fff;
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: var(--radius);
     margin-bottom: 20px;
-    position: relative;
-    overflow: hidden;
     flex-wrap: wrap;
-}
-.vedette-hero::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--c-gold), #E8901A);
 }
 
 .vedette-hero__media {
@@ -214,11 +200,12 @@
 .vedette-hero__body { flex: 1; min-width: 0; }
 .vedette-hero__title {
     font-family: var(--display);
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 700;
     margin: 0 0 5px;
     color: var(--ink);
     line-height: 1.3;
+    letter-spacing: -.2px;
 }
 .vedette-hero__meta {
     display: flex;
@@ -228,8 +215,8 @@
     font-size: 13px;
     color: var(--muted);
 }
-.vedette-hero__meta i { color: var(--rust); font-size: 11px; margin-right: 4px; opacity: .85; }
-.vedette-hero__dot { opacity: .5; }
+.vedette-hero__meta i { color: var(--muted); font-size: 11px; margin-right: 4px; }
+.vedette-hero__dot { color: var(--border); }
 
 .vedette-hero__badge {
     display: inline-flex;
@@ -237,50 +224,45 @@
     gap: 5px;
     margin-top: 8px;
     padding: 4px 11px;
-    background: var(--c-success-bg);
-    color: var(--c-success);
+    background: var(--c-warning-bg);
+    color: var(--c-warning);
     border-radius: 999px;
     font-size: 11.5px;
-    font-weight: 700;
+    font-weight: 600;
 }
-.vedette-hero__badge i { font-size: 10px; color: var(--c-gold); }
+.vedette-hero__badge i { font-size: 10px; }
 
 /* ═══ DÉJÀ EN VEDETTE ═══ */
 .vedette-already {
-    background: linear-gradient(135deg, #FFFBF0 0%, #fff 60%);
-    border: 1px solid #FFE0B2;
-    border-radius: 16px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     padding: 40px 24px;
     text-align: center;
 }
 .vedette-already__icon {
-    width: 72px;
-    height: 72px;
-    margin: 0 auto 18px;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--c-gold), #E8901A);
-    color: #fff;
+    background: #F5F5F7;
+    color: var(--muted);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 30px;
-    box-shadow: 0 8px 24px rgba(245, 166, 35, .35);
-    animation: pulse 3s ease-in-out infinite;
-}
-@keyframes pulse {
-    0%, 100% { transform: scale(1); box-shadow: 0 8px 24px rgba(245, 166, 35, .35); }
-    50% { transform: scale(1.04); box-shadow: 0 12px 32px rgba(245, 166, 35, .45); }
+    font-size: 26px;
 }
 .vedette-already h3 {
     font-family: var(--display);
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 700;
-    color: var(--c-warning);
-    margin: 0 0 8px;
+    color: var(--ink);
+    margin: 0 0 6px;
+    letter-spacing: -.2px;
 }
 .vedette-already p {
-    font-size: 13.5px;
-    color: var(--text-soft);
+    font-size: 13px;
+    color: var(--muted);
     margin: 0 0 20px;
     max-width: 400px;
     margin-inline: auto;
@@ -297,30 +279,17 @@
 
 .tarif-card {
     background: #fff;
-    border: 1.5px solid var(--border);
-    border-radius: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     padding: 20px 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
     margin: 0;
-    transition: all .2s ease;
-    position: relative;
-    overflow: hidden;
+    transition: border-color .15s;
 }
-.tarif-card:hover {
-    border-color: var(--c-gold);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(245, 166, 35, .15);
-}
-.tarif-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--c-gold), #E8901A);
-}
+.tarif-card:hover { border-color: #d8d8d8; }
 
 .tarif-card__days {
     display: inline-flex;
@@ -373,9 +342,9 @@
 
 /* ═══ HOWTO ═══ */
 .howto-card {
-    background: linear-gradient(135deg, #FFFBF0 0%, #FFF8E1 100%);
-    border: 1px solid #FFE0B2;
-    border-radius: 14px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     padding: 18px 22px;
     margin-bottom: 20px;
 }
@@ -390,7 +359,7 @@
     padding-left: 38px;
     margin-bottom: 12px;
     font-size: 13.5px;
-    color: #5D4037;
+    color: var(--text-soft);
     line-height: 1.55;
     counter-increment: step;
 }
@@ -401,51 +370,15 @@
     left: 0; top: 0;
     width: 26px; height: 26px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--c-gold), #E8901A);
-    color: #fff;
+    background: #F5F5F7;
+    color: var(--ink);
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: var(--display);
-    font-size: 12.5px;
-    font-weight: 800;
-    box-shadow: 0 2px 6px rgba(245, 166, 35, .3);
-}
-
-/* ═══ CONTACT ═══ */
-.contact-card {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 20px 22px;
-    text-align: center;
-    margin-bottom: 20px;
-}
-.contact-card__text {
-    font-size: 13.5px;
-    color: var(--text-soft);
-    margin: 0 0 16px;
-    line-height: 1.55;
-}
-.contact-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 16px;
-}
-.contact-card__phone {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: var(--c-info-bg);
-    color: var(--c-info);
-    border-radius: 999px;
-    font-size: 13.5px;
+    font-size: 12px;
     font-weight: 700;
-    font-family: var(--display);
 }
-.contact-card__phone i { font-size: 13px; }
 
 /* ═══ BOUTONS ═══ */
 .ios-btn {
@@ -461,31 +394,29 @@
     cursor: pointer;
     border: 1px solid transparent;
     text-decoration: none;
-    transition: all .15s;
+    transition: background-color .15s, border-color .15s, color .15s;
     white-space: nowrap;
 }
 .ios-btn--primary {
     background: var(--rust);
     color: #fff;
     border-color: var(--rust);
-    box-shadow: 0 4px 12px rgba(181,80,42,.2);
 }
-.ios-btn--primary:hover { background: #9A4523; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(181,80,42,.3); }
-.ios-btn--primary:active { transform: scale(.97); }
-.ios-btn--success {
-    background: linear-gradient(135deg, #25D366, #1DA851);
+.ios-btn--primary:hover {
+    background: #9A4523;
+    border-color: #9A4523;
     color: #fff;
-    border-color: #25D366;
 }
-.ios-btn--success:hover { background: #1DA851; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37, 211, 102, .3); }
-.ios-btn--success:active { transform: scale(.97); }
 .ios-btn--ghost {
     background: #fff;
     color: var(--text-soft);
     border-color: var(--border);
 }
-.ios-btn--ghost:hover { border-color: var(--rust); color: var(--rust); }
-.ios-btn--ghost:active { transform: scale(.97); }
+.ios-btn--ghost:hover {
+    background: #F5F5F7;
+    border-color: #d8d8d8;
+    color: var(--ink);
+}
 
 /* ═══ ACTIONS ═══ */
 .ios-form-actions {
@@ -498,17 +429,13 @@
 }
 .ios-form-actions .ios-btn { flex: 1; }
 
-/* ═══════════════════════════════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════════════════════════════ */
-
+/* ═══ RESPONSIVE ═══ */
 @media (max-width: 768px) {
     .tarifs-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 480px) {
     .tarifs-grid { grid-template-columns: 1fr; }
-    .contact-actions { grid-template-columns: 1fr; }
 }
 
 
@@ -517,24 +444,22 @@
    ═══════════════════════════════════════════════════════════ */
 @media (max-width: 820px) {
 
-    .vedette-page { background: transparent; padding-top: 4px; }
+    .vedette-page {
+        background: transparent;
+        padding-top: 4px;
+        /* ✅ Plus de padding-bottom car pas de barre fixe */
+    }
 
-    /* ─── SECTION TITLES iOS ─── */
+    /* SECTION TITLES */
     .ios-section-title {
-        font-size: 17px;
-        font-weight: 700;
-        color: var(--ios-label);
-        letter-spacing: -.3px;
-        margin: 22px 4px 6px;
+        font-size: 15px;
+        margin: 20px 4px 6px;
+        color: var(--ink);
     }
-    .ios-section-title i { font-size: 15px; color: var(--rust); }
-    .ios-section-sub {
-        font-size: 13px;
-        color: var(--ios-label-3);
-        margin: 0 4px 16px;
-    }
+    .ios-section-title i { font-size: 14px; }
+    .ios-section-sub { font-size: 13px; margin: 0 4px 16px; }
 
-    /* ─── HERO BIEN iOS ─── */
+    /* HERO BIEN */
     .vedette-hero {
         background: var(--ios-card);
         border: none;
@@ -543,11 +468,6 @@
         gap: 14px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
-    .vedette-hero::before {
-        left: 0; right: 0;
-        height: 3px;
-        border-radius: 0;
-    }
     .vedette-hero__media {
         width: 68px;
         height: 68px;
@@ -555,22 +475,23 @@
         border: none;
     }
     .vedette-hero__title {
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 700;
         letter-spacing: -.2px;
-        color: var(--ios-label);
     }
     .vedette-hero__meta {
-        font-size: 13.5px;
-        color: var(--ios-label-3);
+        font-size: 13px;
+        color: var(--muted);
     }
     .vedette-hero__badge {
         font-size: 11.5px;
         padding: 5px 12px;
         margin-top: 10px;
+        background: #F5F5F7;
+        color: var(--text-soft);
     }
 
-    /* ─── DÉJÀ EN VEDETTE iOS ─── */
+    /* DÉJÀ EN VEDETTE */
     .vedette-already {
         background: var(--ios-card);
         border: none;
@@ -579,22 +500,21 @@
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
     .vedette-already__icon {
-        width: 68px;
-        height: 68px;
-        font-size: 28px;
-        margin-bottom: 16px;
+        width: 64px;
+        height: 64px;
+        font-size: 26px;
+        background: #F5F5F7;
     }
     .vedette-already h3 {
-        font-size: 17px;
-        letter-spacing: -.3px;
-        color: var(--c-warning);
+        font-size: 16px;
+        color: var(--ink);
     }
     .vedette-already p {
-        font-size: 13.5px;
-        color: var(--ios-label-3);
+        font-size: 13px;
+        color: var(--muted);
     }
 
-    /* ─── TARIFS iOS ─── */
+    /* TARIFS */
     .tarifs-grid {
         grid-template-columns: 1fr;
         gap: 10px;
@@ -602,36 +522,16 @@
 
     .tarif-card {
         background: var(--ios-card);
-        border: 1.5px solid transparent;
+        border: 1px solid transparent;
         border-radius: var(--ios-radius-lg);
         padding: 16px 18px;
         flex-direction: row;
         align-items: center;
         gap: 14px;
         box-shadow: 0 1px 3px rgba(0,0,0,.04);
-        position: relative;
-        overflow: visible;
     }
-    .tarif-card::before {
-        content: '';
-        position: absolute;
-        left: 0; top: 20%;
-        bottom: 20%;
-        width: 3px;
-        height: auto;
-        border-radius: 0 3px 3px 0;
-        background: linear-gradient(180deg, var(--c-gold), #E8901A);
-    }
-    .tarif-card:hover {
-        border-color: transparent;
-        transform: none;
-        box-shadow: 0 1px 3px rgba(0,0,0,.04);
-    }
-    .tarif-card:active {
-        background: #FFFBF0;
-    }
+    .tarif-card:hover { border-color: transparent; }
 
-    /* Réorganiser le contenu en ligne */
     .tarif-card__days {
         flex-direction: column;
         align-items: center;
@@ -641,11 +541,11 @@
     }
     .tarif-card__num {
         font-size: 24px;
-        color: var(--c-warning);
+        color: var(--ink);
     }
     .tarif-card__unit {
         font-size: 10.5px;
-        color: var(--ios-label-3);
+        color: var(--muted);
     }
     .tarif-card__price {
         font-size: 18px;
@@ -661,16 +561,14 @@
         border-radius: 12px;
         margin: 0;
         flex-shrink: 0;
-        background: linear-gradient(135deg, var(--c-gold), #E8901A);
+        background: var(--rust);
         border: none;
-        box-shadow: 0 4px 12px rgba(245, 166, 35, .3);
     }
-    .tarif-card__btn:active {
-        transform: scale(.95);
-        box-shadow: 0 2px 6px rgba(245, 166, 35, .4);
+    .tarif-card__btn:hover {
+        background: #9A4523;
     }
 
-    /* ─── HOWTO iOS ─── */
+    /* HOWTO */
     .howto-card {
         background: var(--ios-card);
         border: none;
@@ -680,7 +578,7 @@
     }
     .howto-list li {
         font-size: 14px;
-        color: var(--ios-label-2);
+        color: var(--text-soft);
         padding-left: 36px;
         line-height: 1.5;
         margin-bottom: 14px;
@@ -689,86 +587,29 @@
         width: 24px;
         height: 24px;
         font-size: 12px;
-        background: linear-gradient(135deg, var(--c-gold), #E8901A);
+        background: #F5F5F7;
+        color: var(--ink);
     }
 
-    /* ─── CONTACT iOS ─── */
-    .contact-card {
-        background: var(--ios-card);
-        border: none;
-        border-radius: var(--ios-radius-lg);
-        padding: 20px 18px;
-        box-shadow: 0 1px 3px rgba(0,0,0,.04);
-    }
-    .contact-card__text {
-        font-size: 14px;
-        color: var(--ios-label-2);
-        margin-bottom: 16px;
-    }
-    .contact-actions {
-        grid-template-columns: 1fr;
-        gap: 10px;
-        margin-bottom: 16px;
-    }
-    .contact-actions .ios-btn {
-        padding: 14px 18px;
-        font-size: 15px;
-        border-radius: 14px;
-    }
-    .contact-card__phone {
-        background: #EFEFF4;
-        color: var(--ios-label);
-        padding: 12px 18px;
-        font-size: 15px;
-        border-radius: 12px;
-        font-family: var(--display);
-    }
-    .contact-card__phone i { color: var(--rust); }
-
-    /* ─── ACTIONS FIXES ─── */
-    .ios-form-actions {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: rgba(242, 242, 247, 0.95);
-        backdrop-filter: saturate(180%) blur(20px);
-        -webkit-backdrop-filter: saturate(180%) blur(20px);
-        border-top: 0.5px solid var(--ios-separator);
-        padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
-        margin: 0;
-        gap: 10px;
-        z-index: 100;
-        border-radius: 0;
-    }
-    .ios-form-actions .ios-btn {
-        width: 100%;
-        padding: 14px 18px;
-        font-size: 15px;
-        border-radius: 14px;
-    }
-    .ios-btn--ghost {
-        background: var(--ios-card);
-        border: none;
-        color: var(--ios-blue);
-        box-shadow: 0 1px 3px rgba(0,0,0,.04);
-    }
-    .ios-btn--ghost:active { background: #EFEFF4; }
-
-    /* Padding bottom */
-    .vedette-page {
-        padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
-    }
+    /* ✅ ACTIONS MASQUÉES EN MOBILE (le layout a déjà un bouton retour natif) */
+    .ios-form-actions { display: none; }
 }
 
 @media (max-width: 480px) {
     .vedette-hero { padding: 14px; gap: 12px; }
     .vedette-hero__media { width: 60px; height: 60px; }
-    .vedette-hero__title { font-size: 15px; }
+    .vedette-hero__title { font-size: 14.5px; }
 
     .tarif-card { padding: 14px 16px; }
     .tarif-card__num { font-size: 22px; }
     .tarif-card__price { font-size: 17px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 </style>
 @endpush

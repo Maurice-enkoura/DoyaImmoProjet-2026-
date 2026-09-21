@@ -17,8 +17,7 @@
 
     {{-- ═══ BANNIÈRE : AVIS TRAITÉS ═══ --}}
     @if($avisTraites > 0)
-        <a href="{{ route('agence.historique') }}"
-           class="ios-traited-banner">
+        <a href="{{ route('agence.historique') }}" class="ios-traited-banner">
             <div class="ios-traited-banner__left">
                 <i class="fa-solid fa-clock-rotate-left"></i>
                 <span>
@@ -53,10 +52,10 @@
 
             @if($negatifs > 0)
                 <div class="ios-summary__sep"></div>
-                <div class="ios-summary__item ios-summary__item--attention">
+                <div class="ios-summary__item">
                     <div class="ios-summary__value">{{ $negatifs }}</div>
                     <span class="ios-summary__label">
-                        <i class="fa-solid fa-exclamation"></i> négatif{{ $negatifs > 1 ? 's' : '' }}
+                        négatif{{ $negatifs > 1 ? 's' : '' }}
                     </span>
                 </div>
             @endif
@@ -175,37 +174,16 @@
 @push('styles')
 <style>
 /* ═══════════════════════════════════════════════════════════
-   AVIS REÇUS — iOS NATIVE
+   AVIS REÇUS — Design épuré
    ═══════════════════════════════════════════════════════════ */
 
 .ios-avis-page {
-    --ios-blue:      #007AFF;
-    --ios-green:     #34C759;
-    --ios-red:       #FF3B30;
-    --ios-orange:    #FF9500;
-    --ios-yellow:    #FFCC00;
-    --ios-gray:      #8E8E93;
-    --ios-gray-3:    #C7C7CC;
-    --ios-gray-5:    #E5E5EA;
-    --ios-gray-6:    #F2F2F7;
+    --surface:      #F7F9FC;
+    --radius:       14px;
 
-    --ios-bg:        #F2F2F7;
-    --ios-card:      #FFFFFF;
-    --ios-label:     #000000;
-    --ios-label-2:   rgba(60, 60, 67, 0.6);
-    --ios-label-3:   rgba(60, 60, 67, 0.3);
-    --ios-separator: rgba(60, 60, 67, 0.29);
-
-    --ios-radius:    10px;
-    --ios-radius-lg: 12px;
-
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
-                 "Helvetica Neue", Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-
-    background: var(--ios-bg);
-    padding-bottom: 40px;
+    --ios-card: #FFFFFF;
+    --ios-separator: rgba(60, 60, 67, 0.12);
+    --ios-radius-lg: 18px;
 }
 
 /* ═══ BANNIÈRE AVIS TRAITÉS ═══ */
@@ -215,15 +193,14 @@
     justify-content: space-between;
     gap: 12px;
     padding: 14px 18px;
-    background: rgba(0, 122, 255, 0.08);
-    border-radius: var(--ios-radius-lg);
+    background: #F5F5F7;
+    border-radius: var(--radius);
     margin-bottom: 16px;
     text-decoration: none;
-    color: #0040DD;
-    transition: transform 0.15s;
+    color: var(--text-soft);
+    transition: background-color .15s;
 }
-.ios-traited-banner:hover { background: rgba(0, 122, 255, 0.12); }
-.ios-traited-banner:active { transform: scale(0.99); }
+.ios-traited-banner:hover { background: #EFEFF4; }
 
 .ios-traited-banner__left {
     display: flex;
@@ -234,18 +211,19 @@
 .ios-traited-banner__left i {
     font-size: 15px;
     flex-shrink: 0;
+    color: var(--muted);
 }
 .ios-traited-banner__left span {
     font-size: 13.5px;
-    letter-spacing: -0.1px;
 }
 .ios-traited-banner__left strong {
     font-weight: 700;
+    color: var(--ink);
 }
 
 .ios-traited-banner__arrow {
     font-size: 12px;
-    opacity: 0.6;
+    color: var(--muted);
     flex-shrink: 0;
 }
 
@@ -254,9 +232,10 @@
     display: flex;
     align-items: center;
     gap: 28px;
-    padding: 22px 26px;
-    background: var(--ios-card);
-    border-radius: var(--ios-radius-lg);
+    padding: 20px 24px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     margin-bottom: 20px;
     flex-wrap: wrap;
 }
@@ -269,31 +248,27 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-size: 28px;
-    font-weight: 700;
+    font-family: var(--display);
+    font-size: 26px;
+    font-weight: 800;
     line-height: 1;
-    color: var(--ios-label);
-    letter-spacing: -0.5px;
+    color: var(--ink);
+    letter-spacing: -.4px;
 }
 .ios-summary__value i {
-    color: var(--ios-yellow);
-    font-size: 22px;
+    color: var(--muted);
+    font-size: 18px;
 }
 .ios-summary__label {
-    font-size: 13px;
-    color: var(--ios-label-2);
+    font-size: 12.5px;
+    color: var(--muted);
     font-weight: 500;
-    letter-spacing: -0.1px;
 }
-.ios-summary__label i { margin-right: 3px; }
-
-.ios-summary__item--attention .ios-summary__value { color: var(--ios-orange); }
-.ios-summary__item--attention .ios-summary__label { color: var(--ios-orange); }
 
 .ios-summary__sep {
     width: 1px;
     height: 38px;
-    background: var(--ios-separator);
+    background: var(--border);
     flex-shrink: 0;
 }
 
@@ -302,27 +277,27 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 12.5px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--ios-label-2);
+    letter-spacing: .5px;
+    color: var(--muted);
     margin: 24px 0 8px;
     padding: 0 4px;
 }
 .ios-section-header:first-of-type { margin-top: 0; }
 .ios-section-header__count {
-    font-size: 12px;
-    font-weight: 500;
-    background: var(--ios-gray-5);
-    color: var(--ios-label-2);
+    font-size: 11px;
+    font-weight: 700;
+    background: #F5F5F7;
+    color: var(--text-soft);
     padding: 2px 8px;
-    border-radius: 100px;
+    border-radius: 999px;
     text-transform: none;
     letter-spacing: 0;
 }
 
-/* ═══ LISTE AVIS : grille sur desktop ═══ */
+/* ═══ LISTE AVIS ═══ */
 .ios-avis-list {
     display: grid;
     grid-template-columns: 1fr;
@@ -333,16 +308,13 @@
 .ios-avis-card {
     display: flex;
     flex-direction: column;
-    background: var(--ios-card);
-    border-radius: var(--ios-radius-lg);
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     padding: 18px 20px;
-    transition: transform 0.15s, box-shadow 0.15s;
+    transition: border-color .2s;
 }
-.ios-avis-card:hover {
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
-    transform: translateY(-1px);
-}
-.ios-avis-card:active { transform: scale(0.99); }
+.ios-avis-card:hover { border-color: #d8d8d8; }
 
 .ios-avis-card__head {
     display: flex;
@@ -359,18 +331,19 @@
     min-width: 0;
 }
 .ios-avis-card__avatar {
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #B4532A, #d4754a);
-    color: #fff;
+    background: #F5F5F7;
+    color: var(--text);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
-    font-weight: 600;
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 700;
     flex-shrink: 0;
-    letter-spacing: -0.3px;
 }
 .ios-avis-card__client-body {
     display: flex;
@@ -380,20 +353,19 @@
 }
 .ios-avis-card__name {
     display: block;
-    font-size: 15px;
+    font-size: 14.5px;
     font-weight: 600;
-    color: var(--ios-label);
+    color: var(--ink);
     line-height: 1.2;
-    letter-spacing: -0.2px;
+    letter-spacing: -.2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 .ios-avis-card__date {
     display: block;
-    font-size: 12.5px;
-    color: var(--ios-label-2);
-    letter-spacing: -0.1px;
+    font-size: 12px;
+    color: var(--muted);
 }
 
 .ios-avis-card__rating {
@@ -405,24 +377,24 @@
 .ios-stars {
     display: inline-flex;
     gap: 2px;
-    font-size: 15px;
+    font-size: 14px;
 }
-.ios-stars .fa-star { color: var(--ios-gray-3); }
-.ios-stars .fa-star.is-on { color: var(--ios-yellow); }
+.ios-stars .fa-star { color: #D8D8DD; }
+.ios-stars .fa-star.is-on { color: var(--rust); }
 
 .ios-avis-card__score {
-    font-size: 15px;
+    font-family: var(--display);
+    font-size: 14px;
     font-weight: 700;
-    color: var(--ios-label);
-    letter-spacing: -0.3px;
+    color: var(--ink);
+    letter-spacing: -.2px;
 }
 
 .ios-avis-card__comment {
-    font-size: 14.5px;
+    font-size: 14px;
     line-height: 1.55;
-    color: var(--ios-label);
+    color: var(--text-soft);
     margin: 0 0 12px;
-    letter-spacing: -0.1px;
     flex: 1;
 }
 
@@ -430,23 +402,22 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 5px 12px;
-    background: var(--ios-gray-6);
-    border-radius: 100px;
-    font-size: 12.5px;
-    color: var(--ios-label-2);
+    padding: 4px 11px;
+    background: #F5F5F7;
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--text-soft);
     margin-bottom: 14px;
-    letter-spacing: -0.1px;
     align-self: flex-start;
 }
 .ios-avis-card__bien i {
     font-size: 11px;
-    color: #B4532A;
+    color: var(--muted);
 }
 
 .ios-avis-card__footer {
     padding-top: 14px;
-    border-top: 0.5px solid var(--ios-separator);
+    border-top: 1px solid var(--border);
     margin-top: auto;
 }
 
@@ -455,62 +426,80 @@
     gap: 10px;
 }
 
-/* ═══ BOUTONS iOS ═══ */
+/* ═══ BOUTONS ═══ */
 .ios-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 12px 18px;
-    border-radius: var(--ios-radius);
-    font-size: 15px;
+    padding: 11px 18px;
+    border-radius: 10px;
+    font-size: 13.5px;
     font-weight: 600;
     font-family: inherit;
-    letter-spacing: -0.2px;
     cursor: pointer;
-    border: none;
+    border: 1px solid transparent;
     text-decoration: none;
-    transition: opacity 0.1s, transform 0.1s;
+    transition: background-color .15s, border-color .15s, color .15s;
     white-space: nowrap;
-    min-height: 44px;
     flex: 1;
 }
-.ios-btn:active { transform: scale(0.98); opacity: 0.85; }
-
-.ios-btn--primary { background: #B4532A; color: #fff; }
-.ios-btn--primary:hover { background: #9A4523; }
-.ios-btn--gray    { background: var(--ios-gray-5); color: var(--ios-blue); }
-.ios-btn--gray:hover { background: #D8D8DD; }
-.ios-btn--full    { width: 100%; flex: 1 1 100%; }
+.ios-btn--primary {
+    background: var(--rust);
+    color: #fff;
+    border-color: var(--rust);
+}
+.ios-btn--primary:hover {
+    background: #9A4523;
+    border-color: #9A4523;
+    color: #fff;
+}
+.ios-btn--gray {
+    background: #fff;
+    color: var(--text-soft);
+    border-color: var(--border);
+}
+.ios-btn--gray:hover {
+    background: #F5F5F7;
+    border-color: #d8d8d8;
+    color: var(--ink);
+}
 
 /* ═══ EMPTY STATE ═══ */
 .ios-empty {
     text-align: center;
-    padding: 70px 20px;
-    background: var(--ios-card);
-    border-radius: var(--ios-radius-lg);
+    padding: 60px 20px;
+    background: #fff;
+    border-radius: var(--radius);
+    border: 1px dashed var(--border);
     margin-top: 20px;
 }
 .ios-empty__icon {
-    font-size: 52px;
-    color: var(--ios-gray-3);
-    margin-bottom: 16px;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F5F5F7;
+    border-radius: 50%;
+    color: var(--muted);
+    font-size: 26px;
 }
-.ios-empty__icon i.fa-star { color: var(--ios-yellow); opacity: 0.6; }
 .ios-empty__title {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--ios-label);
-    margin: 0 0 8px;
-    letter-spacing: -0.3px;
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 6px;
+    letter-spacing: -.2px;
 }
 .ios-empty__text {
-    font-size: 14px;
-    color: var(--ios-label-2);
-    margin: 0 auto 22px;
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0 auto 18px;
     max-width: 360px;
     line-height: 1.55;
-    letter-spacing: -0.1px;
 }
 
 /* ═══ PAGINATION ═══ */
@@ -534,33 +523,26 @@
 .ios-pagination a,
 .ios-pagination span:not(.sr-only) {
     display: inline-block;
-    padding: 8px 12px;
+    padding: 6px 11px;
     border-radius: 8px;
-    border: 1px solid var(--ios-separator);
-    color: var(--ios-label-2);
+    border: 1px solid var(--border);
+    color: var(--text-soft);
     text-decoration: none;
-    font-size: 13px;
-    transition: all 0.2s;
-    min-width: 36px;
+    font-size: 12px;
+    min-width: 34px;
     text-align: center;
-    background: var(--ios-card);
-    letter-spacing: -0.1px;
+    background: #fff;
 }
-.ios-pagination a:hover {
-    background: var(--ios-gray-6);
-    color: var(--ios-blue);
-}
+.ios-pagination a:hover { background: #F5F5F7; }
 .ios-pagination .active span,
 .ios-pagination [aria-current="page"] span,
 .ios-pagination [aria-current="page"] {
-    background: #B4532A;
+    background: var(--rust);
     color: #fff;
-    border-color: #B4532A;
+    border-color: var(--rust);
 }
-.ios-pagination .disabled span {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
+.ios-pagination .disabled span { opacity: .45; cursor: not-allowed; }
+
 
 /* ═══════════════════════════════════════════════════════════
    DESKTOP — Améliorations
@@ -571,28 +553,26 @@
         margin: 0 auto;
     }
 
-    /* Liste en grille 2 colonnes sur desktop */
     .ios-avis-list {
         grid-template-columns: repeat(2, 1fr);
         gap: 14px;
     }
 
-    /* Ajustement du résumé */
     .ios-summary {
-        padding: 24px 28px;
+        padding: 22px 26px;
         gap: 32px;
     }
-    .ios-summary__value { font-size: 30px; }
-    .ios-summary__value i { font-size: 24px; }
-    .ios-summary__label { font-size: 13.5px; }
+    .ios-summary__value { font-size: 28px; }
+    .ios-summary__value i { font-size: 20px; }
+    .ios-summary__label { font-size: 13px; }
     .ios-summary__sep { height: 44px; }
 
-    /* Header section plus aéré */
     .ios-section-header {
-        font-size: 13.5px;
+        font-size: 13px;
         margin: 28px 0 10px;
     }
 }
+
 
 /* ═══════════════════════════════════════════════════════════
    📱 MOBILE — iOS NATIVE
@@ -603,57 +583,128 @@
         margin: 0 -16px;
         padding: 0 16px 40px;
         max-width: none;
+        background: transparent;
     }
 
     .ios-avis-list {
         grid-template-columns: 1fr;
-        gap: 10px;
+        gap: 12px;
     }
 
     .ios-summary {
-        padding: 16px 18px;
-        gap: 16px;
+        padding: 14px 6px;
+        gap: 0;
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        justify-content: space-between;
     }
-    .ios-summary__value { font-size: 24px; }
-    .ios-summary__value i { font-size: 18px; }
-    .ios-summary__label { font-size: 12px; }
-    .ios-summary__sep { height: 30px; }
+    .ios-summary__item {
+        flex: 1;
+        align-items: center;
+        text-align: center;
+        position: relative;
+    }
+    .ios-summary__item:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        right: 0; top: 20%;
+        height: 60%; width: 0.5px;
+        background: var(--ios-separator);
+    }
+    .ios-summary__value { font-size: 22px; gap: 5px; }
+    .ios-summary__value i { font-size: 16px; }
+    .ios-summary__label { font-size: 11px; }
+    .ios-summary__sep { display: none; }
 
-    .ios-avis-card { padding: 14px; }
-    .ios-avis-card__head { flex-direction: column; align-items: flex-start; gap: 10px; }
-    .ios-avis-card__rating { width: 100%; justify-content: space-between; }
+    .ios-traited-banner {
+        background: var(--ios-card);
+        border-radius: var(--ios-radius-lg);
+        padding: 14px 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
 
-    /* Actions en pleine largeur sur mobile */
+    .ios-avis-card {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        padding: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+
+    .ios-avis-card__head {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    .ios-avis-card__rating {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .ios-avis-card__avatar {
+        width: 40px; height: 40px;
+        background: #F5F5F7;
+        border: none;
+    }
+
     .ios-avis-card__actions {
         flex-direction: column;
         gap: 8px;
     }
-    .ios-btn { width: 100%; flex: 0 0 auto; }
+    .ios-btn {
+        width: 100%;
+        flex: 0 0 auto;
+        padding: 13px 18px;
+        font-size: 14px;
+        border-radius: 12px;
+    }
+    .ios-btn--gray {
+        background: #F5F5F7;
+        border: none;
+        color: var(--text-soft);
+    }
+
+    .ios-empty {
+        background: var(--ios-card);
+        border: none;
+        border-radius: var(--ios-radius-lg);
+        padding: 48px 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+
+    .ios-pagination a,
+    .ios-pagination span:not(.sr-only) {
+        background: var(--ios-card);
+        border: none;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        padding: 10px 14px;
+        font-size: 13px;
+        border-radius: 10px;
+    }
 }
 
 @media (max-width: 480px) {
-    .ios-summary { gap: 12px; padding: 14px; }
-    .ios-summary__value { font-size: 22px; gap: 5px; }
-    .ios-summary__value i { font-size: 16px; }
-    .ios-summary__label { font-size: 11px; }
-    .ios-summary__sep { height: 26px; }
+    .ios-summary { gap: 0; padding: 12px 6px; }
+    .ios-summary__value { font-size: 20px; gap: 4px; }
+    .ios-summary__value i { font-size: 14px; }
+    .ios-summary__label { font-size: 10.5px; }
 
-    .ios-avis-card { padding: 12px; }
-    .ios-avis-card__avatar { width: 38px; height: 38px; font-size: 14px; }
+    .ios-avis-card { padding: 14px; }
+    .ios-avis-card__avatar { width: 36px; height: 36px; font-size: 13px; }
     .ios-avis-card__name { font-size: 14px; }
-    .ios-avis-card__date { font-size: 12px; }
+    .ios-avis-card__date { font-size: 11.5px; }
     .ios-stars { font-size: 13px; }
     .ios-avis-card__score { font-size: 13px; }
     .ios-avis-card__comment { font-size: 13.5px; }
-    .ios-avis-card__bien { font-size: 12px; padding: 4px 10px; }
+    .ios-avis-card__bien { font-size: 11.5px; padding: 4px 10px; }
 
-    .ios-btn { font-size: 14px; padding: 11px 16px; }
+    .ios-btn { font-size: 13.5px; padding: 12px 16px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
 }

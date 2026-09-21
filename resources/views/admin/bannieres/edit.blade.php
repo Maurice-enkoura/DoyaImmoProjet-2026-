@@ -6,9 +6,7 @@
 
 @section('content')
 <style>
-    .form-group {
-        margin-bottom: 16px;
-    }
+    .form-group { margin-bottom: 16px; }
     .form-group label {
         display: block;
         font-weight: 600;
@@ -43,6 +41,7 @@
         color: var(--muted);
         margin-top: 4px;
     }
+    .form-error { color: #C62828; font-size: 12px; margin-top: 4px; }
     .preview-image {
         max-width: 200px;
         max-height: 100px;
@@ -69,7 +68,7 @@
     }
     .image-upload-wrapper:hover {
         border-color: var(--rust);
-        background: var(--rust-soft);
+        background: #FDF6F2;
     }
     .image-upload-wrapper .icon {
         font-size: 32px;
@@ -90,36 +89,26 @@
 </div>
 
 <div class="panel" style="max-width:700px;margin:0 auto;">
-    @if(session('error'))
-        <div class="flash-message flash-error" style="margin-bottom:16px;">
-            <i class="fa-solid fa-exclamation-circle"></i> {{ session('error') }}
-        </div>
-    @endif
-
     <form method="POST" action="{{ route('admin.bannieres.update', $banniere) }}" enctype="multipart/form-data">
         @csrf
         @method('PUT')
 
         <div class="form-group">
-            <label for="titre">Titre <span style="color:var(--red);">*</span></label>
+            <label for="titre">Titre <span style="color:#C62828;">*</span></label>
             <input type="text" name="titre" id="titre" value="{{ old('titre', $banniere->titre) }}" required>
-            @error('titre')
-                <div style="color:var(--red);font-size:12px;margin-top:4px;">{{ $message }}</div>
-            @enderror
+            @error('titre') <div class="form-error">{{ $message }}</div> @enderror
         </div>
 
         <div class="form-group">
             <label for="sous_titre">Sous-titre <span class="optional">(optionnel)</span></label>
             <input type="text" name="sous_titre" id="sous_titre" value="{{ old('sous_titre', $banniere->sous_titre) }}">
-            @error('sous_titre')
-                <div style="color:var(--red);font-size:12px;margin-top:4px;">{{ $message }}</div>
-            @enderror
+            @error('sous_titre') <div class="form-error">{{ $message }}</div> @enderror
         </div>
 
         <div class="form-group">
             <label>Image actuelle</label>
-            @if($banniere->image)
-                <img src="{{ asset('storage/' . $banniere->image) }}" alt="{{ $banniere->titre }}" class="current-image">
+            @if($banniere->image_url)
+                <img src="{{ $banniere->image_url }}" alt="{{ $banniere->titre }}" class="current-image">
             @else
                 <div style="color:var(--muted);font-size:13px;">Aucune image</div>
             @endif
@@ -135,18 +124,13 @@
             <input type="file" name="image" id="image" accept="image/*" style="display:none;">
             <img id="imagePreview" class="preview-image" style="display:none;">
             <div class="help-text">Laissez vide pour conserver l'image actuelle.</div>
-            @error('image')
-                <div style="color:var(--red);font-size:12px;margin-top:4px;">{{ $message }}</div>
-            @enderror
+            @error('image') <div class="form-error">{{ $message }}</div> @enderror
         </div>
 
         <div class="form-group">
             <label for="lien">Lien <span class="optional">(optionnel)</span></label>
             <input type="url" name="lien" id="lien" value="{{ old('lien', $banniere->lien) }}" placeholder="https://...">
-            <div class="help-text">Lien vers la page de destination (optionnel).</div>
-            @error('lien')
-                <div style="color:var(--red);font-size:12px;margin-top:4px;">{{ $message }}</div>
-            @enderror
+            @error('lien') <div class="form-error">{{ $message }}</div> @enderror
         </div>
 
         <div class="form-group">
@@ -156,34 +140,27 @@
                 <option value="centre" {{ old('position_texte', $banniere->position_texte) == 'centre' ? 'selected' : '' }}>Centre</option>
                 <option value="droite" {{ old('position_texte', $banniere->position_texte) == 'droite' ? 'selected' : '' }}>Droite</option>
             </select>
-            @error('position_texte')
-                <div style="color:var(--red);font-size:12px;margin-top:4px;">{{ $message }}</div>
-            @enderror
+            @error('position_texte') <div class="form-error">{{ $message }}</div> @enderror
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
             <div class="form-group">
                 <label for="date_debut">Date de début <span class="optional">(optionnel)</span></label>
-                <input type="date" name="date_debut" id="date_debut" value="{{ old('date_debut', $banniere->date_debut ? $banniere->date_debut->format('Y-m-d') : now()->format('Y-m-d')) }}">
-                <div class="help-text">Par défaut: aujourd'hui</div>
-                @error('date_debut')
-                    <div style="color:var(--red);font-size:12px;margin-top:4px;">{{ $message }}</div>
-                @enderror
+                <input type="date" name="date_debut" id="date_debut" value="{{ old('date_debut', $banniere->date_debut ? $banniere->date_debut->format('Y-m-d') : '') }}">
+                @error('date_debut') <div class="form-error">{{ $message }}</div> @enderror
             </div>
 
             <div class="form-group">
                 <label for="date_fin">Date de fin <span class="optional">(optionnel)</span></label>
                 <input type="date" name="date_fin" id="date_fin" value="{{ old('date_fin', $banniere->date_fin ? $banniere->date_fin->format('Y-m-d') : '') }}">
-                <div class="help-text">Laissez vide pour une durée illimitée.</div>
-                @error('date_fin')
-                    <div style="color:var(--red);font-size:12px;margin-top:4px;">{{ $message }}</div>
-                @enderror
+                <div class="help-text">Vide = durée illimitée</div>
+                @error('date_fin') <div class="form-error">{{ $message }}</div> @enderror
             </div>
         </div>
 
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:8px;">
             <button type="submit" class="btn btn-rust" style="flex:1;justify-content:center;">
-                <i class="fa-solid fa-save"></i> Mettre à jour
+                <i class="fa-solid fa-floppy-disk"></i> Mettre à jour
             </button>
             <a href="{{ route('admin.bannieres.index') }}" class="btn btn-ghost">Annuler</a>
         </div>
@@ -206,11 +183,16 @@
         }
     });
 
-    document.getElementById('date_debut').addEventListener('change', function() {
-        const dateFin = document.getElementById('date_fin');
-        if (this.value) {
-            dateFin.min = this.value;
+    const dateDebut = document.getElementById('date_debut');
+    const dateFin = document.getElementById('date_fin');
+
+    function updateMinDateFin() {
+        if (dateDebut.value) {
+            dateFin.min = dateDebut.value;
         }
-    });
+    }
+
+    dateDebut.addEventListener('change', updateMinDateFin);
+    updateMinDateFin();
 </script>
 @endsection

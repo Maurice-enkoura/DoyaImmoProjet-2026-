@@ -3,7 +3,7 @@
 @section('title', 'Inscription Agence — DoyaImmo')
 
 @section('content')
-<div class="auth-shell" style="opacity:1;">
+<div class="auth-shell">
     <!-- Section gauche - Visuelle -->
     <div class="auth-visual">
         <div class="brand" style="display:flex; justify-content:space-between; align-items:center;">
@@ -12,7 +12,7 @@
                 <div class="brand-name" style="color:#fff;">Doya<span style="color:var(--rust)">Immo</span></div>
             </a>
         </div>
-        
+
         <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:24px;">
             <div>
                 <p class="quote" style="font-size:20px;margin:0;">
@@ -38,7 +38,7 @@
         </div>
 
         <div style="font-size:12px;color:#6A7280;margin-top:20px;">
-            <i class="fa-regular fa-circle-check" style="color:var(--gold);"></i>
+            <i class="fa-regular fa-circle-check" style="color:var(--muted);"></i>
             {{ $stats['agences'] ?? 0 }} agences déjà inscrites sur DoyaImmo
         </div>
     </div>
@@ -52,13 +52,13 @@
                     <div class="brand-mark">D</div>
                     <div class="brand-name">Doya<span style="color:var(--rust)">Immo</span></div>
                 </a>
-                
+
                 <!-- Bouton Accueil -->
                 <a href="{{ route('home') }}" class="btn btn-ghost btn-sm" style="display:inline-flex; align-items:center; gap:6px;">
                     <i class="fa-solid fa-house"></i> Accueil
                 </a>
             </div>
-            
+
             <div class="role-toggle">
                 <a href="{{ route('register.particulier') }}">Espace client</a>
                 <a href="{{ route('register.agence') }}" class="active">Espace agence</a>
@@ -66,17 +66,6 @@
 
             <h1>Inscription de l'agence</h1>
             <p class="sub">Complétez les informations ci-dessous pour rejoindre notre réseau d'agences partenaires.</p>
-
-            <!-- Affichage des erreurs -->
-            @if($errors->any())
-                <div style="padding:12px 16px;background:#FFEBEE;border-radius:10px;border:1px solid #FFCDD2;margin-bottom:16px;">
-                    <ul style="margin:0;padding:0 0 0 16px;color:#C62828;font-size:13px;">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
 
             <form method="POST" action="{{ route('register.agence') }}" enctype="multipart/form-data" id="registerForm">
                 @csrf
@@ -89,7 +78,7 @@
                         </span>
                         <span>Responsable légal</span>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col">
                             <div class="field">
@@ -265,7 +254,7 @@
                     <label class="checkbox">
                         <input type="checkbox" name="conditions" value="1" required>
                         <span>
-                            Je certifie l'exactitude des informations fournies et j'accepte les 
+                            Je certifie l'exactitude des informations fournies et j'accepte les
                             <a href="#" class="link">Conditions d'utilisation</a>
                         </span>
                         <span class="required">*</span>
@@ -292,7 +281,7 @@
 
 @push('styles')
 <style>
-    /* ===================== FORMULAIRES ===================== */
+    /* ═══ FORMULAIRES ═══ */
     .form-group {
         margin-bottom: 28px;
         padding-bottom: 28px;
@@ -314,7 +303,6 @@
         font-weight: 600;
         color: var(--ink);
         margin-bottom: 16px;
-        letter-spacing: 0.3px;
     }
 
     .form-label .label-icon {
@@ -324,12 +312,12 @@
         width: 32px;
         height: 32px;
         border-radius: 8px;
-        background: var(--rust-soft);
-        color: var(--rust);
+        background: #F5F5F7;
+        color: var(--muted);
         font-size: 14px;
     }
 
-    /* ===================== CHAMPS ===================== */
+    /* ═══ CHAMPS ═══ */
     .row {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -363,14 +351,13 @@
         font-size: 13px;
         font-family: inherit;
         background: #fff;
-        transition: border-color 0.2s, box-shadow 0.2s;
+        transition: border-color 0.15s;
     }
 
     .field input:focus,
     .field textarea:focus {
         outline: none;
         border-color: var(--rust);
-        box-shadow: 0 0 0 3px rgba(181, 80, 42, 0.08);
     }
 
     .field input::placeholder,
@@ -402,17 +389,7 @@
         margin-top: 4px;
     }
 
-    .field input.is-invalid,
-    .field textarea.is-invalid {
-        border-color: #C62828;
-    }
-
-    .field input.is-invalid:focus,
-    .field textarea.is-invalid:focus {
-        box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.08);
-    }
-
-    /* ===================== MOT DE PASSE ===================== */
+    /* ═══ MOT DE PASSE ═══ */
     .password-wrapper {
         position: relative;
     }
@@ -432,19 +409,18 @@
         cursor: pointer;
         padding: 4px;
         font-size: 15px;
-        transition: color 0.2s;
+        transition: color 0.15s;
     }
 
     .toggle-password:hover {
-        color: var(--text);
+        color: var(--text-soft);
     }
 
-    /* ===================== DOCUMENTS ===================== */
+    /* ═══ DOCUMENTS ═══ */
     .documents-group {
-        background: #FAFBFC;
+        background: #F5F5F7;
         padding: 16px 20px 20px;
         border-radius: 12px;
-        border: 1px solid var(--border);
     }
 
     .documents-group .form-label {
@@ -470,18 +446,17 @@
         border-radius: 10px;
         background: #fff;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: border-color 0.15s;
         font-size: 13px;
     }
 
     .document-label:hover {
-        border-color: var(--rust);
-        background: rgba(181, 80, 42, 0.02);
+        border-color: #d8d8d8;
     }
 
     .document-label i {
         font-size: 20px;
-        color: var(--rust);
+        color: var(--muted);
         width: 24px;
         text-align: center;
     }
@@ -510,7 +485,7 @@
     }
 
     .document-item.has-file .document-label {
-        border-color: #1E7A47;
+        border-color: var(--c-success);
         background: rgba(30, 122, 71, 0.04);
     }
 
@@ -524,10 +499,10 @@
     }
 
     .document-help i {
-        color: var(--rust);
+        color: var(--muted);
     }
 
-    /* ===================== CONDITIONS ===================== */
+    /* ═══ CONDITIONS ═══ */
     .conditions {
         margin: 24px 0 20px;
     }
@@ -560,42 +535,37 @@
         text-decoration: underline;
     }
 
-    /* ===================== BOUTON ===================== */
+    /* ═══ BOUTON ═══ */
     .btn-submit {
-        display: inline-flex !important;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
         gap: 10px;
         width: 100%;
-        padding: 14px 28px !important;
-        border: none !important;
-        border-radius: 12px !important;
-        background: var(--rust) !important;
-        color: #fff !important;
-        font-size: 15px !important;
-        font-weight: 600 !important;
-        font-family: inherit !important;
-        cursor: pointer !important;
-        transition: background 0.2s !important;
-        margin-top: 20px !important;
-        position: relative !important;
-        z-index: 10 !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        display: block !important;
+        padding: 14px 28px;
+        border: none;
+        border-radius: 12px;
+        background: var(--rust);
+        color: #fff;
+        font-size: 15px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background-color 0.15s;
+        margin-top: 20px;
     }
 
     .btn-submit:hover {
-        background: #9A4523 !important;
+        background: #9A4523;
     }
 
     .btn-submit:disabled {
-        opacity: 0.6 !important;
-        cursor: not-allowed !important;
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 
     .btn-submit i {
-        font-size: 16px !important;
+        font-size: 16px;
     }
 
     .form-footer {
@@ -609,10 +579,10 @@
     }
 
     .form-footer i {
-        color: var(--rust);
+        color: var(--muted);
     }
 
-    /* ===================== RESPONSIVE ===================== */
+    /* ═══ RESPONSIVE ═══ */
     @media (max-width: 600px) {
         .row {
             grid-template-columns: 1fr;
@@ -657,14 +627,14 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // ==================== TOGGLE PASSWORD ====================
+    // ═══ TOGGLE PASSWORD ═══
     document.querySelectorAll('.toggle-password').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             const wrapper = this.closest('.password-wrapper');
             const input = wrapper.querySelector('input');
             const icon = this.querySelector('i');
-            
+
             if (input.type === 'password') {
                 input.type = 'text';
                 icon.classList.remove('fa-eye');
@@ -677,7 +647,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ==================== FILE UPLOAD INDICATOR ====================
+    // ═══ FILE UPLOAD INDICATOR ═══
     document.querySelectorAll('.document-item input[type="file"]').forEach(input => {
         input.addEventListener('change', function() {
             const item = this.closest('.document-item');
@@ -689,7 +659,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ==================== AUTO-CAPITALIZATION ====================
+    // ═══ AUTO-CAPITALISATION ═══
     ['nom', 'prenom', 'nom_agence', 'quartier'].forEach(id => {
         const input = document.getElementById(id);
         if (input) {

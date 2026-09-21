@@ -133,13 +133,13 @@
 </section>
 
 {{-- ═══════════════════════════════════════════════════════════
-     3. ⭐ BIENS EN VEDETTE — juste après le hero
+     3. BIENS EN VEDETTE
 ═══════════════════════════════════════════════════════════ --}}
 @if(isset($biensVedette) && $biensVedette->count() > 0)
 <section class="section vedette-section">
     <header class="section-head">
         <div>
-            <span class="eyebrow"> À la une</span>
+            <span class="eyebrow">À la une</span>
             <h2 class="h-section">Biens en vedette</h2>
         </div>
         <div class="section-head__actions">
@@ -581,7 +581,7 @@ function stopVedetteAutoplay() {
 }
 
 /* ═══════════════════════════════════════════
-   BANNIÈRE
+   BANNIÈRE — POSITIONS FORCÉES
 ═══════════════════════════════════════════ */
 .banner-section {
     padding: 20px 24px 0;
@@ -625,33 +625,74 @@ function stopVedetteAutoplay() {
     inset: 0;
     background: linear-gradient(to top, rgba(8, 10, 18, .78) 0%, rgba(8, 10, 18, .25) 50%, transparent 100%);
     pointer-events: none;
+    z-index: 1;
 }
 
+/* ═══════════════════════════════════════════
+   BANNER CONTENT — POSITIONS FORCÉES
+   ═══════════════════════════════════════════ */
 .banner-content {
     position: absolute;
     bottom: 22px;
-    left: 26px;
     max-width: 55%;
     color: #fff;
-    z-index: 2;
-    opacity: 0;
-}
-.banner-slide.active .banner-content {
-    animation: bannerFadeInUp .7s ease .15s forwards;
-}
-@keyframes bannerFadeInUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
+    z-index: 10 !important;   /* ⚠️ AU-DESSUS de l'image et de l'overlay */
+    opacity: 1;
 }
 
-.banner-content--droite { left: auto; right: 26px; text-align: right; }
-.banner-content--centre { left: 50%; right: auto; transform: translateX(-50%); text-align: center; max-width: 70%; }
+/* ===== POSITION GAUCHE ===== */
+.banner-content--gauche {
+    left: 26px !important;
+    right: auto !important;
+    text-align: left !important;
+    transform: none !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+}
+
+/* ===== POSITION CENTRE ===== */
+.banner-content--centre {
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    text-align: center !important;
+    max-width: 70%;
+}
+
+/* ===== POSITION DROITE ===== */
+.banner-content--droite {
+    left: auto !important;
+    right: 26px !important;
+    text-align: right !important;
+    transform: none !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+}
+
+/* ═══════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════ */
+.banner-slide.active .banner-content--gauche {
+    animation: bannerFadeInUpLeft .7s ease .15s forwards;
+}
 .banner-slide.active .banner-content--centre {
     animation: bannerFadeInUpCentre .7s ease .15s forwards;
+}
+.banner-slide.active .banner-content--droite {
+    animation: bannerFadeInUpRight .7s ease .15s forwards;
+}
+
+@keyframes bannerFadeInUpLeft {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes bannerFadeInUpCentre {
     from { opacity: 0; transform: translate(-50%, 10px); }
     to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes bannerFadeInUpRight {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 .banner-content h2 {
@@ -682,7 +723,7 @@ function stopVedetteAutoplay() {
     color: #fff;
     font-size: 13px;
     cursor: pointer;
-    z-index: 3;
+    z-index: 20;
     transition: all .2s;
     display: flex; align-items: center; justify-content: center;
 }
@@ -700,7 +741,7 @@ function stopVedetteAutoplay() {
     transform: translateX(-50%);
     display: flex;
     gap: 6px;
-    z-index: 3;
+    z-index: 20;
 }
 .banner-dot {
     width: 8px; height: 8px;
@@ -890,7 +931,7 @@ function stopVedetteAutoplay() {
 }
 
 /* ═══════════════════════════════════════════
-   VEDETTE (juste après le hero)
+   VEDETTE
 ═══════════════════════════════════════════ */
 .vedette-section {
     padding-top: 40px;
@@ -952,7 +993,7 @@ function stopVedetteAutoplay() {
 }
 
 /* ═══════════════════════════════════════════
-   CARD (unifiée)
+   CARD
 ═══════════════════════════════════════════ */
 .card {
     flex: 0 0 calc((100% - 32px) / 3);
@@ -1374,6 +1415,26 @@ function stopVedetteAutoplay() {
     .banner-nav { width: 34px; height: 34px; font-size: 12px; }
     .banner-nav--prev { left: 10px; }
     .banner-nav--next { right: 10px; }
+
+    /* Positions en mobile */
+    .banner-content--gauche {
+        left: 16px !important;
+        right: auto !important;
+        text-align: left !important;
+        transform: none !important;
+    }
+    .banner-content--droite {
+        left: auto !important;
+        right: 16px !important;
+        text-align: right !important;
+        transform: none !important;
+    }
+    .banner-content--centre {
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+        text-align: center !important;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1384,10 +1445,14 @@ function stopVedetteAutoplay() {
     .hero__title { font-size: 22px; }
 
     .banner-item { aspect-ratio: 3 / 2; }
-    .banner-content { max-width: 88%; bottom: 14px; left: 14px; }
+    .banner-content { max-width: 88%; bottom: 14px; }
     .banner-content h2 { font-size: 16px; }
     .banner-content p { font-size: 11.5px; margin-bottom: 10px; }
     .banner-dots { bottom: 12px; }
+
+    .banner-content--gauche { left: 14px !important; right: auto !important; text-align: left !important; transform: none !important; }
+    .banner-content--droite { left: auto !important; right: 14px !important; text-align: right !important; transform: none !important; }
+    .banner-content--centre { left: 50% !important; right: auto !important; transform: translateX(-50%) !important; text-align: center !important; }
 
     .card { flex: 0 0 100%; }
     .biens-grid { grid-template-columns: 1fr; gap: 12px; }

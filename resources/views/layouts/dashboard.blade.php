@@ -183,6 +183,34 @@
         .topbar__sub { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
         .topbar__actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
+        /* ✅ Bouton retour desktop (pages de détail) */
+        .topbar-back {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #fff;
+            border: 1px solid var(--border);
+            color: var(--text-soft);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 700;
+            flex-shrink: 0;
+            transition: all .2s;
+            cursor: pointer;
+        }
+        .topbar-back:hover {
+            border-color: var(--rust);
+            color: var(--rust);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+        .topbar-back:active {
+            transform: scale(.95);
+        }
+
         .icon-btn {
             position: relative;
             width: 40px; height: 40px;
@@ -262,22 +290,52 @@
         .dropdown__head button { background: none; border: none; color: var(--rust); font-size: 11.5px; font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 6px; font-family: inherit; }
         .dropdown__head button:hover { background: var(--rust-soft); }
 
-        .dropdown__item { display: flex; gap: 12px; align-items: flex-start; padding: 12px 18px; border-bottom: 1px solid var(--border); text-decoration: none; color: var(--ink); font-size: 13px; transition: background .15s; cursor: pointer; }
+        .dropdown__item {
+            position: relative;
+            display: flex; gap: 12px; align-items: flex-start;
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border);
+            text-decoration: none; color: var(--ink);
+            font-size: 13px;
+            transition: background .15s;
+            cursor: pointer;
+        }
         .dropdown__item:last-child { border-bottom: none; }
         .dropdown__item:hover { background: var(--bg); }
         .dropdown__item.is-unread { background: rgba(181, 80, 42, .04); border-left: 3px solid var(--rust); }
         .dropdown__item.is-unread:hover { background: rgba(181, 80, 42, .08); }
 
-        .dropdown__item-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; }
+        .dropdown__item-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; cursor: pointer; }
         .dropdown__item-icon.info    { background: var(--c-info-bg);    color: var(--c-info); }
         .dropdown__item-icon.success { background: var(--c-success-bg); color: var(--c-success); }
         .dropdown__item-icon.warning { background: var(--c-warning-bg); color: var(--c-warning); }
         .dropdown__item-icon.danger  { background: var(--c-danger-bg);  color: var(--c-danger); }
 
-        .dropdown__item-content { flex: 1; min-width: 0; }
+        .dropdown__item-content { flex: 1; min-width: 0; cursor: pointer; }
         .dropdown__item-title { font-weight: 600; font-size: 13px; color: var(--ink); }
         .dropdown__item-desc { font-size: 12.5px; color: var(--text-soft); margin-top: 2px; line-height: 1.5; }
         .dropdown__item-time { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+        /* ✅ Bouton close sur chaque notification */
+        .dropdown__item-close {
+            align-self: flex-start;
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 13px;
+            padding: 6px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            opacity: .5;
+            transition: all .15s;
+            font-family: inherit;
+            line-height: 1;
+            z-index: 2;
+        }
+        .dropdown__item:hover .dropdown__item-close { opacity: 1; }
+        .dropdown__item-close:hover { background: var(--c-danger-bg); color: var(--c-danger); }
+        .dropdown__item-close:active { transform: scale(.9); }
 
         .dropdown__empty { padding: 40px 20px; text-align: center; color: var(--muted); }
         .dropdown__empty i { font-size: 32px; display: block; margin-bottom: 12px; opacity: .3; }
@@ -570,7 +628,6 @@
             .content {
                 padding: 16px 16px 16px;
             }
-            /* Les pages avec actions fixes ont un padding-bottom automatique */
             body:has(.ios-form-actions) .content {
                 padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
             }
@@ -712,6 +769,34 @@
             @php
                 $isDashboard = request()->routeIs('particulier.dashboard');
                 $pageTitle = trim($__env->yieldContent('page_title', 'DoyaImmo'));
+
+                // ✅ Bouton retour UNIQUEMENT sur les pages de détail (show/create/edit)
+                $currentRouteName = request()->route() ? request()->route()->getName() : '';
+                $isProfil = request()->routeIs('particulier.profil');
+
+                $showBackButton = $currentRouteName && (
+                    str_ends_with($currentRouteName, '.show') ||
+                    str_ends_with($currentRouteName, '.create') ||
+                    str_ends_with($currentRouteName, '.edit')
+                );
+
+                // ✅ Retour intelligent : le parent logique selon la route actuelle
+                $routeParentMap = [
+                    'particulier.demandes.show'      => 'particulier.demandes.index',
+                    'particulier.propositions.show'  => 'particulier.propositions.index',
+                    'particulier.rendezvous.show'    => 'particulier.rendezvous.index',
+                    'particulier.evaluations.show'   => 'particulier.evaluations.index',
+                ];
+
+                if ($isProfil) {
+                    $backUrl = route('particulier.dashboard');
+                } elseif (isset($routeParentMap[$currentRouteName])) {
+                    // Page de détail → retour vers son index parent
+                    $backUrl = route($routeParentMap[$currentRouteName]);
+                } else {
+                    // Page create / edit / index → retour au dashboard
+                    $backUrl = route('particulier.dashboard');
+                }
             @endphp
 
             {{-- ═══ iOS HEADER (mobile) ═══ --}}
@@ -725,7 +810,7 @@
                             <div class="ios-header__brand-name">Doya<span>Immo</span></div>
                         </a>
                         <div class="ios-header__actions">
-                            <button class="ios-header__icon" onclick="toggleNotifications()" aria-label="Notifications">
+                            <button class="ios-header__icon" onclick="toggleNotifications(event)" aria-label="Notifications">
                                 <i class="fa-regular fa-bell"></i>
                                 @if(($notificationsCount ?? 0) > 0)
                                     <span class="ios-header__dot"></span>
@@ -735,18 +820,8 @@
                                 {{ strtoupper(substr(Auth::user()->prenom, 0, 1) . substr(Auth::user()->nom, 0, 1)) }}
                             </a>
                         </div>
-                    @else
-                        {{-- Autres pages : retour + titre + actions --}}
-                        @php
-                            // Le profil est une page "racine" → retour toujours au dashboard
-                            $isProfil = request()->routeIs('particulier.profil');
-                            $backUrl = $isProfil
-                                ? route('particulier.dashboard')
-                                : (url()->previous() !== url()->current()
-                                    ? url()->previous()
-                                    : route('particulier.dashboard'));
-                        @endphp
-
+                    @elseif($showBackButton)
+                        {{-- Pages de détail : retour + titre + actions --}}
                         <a href="{{ $backUrl }}"
                            class="ios-header__back"
                            aria-label="Retour">
@@ -758,7 +833,24 @@
                         </div>
 
                         <div class="ios-header__actions">
-                            <button class="ios-header__icon" onclick="toggleNotifications()" aria-label="Notifications">
+                            <button class="ios-header__icon" onclick="toggleNotifications(event)" aria-label="Notifications">
+                                <i class="fa-regular fa-bell"></i>
+                                @if(($notificationsCount ?? 0) > 0)
+                                    <span class="ios-header__dot"></span>
+                                @endif
+                            </button>
+                            <a href="{{ route('particulier.profil') }}" class="ios-header__avatar" aria-label="Mon profil">
+                                {{ strtoupper(substr(Auth::user()->prenom, 0, 1) . substr(Auth::user()->nom, 0, 1)) }}
+                            </a>
+                        </div>
+                    @else
+                        {{-- Pages index : brand + actions --}}
+                        <a href="{{ route('home') }}" class="ios-header__brand">
+                            <div class="ios-header__brand-mark">D</div>
+                            <div class="ios-header__brand-name">Doya<span>Immo</span></div>
+                        </a>
+                        <div class="ios-header__actions">
+                            <button class="ios-header__icon" onclick="toggleNotifications(event)" aria-label="Notifications">
                                 <i class="fa-regular fa-bell"></i>
                                 @if(($notificationsCount ?? 0) > 0)
                                     <span class="ios-header__dot"></span>
@@ -789,6 +881,14 @@
                     <button class="burger" onclick="toggleSidebar()" aria-label="Menu">
                         <span></span><span></span><span></span>
                     </button>
+
+                    {{-- ✅ Bouton retour UNIQUEMENT sur les pages de détail --}}
+                    @if($showBackButton)
+                        <a href="{{ $backUrl }}" class="topbar-back" aria-label="Retour">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </a>
+                    @endif
+
                     <div class="topbar__titles">
                         <div class="topbar__title">@yield('page_title', 'Tableau de bord')</div>
                         <div class="topbar__sub">@yield('page_sub', 'Suivez vos besoins et vos échanges avec les agences')</div>
@@ -797,7 +897,7 @@
 
                 <div class="topbar__actions">
                     <div style="position:relative;">
-                        <button class="icon-btn" onclick="toggleNotifications()" aria-label="Notifications">
+                        <button class="icon-btn" onclick="toggleNotifications(event)" aria-label="Notifications">
                             <i class="fa-regular fa-bell"></i>
                             @if(($notificationsCount ?? 0) > 0)
                                 <span class="icon-btn__badge" id="notificationBadge">{{ $notificationsCount }}</span>
@@ -810,21 +910,32 @@
                                     <button onclick="markAllAsRead()">Tout marquer lu</button>
                                 @endif
                             </div>
-                            <div>
+                            <div data-notif-list>
                                 @if(isset($notifications) && $notifications->count() > 0)
                                     @foreach($notifications as $notification)
                                         <div class="dropdown__item {{ $notification->read_at ? '' : 'is-unread' }}"
-                                             onclick="markNotificationRead('{{ $notification->id }}')">
-                                            <div class="dropdown__item-icon {{ $notification->data['type'] ?? 'info' }}">
+                                             data-notif-id="{{ $notification->id }}">
+                                            <div class="dropdown__item-icon {{ $notification->data['type'] ?? 'info' }}"
+                                                 onclick="markNotificationRead('{{ $notification->id }}')">
                                                 <i class="{{ $notification->data['icon'] ?? 'fa-regular fa-bell' }}"></i>
                                             </div>
-                                            <div class="dropdown__item-content">
+                                            <div class="dropdown__item-content"
+                                                 onclick="markNotificationRead('{{ $notification->id }}')">
                                                 <div class="dropdown__item-title">{{ $notification->data['title'] ?? 'Notification' }}</div>
                                                 <div class="dropdown__item-desc">{{ $notification->data['message'] ?? '' }}</div>
                                                 <div class="dropdown__item-time">{{ $notification->created_at->diffForHumans() }}</div>
                                             </div>
+                                            <button type="button" class="dropdown__item-close"
+                                                    onclick="event.stopPropagation(); dismissNotification('{{ $notification->id }}', this)"
+                                                    aria-label="Fermer">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
                                         </div>
                                     @endforeach
+                                    <div class="dropdown__empty" style="display:none;">
+                                        <i class="fa-regular fa-bell-slash"></i>
+                                        <span>Aucune notification</span>
+                                    </div>
                                 @else
                                     <div class="dropdown__empty">
                                         <i class="fa-regular fa-bell-slash"></i>
@@ -841,7 +952,7 @@
                     </div>
 
                     <div class="topbar-avatar-wrapper">
-                        <div class="topbar-avatar" onclick="toggleUserMenu()">
+                        <div class="topbar-avatar" onclick="toggleUserMenu(event)">
                             {{ strtoupper(substr(Auth::user()->prenom, 0, 1) . substr(Auth::user()->nom, 0, 1)) }}
                         </div>
                         <div class="dropdown user-dropdown" id="userDropdownDesktop">
@@ -877,21 +988,32 @@
                         <button onclick="markAllAsRead()">Tout marquer lu</button>
                     @endif
                 </div>
-                <div>
+                <div data-notif-list>
                     @if(isset($notifications) && $notifications->count() > 0)
                         @foreach($notifications as $notification)
                             <div class="dropdown__item {{ $notification->read_at ? '' : 'is-unread' }}"
-                                 onclick="markNotificationRead('{{ $notification->id }}')">
-                                <div class="dropdown__item-icon {{ $notification->data['type'] ?? 'info' }}">
+                                 data-notif-id="{{ $notification->id }}">
+                                <div class="dropdown__item-icon {{ $notification->data['type'] ?? 'info' }}"
+                                     onclick="markNotificationRead('{{ $notification->id }}')">
                                     <i class="{{ $notification->data['icon'] ?? 'fa-regular fa-bell' }}"></i>
                                 </div>
-                                <div class="dropdown__item-content">
+                                <div class="dropdown__item-content"
+                                     onclick="markNotificationRead('{{ $notification->id }}')">
                                     <div class="dropdown__item-title">{{ $notification->data['title'] ?? 'Notification' }}</div>
                                     <div class="dropdown__item-desc">{{ $notification->data['message'] ?? '' }}</div>
                                     <div class="dropdown__item-time">{{ $notification->created_at->diffForHumans() }}</div>
                                 </div>
+                                <button type="button" class="dropdown__item-close"
+                                        onclick="event.stopPropagation(); dismissNotification('{{ $notification->id }}', this)"
+                                        aria-label="Fermer">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
                             </div>
                         @endforeach
+                        <div class="dropdown__empty" style="display:none;">
+                            <i class="fa-regular fa-bell-slash"></i>
+                            <span>Aucune notification</span>
+                        </div>
                     @else
                         <div class="dropdown__empty">
                             <i class="fa-regular fa-bell-slash"></i>
@@ -998,17 +1120,21 @@
         /* ═══════════════════════════════════════════
            DROPDOWNS
         ═══════════════════════════════════════════ */
-        function toggleNotifications() {
+        function toggleNotifications(event) {
+            if (event) event.stopPropagation();
             const isMobile = window.innerWidth <= 820;
             const id = isMobile ? 'notificationDropdown' : 'notificationDropdownDesktop';
             const el = document.getElementById(id);
+            if (!el) return;
             const isOpen = el.classList.contains('open');
             closeAllDropdowns();
             if (!isOpen) el.classList.add('open');
         }
 
-        function toggleUserMenu() {
+        function toggleUserMenu(event) {
+            if (event) event.stopPropagation();
             const el = document.getElementById('userDropdownDesktop');
+            if (!el) return;
             const isOpen = el.classList.contains('open');
             closeAllDropdowns();
             if (!isOpen) el.classList.add('open');
@@ -1018,12 +1144,15 @@
             document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
         }
 
+        // ✅ Listener global : ne ferme PAS si le clic est dans un dropdown ou sur close
         document.addEventListener('click', e => {
-            if (!e.target.closest('.topbar-avatar-wrapper') &&
-                !e.target.closest('.ios-header__actions') &&
-                !e.target.closest('.dropdown')) {
-                closeAllDropdowns();
+            if (e.target.closest('.dropdown') ||
+                e.target.closest('.topbar-avatar-wrapper') ||
+                e.target.closest('.ios-header__actions') ||
+                e.target.closest('.dropdown__item-close')) {
+                return;
             }
+            closeAllDropdowns();
         });
 
         /* ═══════════════════════════════════════════
@@ -1031,18 +1160,91 @@
         ═══════════════════════════════════════════ */
         const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 
+        // ✅ Marquer comme lu (route existante : POST /api/notifications/{id}/read)
         function markNotificationRead(id) {
             fetch(`/api/notifications/${id}/read`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json' }
-            }).then(r => r.json()).then(d => { if (d.success) location.reload(); });
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    document.querySelectorAll(`[data-notif-id="${id}"]`).forEach(el => {
+                        el.classList.remove('is-unread');
+                    });
+                    const badge = document.getElementById('notificationBadge');
+                    if (badge) {
+                        const n = Math.max(0, parseInt(badge.textContent, 10) - 1);
+                        badge.textContent = n;
+                        if (n <= 0) badge.style.display = 'none';
+                    }
+                }
+            })
+            .catch(() => {});
         }
 
+        // ✅ Fermer une notification LOCALEMENT (pas de route serveur)
+        function dismissNotification(id, btn) {
+            const item = btn.closest('.dropdown__item');
+            if (!item) return;
+
+            // Animation de disparition
+            item.style.transition = 'all .25s ease';
+            item.style.opacity = '0';
+            item.style.height = '0';
+            item.style.paddingTop = '0';
+            item.style.paddingBottom = '0';
+            item.style.marginTop = '0';
+            item.style.marginBottom = '0';
+            item.style.overflow = 'hidden';
+
+            // Décrémenter le badge si non lue
+            if (item.classList.contains('is-unread')) {
+                const badge = document.getElementById('notificationBadge');
+                if (badge) {
+                    const n = Math.max(0, parseInt(badge.textContent, 10) - 1);
+                    badge.textContent = n;
+                    if (n <= 0) badge.style.display = 'none';
+                }
+            }
+
+            setTimeout(() => {
+                item.remove();
+
+                // Si plus aucune notif visible, afficher le message vide
+                document.querySelectorAll('.dropdown').forEach(dropdown => {
+                    const list = dropdown.querySelector('[data-notif-list]');
+                    if (list) {
+                        const remaining = list.querySelectorAll('.dropdown__item').length;
+                        if (remaining === 0) {
+                            const empty = list.querySelector('.dropdown__empty');
+                            if (empty) empty.style.display = 'block';
+                        }
+                    }
+                });
+            }, 260);
+        }
+
+        // ✅ Tout marquer lu (route existante : POST /api/notifications/read-all)
         function markAllAsRead() {
             fetch('/api/notifications/read-all', {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json' }
-            }).then(r => r.json()).then(d => { if (d.success) location.reload(); });
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    document.querySelectorAll('.dropdown__item.is-unread').forEach(el => {
+                        el.classList.remove('is-unread');
+                    });
+                    const badge = document.getElementById('notificationBadge');
+                    if (badge) {
+                        badge.textContent = '0';
+                        badge.style.display = 'none';
+                    }
+                }
+            })
+            .catch(() => {});
         }
 
         /* ═══════════════════════════════════════════
@@ -1092,12 +1294,20 @@
         /* ═══════════════════════════════════════════
            POLLING NOTIFICATIONS
         ═══════════════════════════════════════════ */
+        let lastNotifCheck = null;
         function checkNewNotifications() {
-            fetch('/api/notifications/new', {
+            let url = '/api/notifications/new';
+            if (lastNotifCheck) {
+                url += '?last_check=' + encodeURIComponent(lastNotifCheck);
+            }
+            fetch(url, {
                 headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json' }
             })
             .then(r => r.json())
             .then(data => {
+                if (data.timestamp) {
+                    lastNotifCheck = data.timestamp;
+                }
                 if (data.notifications?.length) {
                     data.notifications.forEach(n => {
                         showToast(
@@ -1107,9 +1317,12 @@
                             n.icon || null
                         );
                     });
-                    if (data.count > 0) {
-                        const badge = document.getElementById('notificationBadge');
-                        if (badge) badge.textContent = data.count;
+                }
+                if (typeof data.count !== 'undefined') {
+                    const badge = document.getElementById('notificationBadge');
+                    if (badge) {
+                        badge.textContent = data.count;
+                        badge.style.display = data.count > 0 ? 'inline-block' : 'none';
                     }
                 }
             })

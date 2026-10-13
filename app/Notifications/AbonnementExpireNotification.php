@@ -15,7 +15,7 @@ class AbonnementExpireNotification extends Notification implements ShouldQueue
     protected $abonnement;
     protected $joursRestants;
 
-    public function __construct(Abonnement $abonnement, $joursRestants)
+    public function __construct(Abonnement $abonnement, $joursRestants = 7)
     {
         $this->abonnement = $abonnement;
         $this->joursRestants = $joursRestants;

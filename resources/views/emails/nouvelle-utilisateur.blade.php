@@ -63,6 +63,16 @@
                     Nous sommes ravis de vous accueillir sur <strong>DoyaImmo</strong>, la plateforme de référence pour les transactions immobilières.
                 </p>
 
+                @if(!empty($plainPassword))
+                    <div style="background-color: #FFF3CD; border: 1px solid #FFEEBA; border-radius: 8px; padding: 16px; margin: 20px 0;">
+                        <p style="margin: 0; color: #856404; font-size: 15px;">
+                            <strong>🔑 Vos identifiants de connexion :</strong><br>
+                            Email : <strong>{{ $user->email }}</strong><br>
+                            Mot de passe temporaire : <strong>{{ $plainPassword }}</strong>
+                        </p>
+                    </div>
+                @endif
+
                 @if($role === 'particulier')
                     <div style="background-color: #E3F2FD; border: 1px solid #90CAF9; border-radius: 8px; padding: 20px; margin: 24px 0;">
                         <h3 style="color: #1565C0; margin-top: 0; font-size: 18px;">📝 Commencez à publier vos besoins</h3>

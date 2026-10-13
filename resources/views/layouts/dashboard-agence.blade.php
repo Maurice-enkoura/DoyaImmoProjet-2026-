@@ -86,11 +86,25 @@
             height: auto;
         }
 
-        .app { display: flex; min-height: 100vh; }
+        /* ═══ APP WRAPPER ═══ */
+        .app {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+        }
 
-        /* ═══════════════════════════════════════════════════════
-           SIDEBAR
-        ═══════════════════════════════════════════════════════ */
+        .app::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 260px;
+            height: 100%;
+            background: var(--ink);
+            z-index: 0;
+        }
+
+        /* ═══ SIDEBAR ═══ */
         .sidebar {
             width: 260px;
             background: var(--ink);
@@ -250,15 +264,15 @@
         }
         .agency-mini .role i { font-size: 9px; }
 
-        /* ═══════════════════════════════════════════════════════
-           MAIN
-        ═══════════════════════════════════════════════════════ */
+        /* ═══ MAIN ═══ */
         .main {
             margin-left: 260px;
             flex: 1;
             padding: 22px 30px 40px;
             min-height: 100vh;
             width: calc(100% - 260px);
+            position: relative;
+            z-index: 1;
         }
 
         .topbar {
@@ -276,7 +290,6 @@
         .burger:hover { background: var(--border); }
         .burger span { display: block; width: 22px; height: 2px; background: var(--ink); margin: 4px 0; transition: .2s; border-radius: 2px; }
 
-        /* ═══ BOUTON RETOUR DESKTOP ═══ */
         .topbar-back {
             display: inline-flex;
             align-items: center;
@@ -433,7 +446,6 @@
         .dropdown__item-desc { font-size: 12.5px; color: var(--text-soft); margin-top: 2px; line-height: 1.5; }
         .dropdown__item-time { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
-        /* ✅ Bouton close sur chaque notification */
         .dropdown__item-close {
             align-self: flex-start;
             background: none;
@@ -602,12 +614,8 @@
         .overlay.open { display: block; }
         @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* ═══ BOTTOM NAV ═══ */
         .bottom-nav { display: none !important; }
-
-        /* ═══ iOS HEADER (caché desktop) ═══ */
         .ios-header { display: none; }
-
 
         /* ═══════════════════════════════════════════════════════
            📱 iOS NATIVE (mobile uniquement)
@@ -621,6 +629,8 @@
             }
 
             body { background: var(--ios-bg); }
+
+            .app::before { display: none; }
 
             .sidebar { transform: translateX(-100%); width: 280px; }
             .sidebar.open { transform: translateX(0); }
@@ -638,7 +648,6 @@
             .topbar { display: none; }
             .topbar-back { display: none; }
 
-            /* ─── iOS HEADER ─── */
             .ios-header {
                 display: block;
                 position: sticky;
@@ -809,7 +818,6 @@
             .flash-container { padding: 0 16px; }
             .flash { border-radius: 14px; border: none; padding: 14px 16px; font-size: 13.5px; }
 
-            /* Dropdown notification mobile */
             #notificationDropdown {
                 position: fixed !important;
                 top: calc(70px + env(safe-area-inset-top, 0px)) !important;
@@ -819,7 +827,6 @@
                 max-width: none !important;
             }
 
-            /* Sécurité débordement */
             .dropdown {
                 max-width: calc(100vw - 32px);
             }
@@ -843,13 +850,77 @@
             }
         }
 
-        /* Sécurité iOS bounce horizontal */
-        @supports (-webkit-touch-callout: none) {
-            html, body {
-                -webkit-overflow-scrolling: touch;
-                overscroll-behavior-x: none;
+        /* ═══ TOAST NOTIFICATIONS (REAL-TIME LIVE) ═══ */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 400px;
+            width: calc(100vw - 40px);
+            pointer-events: none;
+        }
+
+        .toast {
+            pointer-events: auto;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px 18px;
+            background: #FFFFFF;
+            border-radius: 16px;
+            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.16);
+            border-left: 5px solid var(--rust, #B5502A);
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            position: relative;
+        }
+
+        .toast.is-out {
+            transform: translateX(120%);
+            opacity: 0;
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                transform: translateY(-20px) scale(0.95);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1;
             }
         }
+
+        .toast--success { border-left-color: #1E7A47; }
+        .toast--warning { border-left-color: #E65100; }
+        .toast--info    { border-left-color: #0D47A1; }
+        .toast--danger  { border-left-color: #C62828; }
+
+        .toast__icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+        .toast__content { flex: 1; min-width: 0; }
+        .toast__title { font-weight: 700; font-size: 14px; color: #111827; line-height: 1.3; margin-bottom: 3px; }
+        .toast__message { font-size: 12.5px; color: #4B5563; line-height: 1.45; word-break: break-word; }
+        .toast__cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: rgba(181, 80, 42, 0.1);
+            color: var(--rust, #B5502A);
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .toast__cta:hover { background: rgba(181, 80, 42, 0.2); color: var(--rust, #B5502A); }
+        .toast__close { background: none; border: none; color: #9CA3AF; cursor: pointer; padding: 4px; font-size: 14px; line-height: 1; transition: color 0.2s; margin-left: 4px; }
+        .toast__close:hover { color: #111827; }
     </style>
 
     @stack('styles')
@@ -951,14 +1022,19 @@
             @endif
 
             <div class="sidebar-foot">
-                @if(config('abonnement.actif', false))
+                @if(config('abonnement.actif', false) && isset($abonnementActuel))
                     <div class="plan-card">
                         <div class="tier">
                             <i class="fa-solid fa-award"></i>
-                            {{ $abonnementActuel->formule->label() ?? 'Standard' }}
+                            {{-- ✅ CORRECTION : vérifier que $abonnementActuel existe avant d'accéder à formule --}}
+                            @if($abonnementActuel && $abonnementActuel->formule)
+                                {{ $abonnementActuel->formule->label() }}
+                            @else
+                                Aucun abonnement
+                            @endif
                         </div>
                         <div class="desc">
-                            @if($abonnementActuel)
+                            @if($abonnementActuel && $abonnementActuel->formule)
                                 @php
                                     $offresUtilisees = $agence->propositions()->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count();
                                     $limite = $abonnementActuel->formule->limiteOffres();
@@ -999,11 +1075,9 @@
                 $isDashboard = request()->routeIs('agence.dashboard');
                 $pageTitle = trim($__env->yieldContent('page_title', 'Tableau de bord'));
 
-                // ✅ Retour intelligent : le parent logique selon la route actuelle
                 $currentRoute = request()->route() ? request()->route()->getName() : '';
                 $isProfil = request()->routeIs('agence.profil');
 
-                // Mapping des routes "show" → leur index parent
                 $routeParentMap = [
                     'agence.demandes.show'      => 'agence.demandes.index',
                     'agence.propositions.show'  => 'agence.propositions.index',
@@ -1012,14 +1086,11 @@
                     'agence.evaluations.show'   => 'agence.evaluations.index',
                 ];
 
-                // Détermine l'URL de retour
                 if ($isProfil) {
                     $backUrl = route('agence.dashboard');
                 } elseif (isset($routeParentMap[$currentRoute])) {
-                    // Page de détail → retour vers son index parent
                     $backUrl = route($routeParentMap[$currentRoute]);
                 } else {
-                    // Page index, create, edit, etc. → retour au dashboard
                     $backUrl = route('agence.dashboard');
                 }
             @endphp
@@ -1292,9 +1363,7 @@
     </div>
 
     <script>
-        /* ═══════════════════════════════════════════════════════
-           NAVIGATION
-        ═══════════════════════════════════════════════════════ */
+        /* ═══ NAVIGATION ═══ */
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('open');
             document.getElementById('overlay').classList.toggle('open');
@@ -1319,9 +1388,7 @@
             onScroll();
         });
 
-        /* ═══════════════════════════════════════════════════════
-           DROPDOWNS
-        ═══════════════════════════════════════════════════════ */
+        /* ═══ DROPDOWNS ═══ */
         function toggleNotifications(event) {
             if (event) event.stopPropagation();
             const isMobile = window.innerWidth <= 820;
@@ -1356,9 +1423,7 @@
             closeAllDropdowns();
         });
 
-        /* ═══════════════════════════════════════════════════════
-           NOTIFICATIONS
-        ═══════════════════════════════════════════════════════ */
+        /* ═══ NOTIFICATIONS ═══ */
         const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 
         function markNotificationRead(id) {
@@ -1441,15 +1506,37 @@
             .catch(() => {});
         }
 
-        /* ═══════════════════════════════════════════════════════
-           TOASTS
-        ═══════════════════════════════════════════════════════ */
-        function showToast(title, message, type = 'info', icon = null) {
-            const container = document.getElementById('toastContainer');
-            const icons = { success: 'fa-regular fa-circle-check', warning: 'fa-regular fa-triangle-exclamation', info: 'fa-regular fa-circle-info', danger: 'fa-regular fa-circle-xmark' };
-            const colors = { success: '#1E7A47', warning: '#E65100', info: '#0D47A1', danger: '#C62828' };
+        /* ═══ TOAST NOTIFICATIONS (LIVE REAL-TIME) ═══ */
+        function showToast(title, message, type = 'info', icon = null, link = null) {
+            let container = document.getElementById('toastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+
+            const icons = {
+                success: 'fa-regular fa-circle-check',
+                warning: 'fa-regular fa-triangle-exclamation',
+                info:    'fa-regular fa-circle-info',
+                danger:  'fa-regular fa-circle-xmark',
+            };
+            const colors = {
+                success: '#1E7A47',
+                warning: '#E65100',
+                info:    '#0D47A1',
+                danger:  '#C62828',
+            };
+
             const el = document.createElement('div');
             el.className = `toast toast--${type}`;
+            
+            let ctaHtml = '';
+            if (link) {
+                ctaHtml = `<a href="${link}" class="toast__cta">Consulter <i class="fa-solid fa-arrow-right"></i></a>`;
+            }
+
             el.innerHTML = `
                 <div class="toast__icon" style="color:${colors[type] || colors.info}">
                     <i class="${icon || icons[type] || icons.info}"></i>
@@ -1457,21 +1544,64 @@
                 <div class="toast__content">
                     <div class="toast__title">${title}</div>
                     <div class="toast__message">${message}</div>
+                    ${ctaHtml}
                 </div>
-                <button class="toast__close"><i class="fa-solid fa-xmark"></i></button>
+                <button class="toast__close" aria-label="Fermer"><i class="fa-solid fa-xmark"></i></button>
             `;
+
             el.querySelector('.toast__close').onclick = () => {
                 el.classList.add('is-out');
                 setTimeout(() => el.remove(), 300);
             };
+
             container.appendChild(el);
+
             setTimeout(() => {
                 el.classList.add('is-out');
                 setTimeout(() => el.remove(), 300);
-            }, 6000);
+            }, 8000);
         }
 
+        /* ═══ REAL-TIME LIVE POLLING & ANTI-DUPLICATION ═══ */
+        const seenNotificationIds = new Set();
         let lastNotifCheck = null;
+
+        function updateNotificationBadges(count) {
+            document.querySelectorAll('#notificationBadge, .icon-btn__badge').forEach(badge => {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'flex' : 'none';
+            });
+            document.querySelectorAll('.ios-header__dot').forEach(dot => {
+                dot.style.display = count > 0 ? 'block' : 'none';
+            });
+        }
+
+        function prependNotificationToDropdown(n) {
+            const dropdownLists = document.querySelectorAll('[data-notif-list]');
+            dropdownLists.forEach(list => {
+                const emptyMsg = list.querySelector('.dropdown__empty');
+                if (emptyMsg) emptyMsg.style.display = 'none';
+
+                const item = document.createElement('div');
+                item.className = 'dropdown__item is-unread';
+                item.setAttribute('data-notif-id', n.id);
+                item.innerHTML = `
+                    <div class="dropdown__item-icon ${n.type || 'info'}" onclick="markNotificationRead('${n.id}')">
+                        <i class="${n.icon || 'fa-regular fa-bell'}"></i>
+                    </div>
+                    <div class="dropdown__item-content" onclick="markNotificationRead('${n.id}')">
+                        <div class="dropdown__item-title">${n.title || 'Notification'}</div>
+                        <div class="dropdown__item-desc">${n.message || ''}</div>
+                        <div class="dropdown__item-time">À l'instant</div>
+                    </div>
+                    <button type="button" class="dropdown__item-close" onclick="event.stopPropagation(); dismissNotification('${n.id}', this)" aria-label="Fermer">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                `;
+                list.insertBefore(item, list.firstChild);
+            });
+        }
+
         function checkNewNotifications() {
             let url = '/api/notifications/new';
             if (lastNotifCheck) {
@@ -1485,26 +1615,37 @@
                 if (data.timestamp) {
                     lastNotifCheck = data.timestamp;
                 }
-                if (data.notifications?.length) {
+                if (data.notifications && data.notifications.length > 0) {
                     data.notifications.forEach(n => {
-                        showToast(n.title || 'Nouvelle notification', n.message || '', n.type || 'info', n.icon || null);
+                        if (seenNotificationIds.has(n.id)) return;
+                        seenNotificationIds.add(n.id);
+
+                        showToast(
+                            n.title || 'Nouvelle notification',
+                            n.message || '',
+                            n.type || 'info',
+                            n.icon || null,
+                            n.link || null
+                        );
+
+                        prependNotificationToDropdown(n);
+
+                        window.dispatchEvent(new CustomEvent('doya:new-notification', { detail: n }));
                     });
                 }
                 if (typeof data.count !== 'undefined') {
-                    const badge = document.getElementById('notificationBadge');
-                    if (badge) {
-                        badge.textContent = data.count;
-                        badge.style.display = data.count > 0 ? 'inline-block' : 'none';
-                    }
+                    updateNotificationBadges(data.count);
                 }
             })
             .catch(() => {});
         }
-        setInterval(checkNewNotifications, 30000);
 
-        /* ═══════════════════════════════════════════════════════
-           FLASH AUTO-DISMISS
-        ═══════════════════════════════════════════════════════ */
+        document.addEventListener('DOMContentLoaded', () => {
+            checkNewNotifications();
+            setInterval(checkNewNotifications, 5000);
+        });
+
+        /* ═══ FLASH AUTO-DISMISS ═══ */
         document.querySelectorAll('.flash[data-auto-dismiss]').forEach(flash => {
             const delay = parseInt(flash.dataset.autoDismiss, 10) || 5000;
             setTimeout(() => {

@@ -105,24 +105,10 @@ class HomeController extends Controller
         $quartierParam = $request->get('quartier') ?? $request->get('quartier_id');
 
         // ==================== BIENS ====================
-        $biensQuery = BienImmobilier::with(['agence.user', 'medias', 'quartier'])
+        $biensQuery = BienImmobilier::with(['agence', 'medias', 'quartier'])
             ->where('statut', true);
 
-        if (!empty($query)) {
-            $biensQuery->where(function ($q) use ($query) {
-                $q->where('titre', 'like', "%{$query}%")
-                  ->orWhere('description', 'like', "%{$query}%")
-                  ->orWhere('adresse', 'like', "%{$query}%")
-                  ->orWhere('quartier', 'like', "%{$query}%")
-                  ->orWhereHas('agence', function ($sub) use ($query) {
-                      $sub->where('nom_agence', 'like', "%{$query}%");
-                  })
-                  ->orWhereHas('quartier', function ($sub) use ($query) {
-                      $sub->where('nom', 'like', "%{$query}%");
-                  });
-            });
-        }
-
+        // ✅ Appliquer d'abord les filtres indexés (très rapides)
         if (!empty($typeBien)) {
             $biensQuery->where('type_bien', strtolower($typeBien));
         }
@@ -133,20 +119,23 @@ class HomeController extends Controller
 
         if (!empty($quartierParam)) {
             if (is_numeric($quartierParam)) {
-                $biensQuery->where(function ($q) use ($quartierParam) {
-                    $q->where('quartier_id', $quartierParam)
-                      ->orWhereHas('quartier', function ($sub) use ($quartierParam) {
-                          $sub->where('id', $quartierParam);
-                      });
-                });
+                $biensQuery->where('quartier_id', $quartierParam);
             } else {
-                $biensQuery->where(function ($q) use ($quartierParam) {
-                    $q->where('quartier', 'like', "%{$quartierParam}%")
-                      ->orWhereHas('quartier', function ($sub) use ($quartierParam) {
-                          $sub->where('nom', 'like', "%{$quartierParam}%");
-                      });
-                });
+                $biensQuery->where('quartier', 'like', "{$quartierParam}%");
             }
+        }
+
+        // ✅ Recherche textuelle ciblée sur les colonnes clés (titre, quartier, adresse, nom_agence)
+        $queryTerm = trim($query);
+        if (!empty($queryTerm)) {
+            $biensQuery->where(function ($q) use ($queryTerm) {
+                $q->where('titre', 'like', "%{$queryTerm}%")
+                  ->orWhere('quartier', 'like', "%{$queryTerm}%")
+                  ->orWhere('adresse', 'like', "%{$queryTerm}%")
+                  ->orWhereHas('agence', function ($sub) use ($queryTerm) {
+                      $sub->where('nom_agence', 'like', "%{$queryTerm}%");
+                  });
+            });
         }
 
         // Ajouter les biens en vedette en premier
@@ -158,29 +147,20 @@ class HomeController extends Controller
         $agencesQuery = Agence::with(['user', 'quartier', 'evaluations'])
             ->where('statut_validation', true);
 
-        if (!empty($query)) {
-            $agencesQuery->where(function ($q) use ($query) {
-                $q->where('nom_agence', 'like', "%{$query}%")
-                  ->orWhere('description', 'like', "%{$query}%")
-                  ->orWhere('adresse', 'like', "%{$query}%")
-                  ->orWhere('quartier', 'like', "%{$query}%")
-                  ->orWhereHas('quartier', function ($sub) use ($query) {
-                      $sub->where('nom', 'like', "%{$query}%");
-                  });
-            });
-        }
-
         if (!empty($quartierParam)) {
             if (is_numeric($quartierParam)) {
                 $agencesQuery->where('quartier_id', $quartierParam);
             } else {
-                $agencesQuery->where(function ($q) use ($quartierParam) {
-                    $q->where('quartier', 'like', "%{$quartierParam}%")
-                      ->orWhereHas('quartier', function ($sub) use ($quartierParam) {
-                          $sub->where('nom', 'like', "%{$quartierParam}%");
-                      });
-                });
+                $agencesQuery->where('quartier', 'like', "{$quartierParam}%");
             }
+        }
+
+        if (!empty($queryTerm)) {
+            $agencesQuery->where(function ($q) use ($queryTerm) {
+                $q->where('nom_agence', 'like', "%{$queryTerm}%")
+                  ->orWhere('adresse', 'like', "%{$queryTerm}%")
+                  ->orWhere('quartier', 'like', "%{$queryTerm}%");
+            });
         }
 
         $agences = $agencesQuery->orderBy('created_at', 'desc')->limit(6)->get();

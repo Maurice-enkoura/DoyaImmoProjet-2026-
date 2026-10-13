@@ -13,10 +13,12 @@ class RappelVisiteNotification extends Notification implements ShouldQueue
     use Queueable;
 
     protected $rendezVous;
+    protected $delai;
 
-    public function __construct(RendezVous $rendezVous)
+    public function __construct(RendezVous $rendezVous, string $delai = '24h')
     {
         $this->rendezVous = $rendezVous;
+        $this->delai = $delai;
     }
 
     public function via($notifiable): array
@@ -29,8 +31,10 @@ class RappelVisiteNotification extends Notification implements ShouldQueue
         $rdv = $this->rendezVous;
         $agence = $rdv->agence;
 
+        $sujetDelai = $this->delai === '1h' ? ' (dans 1 heure)' : ' (demain)';
+
         $message = (new MailMessage)
-            ->subject('🔔 Rappel de votre rendez-vous - DoyaImmo')
+            ->subject('🔔 Rappel de votre rendez-vous' . $sujetDelai . ' - DoyaImmo')
             ->greeting('Bonjour ' . $notifiable->prenom . ' !')
             ->line('Ceci est un rappel pour votre rendez-vous prévu :')
             ->line('')

@@ -130,15 +130,7 @@
                     <input type="number" step="0.01" name="surface_minimum" id="surfaceInput"
                            value="{{ old('surface_minimum') }}" placeholder="Ex : 80" min="0" class="ios-input">
                     @error('surface_minimum') <small class="err">{{ $message }}</small> @enderror
-                    <div class="ios-hint ios-hint--boxed" id="surfaceHint">
-                        <strong>Ordres de grandeur :</strong><br>
-                        • Studio : 25-35 m²<br>
-                        • T1 : 50-60 m²<br>
-                        • T2 : 65-80 m²<br>
-                        • T3 : 85-110 m²<br>
-                        • Maison : 120-180 m²<br>
-                        • Villa : 200 m² et plus
-                    </div>
+                    
                 </div>
             </div>
 

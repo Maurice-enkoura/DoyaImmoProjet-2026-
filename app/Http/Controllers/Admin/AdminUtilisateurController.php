@@ -9,7 +9,7 @@ use App\Models\Administrateur;
 use App\Models\Particulier;
 use Illuminate\Http\Request;
 use App\Enums\RoleEnum;
-use App\Notifications\NouvelUtilisateurNotification;
+use App\Notifications\NouvelleUtilisateurNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -110,7 +110,7 @@ class AdminUtilisateurController extends Controller
             }
 
             // Envoyer l'email de notification
-            $user->notify(new NouvelUtilisateurNotification($user, $plainPassword, $user->role));
+            $user->notify(new NouvelleUtilisateurNotification($user, $user->role, $plainPassword));
 
             DB::commit();
 

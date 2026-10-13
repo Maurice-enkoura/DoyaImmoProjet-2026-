@@ -14,11 +14,13 @@ class NouvelleUtilisateurNotification extends Notification implements ShouldQueu
 
     protected $user;
     protected $role;
+    protected $plainPassword;
 
-    public function __construct(User $user, string $role)
+    public function __construct(User $user, string $role, ?string $plainPassword = null)
     {
         $this->user = $user;
         $this->role = $role;
+        $this->plainPassword = $plainPassword;
     }
 
     public function via($notifiable): array
@@ -31,9 +33,10 @@ class NouvelleUtilisateurNotification extends Notification implements ShouldQueu
         return (new MailMessage)
             ->subject('Bienvenue sur DoyaImmo - ' . $this->user->prenom . ' !')
             ->view('emails.nouvelle-utilisateur', [   // ✅ view au lieu de markdown
-                'user'       => $this->user,
-                'role'       => $this->role,
-                'notifiable' => $notifiable,
+                'user'          => $this->user,
+                'role'          => $this->role,
+                'plainPassword' => $this->plainPassword,
+                'notifiable'    => $notifiable,
             ]);
     }
 

@@ -275,55 +275,16 @@ Route::post('/propositions/{proposition}/choisir-et-planifier',
     |--------------------------------------------------------------------------
     */
     Route::prefix('agence')->name('agence.')->middleware(['role:agence'])->group(function () {
-        // Dashboard
+        // Dashboard et statut (accessibles même non validée)
         Route::get('/dashboard', [AgenceController::class, 'dashboard'])->name('dashboard');
         Route::get('/attente-validation', [\App\Http\Controllers\Agence\AttenteValidationController::class, 'index'])
             ->name('attente-validation');
-
-        // Demandes (consultation) - AVEC SLUG
-        Route::get('/demandes', [AgenceController::class, 'demandes'])->name('demandes.index');
-        Route::get('/demandes/{demande:slug}', [AgenceController::class, 'demandesShow'])->name('demandes.show');
 
         // Profil
         Route::get('/profil', [AgenceController::class, 'profil'])->name('profil');
         Route::put('/profil', [AgenceController::class, 'update'])->name('profil.update');
 
-        // ============ PLANNING TYPE ET CRÉNEAUX RÉCURRENTS ============
-        Route::post('/planning/sauvegarder', [AgenceController::class, 'sauvegarderPlanning'])->name('planning.sauvegarder');
-        Route::post('/creneaux/generer-auto', [AgenceController::class, 'genererCreneauxAuto'])->name('creneaux.generer-auto');
-        Route::get('/planning/get', [AgenceController::class, 'getPlanningType'])->name('planning.get');
-
-        // ============ CRÉNEAUX RENDEZ-VOUS ============
-        Route::get('/creneaux', [AgenceController::class, 'creneauxIndex'])->name('creneaux.index');
-        Route::post('/creneaux/generer', [AgenceController::class, 'genererCreneaux'])->name('creneaux.generer');
-        Route::post('/creneaux/{creneau}/toggle', [AgenceController::class, 'toggleCreneau'])->name('creneaux.toggle');
-        Route::delete('/creneaux/{creneau}', [AgenceController::class, 'supprimerCreneau'])->name('creneaux.supprimer');
-        Route::delete('/creneaux/date', [AgenceController::class, 'supprimerCreneauxDate'])->name('creneaux.supprimerDate');
-        Route::post('/creneaux/date/supprimer', [AgenceController::class, 'supprimerCreneauxDate'])->name('creneaux.supprimerDatePost');
-
-        // ============ RENDEZ-VOUS ============
-        Route::get('/rendezvous', [AgenceController::class, 'rendezvous'])->name('rendezvous.index');
-        Route::get('/rendezvous/{rendezVous}', [AgenceController::class, 'rendezvousShow'])->name('rendezvous.show');
-        Route::put('/rendezvous/{rendezVous}', [AgenceController::class, 'rendezvousUpdate'])->name('rendezvous.update');
-        Route::post('/rendezvous/{rendezVous}/confirmer', [AgenceController::class, 'rendezvousConfirmer'])->name('rendezvous.confirmer');
-        Route::post('/rendezvous/{rendezVous}/annuler', [AgenceController::class, 'rendezvousAnnuler'])->name('rendezvous.annuler');
-        Route::post('/rendezvous/{rendezVous}/termine', [AgenceController::class, 'rendezvousTermine'])->name('rendezvous.termine');
-
-        // ✅ NOUVELLES ROUTES : Visite effectuée / Client absent
-        //Route::post('/rendezvous/{rendezVous}/effectue', [AgenceController::class, 'rendezvousEffectue'])->name('rendezvous.effectue');
-        Route::post(
-            '/rendezvous/{rendezVous}/valider-code',
-            [AgenceController::class, 'validerCode']
-        )
-            ->name('rendezvous.valider-code');
-        Route::post('/rendezvous/{rendezVous}/absent', [AgenceController::class, 'rendezvousAbsent'])->name('rendezvous.absent');
-
-        // Évaluations
-        Route::get('/evaluations', [AgenceController::class, 'evaluations'])->name('evaluations.index');
-        Route::get('/evaluations/{evaluation}', [AgenceController::class, 'evaluationsShow'])->name('evaluations.show');
-        Route::post('/evaluations/{evaluation}/repondre', [AgenceController::class, 'evaluationsRepondre'])->name('evaluations.repondre');
-
-        // ============ ABONNEMENT - MASQUÉ SI MODE GRATUIT ============
+        // Abonnement (accessible pour souscrire)
         if (config('abonnement.actif', false)) {
             Route::get('/abonnement', [AgenceController::class, 'abonnement'])->name('abonnement');
             Route::post('/abonnement/souscrire', [AgenceController::class, 'souscrire'])->name('abonnement.souscrire');
@@ -331,33 +292,77 @@ Route::post('/propositions/{proposition}/choisir-et-planifier',
             Route::post('/abonnement/{abonnement}/annuler', [AgenceController::class, 'annuler'])->name('abonnement.annuler');
         }
 
-        // ============ MISES EN VEDETTE ============
-        Route::get('/biens/{bien}/vedette/demander', [AgenceController::class, 'demandeVedette'])->name('biens.vedette.demander');
-        Route::post('/biens/{bien}/vedette', [AgenceController::class, 'demanderVedette'])->name('biens.vedette.store');
-        Route::get('/vedette/contact/{mise}', [AgenceController::class, 'contactVedette'])->name('biens.vedette.contact');
+        // =========================================================================
+        // 🔒 ROUTES NÉCESSITANT UNE AGENCE VALIDÉE PAR L'ADMINISTRATEUR
+        // =========================================================================
+        Route::middleware(['agence.validee'])->group(function () {
+            // Demandes (consultation) - AVEC SLUG
+            Route::get('/demandes', [AgenceController::class, 'demandes'])->name('demandes.index');
+            Route::get('/demandes/{demande:slug}', [AgenceController::class, 'demandesShow'])->name('demandes.show');
 
-        // Historique
-        Route::get('/historique', [AgenceController::class, 'historique'])->name('historique');
+            // ============ PLANNING TYPE ET CRÉNEAUX RÉCURRENTS ============
+            Route::post('/planning/sauvegarder', [AgenceController::class, 'sauvegarderPlanning'])->name('planning.sauvegarder');
+            Route::post('/creneaux/generer-auto', [AgenceController::class, 'genererCreneauxAuto'])->name('creneaux.generer-auto');
+            Route::get('/planning/get', [AgenceController::class, 'getPlanningType'])->name('planning.get');
 
-        // Biens - AVEC SLUG
-        Route::get('/biens', [BienController::class, 'index'])->name('biens.index');
-        Route::get('/biens/create', [BienController::class, 'create'])->name('biens.create');
-        Route::post('/biens', [BienController::class, 'store'])->name('biens.store');
-        Route::get('/biens/{bien:slug}', [BienController::class, 'show'])->name('biens.show');
-        Route::get('/biens/{bien:slug}/edit', [BienController::class, 'edit'])->name('biens.edit');
-        Route::put('/biens/{bien:slug}', [BienController::class, 'update'])->name('biens.update');
-        Route::delete('/biens/{bien:slug}', [BienController::class, 'destroy'])->name('biens.destroy');
-        Route::post('/biens/{bien:slug}/activer', [BienController::class, 'activer'])->name('biens.activer');
-        Route::post('/biens/{bien:slug}/desactiver', [BienController::class, 'desactiver'])->name('biens.desactiver');
-        Route::delete('/medias/{media}', [BienController::class, 'supprimerMedia'])->name('medias.destroy');
-        Route::patch('biens/{bien:slug}/vedette/toggle', [BienController::class, 'toggleVedette'])->name('biens.vedette.toggle');
+            // ============ CRÉNEAUX RENDEZ-VOUS ============
+            Route::get('/creneaux', [AgenceController::class, 'creneauxIndex'])->name('creneaux.index');
+            Route::post('/creneaux/generer', [AgenceController::class, 'genererCreneaux'])->name('creneaux.generer');
+            Route::post('/creneaux/{creneau}/toggle', [AgenceController::class, 'toggleCreneau'])->name('creneaux.toggle');
+            Route::delete('/creneaux/{creneau}', [AgenceController::class, 'supprimerCreneau'])->name('creneaux.supprimer');
+            Route::delete('/creneaux/date', [AgenceController::class, 'supprimerCreneauxDate'])->name('creneaux.supprimerDate');
+            Route::post('/creneaux/date/supprimer', [AgenceController::class, 'supprimerCreneauxDate'])->name('creneaux.supprimerDatePost');
 
-        // Propositions - ON GARDE L'ID
-        Route::get('/propositions', [PropositionAgenceController::class, 'index'])->name('propositions.index');
-        Route::get('/propositions/create/{demande}', [PropositionAgenceController::class, 'create'])->name('propositions.create');
-        Route::post('/propositions', [PropositionAgenceController::class, 'store'])->name('propositions.store');
-        Route::get('/propositions/{proposition}', [PropositionAgenceController::class, 'show'])->name('propositions.show');
-        Route::post('/propositions/{proposition}/annuler', [PropositionAgenceController::class, 'annuler'])->name('propositions.annuler');
+            // ============ RENDEZ-VOUS ============
+            Route::get('/rendezvous', [AgenceController::class, 'rendezvous'])->name('rendezvous.index');
+            Route::get('/rendezvous/{rendezVous}', [AgenceController::class, 'rendezvousShow'])->name('rendezvous.show');
+            Route::put('/rendezvous/{rendezVous}', [AgenceController::class, 'rendezvousUpdate'])->name('rendezvous.update');
+            Route::post('/rendezvous/{rendezVous}/confirmer', [AgenceController::class, 'rendezvousConfirmer'])->name('rendezvous.confirmer');
+            Route::post('/rendezvous/{rendezVous}/annuler', [AgenceController::class, 'rendezvousAnnuler'])->name('rendezvous.annuler');
+            Route::post('/rendezvous/{rendezVous}/termine', [AgenceController::class, 'rendezvousTermine'])->name('rendezvous.termine');
+
+            // ✅ NOUVELLES ROUTES : Visite effectuée / Client absent (avec Rate Limiting sur valider-code)
+            Route::post(
+                '/rendezvous/{rendezVous}/valider-code',
+                [AgenceController::class, 'validerCode']
+            )
+                ->middleware('throttle:5,1')
+                ->name('rendezvous.valider-code');
+            Route::post('/rendezvous/{rendezVous}/absent', [AgenceController::class, 'rendezvousAbsent'])->name('rendezvous.absent');
+
+            // Évaluations
+            Route::get('/evaluations', [AgenceController::class, 'evaluations'])->name('evaluations.index');
+            Route::get('/evaluations/{evaluation}', [AgenceController::class, 'evaluationsShow'])->name('evaluations.show');
+            Route::post('/evaluations/{evaluation}/repondre', [AgenceController::class, 'evaluationsRepondre'])->name('evaluations.repondre');
+
+            // ============ MISES EN VEDETTE ============
+            Route::get('/biens/{bien}/vedette/demander', [AgenceController::class, 'demandeVedette'])->name('biens.vedette.demander');
+            Route::post('/biens/{bien}/vedette', [AgenceController::class, 'demanderVedette'])->name('biens.vedette.store');
+            Route::get('/vedette/contact/{mise}', [AgenceController::class, 'contactVedette'])->name('biens.vedette.contact');
+
+            // Historique
+            Route::get('/historique', [AgenceController::class, 'historique'])->name('historique');
+
+            // Biens - AVEC SLUG
+            Route::get('/biens', [BienController::class, 'index'])->name('biens.index');
+            Route::get('/biens/create', [BienController::class, 'create'])->name('biens.create');
+            Route::post('/biens', [BienController::class, 'store'])->name('biens.store');
+            Route::get('/biens/{bien:slug}', [BienController::class, 'show'])->name('biens.show');
+            Route::get('/biens/{bien:slug}/edit', [BienController::class, 'edit'])->name('biens.edit');
+            Route::put('/biens/{bien:slug}', [BienController::class, 'update'])->name('biens.update');
+            Route::delete('/biens/{bien:slug}', [BienController::class, 'destroy'])->name('biens.destroy');
+            Route::post('/biens/{bien:slug}/activer', [BienController::class, 'activer'])->name('biens.activer');
+            Route::post('/biens/{bien:slug}/desactiver', [BienController::class, 'desactiver'])->name('biens.desactiver');
+            Route::delete('/medias/{media}', [BienController::class, 'supprimerMedia'])->name('medias.destroy');
+            Route::patch('biens/{bien:slug}/vedette/toggle', [BienController::class, 'toggleVedette'])->name('biens.vedette.toggle');
+
+            // Propositions - ON GARDE L'ID
+            Route::get('/propositions', [PropositionAgenceController::class, 'index'])->name('propositions.index');
+            Route::get('/propositions/create/{demande}', [PropositionAgenceController::class, 'create'])->name('propositions.create');
+            Route::post('/propositions', [PropositionAgenceController::class, 'store'])->name('propositions.store');
+            Route::get('/propositions/{proposition}', [PropositionAgenceController::class, 'show'])->name('propositions.show');
+            Route::post('/propositions/{proposition}/annuler', [PropositionAgenceController::class, 'annuler'])->name('propositions.annuler');
+        });
     });
 
     /*

@@ -66,7 +66,25 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
-        .app { display: flex; min-height: 100vh; }
+        /* ═══════════════════════════════════════════════════════
+           APP WRAPPER
+        ═══════════════════════════════════════════════════════ */
+        .app {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .app::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 260px;
+            height: 100%;
+            background: var(--ink);
+            z-index: 0;
+        }
 
         /* ═══════════════════════════════════════════════════════
            SIDEBAR (desktop)
@@ -171,7 +189,7 @@
         /* ═══════════════════════════════════════════════════════
            MAIN
         ═══════════════════════════════════════════════════════ */
-        .main { margin-left: 260px; flex: 1; padding: 22px 30px 40px; min-height: 100vh; width: calc(100% - 260px); }
+        .main { margin-left: 260px; flex: 1; padding: 22px 30px 40px; min-height: 100vh; width: calc(100% - 260px); position: relative; z-index: 1; }
 
         .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; padding-bottom: 18px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
         .topbar__left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
@@ -183,7 +201,7 @@
         .topbar__sub { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
         .topbar__actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
-        /* ✅ Bouton retour desktop (pages de détail) */
+        /* ✅ Bouton retour desktop */
         .topbar-back {
             display: inline-flex;
             align-items: center;
@@ -316,7 +334,6 @@
         .dropdown__item-desc { font-size: 12.5px; color: var(--text-soft); margin-top: 2px; line-height: 1.5; }
         .dropdown__item-time { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
-        /* ✅ Bouton close sur chaque notification */
         .dropdown__item-close {
             align-self: flex-start;
             background: none;
@@ -442,14 +459,7 @@
         .overlay.open { display: block; }
         @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* ═══════════════════════════════════════════════════════
-           BOTTOM NAV — supprimée
-        ═══════════════════════════════════════════════════════ */
         .bottom-nav { display: none !important; }
-
-        /* ═══════════════════════════════════════════════════════
-           FAB + iOS HEADER (cachés par défaut)
-        ═══════════════════════════════════════════════════════ */
         .ios-fab { display: none; }
         .ios-header { display: none; }
 
@@ -460,6 +470,8 @@
 
             body { background: var(--ios-bg); }
 
+            .app::before { display: none; }
+
             .sidebar { transform: translateX(-100%); width: 280px; }
             .sidebar.open { transform: translateX(0); }
 
@@ -468,7 +480,6 @@
             .burger { display: none; }
             .topbar { display: none; }
 
-            /* ─── iOS HEADER ─── */
             .ios-header {
                 display: block;
                 position: sticky;
@@ -493,7 +504,6 @@
             }
             .ios-header.is-scrolled .ios-header__top { margin-bottom: 0; }
 
-            /* ─── BOUTON RETOUR ─── */
             .ios-header__back {
                 display: inline-flex;
                 align-items: center;
@@ -515,7 +525,6 @@
             }
             .ios-header__back:active { transform: scale(.92); background: #EFEFF4; }
 
-            /* ─── BRAND ─── */
             .ios-header__brand { display: flex; align-items: center; gap: 8px; text-decoration: none; flex-shrink: 0; }
             .ios-header__brand-mark {
                 width: 32px; height: 32px;
@@ -537,7 +546,6 @@
             }
             .ios-header__brand-name span { color: var(--rust); }
 
-            /* ─── TITRE central ─── */
             .ios-header__back-title {
                 font-family: var(--display);
                 font-size: 17px;
@@ -552,7 +560,6 @@
                 padding: 0 8px;
             }
 
-            /* ─── ACTIONS ─── */
             .ios-header__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
             .ios-header__icon {
                 position: relative;
@@ -596,7 +603,6 @@
             }
             .ios-header__avatar:active { transform: scale(.92); }
 
-            /* ─── Hero (dashboard) ─── */
             .ios-header__hero {
                 overflow: hidden;
                 transition: opacity .2s ease, max-height .3s ease, margin .3s ease;
@@ -624,7 +630,6 @@
                 margin: 0;
             }
 
-            /* ─── CONTENT PADDING ─── */
             .content {
                 padding: 16px 16px 16px;
             }
@@ -635,7 +640,6 @@
             .flash-container { padding: 0 16px; }
             .flash { border-radius: 14px; border: none; padding: 14px 16px; font-size: 13.5px; }
 
-            /* ─── FAB ─── */
             .ios-fab {
                 display: flex;
                 position: fixed;
@@ -670,13 +674,76 @@
             .ios-fab { right: 14px; width: 54px; height: 54px; font-size: 20px; }
         }
 
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: .01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: .01ms !important;
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 400px;
+            width: calc(100vw - 40px);
+            pointer-events: none;
+        }
+
+        .toast {
+            pointer-events: auto;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px 18px;
+            background: #FFFFFF;
+            border-radius: 16px;
+            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.16);
+            border-left: 5px solid var(--rust, #B5502A);
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            position: relative;
+        }
+
+        .toast.is-out {
+            transform: translateX(120%);
+            opacity: 0;
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                transform: translateY(-20px) scale(0.95);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1;
             }
         }
+
+        .toast--success { border-left-color: #1E7A47; }
+        .toast--warning { border-left-color: #E65100; }
+        .toast--info    { border-left-color: #0D47A1; }
+        .toast--danger  { border-left-color: #C62828; }
+
+        .toast__icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+        .toast__content { flex: 1; min-width: 0; }
+        .toast__title { font-weight: 700; font-size: 14px; color: #111827; line-height: 1.3; margin-bottom: 3px; }
+        .toast__message { font-size: 12.5px; color: #4B5563; line-height: 1.45; word-break: break-word; }
+        .toast__cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: rgba(181, 80, 42, 0.1);
+            color: var(--rust, #B5502A);
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .toast__cta:hover { background: rgba(181, 80, 42, 0.2); color: var(--rust, #B5502A); }
+        .toast__close { background: none; border: none; color: #9CA3AF; cursor: pointer; padding: 4px; font-size: 14px; line-height: 1; transition: color 0.2s; margin-left: 4px; }
+        .toast__close:hover { color: #111827; }
     </style>
 
     @stack('styles')
@@ -770,15 +837,11 @@
                 $isDashboard = request()->routeIs('particulier.dashboard');
                 $pageTitle = trim($__env->yieldContent('page_title', 'DoyaImmo'));
 
-                // ✅ Bouton retour UNIQUEMENT sur les pages de détail (show/create/edit)
+                // ✅ Bouton retour sur TOUTES les pages sauf le dashboard
                 $currentRouteName = request()->route() ? request()->route()->getName() : '';
                 $isProfil = request()->routeIs('particulier.profil');
 
-                $showBackButton = $currentRouteName && (
-                    str_ends_with($currentRouteName, '.show') ||
-                    str_ends_with($currentRouteName, '.create') ||
-                    str_ends_with($currentRouteName, '.edit')
-                );
+                $showBackButton = $currentRouteName && !$isDashboard;
 
                 // ✅ Retour intelligent : le parent logique selon la route actuelle
                 $routeParentMap = [
@@ -793,8 +856,11 @@
                 } elseif (isset($routeParentMap[$currentRouteName])) {
                     // Page de détail → retour vers son index parent
                     $backUrl = route($routeParentMap[$currentRouteName]);
+                } elseif (str_ends_with($currentRouteName, '.create') || str_ends_with($currentRouteName, '.edit')) {
+                    // Page create / edit → retour à la page précédente
+                    $backUrl = url()->previous();
                 } else {
-                    // Page create / edit / index → retour au dashboard
+                    // Page index (Offres reçues, Mes besoins, etc.) → retour au dashboard
                     $backUrl = route('particulier.dashboard');
                 }
             @endphp
@@ -882,7 +948,7 @@
                         <span></span><span></span><span></span>
                     </button>
 
-                    {{-- ✅ Bouton retour UNIQUEMENT sur les pages de détail --}}
+                    {{-- ✅ Bouton retour sur toutes les pages sauf dashboard --}}
                     @if($showBackButton)
                         <a href="{{ $backUrl }}" class="topbar-back" aria-label="Retour">
                             <i class="fa-solid fa-chevron-left"></i>
@@ -1248,10 +1314,17 @@
         }
 
         /* ═══════════════════════════════════════════
-           TOAST
+           TOAST NOTIFICATIONS (LIVE REAL-TIME)
         ═══════════════════════════════════════════ */
-        function showToast(title, message, type = 'info', icon = null) {
-            const container = document.getElementById('toastContainer');
+        function showToast(title, message, type = 'info', icon = null, link = null) {
+            let container = document.getElementById('toastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+
             const icons = {
                 success: 'fa-regular fa-circle-check',
                 warning: 'fa-regular fa-triangle-exclamation',
@@ -1267,6 +1340,12 @@
 
             const el = document.createElement('div');
             el.className = `toast toast--${type}`;
+            
+            let ctaHtml = '';
+            if (link) {
+                ctaHtml = `<a href="${link}" class="toast__cta">Consulter <i class="fa-solid fa-arrow-right"></i></a>`;
+            }
+
             el.innerHTML = `
                 <div class="toast__icon" style="color:${colors[type] || colors.info}">
                     <i class="${icon || icons[type] || icons.info}"></i>
@@ -1274,8 +1353,9 @@
                 <div class="toast__content">
                     <div class="toast__title">${title}</div>
                     <div class="toast__message">${message}</div>
+                    ${ctaHtml}
                 </div>
-                <button class="toast__close"><i class="fa-solid fa-xmark"></i></button>
+                <button class="toast__close" aria-label="Fermer"><i class="fa-solid fa-xmark"></i></button>
             `;
 
             el.querySelector('.toast__close').onclick = () => {
@@ -1288,13 +1368,51 @@
             setTimeout(() => {
                 el.classList.add('is-out');
                 setTimeout(() => el.remove(), 300);
-            }, 6000);
+            }, 8000);
         }
 
         /* ═══════════════════════════════════════════
-           POLLING NOTIFICATIONS
+           REAL-TIME LIVE POLLING & ANTI-DUPLICATION
         ═══════════════════════════════════════════ */
+        const seenNotificationIds = new Set();
         let lastNotifCheck = null;
+
+        function updateNotificationBadges(count) {
+            document.querySelectorAll('#notificationBadge, .icon-btn__badge').forEach(badge => {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'flex' : 'none';
+            });
+            document.querySelectorAll('.ios-header__dot').forEach(dot => {
+                dot.style.display = count > 0 ? 'block' : 'none';
+            });
+        }
+
+        function prependNotificationToDropdown(n) {
+            const dropdownLists = document.querySelectorAll('[data-notif-list]');
+            dropdownLists.forEach(list => {
+                const emptyMsg = list.querySelector('.dropdown__empty');
+                if (emptyMsg) emptyMsg.style.display = 'none';
+
+                const item = document.createElement('div');
+                item.className = 'dropdown__item is-unread';
+                item.setAttribute('data-notif-id', n.id);
+                item.innerHTML = `
+                    <div class="dropdown__item-icon ${n.type || 'info'}" onclick="markNotificationRead('${n.id}')">
+                        <i class="${n.icon || 'fa-regular fa-bell'}"></i>
+                    </div>
+                    <div class="dropdown__item-content" onclick="markNotificationRead('${n.id}')">
+                        <div class="dropdown__item-title">${n.title || 'Notification'}</div>
+                        <div class="dropdown__item-desc">${n.message || ''}</div>
+                        <div class="dropdown__item-time">À l'instant</div>
+                    </div>
+                    <button type="button" class="dropdown__item-close" onclick="event.stopPropagation(); dismissNotification('${n.id}', this)" aria-label="Fermer">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                `;
+                list.insertBefore(item, list.firstChild);
+            });
+        }
+
         function checkNewNotifications() {
             let url = '/api/notifications/new';
             if (lastNotifCheck) {
@@ -1308,27 +1426,39 @@
                 if (data.timestamp) {
                     lastNotifCheck = data.timestamp;
                 }
-                if (data.notifications?.length) {
+                if (data.notifications && data.notifications.length > 0) {
                     data.notifications.forEach(n => {
+                        // Anti-duplication strict (aucun message répétitif)
+                        if (seenNotificationIds.has(n.id)) return;
+                        seenNotificationIds.add(n.id);
+
+                        // Affichage toast en direct sans rafraîchissement
                         showToast(
                             n.title || 'Nouvelle notification',
                             n.message || '',
                             n.type || 'info',
-                            n.icon || null
+                            n.icon || null,
+                            n.link || null
                         );
+
+                        // Insertion dans le menu déroulant
+                        prependNotificationToDropdown(n);
+
+                        // Dispatch d'événement personnalisé en direct
+                        window.dispatchEvent(new CustomEvent('doya:new-notification', { detail: n }));
                     });
                 }
                 if (typeof data.count !== 'undefined') {
-                    const badge = document.getElementById('notificationBadge');
-                    if (badge) {
-                        badge.textContent = data.count;
-                        badge.style.display = data.count > 0 ? 'inline-block' : 'none';
-                    }
+                    updateNotificationBadges(data.count);
                 }
             })
             .catch(() => {});
         }
-        setInterval(checkNewNotifications, 30000);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkNewNotifications();
+            setInterval(checkNewNotifications, 5000);
+        });
 
         /* ═══════════════════════════════════════════
            FLASH AUTO-DISMISS

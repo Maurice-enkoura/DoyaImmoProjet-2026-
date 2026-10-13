@@ -12,6 +12,7 @@ use App\Enums\TypeBienEnum;
 use App\Enums\TypeOperationEnum;
 use App\Enums\StatutDemandeEnum;
 use App\Notifications\NouvelleDemandeCompatibleNotification;
+use App\Notifications\DemandeAnnuleeNotification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -224,6 +225,13 @@ class DemandeController extends Controller
         }
 
         $demande->update(['statut' => StatutDemandeEnum::ANNULEE->value]);
+
+        // Notifier les agences ayant fait une proposition
+        foreach ($demande->propositions as $proposition) {
+            if ($proposition->agence && $proposition->agence->user) {
+                $proposition->agence->user->notify(new DemandeAnnuleeNotification($demande));
+            }
+        }
 
         return redirect()->route('particulier.demandes.index')
             ->with('success', 'Demande annulée avec succès.');

@@ -14,7 +14,7 @@ use App\Notifications\PropositionAccepteeNotification;
 use App\Notifications\RendezVousConfirmeNotification;
 use App\Notifications\AgenceValideeNotification;
 use App\Notifications\AgenceRefuseeNotification;
-use App\Notifications\AbonnementExpirantNotification;
+use App\Notifications\AbonnementExpireNotification;
 use Illuminate\Support\Facades\Notification;
 class NotificationService
 {
@@ -70,7 +70,8 @@ class NotificationService
 
         foreach ($abonnements as $abonnement) {
             if ($abonnement->agence && $abonnement->agence->user) {
-                $abonnement->agence->user->notify(new AbonnementExpirantNotification($abonnement));
+                $joursRestants = (int) ceil(now()->diffInDays($abonnement->date_fin, false));
+                $abonnement->agence->user->notify(new AbonnementExpireNotification($abonnement, max(1, $joursRestants)));
             }
         }
     }

@@ -150,7 +150,7 @@ class BienController extends Controller
                 
                 foreach ($images as $index => $image) {
                     try {
-                        $path = $image->store('biens/images', 'public');
+                        $path = \App\Services\ImageOptimizerService::storeAndOptimize($image, 'biens/images');
                         Media::create([
                             'agence_id' => $agence->id,
                             'mediable_id' => $bien->id,
@@ -158,7 +158,7 @@ class BienController extends Controller
                             'type_media' => 'image',
                             'fichier' => $path,
                         ]);
-                        Log::info('Image téléchargée', ['index' => $index, 'path' => $path]);
+                        Log::info('Image optimisée et téléchargée', ['index' => $index, 'path' => $path]);
                     } catch (\Exception $e) {
                         Log::error('Erreur téléchargement image', [
                             'index' => $index,
@@ -355,7 +355,7 @@ class BienController extends Controller
             $images = array_slice($images, 0, 10);
             
             foreach ($images as $image) {
-                $path = $image->store('biens/images', 'public');
+                $path = \App\Services\ImageOptimizerService::storeAndOptimize($image, 'biens/images');
                 Media::create([
                     'agence_id' => Auth::user()->agence->id,
                     'mediable_id' => $bien->id,

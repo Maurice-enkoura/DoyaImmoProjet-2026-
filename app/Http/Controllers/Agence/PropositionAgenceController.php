@@ -114,6 +114,14 @@ public function store(Request $request)
         $hasVideos = $request->hasFile('proposition_videos') && count($request->file('proposition_videos')) > 0;
         $hasMedia  = $hasImages || $hasVideos;
 
+        if ($hasBien) {
+            $bienSelect = BienImmobilier::find($request->bien_id);
+            if (!$bienSelect || $bienSelect->agence_id !== $agence->id) {
+                DB::rollBack();
+                return redirect()->back()->with('error', 'Le bien sélectionné n\'appartient pas à votre agence.')->withInput();
+            }
+        }
+
         if (!$hasBien && !$hasMedia) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Veuillez sélectionner un bien existant OU ajouter des photos/vidéos.');
@@ -208,7 +216,7 @@ public function store(Request $request)
             $images = array_slice(array_filter($request->file('proposition_images'), fn($i) => $i && $i->isValid()), 0, 10);
             foreach ($images as $image) {
                 try {
-                    $path = $image->store('propositions/' . $proposition->id . '/images', 'public');
+                    $path = \App\Services\ImageOptimizerService::storeAndOptimize($image, 'propositions/' . $proposition->id . '/images');
                     Media::create([
                         'agence_id'     => $agence->id,
                         'mediable_id'   => $proposition->id,
